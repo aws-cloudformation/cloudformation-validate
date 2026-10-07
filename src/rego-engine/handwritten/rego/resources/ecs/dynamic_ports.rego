@@ -63,6 +63,7 @@ violation contains make_diag_related("W3049", "WARN", b.tg_name,
         [b.container, b.tg_name, wrong_port, wrong_port]),
     _related(b.svc)
 ) if {
+    cfn_rule_active("W3049")
     some b in _dynamic_port_bindings
     some wrong_port in _health_check_ports(b.tg_name)
     wrong_port != "traffic-port"
@@ -77,6 +78,7 @@ violation contains make_diag_related("I3049", "INFO", b.tg_name,
         [b.container, b.tg_name]),
     _related(b.svc)
 ) if {
+    cfn_rule_active("I3049")
     some b in _dynamic_port_bindings
     not "HealthCheckPort" in object.keys(b.tg.properties)
 }

@@ -1,0 +1,19 @@
+# A listener with a referenced certificate must not hide a sibling HTTPS
+# listener that has none.
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  CertificateArn:
+    Type: String
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets: [subnet-0123456789abcdef0, subnet-0123456789abcdef1]
+      Listeners:
+        - LoadBalancerPort: '443'
+          InstancePort: '80'
+          Protocol: HTTPS
+          SSLCertificateId: !Ref CertificateArn
+        - LoadBalancerPort: '8443'
+          InstancePort: '80'
+          Protocol: HTTPS

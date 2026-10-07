@@ -1,0 +1,25 @@
+Resources:
+  CfnBucket:
+    Type: AWS::S3::Bucket
+  FirstBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CfnBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: s3:DeleteBucket
+            Resource: !GetAtt CfnBucket.Arn
+  SecondBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CfnBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: s3:DeleteBucket
+            Resource: !GetAtt CfnBucket.Arn

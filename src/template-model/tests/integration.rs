@@ -286,12 +286,15 @@ fn parser_minimal_template_no_properties() {
 #[test]
 fn parser_fn_if_undefined_condition_produces_e1028() {
     // An undefined Fn::If condition is reported once, as E1028, even when no
-    // Conditions section is present.
-    let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::If":["NonExistent",1,2]}}}}}"#;
+    // Conditions section is present, and points to the condition operand.
+    let input = "Resources:\n  R:\n    Type: T\n    Properties:\n      V: !If [NonExistent, 1, 2]\n";
     let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
     let e1028: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E1028").collect();
     assert_eq!(e1028.len(), 1, "exactly one E1028 for an undefined Fn::If condition");
     assert!(e1028[0].message.contains("NonExistent"));
+    assert_eq!(e1028[0].resource_id.as_deref(), Some("R"));
+    assert_eq!(e1028[0].property_path.as_deref(), Some("Properties.V.Fn::If.0"));
+    assert_eq!((e1028[0].span.start_line, e1028[0].span.start_column), (5, 15));
     assert!(!model.diagnostics.iter().any(|d| d.rule_id == "F1104"), "F1104 must no longer fire for this case");
 }
 
@@ -827,4 +830,890 @@ Resources:
     let f8611 = model.diagnostics.iter().filter(|d| d.rule_id == "F8611").count();
     assert_eq!(e8003, 1, "operand type finding fires once: {:?}", model.diagnostics);
     assert_eq!(f8611, 0, "allowlist walk must not double-report the operand: {:?}", model.diagnostics);
+}
+
+#[test]
+fn e3001_missing_type_produces_diagnostic() {
+    let input = br#"{"Resources":{"R":{"Properties":{"K":"V"}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for missing Type: {:?}", findings);
+    assert!(findings[0].message.contains("missing required property 'Type'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_non_object_resource_body_produces_diagnostic() {
+    let yaml = b"
+Resources:
+  R: a string value
+  S:
+    Type: AWS::S3::Bucket
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for non-object body: {:?}", findings);
+    assert!(findings[0].message.contains("must be an object"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_non_string_type_produces_diagnostic() {
+    let input = br#"{"Resources":{"R":{"Type":42,"Properties":{"K":"V"}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for non-string Type: {:?}", findings);
+    assert!(findings[0].message.contains("'Type' must be a string"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_unknown_attribute_produces_diagnostic() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Bogus":"x","Properties":{}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for unknown attribute: {:?}", findings);
+    assert!(findings[0].message.contains("invalid property 'Bogus'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_condition_must_be_string() {
+    let yaml = b"
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+    Condition: true
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for boolean Condition: {:?}", findings);
+    assert!(findings[0].message.contains("'Condition' must be a string"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_depends_on_must_be_string_or_list() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","DependsOn":123}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for numeric DependsOn: {:?}", findings);
+    assert!(findings[0].message.contains("must be a string or list of strings"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_depends_on_list_elements_must_be_strings() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","DependsOn":["A",123]}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "expected one E3001 for non-string list element: {:?}", findings);
+    assert!(findings[0].message.contains("list elements must be strings"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_valid_resource_no_findings() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Properties":{"BucketName":"b"},"Condition":"C","DependsOn":["X"],"Metadata":{},"DeletionPolicy":"Retain","UpdateReplacePolicy":"Retain","UpdatePolicy":{},"CreationPolicy":{}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "no E3001 for valid resource: {:?}", findings);
+}
+
+#[test]
+fn e3001_version_attribute_accepted_for_custom_resource() {
+    let input = br#"{"Resources":{"R":{"Type":"Custom::Thing","Version":"1.0"}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "Version is valid for a custom resource: {:?}", findings);
+}
+
+#[test]
+fn e3001_version_attribute_rejected_for_standard_resource() {
+    let input = br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Version":"1.0"}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "Version is not valid for a standard resource: {:?}", findings);
+    assert!(findings[0].message.contains("only valid for custom resources"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_plain_transform_attribute_is_rejected() {
+    let input =
+        br#"{"Resources":{"R":{"Type":"AWS::S3::Bucket","Transform":{"Name":"AWS::Include"},"Properties":{}}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "plain Transform is not a resource attribute: {:?}", findings);
+    assert!(findings[0].message.contains("invalid property 'Transform'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_lifecycle_policies_must_be_objects() {
+    let yaml = b"
+Resources:
+  Creation:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy: invalid
+  Update:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 2, "both scalar lifecycle policies must be rejected: {:?}", findings);
+    assert!(findings.iter().any(|finding| finding.message.contains("'CreationPolicy' must be an object")));
+    assert!(findings.iter().any(|finding| finding.message.contains("'UpdatePolicy' must be an object")));
+}
+
+#[test]
+fn lifecycle_attribute_status_tracks_effective_presence_and_shape() {
+    let yaml = b"
+Parameters:
+  Env:
+    Type: String
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Env, enabled]
+Resources:
+  Absent:
+    Type: AWS::S3::Bucket
+  Object:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: {}
+  Scalar:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+  Intrinsic:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: !Ref Policy
+  Impossible:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If [Never, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    UpdatePolicy: {}
+  Conditional:
+    Type: AWS::S3::Bucket
+    UpdatePolicy: !If [Maybe, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let absent = model.lifecycle_attribute_status("Absent", "UpdatePolicy");
+    assert!(!absent.may_be_present);
+    assert_eq!(absent.invalid_value, None);
+
+    let object = model.lifecycle_attribute_status("Object", "UpdatePolicy");
+    assert!(object.may_be_present);
+    assert_eq!(object.invalid_value, None);
+
+    let scalar = model.lifecycle_attribute_status("Scalar", "UpdatePolicy");
+    assert!(scalar.may_be_present);
+    assert_eq!(scalar.invalid_value.as_deref(), Some("7"));
+
+    let intrinsic = model.lifecycle_attribute_status("Intrinsic", "UpdatePolicy");
+    assert!(intrinsic.may_be_present);
+    assert_eq!(intrinsic.invalid_value, None);
+
+    let impossible = model.lifecycle_attribute_status("Impossible", "UpdatePolicy");
+    assert!(!impossible.may_be_present);
+    assert_eq!(impossible.invalid_value, None);
+
+    let impossible_resource = model.lifecycle_attribute_status("ImpossibleResource", "UpdatePolicy");
+    assert!(!impossible_resource.may_be_present);
+    assert_eq!(impossible_resource.invalid_value, None);
+
+    let conditional = model.lifecycle_attribute_status("Conditional", "UpdatePolicy");
+    assert!(conditional.may_be_present);
+    assert_eq!(conditional.invalid_value, None);
+}
+
+#[test]
+fn e3001_custom_resources_reject_lifecycle_policies() {
+    let yaml = b"
+Resources:
+  R:
+    Type: AWS::CloudFormation::CustomResource
+    CreationPolicy: {}
+    UpdatePolicy: {}
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 2, "custom resources cannot use lifecycle policies: {:?}", findings);
+    assert!(findings.iter().all(|finding| finding.message.contains("not valid for custom resources")));
+}
+
+#[test]
+fn e3001_intrinsic_lifecycle_policy_shape_is_deferred() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Resources:
+  R:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "an intrinsic policy shape is not statically known: {:?}", findings);
+}
+
+#[test]
+fn e3001_sam_connectors_accepted_with_transform() {
+    let yaml = b"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  F:
+    Type: AWS::Serverless::Function
+    Connectors:
+      MyConn:
+        Properties:
+          Destination:
+            Id: F
+          Permissions:
+            - Read
+    Properties:
+      Runtime: python3.11
+      Handler: index.handler
+      CodeUri: ./src
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "Connectors is valid under SAM transform: {:?}", findings);
+}
+
+#[test]
+fn e3001_sam_ignore_globals_accepted_with_transform() {
+    let yaml = b"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  F:
+    Type: AWS::Serverless::Function
+    IgnoreGlobals: true
+    Properties:
+      Runtime: python3.11
+      Handler: index.handler
+      CodeUri: ./src
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.is_empty(), "IgnoreGlobals is valid under SAM transform: {:?}", findings);
+}
+
+#[test]
+fn e3001_sam_connectors_rejected_without_transform() {
+    let yaml = b"
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+    Connectors:
+      MyConn:
+        Properties:
+          Destination:
+            Id: R
+    Properties:
+      BucketName: b
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "Connectors without SAM transform is invalid: {:?}", findings);
+    assert!(findings[0].message.contains("invalid property 'Connectors'"), "message: {}", findings[0].message);
+}
+
+#[test]
+fn e3001_multiple_violations_per_resource() {
+    let input = br#"{"Resources":{"R":{"Properties":{"K":"V"},"Bogus":"x"}}}"#;
+    let model = SemanticModel::from_bytes(input).unwrap();
+    let findings: Vec<_> = model.diagnostics.iter().filter(|d| d.rule_id == "E3001").collect();
+    assert!(findings.len() >= 2, "expected at least 2 E3001 (missing Type + unknown attribute): {:?}", findings);
+}
+
+#[test]
+fn resource_macros_are_not_resource_shape_or_logical_id_errors() {
+    let yaml = b"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: s3://example/fragment.yaml
+  Fn::Transform:
+    Name: AWS::Include
+    Parameters:
+      Location: s3://example/resources.yaml
+";
+    let model = SemanticModel::from_bytes(yaml).expect("resource macros parse");
+    let resource_shape_findings: Vec<_> =
+        model.diagnostics.iter().filter(|finding| finding.rule_id == "E3001").collect();
+    assert!(
+        resource_shape_findings.is_empty(),
+        "valid resource macros must not be rejected: {resource_shape_findings:?}"
+    );
+}
+
+#[test]
+fn fn_transform_list_value_is_a_structural_error() {
+    let yaml = b"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      Included:
+        Fn::Transform:
+          - Name: AWS::Include
+            Parameters:
+              Location: s3://example/fragment.yaml
+";
+    let model = SemanticModel::from_bytes(yaml).expect("malformed transform still produces a semantic model");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert_eq!(findings.len(), 1, "list-form Fn::Transform must produce one structural finding: {findings:?}");
+    assert_eq!(findings[0].message, "Fn::Transform: Fn::Transform value must be an object");
+}
+
+#[test]
+fn fn_transform_parameters_emit_reference_edges() {
+    let yaml = b"
+Parameters:
+  IncludeBaseUrl:
+    Type: String
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      Included:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: !Sub '${IncludeBaseUrl}/fragment.yaml'
+";
+    let model = SemanticModel::from_bytes(yaml).expect("valid transform parses");
+    let matching_edges: Vec<_> =
+        model.graph.outgoing("Bucket").into_iter().filter(|edge| edge.target == "IncludeBaseUrl").collect();
+    assert_eq!(matching_edges.len(), 1, "transform parameter must reference IncludeBaseUrl: {matching_edges:?}");
+    assert_eq!(matching_edges[0].source_path, "Metadata.Included.Fn::Transform.Parameters.Location");
+}
+
+#[test]
+fn custom_resource_version_must_be_string_or_integer() {
+    let yaml = b"
+Resources:
+  ProviderBacked:
+    Type: Custom::Thing
+    Version: false
+    Properties:
+      ServiceToken: arn:aws:lambda:us-east-1:123456789012:function:provider
+";
+    let model = SemanticModel::from_bytes(yaml).expect("custom resource parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "E3001").collect();
+    assert_eq!(findings.len(), 1, "invalid Version shape must produce one finding: {findings:?}");
+    assert_eq!(findings[0].resource_id.as_deref(), Some("ProviderBacked"));
+    assert!(findings[0].message.contains("must be a string or integer"), "unexpected message: {}", findings[0].message);
+}
+
+#[test]
+fn every_malformed_condition_body_is_reported_at_its_condition_path() {
+    let yaml = b"
+Parameters:
+  P:
+    Type: String
+Conditions:
+  ScalarBody: not-a-condition
+  EmptyBody: {}
+  MultiBody:
+    Fn::Equals: [!Ref P, prod]
+    Fn::Not: [!Equals [!Ref P, dev]]
+  UnknownFunction:
+    Fn::Of: [true]
+  BareRef: !Ref P
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+";
+    let model = SemanticModel::from_bytes(yaml).expect("condition template parses");
+    let mut paths: Vec<_> = model
+        .diagnostics
+        .iter()
+        .filter(|finding| finding.rule_id == "E8001")
+        .filter_map(|finding| finding.property_path.clone())
+        .collect();
+    paths.sort();
+    assert_eq!(
+        paths,
+        [
+            "Conditions/BareRef",
+            "Conditions/EmptyBody",
+            "Conditions/MultiBody",
+            "Conditions/ScalarBody",
+            "Conditions/UnknownFunction",
+        ]
+    );
+}
+
+#[test]
+fn foreach_generated_condition_body_is_validated_after_expansion() {
+    let yaml = b"
+Transform: AWS::LanguageExtensions
+Conditions:
+  Fn::ForEach::Conditions:
+  - Identifier
+  - [One]
+  - Bad${Identifier}: not-a-condition
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+";
+    let model = SemanticModel::from_bytes(yaml).expect("ForEach condition template parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "E8001").collect();
+    assert_eq!(findings.len(), 1, "expanded malformed condition must be reported once: {findings:?}");
+    assert_eq!(findings[0].property_path.as_deref(), Some("Conditions/BadOne"));
+}
+
+#[test]
+fn intrinsic_argument_shape_errors_have_precise_paths() {
+    let yaml = b"
+Conditions:
+  IsProd: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      Encoded:
+        Fn::Base64: [not, a-string]
+    Properties:
+      BucketName:
+        Fn::If:
+        - Fn::Equals: [!Ref AWS::Region, us-east-1]
+        - prod-bucket
+        - other-bucket
+";
+    let model = SemanticModel::from_bytes(yaml).expect("intrinsic shape template parses");
+    let base64 = model.diagnostics.iter().find(|finding| finding.rule_id == "E1021").expect("Base64 list is rejected");
+    assert_eq!(base64.property_path.as_deref(), Some("Metadata.Encoded.Fn::Base64"));
+    let condition =
+        model.diagnostics.iter().find(|finding| finding.rule_id == "E1028").expect("If expression is rejected");
+    assert_eq!(condition.property_path.as_deref(), Some("Properties.BucketName.Fn::If.0"));
+}
+
+#[test]
+fn sub_literal_escapes_resolve_and_unresolved_variables_record_sub_edges() {
+    let yaml = b"
+Resources:
+  R:
+    Type: Test::Resource
+    Properties:
+      Escaped: !Sub 'literal-${!NotAReference}-end'
+      Missing: !Sub 'prefix-${MissingTarget}'
+";
+    let model = SemanticModel::from_bytes(yaml).expect("Sub template parses");
+    match model.resolve("R", "Properties.Escaped") {
+        Some(ResolvedValue::Concrete { value }) => {
+            assert_eq!(value.as_str(), Some("literal-${NotAReference}-end"));
+        }
+        other => panic!("literal escape must resolve concretely, got {other:?}"),
+    }
+    let missing_edge = model
+        .graph
+        .outgoing("R")
+        .into_iter()
+        .find(|edge| edge.target == "MissingTarget")
+        .expect("unresolved Sub variable records an edge");
+    assert!(matches!(missing_edge.kind, template_model::resolver::RefKind::Sub { .. }));
+    assert_eq!(missing_edge.source_path, "Properties.Missing");
+}
+
+#[test]
+fn parameter_allowed_values_preserve_float_and_boolean_scalars() {
+    let yaml = b"
+Parameters:
+  Fraction:
+    Type: Number
+    Default: 1.5
+    AllowedValues: [1.5, 2.5]
+  Flag:
+    Type: String
+    Default: true
+    AllowedValues: [true, false]
+Resources:
+  R:
+    Type: Test::Resource
+";
+    let model = SemanticModel::from_bytes(yaml).expect("parameter template parses");
+    assert_eq!(
+        model.parameters["Fraction"].allowed_values.as_deref(),
+        Some(&["1.5".to_string(), "2.5".to_string()][..])
+    );
+    assert_eq!(
+        model.parameters["Flag"].allowed_values.as_deref(),
+        Some(&["true".to_string(), "false".to_string()][..])
+    );
+}
+
+#[test]
+fn lifecycle_policy_scenarios_expands_conditional_branches() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ValidConditional:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, Retain, Delete]
+  DirectNoValue:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::NoValue
+  JoinPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Join ['', [Re, tain]]
+  StackIdPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::StackId
+  ImpossibleBranch:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Never, InvalidPolicy, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    DeletionPolicy: NotValid
+  BothBranchesLiteral:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, WrongOne, AlsoWrong]
+  CorrelatedResource:
+    Type: AWS::S3::Bucket
+    Condition: Maybe
+    DeletionPolicy: !If [Maybe, Retain, InvalidPolicy]
+  DynamicObject:
+    Type: AWS::S3::Bucket
+    DeletionPolicy:
+      Value: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let valid = model.lifecycle_policy_scenarios("ValidConditional", "DeletionPolicy");
+    assert_eq!(valid.len(), 2, "both branches are reachable: {:?}", valid);
+    let values: Vec<&str> = valid.iter().filter_map(|(v, _)| v.as_str()).collect();
+    assert!(values.contains(&"Retain"));
+    assert!(values.contains(&"Delete"));
+
+    let novalue = model.lifecycle_policy_scenarios("DirectNoValue", "DeletionPolicy");
+    assert_eq!(novalue.len(), 1, "direct NoValue remains an invalid null value: {:?}", novalue);
+    assert!(novalue[0].0.is_null());
+
+    let join = model.lifecycle_policy_scenarios("JoinPolicy", "DeletionPolicy");
+    assert_eq!(join.len(), 1, "Join resolves before lifecycle value validation: {join:?}");
+    assert_eq!(join[0].0.as_str(), Some("Retain"));
+
+    let stack_id = model.lifecycle_policy_scenarios("StackIdPolicy", "DeletionPolicy");
+    assert_eq!(stack_id.len(), 1, "StackId has a deterministic pseudo-parameter value: {stack_id:?}");
+    assert!(
+        stack_id[0].0.as_str().is_some_and(|value| value.starts_with("arn:") && value.contains(":stack/")),
+        "StackId must reach final-value validation as a concrete ARN: {stack_id:?}"
+    );
+
+    let impossible = model.lifecycle_policy_scenarios("ImpossibleBranch", "DeletionPolicy");
+    assert_eq!(impossible.len(), 1, "the reachable NoValue branch remains invalid: {:?}", impossible);
+    assert!(impossible[0].0.is_null());
+
+    let unreachable = model.lifecycle_policy_scenarios("ImpossibleResource", "DeletionPolicy");
+    assert!(unreachable.is_empty(), "unreachable resource: {:?}", unreachable);
+
+    let both_invalid = model.lifecycle_policy_scenarios("BothBranchesLiteral", "DeletionPolicy");
+    assert_eq!(both_invalid.len(), 2, "both branches are reachable: {:?}", both_invalid);
+
+    let correlated = model.lifecycle_policy_scenarios("CorrelatedResource", "DeletionPolicy");
+    assert_eq!(correlated.len(), 1, "resource condition excludes the false branch: {:?}", correlated);
+    assert_eq!(correlated[0].0.as_str(), Some("Retain"));
+
+    let dynamic_object = model.lifecycle_policy_scenarios("DynamicObject", "DeletionPolicy");
+    assert_eq!(dynamic_object.len(), 1, "an authored object remains a concrete invalid shape");
+    assert!(dynamic_object[0].0.is_object());
+}
+
+#[test]
+fn lifecycle_policy_scenarios_defers_on_dynamic_ref() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Resources:
+  RefPolicy:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+    let scenarios = model.lifecycle_policy_scenarios("RefPolicy", "DeletionPolicy");
+    assert!(scenarios.is_empty(), "dynamic ref should defer (no scenarios): {:?}", scenarios);
+}
+
+#[test]
+fn lifecycle_attribute_status_respects_conditions_for_all_attributes() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  DirectNoValue:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !Ref AWS::NoValue
+  ImpossibleBranch:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !If [Never, {ResourceSignal: {Count: 1}}, !Ref AWS::NoValue]
+  ImpossibleResource:
+    Type: AWS::S3::Bucket
+    Condition: Never
+    CreationPolicy:
+      ResourceSignal: {Count: 1}
+  MaybePresent:
+    Type: AWS::S3::Bucket
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, !Ref AWS::NoValue]
+  DeletionNoValue:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref AWS::NoValue
+  DeletionAlwaysAbsent:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !If [Maybe, !Ref AWS::NoValue, !Ref AWS::NoValue]
+  DeletionDynamic:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: !Ref Policy
+  UpdateAlwaysAbsent:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: !If [Maybe, !Ref AWS::NoValue, !Ref AWS::NoValue]
+  UpdateMaybePresent:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: !If [Maybe, {AutoScalingRollingUpdate: {}}, !Ref AWS::NoValue]
+";
+    let model = SemanticModel::from_bytes(yaml).unwrap();
+
+    let direct = model.lifecycle_attribute_status("DirectNoValue", "CreationPolicy");
+    assert!(direct.may_be_present, "illegal NoValue remains an authored CreationPolicy");
+
+    let impossible = model.lifecycle_attribute_status("ImpossibleBranch", "CreationPolicy");
+    assert!(impossible.may_be_present, "a root CreationPolicy Fn::If remains authored");
+
+    let resource = model.lifecycle_attribute_status("ImpossibleResource", "CreationPolicy");
+    assert!(!resource.may_be_present, "impossible resource means absent");
+
+    let maybe = model.lifecycle_attribute_status("MaybePresent", "CreationPolicy");
+    assert!(maybe.may_be_present, "reachable branch is present");
+
+    let deletion_novalue = model.lifecycle_attribute_status("DeletionNoValue", "DeletionPolicy");
+    assert!(deletion_novalue.may_be_present, "illegal NoValue is not policy omission");
+
+    let deletion_always_absent = model.lifecycle_attribute_status("DeletionAlwaysAbsent", "DeletionPolicy");
+    assert!(deletion_always_absent.may_be_present, "NoValue branches are not policy omission");
+
+    let deletion_dynamic = model.lifecycle_attribute_status("DeletionDynamic", "DeletionPolicy");
+    assert!(deletion_dynamic.may_be_present);
+
+    let update_absent = model.lifecycle_attribute_status("UpdateAlwaysAbsent", "UpdatePolicy");
+    assert!(!update_absent.may_be_present, "UpdatePolicy still supports conditional NoValue omission");
+
+    let update_maybe = model.lifecycle_attribute_status("UpdateMaybePresent", "UpdatePolicy");
+    assert!(update_maybe.may_be_present, "a reachable UpdatePolicy object remains present");
+}
+
+#[test]
+fn lifecycle_policy_intrinsics_and_creation_policy_if_do_not_require_a_transform() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+    AllowedValues: [Retain, Delete]
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Policy, Retain]
+Resources:
+  CreationConditional:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Maybe
+      - ResourceSignal: {Count: 1}
+      - ResourceSignal: {Count: 2}
+  DeletionConditional:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If [Maybe, Retain, Delete]
+  UpdateRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Ref Policy
+  Unreachable:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    CreationPolicy: !Ref Policy
+    DeletionPolicy: !Ref Policy
+";
+    let model = SemanticModel::from_bytes(yaml).expect("lifecycle placement template parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert!(findings.is_empty(), "valid lifecycle intrinsics must not produce placement findings: {findings:?}");
+}
+
+#[test]
+fn lifecycle_policy_intrinsics_have_no_function_or_ref_placement_allowlist() {
+    let yaml = b"
+Parameters:
+  Policy:
+    Type: String
+    AllowedValues: [Retain, Delete]
+Mappings:
+  Policies:
+    us-east-1:
+      Deletion: Retain
+Conditions:
+  Never: !Equals [always, never]
+  Maybe: !Equals [!Ref Policy, Retain]
+Resources:
+  Target:
+    Type: AWS::CloudFormation::WaitConditionHandle
+  ValidConditional:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If
+      - Maybe
+      - !FindInMap [Policies, !Ref AWS::Region, Deletion]
+      - !Ref Policy
+  ValidSub:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Sub
+      - '${PolicyName}'
+      - PolicyName: Retain
+  ValidSelect:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Select [1, [Delete, Retain]]
+  ValidJoin:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Join ['', [Re, tain]]
+  CreationConditional:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, {ResourceSignal: {Count: 2}}]
+  NoValueRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    UpdateReplacePolicy: !Ref AWS::NoValue
+  StackIdRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref AWS::StackId
+  ResourceRef:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref Target
+  UnreachableJoin:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    DeletionPolicy: !Join ['', [Re, tain]]
+";
+    let model = SemanticModel::from_bytes(yaml).expect("lifecycle intrinsic template parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert!(findings.is_empty(), "lifecycle policy functions and Ref targets are not placement errors: {findings:?}");
+}
+
+#[test]
+fn creation_policy_root_intrinsics_match_service_shape_contract() {
+    let yaml = b"
+Parameters:
+  CreationValue:
+    Type: String
+    Default: not-an-object
+  Toggle:
+    Type: String
+    AllowedValues: [enabled, disabled]
+Mappings:
+  CreationValues:
+    Primary:
+      Policy: not-an-object
+Conditions:
+  Maybe: !Equals [!Ref Toggle, enabled]
+  Never: !Equals [always, never]
+Resources:
+  ValidIf:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Maybe
+      - ResourceSignal: {Count: 1}
+      - ResourceSignal: {Count: 2}
+  NestedIf:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Maybe
+      - !If [Never, invalid, {ResourceSignal: {Count: 1}}]
+      - ResourceSignal: {Count: 2}
+  ImpossibleScalarBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Never, invalid, {ResourceSignal: {Count: 1}}]
+  CorrelatedScalarBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    Condition: Maybe
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, invalid]
+  ReachableScalarBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, invalid]
+  RootRef:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Ref CreationValue
+  RootFindInMap:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !FindInMap [CreationValues, Primary, Policy]
+  RootSelect:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Select
+      - 0
+      - - ResourceSignal: {Count: 1}
+        - ResourceSignal: {Count: 2}
+  RootSub:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !Sub
+      - '${Value}'
+      - Value: not-an-object
+  NestedFunctions:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Select [0, [1, 2]]
+        Timeout: !Sub
+          - 'PT${Minutes}M'
+          - Minutes: 10
+";
+    let model = SemanticModel::from_bytes(yaml).expect("CreationPolicy matrix parses");
+    let findings: Vec<_> = model.diagnostics.iter().filter(|finding| finding.rule_id == "F1101").collect();
+    assert_eq!(findings.len(), 5, "four rejected roots and one reachable scalar branch: {findings:?}");
+
+    for resource_id in ["RootRef", "RootFindInMap", "RootSelect", "RootSub"] {
+        assert!(
+            findings.iter().any(|finding| {
+                finding.resource_id.as_deref() == Some(resource_id)
+                    && finding.message.contains("not supported as a top-level CreationPolicy")
+            }),
+            "missing root CreationPolicy finding for {resource_id}: {findings:?}"
+        );
+    }
+    assert!(
+        findings.iter().any(|finding| {
+            finding.resource_id.as_deref() == Some("ReachableScalarBranch")
+                && finding.message.contains("Fn::If branch in CreationPolicy must be an object")
+        }),
+        "missing reachable branch-shape finding: {findings:?}"
+    );
+    for resource_id in ["ValidIf", "NestedIf", "ImpossibleScalarBranch", "CorrelatedScalarBranch", "NestedFunctions"] {
+        assert!(
+            !findings.iter().any(|finding| finding.resource_id.as_deref() == Some(resource_id)),
+            "unexpected CreationPolicy finding for {resource_id}: {findings:?}"
+        );
+    }
+}
+
+/// Each marker CDK leaves in a synthesized template is sufficient on its own:
+/// the analytics resource type, its reserved logical ID, or construct-path
+/// metadata (the only marker left when analytics reporting is disabled).
+#[test]
+fn cdk_template_is_detected_from_each_synthesis_marker() {
+    let marked = [
+        "Resources:\n  Analytics:\n    Type: AWS::CDK::Metadata\n",
+        "Resources:\n  CDKMetadata:\n    Type: AWS::SQS::Queue\n",
+        "Resources:\n  Queue:\n    Type: AWS::SQS::Queue\n    Metadata:\n      aws:cdk:path: Stack/Queue/Resource\n",
+    ];
+    for template in marked {
+        let model = SemanticModel::from_bytes(template.as_bytes()).expect("cdk template parses");
+        assert!(model.is_cdk, "expected CDK detection for:\n{template}");
+    }
+
+    let unmarked = "Resources:\n  Queue:\n    Type: AWS::SQS::Queue\n    Metadata:\n      Comment: hand-written\n";
+    let model = SemanticModel::from_bytes(unmarked.as_bytes()).expect("plain template parses");
+    assert!(!model.is_cdk, "a hand-written template must not be treated as synthesized");
 }

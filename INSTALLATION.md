@@ -1,8 +1,8 @@
 # Installation
 
-`cloudformation-validate` is distributed as a prebuilt command-line tool and as packages for Node.js, Python, Go, and
-the JVM. All distributions contain the validation rules and CloudFormation resource schemas they need, so validation
-runs offline after installation without AWS credentials or runtime downloads.
+`cloudformation-validate` is distributed as a prebuilt command-line tool and as packages for Rust, Node.js, Python,
+Go, and the JVM. All distributions contain the validation rules and CloudFormation resource schemas they need, so
+validation runs offline after installation without AWS credentials or runtime downloads.
 
 ## Command-line interface
 
@@ -13,8 +13,11 @@ shown first. Open that release and download the asset for your platform:
 | Platform | Release asset |
 |----------|---------------|
 | Linux x86-64 | `cfn-validate-<version>-linux-x64` |
+| Linux ARM64 | `cfn-validate-<version>-linux-aarch64` |
 | macOS Apple silicon | `cfn-validate-<version>-darwin-aarch64` |
+| macOS Intel | `cfn-validate-<version>-darwin-x64` |
 | Windows x86-64 | `cfn-validate-<version>-win32-x64.exe` |
+| Windows ARM64 | `cfn-validate-<version>-win32-aarch64.exe` |
 
 On Linux or macOS, make the downloaded file executable, rename it to `cfn-validate`, and move it to a directory on
 `PATH`. On Windows, rename it to `cfn-validate.exe` and move it to a directory on `PATH`.
@@ -33,6 +36,21 @@ codes.
 
 Package-manager installation is recommended: it selects the compatible native artifact and resolves any runtime
 dependencies. Use an explicit version in applications that require reproducible builds.
+
+### Rust
+
+The Rust library is published to [crates.io as `cloudformation-validate`](https://crates.io/crates/cloudformation-validate)
+and requires Rust 1.96 or later.
+
+```bash
+# Latest release
+cargo add cloudformation-validate
+
+# Specific release (replace <version>)
+cargo add 'cloudformation-validate@=<version>'
+```
+
+See the [Rust API and examples](src/bindings-rust/README.md).
 
 ### Node.js
 
@@ -53,7 +71,7 @@ See the [Node.js API and examples](src/bindings-wasm/README.md).
 ### Python
 
 Production versions are published to [PyPI](https://pypi.org/project/cloudformation-validate/); prereleases are
-published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.12 or
+published to [TestPyPI](https://test.pypi.org/project/cloudformation-validate/). The package requires Python 3.9 or
 later, and its platform-specific wheels have no runtime package dependencies.
 
 ```bash
@@ -74,8 +92,8 @@ See the [Python API and examples](src/bindings-python/README.md).
 ### Go
 
 The published [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go)
-requires Go 1.26 or later, cgo, and a C linker. It currently contains native libraries for Linux x86-64, macOS Apple
-silicon, and Windows x86-64; Windows uses the MinGW-w64 GNU ABI.
+requires Go 1.26 or later, cgo, and a C linker. It currently contains native libraries for Linux x86-64, Linux ARM64,
+macOS Apple silicon, macOS Intel, and Windows x86-64; Windows uses the MinGW-w64 GNU ABI.
 
 ```bash
 # Latest release
@@ -95,7 +113,7 @@ See the [Go API and examples](src/bindings-go/README.md).
 
 The JVM library is published to
 [Maven Central as `software.amazon.cloudformation:cloudformation-validate`](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
-and requires JDK 21 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
+and requires Java 8 or later. The jar includes native libraries for all supported platforms; Maven or Gradle resolves
 JNA, Gson, and the Kotlin standard library.
 
 Gradle (Kotlin DSL):
@@ -127,22 +145,15 @@ Maven:
 `latest.release` and `[0,)` select the newest published version. Replace them with a version shown on Maven Central to
 pin the dependency. See the [JVM API and examples](src/bindings-jvm/README.md).
 
-## Versioned GitHub release assets
+## GitHub release assets
 
-The [GitHub Releases page](https://github.com/aws-cloudformation/cloudformation-validate/releases) also publishes raw,
-versioned artifacts. Package-manager installation is usually easier, but these assets support vendoring and offline
-installation (`<version>` is the release tag):
+GitHub Releases contain the prebuilt CLI binaries listed above and their signing material. Language bindings are
+published through crates.io, npm, PyPI or TestPyPI, the Go module proxy, and Maven Central rather than duplicated as
+GitHub release archives.
 
-* `cloudformation-validate-<version>.jar` - JVM binding
-* `cloudformation-validate-wasm-<version>.zip` - Node.js/WASM package
-* `cloudformation_validate-<version>-py3-none-<platform>.whl` - Python wheel for one native target; beta release tags
-  use Python's `<version>b0` form
-* `cloudformation-validate-go-<version>.zip` - Go module with the supported native libraries
-* `cfn-validate-<version>-<os>-<arch>` - CLI binary (with `.exe` on Windows)
+### Verify a downloaded CLI release asset
 
-### Verify a downloaded release asset
-
-Each raw artifact has a detached `<artifact>.sig` signature. The same release includes `signing-key.pem` and its
+Each CLI binary has a detached `<artifact>.sig` signature. The same release includes `signing-key.pem` and its
 `signing-key.pem.sha256` fingerprint. Download all three files from that release and verify with OpenSSL:
 
 ```bash
@@ -167,7 +178,7 @@ The SHA-256 values must match.
 
 The installation methods above do not require a source checkout or development toolchain. Contributors building or
 testing the project from source need the tools below. Pinned versions live in
-[`.github/workflows/configs.yml`](.github/workflows/configs.yml) and
+[`.github/versions.env`](.github/versions.env) and
 [`src/rust-toolchain.toml`](src/rust-toolchain.toml); matching them avoids environment drift.
 
 ### Required tools
@@ -185,7 +196,7 @@ testing the project from source need the tools below. Pinned versions live in
 | Kotlin (`kotlinc`)              | 2.4.0   | JVM binding build                                         |                                                                                                                 |
 | `ktlint`                        | 1.8.0   | JVM binding formatting                                    |                                                                                                                 |
 | Gradle                          | 9.6.1   | JVM binding build/test                                    | Must be on `PATH` - `bindings-jvm/build.sh` and the JVM test runner invoke `gradle`                             |
-| Python                          | 3.12+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
-| Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows also needs `rustup target add x86_64-pc-windows-gnu` and MinGW-w64 `gcc` |
+| Python                          | 3.10+   | Python binding build/test, license generation, `scripts/` | `setuptools` for the wheel build; no other packages required                                                    |
+| Go                              | 1.26+   | Go binding build/test                                     | cgo must be enabled (default); Windows x64 also needs `x86_64-pc-windows-gnu` and MinGW-w64 `gcc`                |
 | `uniffi-bindgen-go`             | 0.7.1   | Go binding generation                                     | `cargo install --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`                    |
 | `git`, `curl`, `openssl`        | -       | source control, fetching JVM deps, verifying releases     | Usually preinstalled                                                                                            |

@@ -14,13 +14,27 @@ const (
 	SeverityDebug Severity = "DEBUG"
 )
 
-// ReportStatus is the outcome of a validation run. StatusOK means the engine
-// completed; StatusError means the pipeline could not run (e.g. parse failure).
+// DetailLevel controls how much per-diagnostic context a report carries.
+// DETAILED, the level used when DetailLevel is unset, enriches each diagnostic
+// with documentation URLs, rule descriptions, phase tags, and violation
+// context; STANDARD leaves those fields absent.
+type DetailLevel string
+
+const (
+	DetailLevelStandard DetailLevel = "STANDARD"
+	DetailLevelDetailed DetailLevel = "DETAILED"
+)
+
+// ReportStatus is the outcome of a validation run. StatusOK means validation
+// completed without correctness-affecting curtailment. StatusAnalysisIncomplete
+// means a deterministic budget curtailed analysis and could omit findings.
+// StatusError means the validation pipeline could not run, such as a parse failure.
 type ReportStatus string
 
 const (
-	StatusOK    ReportStatus = "OK"
-	StatusError ReportStatus = "ERROR"
+	StatusOK                 ReportStatus = "OK"
+	StatusAnalysisIncomplete ReportStatus = "ANALYSIS_INCOMPLETE"
+	StatusError              ReportStatus = "ERROR"
 )
 
 type EntityType string
@@ -67,7 +81,8 @@ type RelatedResource struct {
 	Message  string       `json:"message"`
 }
 
-// ViolationContext carries the resolved values behind a detailed diagnostic.
+// ViolationContext carries the resolved values behind a diagnostic's enrichment
+// context, populated only at the DETAILED detail level.
 type ViolationContext struct {
 	ActualValue        json.RawMessage            `json:"actualValue,omitempty"`
 	ExpectedConstraint *string                    `json:"expectedConstraint,omitempty"`
@@ -87,8 +102,10 @@ const (
 	RuleOriginGuard   RuleOrigin = "GUARD"
 )
 
-// StandardDiagnostic is a single validation finding.
-type StandardDiagnostic struct {
+// Diagnostic is a single validation finding. The enrichment fields
+// (DocumentationURL, RuleDescription, Phase, Context) are populated only when
+// validation runs at the DETAILED detail level; a STANDARD run leaves them nil.
+type Diagnostic struct {
 	RuleID            string            `json:"ruleId"`
 	Severity          Severity          `json:"severity"`
 	Message           string            `json:"message"`
@@ -103,15 +120,10 @@ type StandardDiagnostic struct {
 	EndColumn         *int              `json:"endColumn,omitempty"`
 	RelatedResources  []RelatedResource `json:"relatedResources,omitempty"`
 	ConditionScenario map[string]bool   `json:"conditionScenario,omitempty"`
-}
-
-// DetailedDiagnostic is a StandardDiagnostic enriched with rule context.
-type DetailedDiagnostic struct {
-	StandardDiagnostic
-	DocumentationURL *string           `json:"documentationUrl,omitempty"`
-	RuleDescription  *string           `json:"ruleDescription,omitempty"`
-	Phase            *string           `json:"phase,omitempty"`
-	Context          *ViolationContext `json:"context,omitempty"`
+	DocumentationURL  *string           `json:"documentationUrl,omitempty"`
+	RuleDescription   *string           `json:"ruleDescription,omitempty"`
+	Phase             *string           `json:"phase,omitempty"`
+	Context           *ViolationContext `json:"context,omitempty"`
 }
 
 // Summary counts diagnostics by severity.
@@ -123,16 +135,25 @@ type Summary struct {
 	Debug         int `json:"debug"`
 }
 
+// BudgetExhaustionRecord is a single budget-exhaustion entry in report metadata.
+type BudgetExhaustionRecord struct {
+	Kind               string `json:"kind"`
+	Description        string `json:"description"`
+	Limit              uint64 `json:"limit"`
+	AnalysisIncomplete bool   `json:"analysisIncomplete"`
+}
+
 // ReportMetadata describes the validation run.
 type ReportMetadata struct {
-	RulesEvaluated        int      `json:"rulesEvaluated"`
-	CfnLintVersion        string   `json:"cfnLintVersion"`
-	ResourceSchemaVersion string   `json:"resourceSchemaVersion"`
-	ResourcesScanned      int      `json:"resourcesScanned"`
-	Counts                Summary  `json:"counts"`
-	Suppressed            int      `json:"suppressed"`
-	Strict                bool     `json:"strict"`
-	SeverityLevel         Severity `json:"severityLevel"`
+	RulesEvaluated        int                      `json:"rulesEvaluated"`
+	CfnLintVersion        string                   `json:"cfnLintVersion"`
+	ResourceSchemaVersion string                   `json:"resourceSchemaVersion"`
+	ResourcesScanned      int                      `json:"resourcesScanned"`
+	Counts                Summary                  `json:"counts"`
+	Suppressed            int                      `json:"suppressed"`
+	Strict                bool                     `json:"strict"`
+	SeverityLevel         Severity                 `json:"severityLevel"`
+	BudgetExhaustions     []BudgetExhaustionRecord `json:"budgetExhaustions,omitempty"`
 }
 
 // PhaseMetric is the duration of one pipeline phase.
@@ -151,24 +172,16 @@ type PerformanceMetrics struct {
 	ValidateTotal      PhaseMetric `json:"validateTotal"`
 }
 
-// StandardReport is the result of ValidateStandard.
-type StandardReport struct {
-	FilePath    string               `json:"filePath"`
-	Status      ReportStatus         `json:"status"`
-	Version     string               `json:"version"`
-	Metadata    ReportMetadata       `json:"metadata"`
-	Performance PerformanceMetrics   `json:"performance"`
-	Diagnostics []StandardDiagnostic `json:"diagnostics"`
-}
-
-// DetailedReport is the result of ValidateDetailed.
-type DetailedReport struct {
-	FilePath    string               `json:"filePath"`
-	Status      ReportStatus         `json:"status"`
-	Version     string               `json:"version"`
-	Metadata    ReportMetadata       `json:"metadata"`
-	Performance PerformanceMetrics   `json:"performance"`
-	Diagnostics []DetailedDiagnostic `json:"diagnostics"`
+// ValidationReport is the result of ValidateTemplate. Its diagnostics carry the
+// enrichment fields only when validation ran at the DETAILED detail level; a
+// STANDARD run leaves them nil.
+type ValidationReport struct {
+	FilePath    string             `json:"filePath"`
+	Status      ReportStatus       `json:"status"`
+	Version     string             `json:"version"`
+	Metadata    ReportMetadata     `json:"metadata"`
+	Performance PerformanceMetrics `json:"performance"`
+	Diagnostics []Diagnostic       `json:"diagnostics"`
 }
 
 // RuleInfo describes one rule in the registry.
@@ -205,6 +218,27 @@ type EngineConfig struct {
 	// SchemaValidatorConfig optionally configures the validator bundled by the engine.
 	// When set, the engine derives overlay-aware metadata from the configured
 	// additional schemas.
+	SchemaValidatorConfig *SchemaValidatorConfig `json:"schemaValidatorConfig,omitempty"`
+}
+
+// CompositeEngineConfig holds composite engine construction options. The
+// composite engine evaluates the built-in rules with one engine and the
+// caller-supplied external rules with another, so it carries only the external
+// rules layered on top plus the shared schema config - it has no field for
+// engine-native built-in custom rules because the composite fixes which engine
+// owns the built-ins. The zero value uses only the built-in rules.
+type CompositeEngineConfig struct {
+	// RegoRules are custom Rego rules evaluated by the external engine, layered
+	// on top of the built-in rules.
+	RegoRules []ExternalRuleSource `json:"regoRules,omitempty"`
+	// CelRules are custom CEL rules evaluated by the built-in CEL engine, layered
+	// on top of the built-in rules.
+	CelRules []ExternalRuleSource `json:"celRules,omitempty"`
+	// GuardRules are Guard DSL rules evaluated by the built-in engine, layered on
+	// top of the built-in rules.
+	GuardRules []ExternalRuleSource `json:"guardRules,omitempty"`
+	// SchemaValidatorConfig optionally configures the validator shared by both the
+	// built-in and external evaluation, so both observe the same additional schemas.
 	SchemaValidatorConfig *SchemaValidatorConfig `json:"schemaValidatorConfig,omitempty"`
 }
 
@@ -277,13 +311,81 @@ type PseudoParameterOverrides struct {
 }
 
 // ValidateConfig holds per-call validation options. A nil *ValidateConfig uses
-// the defaults.
+// the defaults. DetailLevel defaults to DETAILED when left empty.
 type ValidateConfig struct {
 	Include                  *RuleFilterConfig         `json:"include,omitempty"`
 	Exclude                  *RuleFilterConfig         `json:"exclude,omitempty"`
+	DetailLevel              DetailLevel               `json:"detailLevel,omitempty"`
 	SeverityLevel            Severity                  `json:"severityLevel,omitempty"`
 	ParameterOverrides       map[string]string         `json:"parameterOverrides,omitempty"`
 	PseudoParameterOverrides *PseudoParameterOverrides `json:"pseudoParameterOverrides,omitempty"`
 	Strict                   *bool                     `json:"strict,omitempty"`
 	DisableBuiltinRules      *bool                     `json:"disableBuiltinRules,omitempty"`
+}
+
+// AWSCLICommand holds an AWS CLI command for offline CloudFormation
+// validation. ServiceName and OperationName identify the API; Parameters carry
+// the request values (maps, strings, numbers, booleans, byte slices, etc.).
+//
+// ServiceName is the canonical botocore service name (for example "s3" or
+// "cloudformation") and is the authoritative mapping identity, normalized only
+// for ASCII case - never a signing name, ARN prefix, or endpoint alias. A
+// future AWS SDK adapter, in any language, must translate its native service
+// identity to the canonical botocore ServiceName before calling; the core does
+// not guess aliases.
+type AWSCLICommand struct {
+	ServiceName   string         `json:"serviceName"`
+	OperationName string         `json:"operationName"`
+	Parameters    map[string]any `json:"parameters"`
+	ServicePrefix string         `json:"servicePrefix,omitempty"`
+	HTTPMethod    string         `json:"httpMethod,omitempty"`
+	IsReadOnly    *bool          `json:"isReadOnly,omitempty"`
+}
+
+// AWSCLIOperationKind classifies an AWS CLI operation.
+type AWSCLIOperationKind string
+
+const (
+	AWSCLIOperationKindReadOnly             AWSCLIOperationKind = "READ_ONLY"
+	AWSCLIOperationKindCloudFormationCreate AWSCLIOperationKind = "CLOUD_FORMATION_CREATE"
+	AWSCLIOperationKindCloudFormationUpdate AWSCLIOperationKind = "CLOUD_FORMATION_UPDATE"
+	AWSCLIOperationKindCloudFormationDelete AWSCLIOperationKind = "CLOUD_FORMATION_DELETE"
+	AWSCLIOperationKindDataPlaneMutation    AWSCLIOperationKind = "DATA_PLANE_MUTATION"
+	AWSCLIOperationKindUnmappedMutation     AWSCLIOperationKind = "UNMAPPED_MUTATION"
+)
+
+// AWSCLICommandValidationStatus indicates whether validation ran or was skipped.
+type AWSCLICommandValidationStatus string
+
+const (
+	AWSCLICommandValidationStatusValidated AWSCLICommandValidationStatus = "VALIDATED"
+	AWSCLICommandValidationStatusSkipped   AWSCLICommandValidationStatus = "SKIPPED"
+)
+
+// AWSCLITemplateSource identifies the provenance of the template validated for
+// an AWS CLI command.
+type AWSCLITemplateSource string
+
+const (
+	AWSCLITemplateSourceTemplateBody             AWSCLITemplateSource = "TEMPLATE_BODY"
+	AWSCLITemplateSourceCloudControlDesiredState AWSCLITemplateSource = "CLOUD_CONTROL_DESIRED_STATE"
+	AWSCLITemplateSourceSynthesizedCreate        AWSCLITemplateSource = "SYNTHESIZED_CREATE"
+	AWSCLITemplateSourceSynthesizedUpdate        AWSCLITemplateSource = "SYNTHESIZED_UPDATE"
+)
+
+// AWSCLICommandValidation is the canonical result of validating an AWS CLI
+// command. Report is present only when Status is VALIDATED.
+type AWSCLICommandValidation struct {
+	OperationKind  AWSCLIOperationKind           `json:"operationKind"`
+	Status         AWSCLICommandValidationStatus `json:"status"`
+	TemplateSource *AWSCLITemplateSource         `json:"templateSource,omitempty"`
+	ResourceTypes  []string                      `json:"resourceTypes"`
+	Reason         string                        `json:"reason"`
+	Report         *ValidationReport             `json:"report,omitempty"`
+	// Template is the exact template bytes that were validated: the caller's
+	// original TemplateBody without reserializing, or the synthesized JSON
+	// template for adapter-mapped requests. It is nil when the request was
+	// skipped. The core serializes these bytes as a JSON integer array, which
+	// UnmarshalJSON decodes back into a byte slice.
+	Template []byte `json:"template,omitempty"`
 }

@@ -38,51 +38,24 @@ pub fn load_security_rule(filename: &str) -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read security rule {}: {e}", path.display()))
 }
 
-/// All template directories covered by golden-file tests.
-const GOLDEN_DIRS: &[&str] =
-    &["bad", "cdk", "good", "gh-issues", "integration", "issues", "lsp", "public", "quickstart"];
-
-/// Discover all templates under the given subdirectories of templates_dir().
+/// Discover every regular template covered by persisted snapshot reports.
 pub fn discover_all_templates() -> Vec<String> {
-    let root = templates_dir();
-    let mut templates = Vec::new();
-    for subdir in GOLDEN_DIRS {
-        let dir = root.join(subdir);
-        if dir.is_dir() {
-            walk_collect(&dir, &root, &mut templates);
-        }
-    }
-    templates.sort();
-    templates
+    resources::discover_templates()
 }
 
-fn walk_collect(dir: &std::path::Path, root: &std::path::Path, out: &mut Vec<String>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            walk_collect(&path, root, out);
-        } else if matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json"))
-            && let Ok(rel) = path.strip_prefix(root)
-        {
-            out.push(rel.to_string_lossy().replace('\\', "/"));
-        }
-    }
-}
+pub const MIN_SNAPSHOT_TEMPLATES: usize = 400;
 
-pub const MIN_GOLDEN_TEMPLATES: usize = 400;
-
-pub fn load_combined_golden() -> serde_json::Map<String, Value> {
-    let path = resources_root().join("expected").join("validation_reports.json");
-    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("read golden {}: {e}", path.display()));
-    let val: Value = serde_json::from_slice(&bytes).unwrap_or_else(|e| panic!("parse golden {}: {e}", path.display()));
-    let map = val.as_object().cloned().unwrap_or_default();
+/// Load and merge all numbered snapshot chunk files, verifying the combined result
+/// exceeds the minimum expected template count.
+pub fn load_combined_snapshots() -> serde_json::Map<String, Value> {
+    let map = resources::load_merged_snapshots().unwrap_or_else(|e| {
+        panic!(
+            "load snapshot chunks: {e} — run `cargo run --release -p resources --example generate_validation_reports`"
+        )
+    });
     assert!(
-        map.len() > MIN_GOLDEN_TEMPLATES,
-        "golden {} must contain more than {MIN_GOLDEN_TEMPLATES} templates, found {} - the file is missing, empty, or truncated",
-        path.display(),
+        map.len() > MIN_SNAPSHOT_TEMPLATES,
+        "snapshot chunks must contain more than {MIN_SNAPSHOT_TEMPLATES} templates, found {} — the files are missing, empty, or truncated",
         map.len()
     );
     map
@@ -95,7 +68,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
     match (expected, actual) {
         (Value::Object(exp), Value::Object(act)) => {
             for key in exp.keys() {
-                if GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
+                if SNAPSHOT_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     continue;
                 }
                 let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
@@ -105,7 +78,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
                 }
             }
             for key in act.keys() {
-                if !exp.contains_key(key) && !GOLDEN_EXCLUDED_FIELDS.contains(&key.as_str()) {
+                if !exp.contains_key(key) && !SNAPSHOT_EXCLUDED_FIELDS.contains(&key.as_str()) {
                     let child_path = if path.is_empty() { key.clone() } else { format!("{path}.{key}") };
                     diffs.push(format!("{child_path}: unexpected in actual"));
                 }
@@ -132,7 +105,7 @@ pub fn deep_diff(expected: &Value, actual: &Value, path: &str) -> Vec<String> {
     diffs
 }
 
-pub const DETAILED_ONLY_DIAGNOSTIC_FIELDS: &[&str] = &["documentationUrl", "context", "ruleDescription", "phase"];
+pub const ENRICHMENT_DIAGNOSTIC_FIELDS: &[&str] = &["documentationUrl", "context", "ruleDescription", "phase"];
 
-pub const GOLDEN_EXCLUDED_FIELDS: &[&str] =
-    &["performance", "version", "rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion", "suppressed"];
+pub const SNAPSHOT_EXCLUDED_FIELDS: &[&str] =
+    &["performance", "version", "rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion"];

@@ -411,6 +411,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "W2002",
+        category: Category::BestPractice,
+        description: "Parameter type is not officially supported by CloudFormation",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "W7001",
         category: Category::BestPractice,
         description: "Check if Mappings are Used",
@@ -807,6 +813,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3016",
+        category: Category::Resource,
+        description: "Check UpdatePolicy values for Resources",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E3019",
         category: Category::Resource,
         description: "Validate that all resources have unique primary identifiers",
@@ -889,12 +901,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         category: Category::Resource,
         description: "Validate AccessControl are set with OwnershipControls",
         origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
-        id: "E9005",
-        category: Category::Security,
-        description: "IAM policy statement must have Action or NotAction",
-        origin: RuleOrigin::Engine,
     },
     RuleDefinition {
         id: "E9002",
@@ -1035,18 +1041,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "E3514",
-        category: Category::Resource,
-        description: "Validate IAM resource policy resource ARNs",
-        origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
-        id: "W3515",
-        category: Category::Security,
-        description: "IAM Statement must have Effect",
-        origin: RuleOrigin::Engine,
-    },
-    RuleDefinition {
         id: "E3530",
         category: Category::Resource,
         description: "Validate IAM trust policies",
@@ -1074,6 +1068,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E3636",
         category: Category::Resource,
         description: "Validate CodeBuild projects using S3 also have Location",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3639",
+        category: Category::Resource,
+        description: "Validate DynamoDB table ProvisionedThroughput is set when BillingMode is PROVISIONED",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
@@ -1407,9 +1407,9 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
-        id: "I9052",
+        id: "W9052",
         category: Category::Structure,
-        description: "Condition or intrinsic could not be fully analyzed because the SAT solver budget was exceeded",
+        description: "Deterministic validation budgets were exhausted; see report metadata for completeness impact",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
@@ -1644,7 +1644,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "W9003",
         category: Category::BestPractice,
         description: "Property type coercion warning",
-        origin: RuleOrigin::Engine,
+        origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
         id: "W9009",
@@ -1953,10 +1953,52 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
-        id: "W9100",
+        id: "E3689",
+        category: Category::Resource,
+        description: "RDS DB cluster MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3717",
+        category: Category::Resource,
+        description: "Lambda function Timeout may exceed 900 seconds only with CapacityProviderConfig",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3718",
+        category: Category::Resource,
+        description: "API Gateway TOKEN and REQUEST authorizers must keep AuthorizerResultTtlInSeconds within 0 to 3600",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3719",
+        category: Category::Resource,
+        description: "RDS DB instances on non-Aurora engines must keep BackupRetentionPeriod at most 35 days",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "E3723",
+        category: Category::Resource,
+        description: "API Gateway Stage method setting ResourcePath must start with '/' when a setting is configured",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "I4010",
         category: Category::BestPractice,
-        description: "Validate namespaced context metadata on the template and primary resources",
-        origin: RuleOrigin::Engine,
+        description: "Template or architecture-relevant resource has no Metadata Context block",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W4011",
+        category: Category::BestPractice,
+        description: "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W4012",
+        category: Category::BestPractice,
+        description: "Metadata Context block does not match the Metadata Context schema",
+        origin: RuleOrigin::CfnLint,
     },
 ];
 

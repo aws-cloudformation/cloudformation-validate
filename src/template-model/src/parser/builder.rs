@@ -11,6 +11,8 @@
 use crate::consts::*;
 use crate::ir::*;
 use crate::parser::value::{ParseValue, ValueKind};
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 /// Shared mutable state accumulated while building the IR.
 pub struct Builder {
@@ -18,6 +20,7 @@ pub struct Builder {
     pub global_index: GlobalIndex,
     pub span_index: SourceSpanIndex,
     pub diagnostics: Vec<ParseDefect>,
+    invalid_if_depth: usize,
 }
 
 impl Builder {
@@ -27,6 +30,7 @@ impl Builder {
             global_index: GlobalIndex::new(),
             span_index: SourceSpanIndex::new(),
             diagnostics: Vec::new(),
+            invalid_if_depth: 0,
         }
     }
 
@@ -169,7 +173,17 @@ impl Builder {
             FN_IF => return self.build_if(val, path),
             FN_FIND_IN_MAP => self.build_find_in_map(val, path)?,
             FN_SPLIT => self.build_split(val, path)?,
-            FN_BASE64 => IntrinsicFn::Base64(self.build(val, &format!("{}/{}", path, FN_BASE64))),
+            FN_BASE64 => {
+                if val.kind() == ValueKind::Array {
+                    self.diagnostics.push(crate::make_parse_defect_at(
+                        "E1021",
+                        format!("{} is not of type 'string'", val.describe()),
+                        UNKNOWN_SPAN,
+                        &format!("{}/{}", path, FN_BASE64),
+                    ));
+                }
+                IntrinsicFn::Base64(self.build(val, &format!("{}/{}", path, FN_BASE64)))
+            }
             FN_CIDR => self.build_cidr(val, path)?,
             FN_GET_AZS => IntrinsicFn::GetAZs(self.build(val, &format!("{}/{}", path, FN_GET_AZS))),
             FN_IMPORT_VALUE => IntrinsicFn::ImportValue(self.build(val, &format!("{}/{}", path, FN_IMPORT_VALUE))),
@@ -443,14 +457,28 @@ impl Builder {
             self.fn_if_error(&format!("must have exactly 3 elements, got {}", arr.len()), path);
             return None;
         }
+        let condition_name = arr[0].as_coerced_str();
+        let condition_ref = if condition_name.is_none() {
+            if self.invalid_if_depth == 0 {
+                self.diagnostics.push(crate::make_parse_defect_at(
+                    "E1028",
+                    "Fn::If first element must be the name of a condition, not an expression".to_string(),
+                    UNKNOWN_SPAN,
+                    &format!("{}/{}/0", path, FN_IF),
+                ));
+            }
+            self.invalid_if_depth += 1;
+            let condition_ref = self.build(&arr[0], &format!("{}/{}/0", path, FN_IF));
+            self.invalid_if_depth -= 1;
+            condition_ref
+        } else {
+            NULL_REF
+        };
         let if_true = self.build(&arr[1], &format!("{}/{}/1", path, FN_IF));
         let if_false = self.build(&arr[2], &format!("{}/{}/2", path, FN_IF));
-        let intrinsic = match arr[0].as_coerced_str() {
-            Some(cond) => IntrinsicFn::If(cond, if_true, if_false),
-            None => {
-                let cond_node = self.build(&arr[0], &format!("{}/{}/0", path, FN_IF));
-                IntrinsicFn::IfExpr(cond_node, if_true, if_false)
-            }
+        let intrinsic = match condition_name {
+            Some(condition) => IntrinsicFn::If(condition, if_true, if_false),
+            None => IntrinsicFn::IfExpr(condition_ref, if_true, if_false),
         };
         Some(self.alloc(Node::Intrinsic(intrinsic), path))
     }
@@ -826,6 +854,7 @@ impl TemplateSections {
             arena: builder.arena,
             global_index: builder.global_index,
             span_index: builder.span_index,
+            root: self.root,
             parameters: self.parameters,
             mappings: self.mappings,
             conditions: self.conditions,
@@ -869,7 +898,7 @@ fn extract_transforms(arena: &Arena, root: NodeRef) -> Vec<String> {
 
 /// A human-readable name for a node's fundamental shape, used in section shape
 /// error messages.
-fn node_shape_name(node: &Node) -> &'static str {
+pub(super) fn node_shape_name(node: &Node) -> &'static str {
     match node {
         Node::Null => "null",
         Node::Bool(_) => "a boolean",
@@ -1103,30 +1132,214 @@ fn equals_argument_error<V: ParseValue>(val: &V) -> Option<String> {
 /// (case-insensitive), if any. Distance 2 catches doubled/missed letters and
 /// transpositions (`Fn::GetAttt`, `Fn::Slect`) without matching unrelated
 /// data keys (`Fn::Custom`).
+///
+/// A large template revisits the same unknown `Fn::`-prefixed key many times,
+/// so results are memoized in a bounded per-thread cache. The suggestion is a
+/// pure function of `key`, so caching only skips repeated work - it never
+/// changes the answer, and confining the cache to one thread keeps it lock-free.
 pub(crate) fn closest_function_name(key: &str) -> Option<&'static str> {
-    const MAX_TYPO_DISTANCE: usize = 2;
-    let key_lower = key.to_ascii_lowercase();
-    crate::consts::INTRINSIC_FN_PATH_SEGMENTS
-        .iter()
-        .map(|known| (known, edit_distance(&key_lower, &known.to_ascii_lowercase())))
-        .filter(|(_, distance)| *distance <= MAX_TYPO_DISTANCE)
-        .min_by_key(|(_, distance)| *distance)
-        .map(|(known, _)| *known)
+    CLOSEST_FUNCTION_NAME_CACHE.with(|cache| {
+        if let Some(known) = cache.borrow().get(key) {
+            return *known;
+        }
+        let closest = nearest_function_name(key);
+        let mut entries = cache.borrow_mut();
+        if entries.len() >= MAX_CACHED_FUNCTION_NAME_LOOKUPS {
+            entries.clear();
+        }
+        entries.insert(key.to_string(), closest);
+        closest
+    })
 }
 
-/// Levenshtein distance over ASCII-lowercased byte strings. Both inputs are
-/// short function names, so the O(len a x len b) matrix is negligible.
-fn edit_distance(a: &str, b: &str) -> usize {
-    let (a, b) = (a.as_bytes(), b.as_bytes());
-    let mut previous: Vec<usize> = (0..=b.len()).collect();
-    let mut current = vec![0usize; b.len() + 1];
-    for (i, &ca) in a.iter().enumerate() {
-        current[0] = i + 1;
-        for (j, &cb) in b.iter().enumerate() {
-            let substitution = previous[j] + usize::from(ca != cb);
-            current[j + 1] = substitution.min(previous[j + 1] + 1).min(current[j] + 1);
+/// Distinct lookups a thread retains before its cache is cleared. A real
+/// template holds only a handful of function-like keys, so this cap is reached
+/// only by a pathological input and merely bounds the cache's memory.
+const MAX_CACHED_FUNCTION_NAME_LOOKUPS: usize = 1024;
+
+/// Largest edit distance at which `key` still counts as a near-miss of a known
+/// function name.
+const MAX_TYPO_DISTANCE: usize = 2;
+
+/// Longest known function name in bytes, sizing the stack-allocated distance
+/// rows. Derived from the function table so it tracks any new entry.
+const MAX_FUNCTION_NAME_BYTES: usize = longest_known_function_name_bytes();
+
+thread_local! {
+    static CLOSEST_FUNCTION_NAME_CACHE: RefCell<HashMap<String, Option<&'static str>>> =
+        RefCell::new(HashMap::new());
+}
+
+const fn longest_known_function_name_bytes() -> usize {
+    let names = crate::consts::INTRINSIC_FN_PATH_SEGMENTS;
+    let mut longest = 0;
+    let mut index = 0;
+    while index < names.len() {
+        let candidate = names[index].len();
+        if candidate > longest {
+            longest = candidate;
+        }
+        index += 1;
+    }
+    longest
+}
+
+/// Uncached near-miss lookup: the closest function name within the typo
+/// threshold, breaking ties by declaration order (first minimum wins).
+fn nearest_function_name(key: &str) -> Option<&'static str> {
+    let key_bytes = key.as_bytes();
+    crate::consts::INTRINSIC_FN_PATH_SEGMENTS
+        .iter()
+        .map(|known| (*known, edit_distance_within(key_bytes, known.as_bytes(), MAX_TYPO_DISTANCE)))
+        .filter(|(_, distance)| *distance <= MAX_TYPO_DISTANCE)
+        .min_by_key(|(_, distance)| *distance)
+        .map(|(known, _)| known)
+}
+
+/// Case-insensitive Levenshtein distance between `key` and a known function
+/// name, saturating just past `max_distance` once the true distance is known to
+/// exceed it. Both working rows live on the stack and are indexed only up to
+/// `known.len()`, which the function table bounds - so no heap allocation
+/// occurs and a long `key` cannot grow them. Whenever the true distance is at
+/// most `max_distance` the exact value is returned, because the row-minimum of a
+/// Levenshtein matrix is non-decreasing, so a saturating early return can only
+/// happen once every alignment already exceeds the threshold.
+fn edit_distance_within(key: &[u8], known: &[u8], max_distance: usize) -> usize {
+    let beyond_max = max_distance + 1;
+    if key.len().abs_diff(known.len()) > max_distance {
+        return beyond_max;
+    }
+    let mut previous = [0usize; MAX_FUNCTION_NAME_BYTES + 1];
+    let mut current = [0usize; MAX_FUNCTION_NAME_BYTES + 1];
+    for (column, slot) in previous.iter_mut().enumerate().take(known.len() + 1) {
+        *slot = column;
+    }
+    for (row, &key_byte) in key.iter().enumerate() {
+        current[0] = row + 1;
+        let mut row_min = current[0];
+        for (column, &known_byte) in known.iter().enumerate() {
+            let substitution = previous[column] + usize::from(!key_byte.eq_ignore_ascii_case(&known_byte));
+            let distance = substitution.min(previous[column + 1] + 1).min(current[column] + 1);
+            current[column + 1] = distance;
+            row_min = row_min.min(distance);
+        }
+        if row_min > max_distance {
+            return beyond_max;
         }
         std::mem::swap(&mut previous, &mut current);
     }
-    previous[b.len()]
+    previous[known.len()]
+}
+
+#[cfg(test)]
+mod closest_function_name_tests {
+    use super::*;
+
+    /// Independent oracle mirroring the original unbounded lookup: lowercase
+    /// both sides, run a full Levenshtein matrix, keep names within the typo
+    /// threshold, and break ties by declaration order. The optimized
+    /// `closest_function_name` must agree with this on every input.
+    fn reference_closest_function_name(key: &str) -> Option<&'static str> {
+        fn reference_edit_distance(a: &str, b: &str) -> usize {
+            let (a, b) = (a.as_bytes(), b.as_bytes());
+            let mut previous: Vec<usize> = (0..=b.len()).collect();
+            let mut current = vec![0usize; b.len() + 1];
+            for (i, &ca) in a.iter().enumerate() {
+                current[0] = i + 1;
+                for (j, &cb) in b.iter().enumerate() {
+                    let substitution = previous[j] + usize::from(ca != cb);
+                    current[j + 1] = substitution.min(previous[j + 1] + 1).min(current[j] + 1);
+                }
+                std::mem::swap(&mut previous, &mut current);
+            }
+            previous[b.len()]
+        }
+        let key_lower = key.to_ascii_lowercase();
+        crate::consts::INTRINSIC_FN_PATH_SEGMENTS
+            .iter()
+            .map(|known| (*known, reference_edit_distance(&key_lower, &known.to_ascii_lowercase())))
+            .filter(|(_, distance)| *distance <= 2)
+            .min_by_key(|(_, distance)| *distance)
+            .map(|(known, _)| known)
+    }
+
+    fn differential_inputs() -> Vec<String> {
+        let mut inputs: Vec<String> = Vec::new();
+        for known in crate::consts::INTRINSIC_FN_PATH_SEGMENTS {
+            inputs.push((*known).to_string());
+            inputs.push(known.to_ascii_uppercase());
+            inputs.push(known.to_ascii_lowercase());
+        }
+        for extra in [
+            "",
+            "Fn",
+            "Fn::",
+            "Fn::GetAttt",
+            "Fn::Slect",
+            "fn::getatt",
+            "FN::SUB",
+            "Fn::Ot",
+            "Fn::Ad",
+            "Fn::iff",
+            "Fn::Equalss",
+            "Fn::Bogus",
+            "Fn::Custom",
+            "Fn::AccountIdFromAlias",
+            "Fn::GetAt",
+            "Fn::Reff",
+            "Ref",
+            "Condition",
+            "Fn::ToJsonStr",
+            "Fn::EachMemberEqual",
+        ] {
+            inputs.push(extra.to_string());
+        }
+        inputs
+    }
+
+    #[test]
+    fn matches_reference_for_known_names_and_boundary_inputs() {
+        for input in differential_inputs() {
+            assert_eq!(
+                closest_function_name(&input),
+                reference_closest_function_name(&input),
+                "optimized lookup diverged from the reference for {input:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn breaks_distance_ties_by_declaration_order() {
+        // `Fn::Ot` is edit distance 1 from both `Fn::Or` and `Fn::Not`; the
+        // earlier-declared `Fn::Or` must win, matching the reference oracle.
+        assert_eq!(closest_function_name("Fn::Ot"), Some("Fn::Or"));
+        assert_eq!(closest_function_name("Fn::Ot"), reference_closest_function_name("Fn::Ot"));
+    }
+
+    #[test]
+    fn is_case_insensitive() {
+        assert_eq!(closest_function_name("fn::getattt"), Some("Fn::GetAtt"));
+        assert_eq!(closest_function_name("FN::SUB"), Some("Fn::Sub"));
+    }
+
+    #[test]
+    fn repeated_lookups_are_consistent_with_a_cold_result() {
+        // A key repeated across a large template is served from the per-thread
+        // cache after the first lookup; every hit must equal the cold result.
+        let repeated = "Fn::AccountIdFromAlias";
+        let expected = reference_closest_function_name(repeated);
+        assert_eq!(expected, None, "an unrelated long key has no near-miss suggestion");
+        for _ in 0..10_000 {
+            assert_eq!(closest_function_name(repeated), expected);
+        }
+    }
+
+    #[test]
+    fn cache_overflow_bounds_memory_without_changing_results() {
+        for n in 0..(MAX_CACHED_FUNCTION_NAME_LOOKUPS * 2) {
+            let key = format!("Fn::Unrelated{n}");
+            assert_eq!(closest_function_name(&key), reference_closest_function_name(&key));
+        }
+        assert_eq!(closest_function_name("Fn::GetAttt"), Some("Fn::GetAtt"));
+    }
 }

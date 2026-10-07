@@ -38,6 +38,7 @@ const fullValidateConfigJSON = `{
         "resourceTypes": [{"resourceType": "AWS::SQS::Queue"}],
         "services": [{"service": "AWS::SQS"}]
     },
+    "detailLevel": "STANDARD",
     "severityLevel": "WARN",
     "parameterOverrides": {"Environment": "prod"},
     "pseudoParameterOverrides": {
@@ -55,6 +56,18 @@ const fullValidateConfigJSON = `{
 
 const fullEngineConfigJSON = `{
     "customRules": [{"name": "s3_encryption.json", "content": "{}"}],
+    "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
+    "schemaValidatorConfig": {
+        "additionalSchemas": [{
+            "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
+        }]
+    }
+}`
+
+// Kept in sync with FULL_COMPOSITE_OPTIONS_JSON in ../src/lib.rs.
+const fullCompositeEngineConfigJSON = `{
+    "regoRules": [{"name": "custom.rego", "content": "package x"}],
+    "celRules": [{"name": "custom.json", "content": "{\"rules\":[]}"}],
     "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
     "schemaValidatorConfig": {
         "additionalSchemas": [{
@@ -92,6 +105,7 @@ func fullValidateConfig() *cfnvalidate.ValidateConfig {
 			ResourceTypes: []cfnvalidate.ResourceTypeFilter{{ResourceType: "AWS::SQS::Queue"}},
 			Services:      []cfnvalidate.ServiceFilter{{Service: "AWS::SQS"}},
 		},
+		DetailLevel:        cfnvalidate.DetailLevelStandard,
 		SeverityLevel:      cfnvalidate.SeverityWarn,
 		ParameterOverrides: map[string]string{"Environment": "prod"},
 		PseudoParameterOverrides: &cfnvalidate.PseudoParameterOverrides{
@@ -143,10 +157,24 @@ func TestFullEngineConfigMarshalsToTheContractShape(t *testing.T) {
 	assertMarshalsTo(t, config, fullEngineConfigJSON)
 }
 
+func TestFullCompositeEngineConfigMarshalsToTheContractShape(t *testing.T) {
+	config := &cfnvalidate.CompositeEngineConfig{
+		RegoRules:  []cfnvalidate.ExternalRuleSource{{Name: "custom.rego", Content: "package x"}},
+		CelRules:   []cfnvalidate.ExternalRuleSource{{Name: "custom.json", Content: `{"rules":[]}`}},
+		GuardRules: []cfnvalidate.ExternalRuleSource{{Name: "compliance.guard", Content: "let x = 1"}},
+		SchemaValidatorConfig: &cfnvalidate.SchemaValidatorConfig{
+			AdditionalSchemas: []cfnvalidate.AdditionalSchemaSource{{
+				Schema: `{"typeName":"AWS::Test::OverlayOnly","properties":{"Name":{"type":"string"}}}`,
+			}},
+		},
+	}
+	assertMarshalsTo(t, config, fullCompositeEngineConfigJSON)
+}
+
 func TestFullValidateConfigIsAcceptedByTheNativeLayer(t *testing.T) {
 	engine := mustEngine(t, cfnvalidate.NewRegoEngine, nil)
 
-	report, err := engine.ValidateStandard([]byte(unencryptedBucket), fullValidateConfig(), "contract.yaml")
+	report, err := engine.ValidateTemplate([]byte(unencryptedBucket), fullValidateConfig(), "contract.yaml")
 	if err != nil {
 		t.Fatalf("native layer rejected a fully populated config: %v", err)
 	}

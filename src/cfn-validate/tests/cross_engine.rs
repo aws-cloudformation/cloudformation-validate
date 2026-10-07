@@ -2,6 +2,7 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::{load_rule, load_template};
+use composite_engine::CompositeEngine;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use rules::registry::RULE_REGISTRY;
@@ -9,10 +10,14 @@ use rules::{FilterConfig, RuleFilterConfig};
 use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, Severity};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
+use validation_engine::{
+    CompositeEngineConfig, EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes,
+};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
+static COMPOSITE: LazyLock<CompositeEngine> =
+    LazyLock::new(|| CompositeEngine::new(CompositeEngineConfig::default()).unwrap());
 
 fn assert_list_rules_identical(cel_rules: &[RuleInfo], rego_rules: &[RuleInfo], label: &str) {
     let cel_json = serde_json::to_value(cel_rules).expect("serialize cel rules");
@@ -50,6 +55,7 @@ fn string_length_findings_are_identical_between_engines() {
     for template in ["bad/W9006_every_allowed_value_too_long.json", "good/string_length_unknowable_values.json"] {
         let rego = validate_template(&*REGO, template);
         let cel = validate_template(&*CEL, template);
+        let composite = validate_template(&*COMPOSITE, template);
         let findings = |diags: &[Diagnostic]| -> Vec<String> {
             let mut messages: Vec<String> =
                 diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.clone()).collect();
@@ -57,6 +63,7 @@ fn string_length_findings_are_identical_between_engines() {
             messages
         };
         assert_eq!(findings(&rego), findings(&cel), "{template}: engines disagree on W9006");
+        assert_eq!(findings(&rego), findings(&composite), "{template}: engines disagree on W9006");
     }
 }
 
@@ -67,6 +74,7 @@ fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
     for (engine_name, diags) in [
         ("rego", validate_template(&*REGO, "bad/W9006_every_allowed_value_too_long.json")),
         ("cel", validate_template(&*CEL, "bad/W9006_every_allowed_value_too_long.json")),
+        ("composite", validate_template(&*COMPOSITE, "bad/W9006_every_allowed_value_too_long.json")),
     ] {
         let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
         assert_eq!(messages, vec![expected], "[{engine_name}] every allowed value is too long, so W9006 stands");
@@ -75,6 +83,7 @@ fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
     for (engine_name, diags) in [
         ("rego", validate_template(&*REGO, "good/string_length_unknowable_values.json")),
         ("cel", validate_template(&*CEL, "good/string_length_unknowable_values.json")),
+        ("composite", validate_template(&*COMPOSITE, "good/string_length_unknowable_values.json")),
     ] {
         let messages: Vec<&str> = diags.iter().filter(|d| d.rule_id == "W9006").map(|d| d.message.as_str()).collect();
         assert!(
@@ -85,11 +94,13 @@ fn string_length_is_reported_only_when_every_possible_value_breaks_it() {
 }
 
 #[test]
-fn duplicate_objects_are_compared_by_contents_in_both_engines() {
+fn duplicate_objects_are_compared_by_contents_in_all_engines() {
     let template = "bad/W9007_duplicate_objects_different_key_order.yaml";
-    for (engine_name, diags) in
-        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
-    {
+    for (engine_name, diags) in [
+        ("rego", validate_template(&*REGO, template)),
+        ("cel", validate_template(&*CEL, template)),
+        ("composite", validate_template(&*COMPOSITE, template)),
+    ] {
         let findings: Vec<&Diagnostic> = diags.iter().filter(|d| d.rule_id == "W9007").collect();
         assert_eq!(findings.len(), 1, "[{engine_name}] equal object items must remain a duplicate");
         assert_eq!(findings[0].property_path.as_deref(), Some("Properties.PlacementConstraints"));
@@ -167,11 +178,17 @@ fn multi_combined_config(engine: &str) -> EngineConfig {
 
 #[test]
 fn default_list_rules_identical_between_engines() {
-    assert_list_rules_identical(&CEL.list_rules(), &REGO.list_rules(), "default");
+    let rules = CEL.list_rules();
+    assert_list_rules_identical(&rules, &REGO.list_rules(), "default");
+    assert_list_rules_identical(&rules, &COMPOSITE.list_rules(), "default composite");
 
-    let builtin_count = CEL.list_rules().len();
+    let builtin_count = rules.len();
     assert!(builtin_count > 0, "must have built-in rules");
     assert_eq!(builtin_count, RULE_REGISTRY.len(), "engine rule count must match registry");
+    assert!(rules.iter().any(|rule| rule.id == "E3510"), "active IAM policy rule must be advertised");
+    for dead_id in ["E9005", "E3514", "W3515"] {
+        assert!(!rules.iter().any(|rule| rule.id == dead_id), "dead IAM rule {dead_id} must not be advertised");
+    }
 }
 
 #[test]
@@ -207,6 +224,61 @@ fn custom_rule_list_rules_and_validate_match_between_engines() {
             d.entity.as_ref().and_then(|e| e.resource_type.as_deref()),
             Some("AWS::S3::Bucket"),
             "{name}: resource_type"
+        );
+    }
+}
+
+/// A custom Rego rule reads `resolve()` under the contract it was written
+/// against - a `Ref`/`Fn::GetAtt` to a template resource comes back as that
+/// resource's logical ID string - while the built-in policies evaluated beside it
+/// must keep treating such a reference as a non-literal. The template is the
+/// built-in regression fixture for that second half, so a single run proves both
+/// halves on every engine that hosts custom Rego.
+#[test]
+fn custom_rego_resolve_keeps_the_target_logical_id_while_builtins_stay_silent_on_references() {
+    const TEMPLATE: &str = "good/reference_values_are_not_literals.yaml";
+    let legacy_reference_rule = ExternalRuleSource {
+        name: "legacy_reference.rego".into(),
+        content: r#"
+package legacy_reference
+import rego.v1
+
+violation contains make_diag("LEGACY_ROLE_TARGET", "warn", name, sprintf("role comes from %s", [target])) if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    target := resolve(name, "Properties.Role")
+    is_string(target)
+    input.resources[target].resourceType == "AWS::SSM::Parameter"
+}
+"#
+        .into(),
+    };
+    let rego = RegoEngine::new(EngineConfig {
+        custom_rules: vec![legacy_reference_rule.clone()],
+        guard_rules: vec![],
+        ..Default::default()
+    })
+    .unwrap();
+    let composite =
+        CompositeEngine::new(CompositeEngineConfig::new().with_rego_rules([legacy_reference_rule])).unwrap();
+    let builtin_baseline: Vec<String> =
+        validate_template(&*COMPOSITE, TEMPLATE).into_iter().map(|d| d.rule_id).collect();
+
+    for (engine_name, diags) in
+        [("rego", validate_template(&rego, TEMPLATE)), ("composite", validate_template(&composite, TEMPLATE))]
+    {
+        let legacy = diags
+            .iter()
+            .find(|d| d.rule_id == "LEGACY_ROLE_TARGET")
+            .unwrap_or_else(|| panic!("[{engine_name}] the custom rule must see the referenced logical ID"));
+        assert_eq!(legacy.message, "role comes from Store", "[{engine_name}] resolve() yields the target logical ID");
+        assert_eq!(legacy.resource_logical_id(), Some("Function"), "[{engine_name}] resource_id");
+        assert_eq!(legacy.source, RuleOrigin::Custom, "[{engine_name}] origin");
+
+        let builtins: Vec<String> =
+            diags.iter().filter(|d| d.source != RuleOrigin::Custom).map(|d| d.rule_id.clone()).collect();
+        assert_eq!(
+            builtins, builtin_baseline,
+            "[{engine_name}] loading a custom rule must not change what the built-in rules report on a reference"
         );
     }
 }
@@ -261,9 +333,15 @@ fn custom_rule_with_arbitrary_id_is_suppressed_by_exclude_ids_in_both_engines() 
 fn guard_rule_list_rules_and_validate_match_between_engines() {
     let cel = CelEngine::new(guard_config()).unwrap();
     let rego = RegoEngine::new(guard_config()).unwrap();
+    let composite = CompositeEngine::new(CompositeEngineConfig::new().with_guard_rules([ExternalRuleSource {
+        name: "guard_encryption.guard".into(),
+        content: load_rule("guard_encryption.guard"),
+    }]))
+    .unwrap();
 
     let baseline_count = CEL.list_rules().len();
-    for (name, rules) in [("cel", cel.list_rules()), ("rego", rego.list_rules())] {
+    for (name, rules) in [("cel", cel.list_rules()), ("rego", rego.list_rules()), ("composite", composite.list_rules())]
+    {
         let g = find_rule(&rules, "check_bucket_encryption");
         assert_eq!(g.severity, Severity::Error, "{name}: check_bucket_encryption severity");
         assert_eq!(g.origin, RuleOrigin::Guard, "{name}: check_bucket_encryption origin");
@@ -277,10 +355,12 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
     }
 
     assert_list_rules_identical(&cel.list_rules(), &rego.list_rules(), "guard");
+    assert_list_rules_identical(&cel.list_rules(), &composite.list_rules(), "guard composite");
 
     for (name, diags) in [
         ("cel", validate_template(&cel, "bad/invalid_deletion_policy.yaml")),
         ("rego", validate_template(&rego, "bad/invalid_deletion_policy.yaml")),
+        ("composite", validate_template(&composite, "bad/invalid_deletion_policy.yaml")),
     ] {
         let d = diags
             .iter()
@@ -290,6 +370,108 @@ fn guard_rule_list_rules_and_validate_match_between_engines() {
         assert_eq!(d.source, RuleOrigin::Guard, "{name}: diagnostic source");
         assert_eq!(d.resource_logical_id(), Some("Bucket"), "{name}: resource_id");
     }
+}
+/// Guard rules are evaluated by one shared evaluator regardless of engine, so the
+/// three engines must agree on every Guard finding - which resources fire, where
+/// each finding is anchored, and what it says - and equally on which resources do
+/// not fire. The template mixes compliant and non-compliant buckets so an
+/// implementation that fires everywhere, or nowhere, cannot pass.
+#[test]
+fn guard_findings_are_identical_across_engines_including_non_firing_resources() {
+    let guard =
+        || ExternalRuleSource { name: "guard_semantics.guard".into(), content: load_rule("guard_semantics.guard") };
+    let cel = CelEngine::new(EngineConfig { guard_rules: vec![guard()], ..Default::default() }).unwrap();
+    let rego = RegoEngine::new(EngineConfig { guard_rules: vec![guard()], ..Default::default() }).unwrap();
+    let composite = CompositeEngine::new(CompositeEngineConfig::new().with_guard_rules([guard()])).unwrap();
+
+    let template = br#"
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  NameParam:
+    Type: String
+Resources:
+  Compliant:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: expected-bucket
+      Tags:
+        - Key: Owner
+          Value: platform
+      VersioningConfiguration:
+        Status: Enabled
+  SharedName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: shared-assets
+  WrongName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: other-bucket
+      Tags:
+        - Key: Team
+          Value: x
+      VersioningConfiguration:
+        Status: Suspended
+  ParameterName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref NameParam
+  NoProperties:
+    Type: AWS::S3::Bucket
+"#;
+    type Fingerprint = (String, Severity, Option<String>, Option<String>, Option<(u32, u32, u32, u32)>, String);
+    let guard_fingerprints = |engine: &dyn ValidationEngine| -> Vec<Fingerprint> {
+        let sv = SchemaValidator::default();
+        let mut fingerprints: Vec<Fingerprint> = validate_bytes(engine, &sv, template, Default::default())
+            .unwrap()
+            .diagnostics
+            .into_iter()
+            .filter(|d| d.source == RuleOrigin::Guard)
+            .map(|d| {
+                let span = d.location.map(|s| (s.start_line, s.start_column, s.end_line, s.end_column));
+                let resource = d.resource_logical_id().map(str::to_string);
+                (d.rule_id, d.severity, resource, d.property_path, span, d.message)
+            })
+            .collect();
+        fingerprints.sort();
+        fingerprints
+    };
+
+    let cel_findings = guard_fingerprints(&cel);
+    assert_eq!(cel_findings, guard_fingerprints(&rego), "Guard findings differ between the CEL and Rego engines");
+    assert_eq!(cel_findings, guard_fingerprints(&composite), "Guard findings differ between CEL and composite");
+
+    let fired: Vec<(&str, &str)> =
+        cel_findings.iter().map(|(rule, _, resource, ..)| (rule.as_str(), resource.as_deref().unwrap_or(""))).collect();
+    assert_eq!(
+        fired,
+        vec![
+            ("bucket_name_exists", "NoProperties"),
+            ("bucket_name_is_expected", "NoProperties"),
+            ("bucket_name_is_expected", "ParameterName"),
+            ("bucket_name_is_expected", "WrongName"),
+            ("name_absent_is_fine", "Compliant"),
+            ("name_absent_is_fine", "ParameterName"),
+            ("name_absent_is_fine", "SharedName"),
+            ("name_absent_is_fine", "WrongName"),
+            ("tags_owned", "NoProperties"),
+            ("tags_owned", "ParameterName"),
+            ("tags_owned", "SharedName"),
+            ("tags_owned", "WrongName"),
+            ("versioning_enabled_when_configured", "WrongName"),
+        ],
+        "each rule fires exactly on the resources that violate it, as cfn-guard reports them"
+    );
+    assert!(cel_findings.iter().all(|(_, severity, ..)| *severity == Severity::Error));
+    assert!(
+        cel_findings.iter().filter(|(_, _, resource, ..)| resource.is_some()).all(|(.., span, _)| span.is_some()),
+        "every resource-anchored Guard finding carries a source span"
+    );
+    assert_eq!(
+        cel_findings.iter().find(|(rule, ..)| rule == "bucket_name_is_expected").map(|f| f.5.as_str()),
+        Some("BucketName must be the expected name or start with shared-"),
+        "the author's message is used even when the failed clause sits in an OR group"
+    );
 }
 
 #[test]
@@ -397,13 +579,16 @@ fn default_rule_metadata_identical_between_engines() {
     }
 
     assert_metadata_maps_identical(cel_meta, rego_meta, "default rule_metadata");
+    assert_metadata_maps_identical(cel_meta, COMPOSITE.rule_metadata(), "default rule_metadata composite");
 }
 
 #[test]
 fn default_external_rule_metadata_identical_between_engines() {
     let cel_ext = CEL.external_rule_metadata();
     let rego_ext = REGO.external_rule_metadata();
+    let composite_ext = COMPOSITE.external_rule_metadata();
     assert_metadata_maps_identical(&cel_ext, &rego_ext, "default external_rule_metadata");
+    assert_metadata_maps_identical(&cel_ext, &composite_ext, "default external_rule_metadata composite");
 }
 
 #[test]
@@ -451,11 +636,13 @@ fn multi_combined_external_rule_metadata_identical_between_engines() {
 }
 
 #[test]
-fn iam_action_resource_findings_target_authored_fields_in_both_engines() {
+fn iam_action_resource_findings_target_authored_fields_in_all_engines() {
     let template = "bad/functions/sub_needed.yaml";
-    for (engine_name, diagnostics) in
-        [("rego", validate_template(&*REGO, template)), ("cel", validate_template(&*CEL, template))]
-    {
+    for (engine_name, diagnostics) in [
+        ("rego", validate_template(&*REGO, template)),
+        ("cel", validate_template(&*CEL, template)),
+        ("composite", validate_template(&*COMPOSITE, template)),
+    ] {
         let findings: Vec<&Diagnostic> = diagnostics.iter().filter(|d| d.rule_id == "I3510").collect();
         assert_eq!(findings.len(), 2, "[{engine_name}] expected both incompatible IAM statements");
         assert!(
@@ -475,56 +662,94 @@ fn iam_action_resource_findings_target_authored_fields_in_both_engines() {
     }
 }
 
-#[test]
-fn good_templates_produce_no_fatal_or_error_diagnostics() {
-    let new_rule_ids: std::collections::HashSet<&str> = [
-        "E1002", "E1005", "E1015", "E1016", "E1027", "F1030", "F1031", "F1032", "E1033", "E1051", "E1052", "E3011",
-        "E3023", "E3026", "E3027", "E3029", "E3062", "E3617", "E3620", "E3621", "E3647", "E3672", "E3694", "E3640",
-        "E3642", "E3643", "E3644", "E3652", "E3653", "I2003", "W3002", "W3037", "W3660", "W3664", "W3671", "W3688",
-        "W3689", "W3693", "W3694", "W3698",
-    ]
-    .into_iter()
-    .collect();
+const GOOD_FIXTURES_WITH_EXPECTED_ERRORS: &[&str] = &[
+    "core/conditions.yaml",
+    "core/config_cfn_lint.json",
+    "core/config_cfn_lint.yaml",
+    "core/config_only_i1002.yaml",
+    "core/config_only_i1003.yaml",
+    "core/config_parameters.yaml",
+    "custom/is-defined.yaml",
+    "custom/numeric-inequalities-large.yaml",
+    "custom/numeric-inequalities-small.yaml",
+    "decode/parsing.json",
+    "functions/relationship_conditions.yaml",
+    "functions/sub.yaml",
+    "functions/sub_needed.yaml",
+    "functions/sub_needed_custom_excludes.yaml",
+    "functions_findinmap_enhanced.yaml",
+    "mappings/name.yaml",
+    "mappings/used.yaml",
+    "parameters/default.yaml",
+    "parameters/not_used_parameters.yaml",
+    "parameters/used_transforms.yaml",
+    "properties_ec2_vpc.yaml",
+    "resources/cloudformation/stack_nested.yaml",
+    "resources/dynamodb/attributes_transform.yaml",
+    "resources/elasticache/cache_cluster_failover.yaml",
+    "resources/iam/policy.yaml",
+    "resources/name.yaml",
+    "resources/properties/az_cdk.yaml",
+    "resources/properties/exclusive.yaml",
+    "resources/properties/list_duplicates.yaml",
+    "some_logs_stream_lambda.yaml",
+    "transform_serverless_globals.yaml",
+    "transform_serverless_ignore_globals.yaml",
+];
 
+/// Fixtures in the exception list have exact Fatal/Error diagnostics protected
+/// by snapshot tests; this complementary guard covers templates expected clean.
+#[test]
+fn good_templates_without_expected_errors_are_clean() {
     let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good");
     let mut failures = Vec::new();
-    for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
+    for (engine_name, engine) in [
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         for entry in walkdir(&root) {
             let bytes = std::fs::read(&entry).unwrap();
+            let name = entry.strip_prefix(&root).unwrap_or(&entry);
+            let relative_name = name.to_string_lossy().replace('\\', "/");
+            if GOOD_FIXTURES_WITH_EXPECTED_ERRORS.contains(&relative_name.as_str()) {
+                continue;
+            }
             let report = match validate_bytes(engine, &sv, &bytes, Default::default()) {
                 Ok(r) => r,
-                Err(_) => continue,
+                Err(e) => {
+                    failures.push(format!("[{engine_name}] {}: validation error: {e}", name.display()));
+                    continue;
+                }
             };
             let bad: Vec<_> = report
                 .diagnostics
                 .iter()
-                .filter(|d| new_rule_ids.contains(d.rule_id.as_str()))
                 .filter(|d| matches!(d.severity, Severity::Fatal | Severity::Error))
                 .map(|d| format!("  {} {}: {}", d.rule_id, d.severity, d.message))
                 .collect();
             if !bad.is_empty() {
-                let name = entry.strip_prefix(&root).unwrap_or(&entry);
                 failures.push(format!("[{engine_name}] {}:\n{}", name.display(), bad.join("\n")));
             }
         }
     }
-    assert!(
-        failures.is_empty(),
-        "Good templates produced Fatal/Error diagnostics from new rules:\n{}",
-        failures.join("\n\n")
-    );
+    assert!(failures.is_empty(), "Good templates produced Fatal/Error diagnostics:\n{}", failures.join("\n\n"));
 }
 
-/// Every `good/sam` template must be clean of Fatal/Error diagnostics on both
-/// engines: these are the counter-examples proving the SAM transform-error and
+/// Every `good/sam` template must be clean of Fatal/Error diagnostics on every
+/// engine: these are the counter-examples proving the SAM transform-error and
 /// implicit-resource handling does not false-positive on valid templates.
 #[test]
-fn good_sam_templates_are_clean_on_both_engines() {
+fn good_sam_templates_are_clean_on_all_engines() {
     let sv = SchemaValidator::default();
     let root = common::templates_dir().join("good").join("sam");
     let mut failures = Vec::new();
-    for (engine_name, engine) in [("cel", &*CEL as &dyn ValidationEngine), ("rego", &*REGO as &dyn ValidationEngine)] {
+    for (engine_name, engine) in [
+        ("cel", &*CEL as &dyn ValidationEngine),
+        ("rego", &*REGO as &dyn ValidationEngine),
+        ("composite", &*COMPOSITE as &dyn ValidationEngine),
+    ] {
         for entry in walkdir(&root) {
             let bytes = std::fs::read(&entry).unwrap();
             let report = validate_bytes(engine, &sv, &bytes, Default::default()).unwrap();
@@ -543,11 +768,11 @@ fn good_sam_templates_are_clean_on_both_engines() {
     assert!(failures.is_empty(), "good/sam templates produced Fatal/Error diagnostics:\n{}", failures.join("\n\n"));
 }
 
-/// Every `bad/sam` template must produce identical diagnostics on both engines,
+/// Every `bad/sam` template must produce identical diagnostics on every engine,
 /// and each must fire the SAM transform-error rule (E0001) or the
 /// missing-transform rule (E3038) - the engines stay at parity on SAM handling.
 #[test]
-fn bad_sam_templates_fire_identically_on_both_engines() {
+fn bad_sam_templates_fire_identically_on_all_engines() {
     let sv = SchemaValidator::default();
     let root = common::templates_dir().join("bad").join("sam");
     for entry in walkdir(&root) {
@@ -566,7 +791,9 @@ fn bad_sam_templates_fire_identically_on_both_engines() {
         };
         let cel_ids = ids(&*CEL);
         let rego_ids = ids(&*REGO);
+        let composite_ids = ids(&*COMPOSITE);
         assert_eq!(cel_ids, rego_ids, "{name}: engines diverge");
+        assert_eq!(cel_ids, composite_ids, "{name}: engines diverge");
         assert!(
             cel_ids.iter().any(|d| d.starts_with("E0001|") || d.starts_with("E3038|")),
             "{name}: expected a SAM transform error (E0001/E3038), got {cel_ids:?}"
@@ -575,9 +802,9 @@ fn bad_sam_templates_fire_identically_on_both_engines() {
 }
 
 #[test]
-fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
+fn intrinsic_and_condition_fixtures_fire_identically_on_all_engines() {
     // The intrinsic/condition rules reworked to emit from the shared model must
-    // produce byte-identical diagnostics on both engines. Assert full parity
+    // produce byte-identical diagnostics on every engine. Assert full parity
     // (all severities) on the fixtures that exercise them.
     let sv = SchemaValidator::default();
     let fixtures = [
@@ -601,7 +828,80 @@ fn intrinsic_and_condition_fixtures_fire_identically_on_both_engines() {
             out
         };
         assert_eq!(ids(&*CEL), ids(&*REGO), "{name}: engines diverge");
+        assert_eq!(ids(&*CEL), ids(&*COMPOSITE), "{name}: engines diverge");
     }
+}
+
+/// Excluding a category must remove exactly the diagnostics whose registry
+/// category it is - in every engine, whatever package or module implements the
+/// rule. Each engine groups its rule implementations by area, and those groups
+/// host rules of several categories: the security hardcoded-account-ID rule sits
+/// with the best-practice rules, best-practice condition rules sit with the
+/// reference or resource rules, a structure rule sits with the resource rules.
+/// A group-level skip therefore dropped a different set of unrelated rules in
+/// each engine. The fixtures fire rules from those mixed groups, and every
+/// registry category is excluded in turn - including the categories of the
+/// groups hosting the fired rules, whose findings must all survive.
+#[test]
+fn excluding_a_category_removes_exactly_that_category_in_every_engine() {
+    let sv = SchemaValidator::default();
+    let fixtures = [
+        "bad/codepipeline_bad_artifacts.yaml",
+        "bad/F2002_unsupported_ssm_parameter_type.yaml",
+        "bad/functions/relationship_conditions.yaml",
+        "good/schema_required_xor_resource_condition.yaml",
+        "bad/security_issues.yaml",
+        "bad/module_with_tags.yaml",
+        "bad/deprecated_type.yaml",
+        "bad/lambda_zip_no_handler.yaml",
+        "bad/functions_getaz.yaml",
+    ];
+    let engines: [(&str, &dyn ValidationEngine); 3] = [("rego", &*REGO), ("cel", &*CEL), ("composite", &*COMPOSITE)];
+    let debug_level = ValidateConfig { severity_level: Severity::Debug, ..Default::default() };
+    let keys = |diags: &[Diagnostic]| -> Vec<String> {
+        let mut out: Vec<String> =
+            diags.iter().map(|d| format!("{}|{:?}|{}", d.rule_id, d.location, d.message)).collect();
+        out.sort();
+        out
+    };
+    let mut categories: Vec<&str> = RULE_REGISTRY.iter().map(|rule| rule.category.as_str()).collect();
+    categories.sort_unstable();
+    categories.dedup();
+
+    let mut exclusions_that_kept_findings = 0;
+    for name in fixtures {
+        let bytes = load_template(name);
+        let unfiltered: Vec<Diagnostic> = validate_bytes(&*REGO, &sv, &bytes, debug_level.clone()).unwrap().diagnostics;
+        assert!(!unfiltered.is_empty(), "{name}: fixture must fire at least one rule");
+
+        for category in &categories {
+            let expected = keys(
+                &unfiltered.iter().filter(|d| d.category.as_deref() != Some(category)).cloned().collect::<Vec<_>>(),
+            );
+            let config = ValidateConfig {
+                severity_level: Severity::Debug,
+                filters: FilterConfig::new(
+                    RuleFilterConfig::default(),
+                    RuleFilterConfig { categories: vec![(*category).to_string()], ..Default::default() },
+                ),
+                ..Default::default()
+            };
+            for (engine_name, engine) in engines {
+                let actual = keys(&validate_bytes(engine, &sv, &bytes, config.clone()).unwrap().diagnostics);
+                assert_eq!(
+                    actual, expected,
+                    "[{engine_name}] {name}: excluding '{category}' must remove exactly that category's diagnostics"
+                );
+            }
+            if !expected.is_empty() {
+                exclusions_that_kept_findings += 1;
+            }
+        }
+    }
+    assert!(
+        exclusions_that_kept_findings >= 50,
+        "sanity: only {exclusions_that_kept_findings} exclusions left findings to compare"
+    );
 }
 
 fn walkdir(dir: &std::path::Path) -> Vec<std::path::PathBuf> {

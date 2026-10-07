@@ -4,27 +4,22 @@ set -euo pipefail
 # ── Constants ─────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPOSITORY_ROOT="$(cd "$WORKSPACE/.." && pwd)"
 RELEASE_DIR="$WORKSPACE/target/release"
 GO_DIR="$SCRIPT_DIR/go"
 GENERATED_PKG="$GO_DIR/internal/bindings_go"
 
-ARCH="$(uname -m)"
-# Normalize to the same resource-prefix arch tokens the other bindings use
+ARCH="$(bash "$REPOSITORY_ROOT/scripts/build-support/rust-host-architecture.sh")"
 case "$ARCH" in
-    arm64|aarch64) ARCH="aarch64" ;;
-    x86_64|amd64)  ARCH="x86-64"  ;;
-    *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+    aarch64) ARCH="aarch64" ;;
+    x86_64)  ARCH="x86-64"  ;;
 esac
 
 CARGO_TARGET=""
 case "$(uname -s)" in
     Darwin*) LIB_NAME="libbindings_go.a"; DYLIB_NAME="libbindings_go.dylib"; OS="darwin" ;;
     Linux*)  LIB_NAME="libbindings_go.a"; DYLIB_NAME="libbindings_go.so";    OS="linux" ;;
-    MINGW*|MSYS*|CYGWIN*)
-        LIB_NAME="libbindings_go.a"; DYLIB_NAME="bindings_go.dll"; OS="win32"
-        CARGO_TARGET="x86_64-pc-windows-gnu"
-        RELEASE_DIR="$WORKSPACE/target/$CARGO_TARGET/release"
-        ;;
+    MINGW*|MSYS*|CYGWIN*) LIB_NAME="libbindings_go.a"; DYLIB_NAME="bindings_go.dll"; OS="win32" ;;
     *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 
@@ -32,13 +27,18 @@ esac
 # that set has no library to link against, so stop before the build instead of
 # failing at link time with missing symbols.
 case "${OS}-${ARCH}" in
-    linux-x86-64|darwin-aarch64|win32-x86-64) ;;
+    linux-x86-64|linux-aarch64|darwin-x86-64|darwin-aarch64|win32-x86-64) ;;
     *)
         echo "Error: unsupported host platform ${OS}-${ARCH}" >&2
-        echo "Supported: linux-x86-64, darwin-aarch64, win32-x86-64" >&2
+        echo "Supported: Linux and macOS on x86-64/aarch64, and Windows on x86-64" >&2
         exit 1
         ;;
 esac
+
+if [ "$OS" = "win32" ]; then
+    CARGO_TARGET="x86_64-pc-windows-gnu"
+    RELEASE_DIR="$WORKSPACE/target/$CARGO_TARGET/release"
+fi
 
 LIBS_DIR="$GO_DIR/libs/${OS}-${ARCH}"
 

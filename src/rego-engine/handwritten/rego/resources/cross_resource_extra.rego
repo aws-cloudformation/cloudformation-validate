@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("E3705", "ERROR", name,
     "Properties.BatchSize",
     sprintf("BatchSize %d exceeds maximum of 10 for SQS FIFO queue event source", [batch_size])) if {
+    cfn_rule_active("E3705")
     some name in resources_of_type("AWS::Lambda::EventSourceMapping")
     target := follow_ref(name, "Properties.EventSourceArn")
     get_resource(target).resourceType == "AWS::SQS::Queue"
@@ -19,6 +20,7 @@ violation contains make_diag_related("E3707", "ERROR", name,
     "Properties.Engine",
     sprintf("DBInstance Engine '%s' does not match DBCluster Engine '%s'", [inst_engine, cluster_engine]),
     [{"resource": cluster_name, "path": "Properties.Engine", "message": "cluster engine"}]) if {
+    cfn_rule_active("E3707")
     some name in resources_of_type("AWS::RDS::DBInstance")
     cluster_name := follow_ref(name, "Properties.DBClusterIdentifier")
     inst_engine := resolve(name, "Properties.Engine")
@@ -32,6 +34,7 @@ violation contains make_diag_related("E3707", "ERROR", name,
 violation contains make_diag_at("E3708", "ERROR", auth_id,
     "Properties.Type",
     sprintf("'%s' is not one of %s", [authorizer_type, render_list(expected)])) if {
+    cfn_rule_active("E3708")
     some name in resources_of_type("AWS::ApiGateway::Method")
     auth_id := follow_ref(name, "Properties.AuthorizerId")
     auth_type := resolve(name, "Properties.AuthorizationType")
@@ -55,6 +58,7 @@ _auth_type_expected := {
 violation contains make_diag_at("E3698", "ERROR", deployment_name,
     "Properties.RestApiId",
     sprintf("%s was expected", [render_value(authored_form(name, "Properties.RestApiId"))])) if {
+    cfn_rule_active("E3698")
     some name in resources_of_type("AWS::ApiGateway::Stage")
     deployment_name := follow_ref(name, "Properties.DeploymentId")
     _rest_api_ids_conflict(name, deployment_name)
@@ -68,6 +72,7 @@ violation contains make_diag_at("E3698", "ERROR", deployment_name,
 violation contains make_diag_at("E3699", "ERROR", authorizer_name,
     "Properties.RestApiId",
     sprintf("%s was expected", [render_value(authored_form(name, "Properties.RestApiId"))])) if {
+    cfn_rule_active("E3699")
     some name in resources_of_type("AWS::ApiGateway::Method")
     authorizer_name := follow_ref(name, "Properties.AuthorizerId")
     _rest_api_ids_conflict(name, authorizer_name)

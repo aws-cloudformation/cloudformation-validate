@@ -6,10 +6,14 @@ import * as path from 'path';
 const {
     RegoEngine,
     CelEngine,
+    CompositeEngine,
+    AwsCliCommand,
     SchemaValidator,
     SchemaFile,
     TemplateModel,
     TemplateFile,
+    TemplateContent,
+    DEFAULT_TEMPLATE_NAME,
     version,
 } = require('@aws/cloudformation-validate');
 
@@ -25,13 +29,64 @@ function loadRule(filename: string): string {
     return fs.readFileSync(path.join(RULES_DIR, filename), 'utf-8');
 }
 
-const COMBINED_GOLDEN: Record<string, unknown> = JSON.parse(
-    fs.readFileSync(path.join(EXPECTED_DIR, 'validation_reports.json'), 'utf-8'),
-);
+const CHUNK_PREFIX = 'validation_reports';
+const CHUNK_EXTENSION = '.json';
 
-const GOLDEN_DIRS = ['bad', 'cdk', 'good', 'gh-issues', 'integration', 'issues', 'lsp', 'public', 'quickstart'];
+/**
+ * Discover all numbered snapshot chunk files (validation_reportsN.json) in numeric
+ * order and strictly merge them into a single map. Fails on no chunks, non-object
+ * JSON, or duplicate template keys.
+ */
+function loadCombinedSnapshots(): Record<string, unknown> {
+    const entries = fs.readdirSync(EXPECTED_DIR);
+    const chunks: { index: number; path: string }[] = [];
+    const pattern = new RegExp(`^${CHUNK_PREFIX}([1-9][0-9]*)${CHUNK_EXTENSION.replace('.', '\\.')}$`);
+    for (const entry of entries) {
+        const match = pattern.exec(entry);
+        if (match) {
+            const index = parseInt(match[1], 10);
+            chunks.push({ index, path: path.join(EXPECTED_DIR, entry) });
+        }
+    }
+    if (chunks.length === 0) {
+        throw new Error(`no snapshot chunk files (${CHUNK_PREFIX}N${CHUNK_EXTENSION}) found in ${EXPECTED_DIR}`);
+    }
+    chunks.sort((a, b) => a.index - b.index);
 
+    for (let i = 0; i < chunks.length; i++) {
+        if (chunks[i].index !== i + 1) {
+            throw new Error(
+                `non-contiguous snapshot chunk sequence: expected index ${i + 1} but found ${chunks[i].index}`,
+            );
+        }
+    }
+
+    const merged: Record<string, unknown> = {};
+    for (const chunk of chunks) {
+        const data = JSON.parse(fs.readFileSync(chunk.path, 'utf-8'));
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+            throw new Error(`snapshot chunk ${path.basename(chunk.path)} is not a JSON object`);
+        }
+        for (const [key, value] of Object.entries(data)) {
+            if (key in merged) {
+                throw new Error(`duplicate template key "${key}" in chunk ${path.basename(chunk.path)}`);
+            }
+            merged[key] = value;
+        }
+    }
+    return merged;
+}
+
+const COMBINED_SNAPSHOTS: Record<string, unknown> = loadCombinedSnapshots();
+
+/**
+ * Recursively discover all template files (.yaml/.yml/.json) under the templates
+ * root, excluding security fixtures. Returns sorted forward-slash relative paths.
+ */
 function discoverAllTemplates(): string[] {
+    if (!fs.existsSync(TEMPLATES_ROOT)) {
+        throw new Error(`templates directory does not exist: ${TEMPLATES_ROOT}`);
+    }
     const templates: string[] = [];
     function walk(dir: string) {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -42,19 +97,20 @@ function discoverAllTemplates(): string[] {
             }
         }
     }
-    for (const sub of GOLDEN_DIRS) {
-        const dir = path.join(TEMPLATES_ROOT, sub);
-        if (fs.existsSync(dir)) walk(dir);
+    walk(TEMPLATES_ROOT);
+    if (templates.length === 0) {
+        throw new Error(`no templates discovered in ${TEMPLATES_ROOT}`);
     }
     return templates.sort();
 }
 
 const EXPECTED_TEMPLATES = discoverAllTemplates();
 
-const FULL_ONLY_DIAGNOSTIC_FIELDS = ['documentationUrl', 'context', 'ruleDescription', 'phase', 'section'];
+const ENRICHMENT_DIAGNOSTIC_FIELDS = ['documentationUrl', 'context', 'ruleDescription', 'phase', 'section'];
 
 const CEL = new CelEngine();
 const REGO = new RegoEngine();
+const COMPOSITE = new CompositeEngine();
 
 const TEMPLATE_WITH_OVERLAY_PROPERTY = `
 Resources:
@@ -74,11 +130,11 @@ const LAMBDA_OVERLAY_SCHEMA = `{
   "properties": {"TestForOverride": {"type": "string"}}
 }`;
 
-function loadGolden(rel: string): unknown {
-    return COMBINED_GOLDEN[rel];
+function loadSnapshot(rel: string): unknown {
+    return COMBINED_SNAPSHOTS[rel];
 }
 
-function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
+function stripSnapshotExcludedFields(report: any, filePath?: string): unknown {
     const clone = JSON.parse(JSON.stringify(report));
     if (filePath !== undefined) {
         clone.filePath = filePath;
@@ -89,39 +145,25 @@ function stripGoldenExcludedFields(report: any, filePath?: string): unknown {
         delete clone.metadata.rulesEvaluated;
         delete clone.metadata.cfnLintVersion;
         delete clone.metadata.resourceSchemaVersion;
+        delete clone.metadata.suppressed;
     }
     return clone;
 }
 
 // ── version ──────────────────────────────────────────────────────────────────
 
-function readWorkspaceVersion(): string {
-    const cargoTomlPath = path.resolve(__dirname, '../../Cargo.toml');
-    const lines = fs.readFileSync(cargoTomlPath, 'utf-8').split('\n');
-    let inWorkspacePackage = false;
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed === '[workspace.package]') {
-            inWorkspacePackage = true;
-            continue;
-        }
-        if (inWorkspacePackage && trimmed.startsWith('[')) {
-            break;
-        }
-        if (inWorkspacePackage && trimmed.startsWith('version = ')) {
-            const value = trimmed.slice('version = '.length).trim();
-            if (!value.startsWith('"') || !value.endsWith('"')) {
-                throw new Error(`malformed version line in ${cargoTomlPath}: ${line}`);
-            }
-            return value.slice(1, -1);
-        }
+function readExpectedVersion(): string {
+    const expectedVersionPath = path.join(EXPECTED_DIR, 'version.txt');
+    const expectedVersion = fs.readFileSync(expectedVersionPath, 'utf-8').trim();
+    if (expectedVersion.length === 0) {
+        throw new Error(`${expectedVersionPath} must not be empty`);
     }
-    throw new Error(`missing 'version = ' under [workspace.package] in ${cargoTomlPath}`);
+    return expectedVersion;
 }
 
 describe('version', () => {
-    it('returns the crate version from workspace Cargo.toml', () => {
-        expect(version()).toBe(readWorkspaceVersion());
+    it('returns the expected version fixture', () => {
+        expect(version()).toBe(readExpectedVersion());
     });
 });
 
@@ -137,6 +179,100 @@ describe('engine construction', () => {
     it("RegoEngine reports name 'rego'", () => {
         const engine = new RegoEngine();
         expect(engine.engineName()).toBe('rego');
+        engine.free();
+    });
+
+    it("CompositeEngine reports name 'composite'", () => {
+        const engine = new CompositeEngine();
+        expect(engine.engineName()).toBe('composite');
+        engine.free();
+    });
+});
+
+// ── CompositeEngine ──────────────────────────────────────────────────────────
+
+describe('CompositeEngine', () => {
+    const BUCKET_TEMPLATE = 'bad/invalid_deletion_policy.yaml';
+
+    it('with no external rules matches the built-in engine diagnostics and rules', () => {
+        const engine = new CompositeEngine();
+        const template = loadTemplate(BUCKET_TEMPLATE);
+        const baseline = REGO.validateTemplate(template).diagnostics;
+        expect(baseline.length, 'the parity template must produce built-in diagnostics').toBeGreaterThan(0);
+        expect(engine.validateTemplate(template).diagnostics).toEqual(baseline);
+        expect(engine.listRules()).toEqual(REGO.listRules());
+        engine.free();
+    });
+
+    it('evaluates a custom CEL rule layered on top of the built-ins', () => {
+        const builtinRuleCount = CEL.listRules().length;
+        const engine = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE));
+        const custom = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
+        expect(custom, 'CUSTOM001 diagnostic must fire').toBeDefined();
+        expect(custom.severity).toBe('ERROR');
+        expect(custom.source).toBe('CUSTOM');
+
+        const rules = engine.listRules();
+        const registered = rules.find((r: any) => r.id === 'CUSTOM001');
+        expect(registered, 'CUSTOM001 must be listed').toBeDefined();
+        expect(registered.origin).toBe('CUSTOM');
+        expect(rules.filter((r: any) => r.origin !== 'CUSTOM').length).toBe(builtinRuleCount);
+        engine.free();
+    });
+
+    it('evaluates a custom Rego rule layered on top of the built-ins', () => {
+        const builtinRuleCount = CEL.listRules().length;
+        const engine = new CompositeEngine({
+            regoRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE));
+        const custom = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
+        expect(custom, 'CUSTOM001 diagnostic must fire').toBeDefined();
+        expect(custom.severity).toBe('ERROR');
+        expect(custom.source).toBe('CUSTOM');
+        expect(custom.entity?.logicalId).toBe('Bucket');
+        expect(custom.entity?.resourceType).toBe('AWS::S3::Bucket');
+
+        const rules = engine.listRules();
+        const registered = rules.find((r: any) => r.id === 'CUSTOM001');
+        expect(registered, 'CUSTOM001 must be listed').toBeDefined();
+        expect(registered.origin).toBe('CUSTOM');
+        expect(rules.filter((r: any) => r.origin !== 'CUSTOM').length).toBe(builtinRuleCount);
+        engine.free();
+    });
+
+    it('evaluates a Guard rule layered on top of the built-ins', () => {
+        const engine = new CompositeEngine({
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE));
+        const guard = report.diagnostics.find((d: any) => d.ruleId === 'check_bucket_encryption');
+        expect(guard, 'check_bucket_encryption diagnostic must fire').toBeDefined();
+        expect(guard.severity).toBe('ERROR');
+        expect(guard.source).toBe('GUARD');
+        expect(guard.entity?.logicalId).toBe('Bucket');
+
+        const listed = engine.listRules().find((r: any) => r.id === 'check_bucket_encryption');
+        expect(listed, 'check_bucket_encryption must be listed').toBeDefined();
+        expect(listed.origin).toBe('GUARD');
+        engine.free();
+    });
+
+    it('disableBuiltinRules leaves only the external Guard finding', () => {
+        const engine = new CompositeEngine({
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
+
+        const report = engine.validateTemplate(loadTemplate(BUCKET_TEMPLATE), { disableBuiltinRules: true });
+        const ruleIds = report.diagnostics.map((d: any) => d.ruleId);
+        expect(ruleIds).toContain('check_bucket_encryption');
+        expect(ruleIds.every((id: string) => id === 'check_bucket_encryption')).toBe(true);
         engine.free();
     });
 });
@@ -169,10 +305,17 @@ describe('listRules', () => {
         expect(ids).toEqual([...ids].sort());
     });
 
-    it('CelEngine and RegoEngine list identical rules', () => {
+    it('CompositeEngine rules are sorted by id', () => {
+        const ids = COMPOSITE.listRules().map((r: any) => r.id);
+        expect(ids.length).toBeGreaterThan(0);
+        expect(ids).toEqual([...ids].sort());
+    });
+
+    it('CelEngine, RegoEngine, and CompositeEngine list identical rules', () => {
         const celRules = CEL.listRules();
         const regoRules = REGO.listRules();
         expect(celRules).toEqual(regoRules);
+        expect(COMPOSITE.listRules()).toEqual(regoRules);
     });
 });
 
@@ -219,24 +362,355 @@ describe('TemplateModel', () => {
 
 describe('invalid input', () => {
     it('CelEngine returns F1101 for empty template', () => {
-        const report = CEL.validateStandard(loadTemplate('empty.yaml'));
+        const report = CEL.validateTemplate(loadTemplate('empty.yaml'));
         expect(report.status).toBe('ERROR');
         expect(report.diagnostics[0].ruleId).toBe('F1101');
         expect(report.diagnostics[0].severity).toBe('FATAL');
     });
 
     it('RegoEngine returns F1101 for empty template', () => {
-        const report = REGO.validateStandard(loadTemplate('empty.yaml'));
+        const report = REGO.validateTemplate(loadTemplate('empty.yaml'));
+        expect(report.status).toBe('ERROR');
+        expect(report.diagnostics[0].ruleId).toBe('F1101');
+        expect(report.diagnostics[0].severity).toBe('FATAL');
+    });
+
+    it('CompositeEngine returns F1101 for empty template', () => {
+        const report = COMPOSITE.validateTemplate(loadTemplate('empty.yaml'));
         expect(report.status).toBe('ERROR');
         expect(report.diagnostics[0].ruleId).toBe('F1101');
         expect(report.diagnostics[0].severity).toBe('FATAL');
     });
 });
 
+// ── Valid input ──────────────────────────────────────────────────────────────
+
+describe('valid template', () => {
+    const GOOD_TEMPLATE = 'good/generic.yaml';
+
+    it('all engines agree on an OK report for a good template', () => {
+        const rego = REGO.validateTemplate(loadTemplate(GOOD_TEMPLATE));
+        expect(rego.status).toBe('OK');
+        expect(CEL.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
+        expect(COMPOSITE.validateTemplate(loadTemplate(GOOD_TEMPLATE)).diagnostics).toEqual(rego.diagnostics);
+    });
+});
+
+// ── In-memory templates ──────────────────────────────────────────────────────
+
+describe('TemplateContent', () => {
+    const IN_MEMORY_TEMPLATE = 'bad/invalid_deletion_policy.yaml';
+    const INLINE_NAME = 'inline/template.yaml';
+
+    function templateText(rel: string): string {
+        return fs.readFileSync(path.join(TEMPLATES_ROOT, rel), 'utf-8');
+    }
+
+    for (const [engineName, engine] of [
+        ['RegoEngine', REGO],
+        ['CelEngine', CEL],
+        ['CompositeEngine', COMPOSITE],
+    ] as const) {
+        it(`${engineName} validates a string template identically to the same template on disk`, () => {
+            const fromDisk = engine.validateTemplate(loadTemplate(IN_MEMORY_TEMPLATE));
+            const fromString = engine.validateTemplate(new TemplateContent(templateText(IN_MEMORY_TEMPLATE)));
+            expect(fromString.diagnostics).toEqual(fromDisk.diagnostics);
+            expect(fromString.status).toBe(fromDisk.status);
+            expect(fromDisk.diagnostics.length).toBeGreaterThan(0);
+        });
+
+        it(`${engineName} validates a Uint8Array template identically to the same template on disk`, () => {
+            const bytes = fs.readFileSync(path.join(TEMPLATES_ROOT, IN_MEMORY_TEMPLATE));
+            const fromDisk = engine.validateTemplate(loadTemplate(IN_MEMORY_TEMPLATE));
+            const fromBytes = engine.validateTemplate(new TemplateContent(new Uint8Array(bytes)));
+            expect(fromBytes.diagnostics).toEqual(fromDisk.diagnostics);
+        });
+    }
+
+    it('labels the report with the default name when none is supplied', () => {
+        const report = REGO.validateTemplate(new TemplateContent('Resources: {}'));
+        expect(report.filePath).toBe(DEFAULT_TEMPLATE_NAME);
+        expect(DEFAULT_TEMPLATE_NAME).toBe('template');
+    });
+
+    it('labels the report with the supplied name', () => {
+        const template = new TemplateContent('Resources: {}', INLINE_NAME);
+        expect(template.name).toBe(INLINE_NAME);
+        expect(REGO.validateTemplate(template).filePath).toBe(INLINE_NAME);
+    });
+
+    it('returns F1101 for malformed in-memory YAML instead of throwing', () => {
+        const report = REGO.validateTemplate(new TemplateContent('not: a: valid: yaml: ['));
+        expect(report.status).toBe('ERROR');
+        expect(report.diagnostics[0].ruleId).toBe('F1101');
+    });
+
+    it('rejects content that is neither a string nor a Uint8Array', () => {
+        expect(() => new TemplateContent(42 as any)).toThrow(TypeError);
+        expect(() => new TemplateContent({ Resources: {} } as any)).toThrow(TypeError);
+    });
+
+    it('TemplateModel parses an in-memory template', () => {
+        const model = new TemplateModel(new TemplateContent(templateText('good/generic.yaml')));
+        try {
+            expect(model.description()).toBe('A sample template');
+            expect(model.conditions()).toContain('ProdVolumeSize');
+        } finally {
+            model.free();
+        }
+    });
+
+    it('SchemaValidator validates an in-memory template identically to the same template on disk', () => {
+        const validator = new SchemaValidator();
+        try {
+            const fromDisk = validator.validate(loadTemplate(IN_MEMORY_TEMPLATE));
+            const fromMemory = validator.validate(new TemplateContent(templateText(IN_MEMORY_TEMPLATE)));
+            expect(fromMemory).toEqual(fromDisk);
+        } finally {
+            validator.free();
+        }
+    });
+});
+
+// ── AWS CLI command validation ──────────────────────────────────────────────
+
+describe('AWS CLI command validation', () => {
+    const engines = [
+        ['rego', REGO],
+        ['cel', CEL],
+        ['composite', COMPOSITE],
+    ] as const;
+
+    function diagnosticKeys(report: any): string[] {
+        return (report?.diagnostics ?? []).map(
+            (diagnostic: any) =>
+                `${diagnostic.ruleId}|${diagnostic.entity?.logicalId ?? ''}|${diagnostic.propertyPath ?? ''}`,
+        );
+    }
+
+    it('synthesizes canonical S3 CreateBucket state on all engines', () => {
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: 'synthetic-bucket' });
+        const validations: Record<string, any> = {};
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('VALIDATED');
+            expect(validation.operationKind, name).toBe('CLOUD_FORMATION_CREATE');
+            expect(validation.resourceTypes, name).toEqual(['AWS::S3::Bucket']);
+            expect(validation.templateSource, name).toBe('SYNTHESIZED_CREATE');
+            expect(validation.report, name).not.toBeNull();
+            expect(validation.template, name).toBeInstanceOf(Uint8Array);
+            const document = JSON.parse(Buffer.from(validation.template).toString('utf8'));
+            expect(document.Resources.Resource.Type, name).toBe('AWS::S3::Bucket');
+            expect(document.Resources.Resource.Properties.BucketName, name).toBe('synthetic-bucket');
+            validations[name] = validation;
+        }
+
+        for (const [name, validation] of Object.entries(validations)) {
+            if (name === 'rego') continue;
+            expect(Array.from(validation.template), name).toEqual(Array.from(validations.rego.template));
+            expect(diagnosticKeys(validation.report), name).toEqual(diagnosticKeys(validations.rego.report));
+        }
+    });
+
+    it('preserves CloudFormation TemplateBody bytes exactly on both engines', () => {
+        const templateBody = Buffer.from(
+            '{\n    "Resources": {\n        "Bucket": { "Type": "AWS::S3::Bucket" }\n    }\n}',
+        );
+        const request = new AwsCliCommand('cloudformation', 'ValidateTemplate', {
+            TemplateBody: templateBody,
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('VALIDATED');
+            expect(validation.templateSource, name).toBe('TEMPLATE_BODY');
+            expect(validation.template, name).toBeInstanceOf(Uint8Array);
+            expect(Buffer.from(validation.template), name).toEqual(templateBody);
+        }
+    });
+
+    it('conservatively skips unmapped nested DynamoDB state on both engines', () => {
+        const request = new AwsCliCommand('dynamodb', 'CreateTable', {
+            TableName: 'Synthetic',
+            KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+            BillingMode: 'PAY_PER_REQUEST',
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.report, name).toBeNull();
+            expect(validation.template, name).toBeNull();
+            expect(validation.resourceTypes, name).toEqual(['AWS::DynamoDB::Table']);
+            expect(validation.reason, name).toContain('has no mapping');
+        }
+    });
+
+    it('never guesses the noncanonical CloudWatch signing alias', () => {
+        const canonical = new AwsCliCommand('cloudwatch', 'PutMetricAlarm', {
+            AlarmName: 'synthetic',
+        });
+        const alias = new AwsCliCommand('monitoring', 'PutMetricAlarm', {
+            AlarmName: 'synthetic',
+        });
+
+        for (const [name, engine] of engines) {
+            const canonicalValidation = engine.validateAwsCliCommand(canonical);
+            expect(canonicalValidation.resourceTypes, name).toContain('AWS::CloudWatch::Alarm');
+            const aliasValidation = engine.validateAwsCliCommand(alias);
+            expect(aliasValidation.status, name).toBe('SKIPPED');
+            expect(aliasValidation.resourceTypes, name).not.toContain('AWS::CloudWatch::Alarm');
+            expect(aliasValidation.template, name).toBeNull();
+        }
+    });
+
+    it('preserves signed and unsigned 64-bit bigint values across the WASM boundary', () => {
+        const request = new AwsCliCommand('lambda', 'CreateFunction', {
+            MemorySize: 18446744073709551615n,
+            Timeout: -9223372036854775808n,
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('VALIDATED');
+            expect(validation.template, name).toBeInstanceOf(Uint8Array);
+            const template = Buffer.from(validation.template).toString('utf8');
+            expect(template, name).toContain('"MemorySize":18446744073709551615');
+            expect(template, name).toContain('"Timeout":-9223372036854775808');
+        }
+    });
+
+    it('marks unsupported request values conservatively instead of coercing them', () => {
+        const request = new AwsCliCommand('s3', 'CreateBucket', {
+            Bucket: Symbol('not-a-bucket-name'),
+        });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.report, name).toBeNull();
+            expect(validation.template, name).toBeNull();
+        }
+    });
+
+    it('does not invoke object accessors', () => {
+        let accessorInvoked = false;
+        const state: Record<string, unknown> = Object.create(null);
+        Object.defineProperty(state, 'accessor', {
+            enumerable: true,
+            get() {
+                accessorInvoked = true;
+                throw new Error('request accessors must not run');
+            },
+        });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.template, name).toBeNull();
+        }
+        expect(accessorInvoked).toBe(false);
+    });
+
+    it('does not invoke indexed array accessors', () => {
+        let accessorInvoked = false;
+        const state: unknown[] = [];
+        Object.defineProperty(state, '0', {
+            enumerable: true,
+            get() {
+                accessorInvoked = true;
+                throw new Error('request accessors must not run');
+            },
+        });
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.template, name).toBeNull();
+        }
+        expect(accessorInvoked).toBe(false);
+    });
+
+    it('skips cyclic request state conservatively', () => {
+        const state: Record<string, unknown> = Object.create(null);
+        state.cycle = state;
+        const request = new AwsCliCommand('s3', 'CreateBucket', { Bucket: state });
+
+        for (const [name, engine] of engines) {
+            const validation = engine.validateAwsCliCommand(request);
+            expect(validation.status, name).toBe('SKIPPED');
+            expect(validation.template, name).toBeNull();
+        }
+    });
+
+    it('bypasses caller-overridden Date and Uint8Array methods', () => {
+        let overrideInvoked = false;
+        const date = new Date('2024-01-02T03:04:05.000Z');
+        Object.defineProperty(date, 'getTime', {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+        Object.defineProperty(date, 'toISOString', {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+
+        const expectedTemplateBody = Buffer.from('{"Resources":{"Bucket":{"Type":"AWS::S3::Bucket"}}}');
+        const templateBody = new Uint8Array(expectedTemplateBody);
+        Object.defineProperty(templateBody, Symbol.iterator, {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+        Object.defineProperty(templateBody, 'forEach', {
+            get() {
+                overrideInvoked = true;
+                throw new Error('request overrides must not run');
+            },
+        });
+
+        const dateRequest = new AwsCliCommand('lambda', 'CreateFunction', { Description: date });
+        const bytesRequest = new AwsCliCommand('cloudformation', 'ValidateTemplate', {
+            TemplateBody: templateBody,
+        });
+        for (const [name, engine] of engines) {
+            const dateValidation = engine.validateAwsCliCommand(dateRequest);
+            expect(dateValidation.status, name).toBe('VALIDATED');
+            expect(Buffer.from(dateValidation.template).toString('utf8'), name).toContain('2024-01-02T03:04:05.000Z');
+
+            const bytesValidation = engine.validateAwsCliCommand(bytesRequest);
+            expect(bytesValidation.status, name).toBe('VALIDATED');
+            expect(Buffer.from(bytesValidation.template), name).toEqual(expectedTemplateBody);
+        }
+        expect(overrideInvoked).toBe(false);
+    });
+
+    it('rejects invalid top-level parameter dictionaries without dropping keys', () => {
+        expect(() => new AwsCliCommand('s3', 'CreateBucket', [] as unknown as Record<string, unknown>)).toThrow(
+            'parameters must be a plain object',
+        );
+
+        const symbolParameters: Record<PropertyKey, unknown> = Object.create(null);
+        symbolParameters[Symbol('Bucket')] = 'synthetic-bucket';
+        expect(() => new AwsCliCommand('s3', 'CreateBucket', symbolParameters as Record<string, unknown>)).toThrow(
+            'request parameter names must be strings',
+        );
+    });
+});
+
 // ── Additional schema overlays ──────────────────────────────────────────────
 
 describe('additional schemas', () => {
-    it('SchemaFile applies through the public config on both engines', () => {
+    it('SchemaFile applies through the public config on all engines', () => {
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cloudformation-validate-overlay-'));
         try {
             const templatePath = path.join(directory, 'template.yaml');
@@ -248,16 +722,19 @@ describe('additional schemas', () => {
             for (const [name, baseline, EngineType] of [
                 ['rego', REGO, RegoEngine],
                 ['cel', CEL, CelEngine],
+                ['composite', COMPOSITE, CompositeEngine],
             ] as const) {
                 expect(
                     baseline
-                        .validateStandard(template)
+                        .validateTemplate(template)
                         .diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),
                     `${name} baseline must report the unpublished property`,
                 ).toBe(true);
 
-                const engine = new EngineType({ schemaValidatorConfig: { additionalSchemas: [new SchemaFile(schemaPath)] } });
-                const report = engine.validateStandard(template);
+                const engine = new EngineType({
+                    schemaValidatorConfig: { additionalSchemas: [new SchemaFile(schemaPath)] },
+                });
+                const report = engine.validateTemplate(template);
                 expect(
                     report.diagnostics.some((diagnostic: any) => diagnostic.ruleId === 'F3002'),
                     `${name} public config must apply the overlay`,
@@ -280,12 +757,18 @@ describe('custom rule', () => {
         const rego = new RegoEngine({
             customRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
         });
-
-        for (const [name, engine] of [
+        // The composite runs the same CEL custom rule through its built-in engine.
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+        });
+        const engines = [
             ['cel', cel],
             ['rego', rego],
-        ] as const) {
-            const report = (engine as any).validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+            ['composite', composite],
+        ] as const;
+
+        for (const [name, engine] of engines) {
+            const report = (engine as any).validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
             const d = report.diagnostics.find((d: any) => d.ruleId === 'CUSTOM001');
             expect(d, `${name}: CUSTOM001 diagnostic must fire`).toBeDefined();
             expect(d.severity).toBe('ERROR');
@@ -294,10 +777,7 @@ describe('custom rule', () => {
         }
 
         const baselineCount = CEL.listRules().length;
-        for (const [name, engine] of [
-            ['cel', cel],
-            ['rego', rego],
-        ] as const) {
+        for (const [name, engine] of engines) {
             const rules = (engine as any).listRules();
             const c = rules.find((r: any) => r.id === 'CUSTOM001');
             expect(c, `${name}: CUSTOM001 must exist`).toBeDefined();
@@ -308,8 +788,10 @@ describe('custom rule', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -323,11 +805,15 @@ describe('guard rule', () => {
         const rego = new RegoEngine({
             guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
         });
+        const composite = new CompositeEngine({
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
 
         const baselineCount = CEL.listRules().length;
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
             const g = rules.find((r: any) => r.id === 'check_bucket_encryption');
@@ -337,7 +823,7 @@ describe('guard rule', () => {
             expect(g.description).toBe('S3 bucket must have encryption configured');
             expect(rules.filter((r: any) => r.origin !== 'GUARD').length).toBe(baselineCount);
 
-            const report = (engine as any).validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+            const report = (engine as any).validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
             const d = report.diagnostics.find((d: any) => d.ruleId === 'check_bucket_encryption');
             expect(d, `${name}: check_bucket_encryption diagnostic must fire`).toBeDefined();
             expect(d.severity).toBe('ERROR');
@@ -346,8 +832,10 @@ describe('guard rule', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(composite.listRules()).toEqual(rego.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -363,13 +851,18 @@ describe('single combined custom + guard', () => {
             customRules: [{ name: 'rego_custom.rego', content: loadRule('rego_custom.rego') }],
             guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
         });
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_custom.json', content: loadRule('cel_custom.json') }],
+            guardRules: [{ name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') }],
+        });
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+        rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
 
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
             expect(rules.find((r: any) => r.id === 'CUSTOM001')?.origin).toBe('CUSTOM');
@@ -379,8 +872,10 @@ describe('single combined custom + guard', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
@@ -402,13 +897,21 @@ describe('multi combined custom + guard', () => {
                 { name: 'guard_multi.guard', content: loadRule('guard_multi.guard') },
             ],
         });
+        const composite = new CompositeEngine({
+            celRules: [{ name: 'cel_multi_custom.json', content: loadRule('cel_multi_custom.json') }],
+            guardRules: [
+                { name: 'guard_encryption.guard', content: loadRule('guard_encryption.guard') },
+                { name: 'guard_multi.guard', content: loadRule('guard_multi.guard') },
+            ],
+        });
 
         // Rego discovers custom rule metadata during evaluation.
-        rego.validateStandard(loadTemplate('bad/invalid_deletion_policy.yaml'));
+        rego.validateTemplate(loadTemplate('bad/invalid_deletion_policy.yaml'));
 
         for (const [name, engine] of [
             ['cel', cel],
             ['rego', rego],
+            ['composite', composite],
         ] as const) {
             const rules = (engine as any).listRules();
 
@@ -444,16 +947,18 @@ describe('multi combined custom + guard', () => {
         }
 
         expect(cel.listRules()).toEqual(rego.listRules());
+        expect(cel.listRules()).toEqual(composite.listRules());
         cel.free();
         rego.free();
+        composite.free();
     });
 });
 
-function stripDetailedOnlyFields(report: any): unknown {
+function stripEnrichmentFields(report: any): unknown {
     const clone = JSON.parse(JSON.stringify(report));
     if (clone.diagnostics) {
         for (const d of clone.diagnostics) {
-            for (const field of FULL_ONLY_DIAGNOSTIC_FIELDS) {
+            for (const field of ENRICHMENT_DIAGNOSTIC_FIELDS) {
                 delete d[field];
             }
         }
@@ -461,25 +966,33 @@ function stripDetailedOnlyFields(report: any): unknown {
     return clone;
 }
 
-describe('golden file validation', () => {
+describe('snapshot validation', () => {
     function detailedTests(engineName: string, engine: any) {
-        describe(`${engineName} detailed matches golden`, () => {
+        describe(`${engineName} detailed matches snapshot`, () => {
             for (const rel of EXPECTED_TEMPLATES) {
                 it(rel, () => {
-                    const actual = engine.validateDetailed(loadTemplate(rel), { severityLevel: 'DEBUG' });
-                    expect(stripGoldenExcludedFields(actual, rel)).toEqual(stripGoldenExcludedFields(loadGolden(rel)));
+                    const actual = engine.validateTemplate(loadTemplate(rel), {
+                        severityLevel: 'DEBUG',
+                        detailLevel: 'DETAILED',
+                    });
+                    expect(stripSnapshotExcludedFields(actual, rel)).toEqual(
+                        stripSnapshotExcludedFields(loadSnapshot(rel)),
+                    );
                 });
             }
         });
     }
 
     function standardTests(engineName: string, engine: any) {
-        describe(`${engineName} standard matches golden`, () => {
+        describe(`${engineName} standard matches snapshot`, () => {
             for (const rel of EXPECTED_TEMPLATES) {
                 it(rel, () => {
-                    const actual = engine.validateStandard(loadTemplate(rel), { severityLevel: 'DEBUG' });
-                    expect(stripGoldenExcludedFields(actual, rel)).toEqual(
-                        stripGoldenExcludedFields(stripDetailedOnlyFields(loadGolden(rel))),
+                    const actual = engine.validateTemplate(loadTemplate(rel), {
+                        severityLevel: 'DEBUG',
+                        detailLevel: 'STANDARD',
+                    });
+                    expect(stripSnapshotExcludedFields(stripEnrichmentFields(actual), rel)).toEqual(
+                        stripSnapshotExcludedFields(stripEnrichmentFields(loadSnapshot(rel))),
                     );
                 });
             }
@@ -490,13 +1003,18 @@ describe('golden file validation', () => {
     standardTests('rego', REGO);
     detailedTests('cel', CEL);
     standardTests('cel', CEL);
+    detailedTests('composite', COMPOSITE);
+    standardTests('composite', COMPOSITE);
 });
 
-describe('report fields excluded from golden', () => {
+describe('report fields excluded from snapshot', () => {
     const REPORT_TEMPLATE = 'good/generic.yaml';
 
     it('performance is present with a timing metric per phase', () => {
-        const report = REGO.validateDetailed(loadTemplate(REPORT_TEMPLATE), { severityLevel: 'DEBUG' });
+        const report = REGO.validateTemplate(loadTemplate(REPORT_TEMPLATE), {
+            severityLevel: 'DEBUG',
+            detailLevel: 'DETAILED',
+        });
         const phases = [
             'schemaInit',
             'engineInit',
@@ -510,5 +1028,122 @@ describe('report fields excluded from golden', () => {
         for (const phase of phases) {
             expect(typeof report.performance[phase].durationMs, `performance.${phase}.durationMs`).toBe('number');
         }
+    });
+});
+
+describe('validateTemplate detail level', () => {
+    const DETAIL_LEVEL_TEMPLATE = 'good/generic.yaml';
+
+    for (const [engineName, engine] of [
+        ['rego', REGO],
+        ['cel', CEL],
+        ['composite', COMPOSITE],
+    ] as const) {
+        it(`${engineName} defaults to DETAILED when detailLevel is omitted`, () => {
+            const withDefault = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+            });
+            const explicitDetailed = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            expect(withDefault.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+            expect(stripSnapshotExcludedFields(withDefault)).toEqual(stripSnapshotExcludedFields(explicitDetailed));
+        });
+
+        it(`${engineName} STANDARD omits the enrichment fields that DETAILED includes`, () => {
+            const detailed = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            const standard = engine.validateTemplate(loadTemplate(DETAIL_LEVEL_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(detailed.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+            expect(standard.diagnostics.every((d: any) => d.ruleDescription === undefined)).toBe(true);
+        });
+
+        it(`${engineName} STANDARD omits the parse-phase field a DETAILED parse error carries`, () => {
+            const detailed = engine.validateTemplate(loadTemplate('empty.yaml'), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            const standard = engine.validateTemplate(loadTemplate('empty.yaml'), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(detailed.diagnostics[0].ruleId).toBe('F1101');
+            expect(detailed.diagnostics[0].phase).toBe('PARSE');
+            expect(standard.diagnostics[0].ruleId).toBe('F1101');
+            expect(standard.diagnostics[0].phase).toBeUndefined();
+        });
+    }
+});
+
+describe('deprecated validateStandard and validateDetailed', () => {
+    const COMPAT_TEMPLATE = 'good/generic.yaml';
+
+    for (const [engineName, engine] of [
+        ['rego', REGO],
+        ['cel', CEL],
+        ['composite', COMPOSITE],
+    ] as const) {
+        it(`${engineName} validateStandard matches validateTemplate at STANDARD`, () => {
+            const compat = engine.validateStandard(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'DEBUG' });
+            const canonical = engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(compat.diagnostics.length).toBeGreaterThan(0);
+            expect(stripSnapshotExcludedFields(compat)).toEqual(stripSnapshotExcludedFields(canonical));
+        });
+
+        it(`${engineName} validateDetailed matches validateTemplate at DETAILED`, () => {
+            const compat = engine.validateDetailed(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'DEBUG' });
+            const canonical = engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            expect(compat.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+            expect(stripSnapshotExcludedFields(compat)).toEqual(stripSnapshotExcludedFields(canonical));
+        });
+
+        it(`${engineName} validateStandard overrides a DETAILED detailLevel in config`, () => {
+            const report = engine.validateStandard(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'DETAILED',
+            });
+            expect(report.diagnostics.length).toBeGreaterThan(0);
+            expect(report.diagnostics.every((d: any) => d.ruleDescription === undefined)).toBe(true);
+        });
+
+        it(`${engineName} validateDetailed overrides a STANDARD detailLevel in config`, () => {
+            const report = engine.validateDetailed(loadTemplate(COMPAT_TEMPLATE), {
+                severityLevel: 'DEBUG',
+                detailLevel: 'STANDARD',
+            });
+            expect(report.diagnostics.some((d: any) => d.ruleDescription !== undefined)).toBe(true);
+        });
+
+        it(`${engineName} validateStandard and validateDetailed accept an omitted config`, () => {
+            const standard = engine.validateStandard(loadTemplate(COMPAT_TEMPLATE));
+            const detailed = engine.validateDetailed(loadTemplate(COMPAT_TEMPLATE));
+            expect(stripSnapshotExcludedFields(standard)).toEqual(
+                stripSnapshotExcludedFields(
+                    engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE), { detailLevel: 'STANDARD' }),
+                ),
+            );
+            expect(stripSnapshotExcludedFields(detailed)).toEqual(
+                stripSnapshotExcludedFields(engine.validateTemplate(loadTemplate(COMPAT_TEMPLATE))),
+            );
+        });
+    }
+
+    it('preserves the remaining config options while forcing the detail level', () => {
+        const filtered = REGO.validateStandard(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'ERROR' });
+        const unfiltered = REGO.validateStandard(loadTemplate(COMPAT_TEMPLATE), { severityLevel: 'DEBUG' });
+        expect(filtered.metadata.severityLevel).toBe('ERROR');
+        expect(filtered.diagnostics.length).toBeLessThan(unfiltered.diagnostics.length);
     });
 });

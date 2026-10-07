@@ -1,9 +1,10 @@
 use super::EvalContext;
 use super::patterns::AMI_ID_RE;
+use data_source::rule_data::{PathSegment, ResourcePropertyPath};
 use diagnostics::Diagnostic;
 use diagnostics::RelatedResource;
 use diagnostics::ResourceRef;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
@@ -11,10 +12,15 @@ use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS,
     FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, FN_REF,
-    KEY_PROPERTIES, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
+    KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
-use template_model::message::{render_str_list, render_value};
+use template_model::dynamodb::analyze_dynamodb_table_scenarios;
+use template_model::fargate::{CPU_UNIT_LABELS, VCPU_SIZES, cpu_is_offered};
+use template_model::iam_policy::{inline_identity_policy_document_paths, validate_identity_policy_scenarios};
+use template_model::message::{primary_identifier_conflict_message, render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
+use template_model::route_table::duplicate_subnet_associations;
+use template_model::vpc_cidr::subnets_outside_vpc;
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
 };
@@ -48,16 +54,57 @@ static MX_RECORD_RE: LazyLock<regex::Regex> =
 static ARN_HAS_ACCOUNT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r":\d{12}:").expect("Invalid ARN_HAS_ACCOUNT_RE pattern"));
 
-/// Resource types that carry EBS `BlockDeviceMappings`, paired with the property
-/// prefix under which the mappings array lives. The E3671 Iops-required check
-/// applies to each `<prefix>[*].Ebs`. SpotFleet nests its mappings one array
-/// deeper (under each launch specification), so it is handled separately.
-const EBS_IOPS_BLOCK_DEVICE_PATHS: &[(&str, &str)] = &[
-    ("AWS::AutoScaling::LaunchConfiguration", "Properties.BlockDeviceMappings"),
-    ("AWS::EC2::Instance", "Properties.BlockDeviceMappings"),
-    ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.BlockDeviceMappings"),
-    ("AWS::OpsWorks::Instance", "Properties.BlockDeviceMappings"),
-];
+/// Converts a `ResourcePropertyPath`'s segments (after the `Properties` prefix)
+/// into a dot-separated property path string suitable for `resolve_concrete` and
+/// diagnostic anchoring. Wildcard segments are excluded from the prefix because
+/// the caller iterates over them explicitly.
+///
+/// Example: segments `[Properties, BlockDeviceMappings, *, Ebs]` yields
+/// `"Properties.BlockDeviceMappings"` — the caller iterates the array and
+/// appends `.{idx}.Ebs` per element.
+fn property_path_prefix(path: &ResourcePropertyPath) -> String {
+    path.segments
+        .iter()
+        .take_while(|s| !matches!(s, PathSegment::Wildcard))
+        .filter_map(|s| match s {
+            PathSegment::Literal(l) => Some(l.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+/// Converts a full `ResourcePropertyPath` to a dot-separated property path
+/// string, using `*` for wildcard segments. Suitable for diagnostic path
+/// rendering when the complete path is needed.
+fn full_property_path(path: &ResourcePropertyPath) -> String {
+    path.segments
+        .iter()
+        .map(|s| match s {
+            PathSegment::Literal(l) => l.as_str(),
+            PathSegment::Wildcard => "*",
+        })
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+/// Counts the number of wildcard segments in a path.
+fn wildcard_count(path: &ResourcePropertyPath) -> usize {
+    path.segments.iter().filter(|s| matches!(s, PathSegment::Wildcard)).count()
+}
+
+/// Navigates a dot-separated property path through a JSON value, returning the
+/// leaf value if every segment resolves. Returns `None` if any segment is missing.
+fn navigate_json_path<'a>(value: &'a serde_json::Value, dot_path: &str) -> Option<&'a serde_json::Value> {
+    let mut current = value;
+    for seg in dot_path.split('.') {
+        if seg.is_empty() {
+            continue;
+        }
+        current = current.get(seg)?;
+    }
+    Some(current)
+}
 
 /// Renders a resolved value to JSON while preserving `Fn::If` structure as
 /// `{"Fn::If": [condition, then, else]}`, so callers can enumerate both branches
@@ -147,30 +194,22 @@ fn ebs_block_device_mappings(m: &SemanticModel, rid: &str, prefix: &str) -> Vec<
     out
 }
 
-/// Whether a Lambda runtime supports SnapStart: any Python, Java, or .NET
-/// runtime qualifies except the legacy `dotnetcore*` family and an explicit
-/// list of deprecated versions. Using allow/deny logic (rather than a fixed
-/// Java-only allowlist) keeps newer supported runtimes from being flagged.
-fn snapstart_runtime_supported(runtime: &str) -> bool {
-    const SNAPSTART_UNSUPPORTED_RUNTIMES: &[&str] = &[
-        "dotnet5.0",
-        "dotnet6",
-        "dotnet7",
-        "java8.al2",
-        "java8",
-        "python3.7",
-        "python3.8",
-        "python3.9",
-        "python3.10",
-        "python3.11",
-    ];
-    if !(runtime.starts_with("python") || runtime.starts_with("java") || runtime.starts_with("dotnet")) {
+/// Whether a Lambda runtime supports SnapStart, based on rule-tables data.
+/// A runtime is supported if it starts with one of the configured prefixes
+/// AND is not in the explicitly unsupported prefix/runtime lists.
+fn snapstart_runtime_supported(
+    runtime: &str,
+    runtime_prefixes: &[String],
+    unsupported_runtime_prefixes: &[String],
+    unsupported_runtimes: &[String],
+) -> bool {
+    if !runtime_prefixes.iter().any(|prefix| runtime.starts_with(prefix.as_str())) {
         return false;
     }
-    if runtime.starts_with("dotnetcore") {
+    if unsupported_runtime_prefixes.iter().any(|prefix| runtime.starts_with(prefix.as_str())) {
         return false;
     }
-    !SNAPSTART_UNSUPPORTED_RUNTIMES.contains(&runtime)
+    !unsupported_runtimes.iter().any(|r| r == runtime)
 }
 
 fn resolve_all_json(m: &SemanticModel, rid: &str, path: &str) -> Vec<serde_json::Value> {
@@ -223,7 +262,112 @@ fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_js
     scenarios.into_iter().next().map(|(v, _)| v)
 }
 
-fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
+/// Number of items in a list-valued property. Known even when the items are
+/// references to other resources, which concrete resolution cannot produce;
+/// unknown (`None`) when the whole list is a reference or conditional.
+fn resolved_item_count(m: &SemanticModel, rid: &str, path: &str) -> Option<usize> {
+    resolved_list_items(m, rid, path).map(|items| items.len())
+}
+
+/// The items of a list-valued property, rendered best-effort so that items
+/// containing references are still visible to rules that only read their
+/// literal members. `None` when the whole list is a reference or conditional.
+fn resolved_list_items(m: &SemanticModel, rid: &str, path: &str) -> Option<Vec<serde_json::Value>> {
+    match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned())? {
+        ResolvedValue::Concrete { value } => value.as_array().cloned(),
+        ResolvedValue::List { items } => Some(items.iter().map(resolved_to_json_best_effort).collect()),
+        _ => None,
+    }
+}
+
+const ALB_MINIMUM_SUBNETS: usize = 2;
+
+const ALB_SUBNET_MINIMUM_MESSAGES: [(&str, &str); 2] = [
+    ("Subnets", "Application load balancer requires at least 2 subnets"),
+    ("SubnetMappings", "Application load balancer requires at least 2 subnet mappings"),
+];
+
+/// A load balancer without a Type is an application load balancer. A Type that
+/// is present but does not resolve to a string (a parameter reference) is left
+/// alone rather than assumed.
+fn alb_is_application_type(m: &SemanticModel, rid: &str) -> bool {
+    if !m.has_property(rid, "Type") {
+        return true;
+    }
+    resolve_concrete(m, rid, "Properties.Type").as_ref().and_then(|v| v.as_str()) == Some("application")
+}
+
+/// The keys of a Stage method setting that configure caching, logging, metrics
+/// or throttling. Once any of them is present, API Gateway resolves the
+/// setting's ResourcePath as an absolute path, so it must start with '/'.
+const STAGE_METHOD_SETTING_KEYS: [&str; 8] = [
+    "CacheDataEncrypted",
+    "CacheTtlInSeconds",
+    "CachingEnabled",
+    "DataTraceEnabled",
+    "LoggingLevel",
+    "MetricsEnabled",
+    "ThrottlingBurstLimit",
+    "ThrottlingRateLimit",
+];
+
+fn stage_method_setting_configures_something(setting: &serde_json::Value) -> bool {
+    STAGE_METHOD_SETTING_KEYS.iter().any(|key| setting.get(key).is_some_and(|value| !value.is_null()))
+}
+
+/// Enhanced Monitoring on a DB cluster is configured by two properties that
+/// only work together: a MonitoringRoleArn is used only when MonitoringInterval
+/// is greater than 0, and a non-zero interval needs a role to publish with.
+const DBCLUSTER_MONITORING_MESSAGE: &str =
+    "MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together";
+
+/// The property path an inconsistent monitoring configuration is reported at,
+/// or `None` when the configuration is consistent or not decidable.
+fn dbcluster_monitoring_mismatch_path(m: &SemanticModel, rid: &str) -> Option<&'static str> {
+    let has_role = m.has_property(rid, "MonitoringRoleArn");
+    let has_interval = m.has_property(rid, "MonitoringInterval");
+    let interval = resolve_concrete(m, rid, "Properties.MonitoringInterval").as_ref().and_then(coerce_to_integer);
+    match (has_role, has_interval, interval) {
+        (true, false, _) => Some(KEY_PROPERTIES),
+        (true, true, Some(interval)) if interval <= 0 => Some("Properties.MonitoringInterval"),
+        (false, true, Some(interval)) if interval > 0 => Some(KEY_PROPERTIES),
+        _ => None,
+    }
+}
+
+/// Runs the shared identity-policy structural validator against a resolved
+/// document and converts its findings into engine diagnostics. The `substituted`
+/// set is derived from the reference graph: any outgoing edge whose source_path
+/// is a descendant of the document path identifies a value produced by resolving
+/// an intrinsic rather than being authored literally.
+fn push_identity_policy_findings(
+    out: &mut Vec<Diagnostic>,
+    model: &SemanticModel,
+    resource_id: &str,
+    document_path: &str,
+) {
+    for finding in validate_identity_policy_scenarios(model, resource_id, document_path) {
+        let effective_path = if finding.path.is_empty() {
+            document_path.to_string()
+        } else {
+            format!("{}.{}", document_path, finding.path)
+        };
+        // Use the authored source_path (branch-qualified) for span resolution
+        // when available, falling back to the effective path.
+        let source_path = if finding.source_path.is_empty() { effective_path.clone() } else { finding.source_path };
+        out.push(make_resource_diagnostic_at_source(
+            "E3510",
+            &finding.message,
+            model,
+            resource_id,
+            &effective_path,
+            &source_path,
+            None,
+        ));
+    }
+}
+
+pub(super) fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &HashMap<String, bool>) -> bool {
     let mut assumptions: Vec<(String, bool)> = conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
     if let Some(resource_condition) = m.resources.get(resource_id).and_then(|resource| resource.condition.as_ref()) {
         match conditions.get(resource_condition) {
@@ -235,7 +379,56 @@ fn scenario_is_reachable(m: &SemanticModel, resource_id: &str, conditions: &Hash
     assumptions.is_empty() || m.conditions.is_satisfiable(&assumptions)
 }
 
-fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
+pub(super) fn merge_reachable_scenario_conditions(
+    model: &SemanticModel,
+    resource_id: &str,
+    left: &HashMap<String, bool>,
+    right: &HashMap<String, bool>,
+) -> Option<HashMap<String, bool>> {
+    let mut combined = left.clone();
+    for (condition, value) in right {
+        if combined.get(condition).is_some_and(|existing| existing != value) {
+            return None;
+        }
+        combined.insert(condition.clone(), *value);
+    }
+    scenario_is_reachable(model, resource_id, &combined).then_some(combined)
+}
+
+fn scenario_conditions_overlap(
+    model: &SemanticModel,
+    resource_id: &str,
+    left: &HashMap<String, bool>,
+    right: &HashMap<String, bool>,
+) -> bool {
+    merge_reachable_scenario_conditions(model, resource_id, left, right).is_some()
+}
+
+fn scenario_overlaps_any(
+    model: &SemanticModel,
+    resource_id: &str,
+    conditions: &HashMap<String, bool>,
+    applicable_scenarios: &[HashMap<String, bool>],
+) -> bool {
+    applicable_scenarios
+        .iter()
+        .any(|applicable| scenario_conditions_overlap(model, resource_id, conditions, applicable))
+}
+
+pub(super) fn fargate_condition_scenarios(model: &SemanticModel, resource_id: &str) -> Vec<HashMap<String, bool>> {
+    model
+        .resolve_scenarios_json(resource_id, "Properties.RequiresCompatibilities")
+        .into_iter()
+        .filter_map(|(value, conditions)| {
+            let is_fargate = value
+                .as_array()
+                .is_some_and(|compatibilities| compatibilities.iter().any(|item| item.as_str() == Some("FARGATE")));
+            (is_fargate && scenario_is_reachable(model, resource_id, &conditions)).then_some(conditions)
+        })
+        .collect()
+}
+
+pub(super) fn scenario_has_effective_property(properties: &ResolvedValue, property_name: &str) -> bool {
     match properties {
         ResolvedValue::Concrete { value } => {
             value.get(property_name).is_some_and(|property_value| !property_value.is_null())
@@ -296,21 +489,6 @@ fn route53_scenario_source_path(
     conditions: &HashMap<String, bool>,
 ) -> String {
     m.scenario_source_path(resource_id, effective_path, conditions).unwrap_or_else(|| effective_path.to_string())
-}
-
-fn standalone_route53_record_source_path(
-    m: &SemanticModel,
-    resource_id: &str,
-    effective_path: &str,
-    conditions: &HashMap<String, bool>,
-) -> String {
-    let source_path = route53_scenario_source_path(m, resource_id, effective_path, conditions);
-    let direct_conditional_prefix = format!("Properties.ResourceRecords.{}.", FN_IF);
-    if source_path.starts_with(&direct_conditional_prefix) {
-        "Properties.ResourceRecords".to_string()
-    } else {
-        source_path
-    }
 }
 
 fn push_route53_record_value_diagnostics<F>(
@@ -473,30 +651,94 @@ fn sg_protocol_has_ordered_port_range(protocol: Option<&serde_json::Value>) -> b
     }
 }
 
+const SG_INVERTED_PORT_RANGE_FIX: &str = "Set FromPort to a value less than or equal to ToPort";
+
+fn sg_inverted_port_range_message(from_port: i64, to_port: i64) -> String {
+    format!("FromPort {} is greater than ToPort {}", from_port, to_port)
+}
+
+/// The `(FromPort, ToPort)` pair when the protocol's ports form an ordered
+/// range, both resolve to integers, and the range is inverted.
+fn sg_inverted_port_range(
+    protocol: Option<&serde_json::Value>,
+    from_port: Option<&serde_json::Value>,
+    to_port: Option<&serde_json::Value>,
+) -> Option<(i64, i64)> {
+    if !sg_protocol_has_ordered_port_range(protocol) {
+        return None;
+    }
+    let from_port = from_port.and_then(coerce_to_integer)?;
+    let to_port = to_port.and_then(coerce_to_integer)?;
+    (from_port > to_port).then_some((from_port, to_port))
+}
+
+/// Protocols whose FromPort/ToPort must be present: TCP and UDP take a port
+/// range and ICMP takes a type/code pair. ICMPv6 is deliberately absent - its
+/// type/code are optional, and omitting them allows every type and code.
+const SG_PORT_REQUIRED_PROTOCOL_NAMES: [&str; 9] = ["1", "icmp", "6", "tcp", "17", "udp", "TCP", "UDP", "ICMP"];
+const SG_PORT_REQUIRED_PROTOCOL_NUMBERS: [i64; 3] = [1, 6, 17];
+
+/// Protocols for which FromPort/ToPort carry meaning: a port range for
+/// TCP/UDP, an ICMP type/code for ICMP and ICMPv6. Any other protocol -
+/// including the all-protocols wildcard -1 - allows traffic on every port
+/// regardless of the range given, so the ports are ignored.
+const SG_PORT_MEANINGFUL_PROTOCOL_NAMES: [&str; 13] =
+    ["1", "icmp", "6", "tcp", "17", "udp", "TCP", "UDP", "ICMP", "58", "icmpv6", "ICMPv6", "ICMPV6"];
+const SG_PORT_MEANINGFUL_PROTOCOL_NUMBERS: [i64; 4] = [1, 6, 17, 58];
+
+/// `None` when the protocol is not a resolved scalar (absent, still a
+/// reference, or a non-integral number), so callers can neither require nor
+/// flag ports for a value they cannot classify.
+fn sg_protocol_is_listed(protocol: &serde_json::Value, names: &[&str], numbers: &[i64]) -> Option<bool> {
+    match protocol {
+        serde_json::Value::String(name) => Some(names.contains(&name.as_str())),
+        serde_json::Value::Number(number) => number.as_i64().map(|value| numbers.contains(&value)),
+        _ => None,
+    }
+}
+
+fn sg_protocol_requires_ports(protocol: Option<&serde_json::Value>) -> bool {
+    protocol
+        .and_then(|value| {
+            sg_protocol_is_listed(value, &SG_PORT_REQUIRED_PROTOCOL_NAMES, &SG_PORT_REQUIRED_PROTOCOL_NUMBERS)
+        })
+        .unwrap_or(false)
+}
+
+fn sg_protocol_ignores_ports(protocol: Option<&serde_json::Value>) -> bool {
+    protocol
+        .and_then(|value| {
+            sg_protocol_is_listed(value, &SG_PORT_MEANINGFUL_PROTOCOL_NAMES, &SG_PORT_MEANINGFUL_PROTOCOL_NUMBERS)
+        })
+        .map(|is_meaningful| !is_meaningful)
+        .unwrap_or(false)
+}
+
 pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
     let input = ctx.input;
 
-    if !ctx.cached_data.known_types.is_empty() {
-        for (name, res) in &m.resources {
-            // An AWS-namespaced type absent from the compiled schema set is a
-            // typo or nonexistent type - CloudFormation owns the reserved
-            // `AWS::` namespace, so the embedded catalog is authoritative for
-            // it. Types in any other namespace (private registry types,
-            // `Custom::` resources, modules, hook-shaped names) may be
-            // registered per account/region, so they are skipped entirely
-            // rather than guessed at.
-            if res.resource_type.starts_with("AWS::") && !ctx.cached_data.known_types.contains(&res.resource_type) {
-                out.push(make_resource_diagnostic(
-                    "F3006",
-                    &format!("Unknown resource type '{}'", res.resource_type),
-                    m,
-                    name,
-                    "",
-                    None,
-                ));
-            }
+    for (name, res) in &m.resources {
+        // An AWS-namespaced type absent from the compiled schema set is a
+        // typo or nonexistent type - CloudFormation owns the reserved
+        // `AWS::` namespace, so the embedded catalog is authoritative for
+        // it. Types in any other namespace (private registry types,
+        // `Custom::` resources, modules, hook-shaped names) may be
+        // registered per account/region, so they are skipped entirely
+        // rather than guessed at.
+        if res.resource_type.starts_with("AWS::")
+            && !res.resource_type.ends_with("::MODULE")
+            && !ctx.cached_data.known_types.contains(&res.resource_type)
+        {
+            out.push(make_resource_diagnostic(
+                "F3006",
+                &format!("Unknown resource type '{}'", res.resource_type),
+                m,
+                name,
+                "",
+                None,
+            ));
         }
     }
 
@@ -517,22 +759,24 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
-            check_iam_statements(&mut out, m, name, &doc, "Properties.PolicyDocument");
+        push_identity_policy_findings(&mut out, m, name, "Properties.PolicyDocument");
+    }
+    let single_document_types = [
+        ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::UserPolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::RolePolicy", "Properties.PolicyDocument"),
+        ("AWS::IAM::GroupPolicy", "Properties.PolicyDocument"),
+        ("AWS::SSO::PermissionSet", "Properties.InlinePolicy"),
+    ];
+    for (resource_type, document_path) in single_document_types {
+        for name in m.resources_of_type(resource_type) {
+            push_identity_policy_findings(&mut out, m, name, document_path);
         }
     }
-    for name in m.resources_of_type("AWS::IAM::Role") {
-        if let Some(serde_json::Value::Array(policies)) = resolve_concrete(m, name, "Properties.Policies") {
-            for (idx, pol) in policies.iter().enumerate() {
-                if let Some(doc) = pol.get("PolicyDocument") {
-                    check_iam_statements(
-                        &mut out,
-                        m,
-                        name,
-                        doc,
-                        &format!("Properties.Policies[{}].PolicyDocument", idx),
-                    );
-                }
+    for resource_type in ["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
+        for name in m.resources_of_type(resource_type) {
+            for document_path in inline_identity_policy_document_paths(m, name, "Properties.Policies") {
+                push_identity_policy_findings(&mut out, m, name, &document_path);
             }
         }
     }
@@ -553,61 +797,58 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        for (name, res) in resources {
-            if res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()) != Some("AWS::EC2::SecurityGroup") {
+    for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
+        // Raw properties are used so that rule arrays containing dynamic Refs
+        // (which concrete resolution skips) still have their scalar ports read.
+        let Some(properties) = input
+            .get(FIELD_RESOURCES)
+            .and_then(|resources| resources.get(name.as_str()))
+            .and_then(|r| r.get(FIELD_PROPERTIES))
+        else {
+            continue;
+        };
+        for direction in ["SecurityGroupIngress", "SecurityGroupEgress"] {
+            let Some(rules) = properties.get(direction).and_then(|s| s.as_array()) else {
                 continue;
-            }
-            if let Some(rules) =
-                res.get(FIELD_PROPERTIES).and_then(|p| p.get("SecurityGroupIngress")).and_then(|s| s.as_array())
-            {
-                for rule in rules {
-                    if !sg_protocol_has_ordered_port_range(rule.get("IpProtocol")) {
-                        continue;
-                    }
-                    let from = rule.get("FromPort").and_then(coerce_to_integer);
-                    let to = rule.get("ToPort").and_then(coerce_to_integer);
-                    if let (Some(f), Some(t)) = (from, to)
-                        && f > t
-                    {
-                        out.push(make_resource_diagnostic(
-                            "E9002",
-                            &format!("FromPort {} is greater than ToPort {}", f, t),
-                            m,
-                            name,
-                            "Properties.SecurityGroupIngress",
-                            Some("Set FromPort to a value less than or equal to ToPort"),
-                        ));
-                    }
+            };
+            for (idx, rule) in rules.iter().enumerate() {
+                if let Some((from_port, to_port)) =
+                    sg_inverted_port_range(rule.get("IpProtocol"), rule.get("FromPort"), rule.get("ToPort"))
+                {
+                    out.push(make_resource_diagnostic(
+                        "E9002",
+                        &sg_inverted_port_range_message(from_port, to_port),
+                        m,
+                        name,
+                        &format!("Properties.{}.{}", direction, idx),
+                        Some(SG_INVERTED_PORT_RANGE_FIX),
+                    ));
                 }
             }
         }
     }
 
+    for rule_type in ["AWS::EC2::SecurityGroupIngress", "AWS::EC2::SecurityGroupEgress"] {
+        for name in m.resources_of_type(rule_type) {
+            let protocol = resolve_concrete(m, name, "Properties.IpProtocol");
+            let from_port = resolve_concrete(m, name, "Properties.FromPort");
+            let to_port = resolve_concrete(m, name, "Properties.ToPort");
+            if let Some((from_port, to_port)) =
+                sg_inverted_port_range(protocol.as_ref(), from_port.as_ref(), to_port.as_ref())
+            {
+                out.push(make_resource_diagnostic(
+                    "E9002",
+                    &sg_inverted_port_range_message(from_port, to_port),
+                    m,
+                    name,
+                    "Properties.FromPort",
+                    Some(SG_INVERTED_PORT_RANGE_FIX),
+                ));
+            }
+        }
+    }
+
     {
-        let port_relevant_protocols: HashSet<&str> =
-            ["1", "icmp", "6", "tcp", "17", "udp", "TCP", "UDP", "ICMP"].into_iter().collect();
-        let port_relevant_numbers: HashSet<i64> = [1, 6, 17].into_iter().collect();
-
-        let protocol_requires_ports = |proto: Option<&serde_json::Value>| -> bool {
-            match proto {
-                Some(serde_json::Value::String(s)) => port_relevant_protocols.contains(s.as_str()),
-                Some(serde_json::Value::Number(n)) => {
-                    n.as_i64().map(|n| port_relevant_numbers.contains(&n)).unwrap_or(false)
-                }
-                _ => false,
-            }
-        };
-        let protocol_ignores_ports = |proto: Option<&serde_json::Value>| -> bool {
-            match proto {
-                Some(serde_json::Value::String(s)) => !port_relevant_protocols.contains(s.as_str()),
-                Some(serde_json::Value::Number(n)) => {
-                    n.as_i64().map(|n| !port_relevant_numbers.contains(&n)).unwrap_or(false)
-                }
-                _ => false,
-            }
-        };
-
         // Inline SecurityGroup ingress/egress rules - access raw properties
         // to handle arrays containing dynamic Refs that resolve_concrete skips
         for name in m.resources_of_type("AWS::EC2::SecurityGroup") {
@@ -631,7 +872,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     let has_port = rule.get("FromPort").is_some() || rule.get("ToPort").is_some();
                     let val = proto.map(|p| p.to_string()).unwrap_or_default();
                     let val_display = val.trim_matches('"');
-                    if protocol_requires_ports(proto) && !has_port {
+                    if sg_protocol_requires_ports(proto) && !has_port {
                         out.push(make_resource_diagnostic(
                             "E3687",
                             &format!(
@@ -644,7 +885,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             None,
                         ));
                     }
-                    if protocol_ignores_ports(proto) && has_port {
+                    if sg_protocol_ignores_ports(proto) && has_port {
                         out.push(make_resource_diagnostic(
                             "W3687",
                             &format!(
@@ -665,11 +906,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         for rtype in &["AWS::EC2::SecurityGroupIngress", "AWS::EC2::SecurityGroupEgress"] {
             for name in m.resources_of_type(rtype) {
                 let proto = resolve_concrete(m, name, "Properties.IpProtocol");
-                let has_port = resolve_concrete(m, name, "Properties.FromPort").is_some()
-                    || resolve_concrete(m, name, "Properties.ToPort").is_some();
+                let has_port = m.has_property(name, "Properties.FromPort") || m.has_property(name, "Properties.ToPort");
                 let val = proto.as_ref().map(|p| p.to_string()).unwrap_or_default();
                 let val_display = val.trim_matches('"');
-                if protocol_requires_ports(proto.as_ref()) && !has_port {
+                if sg_protocol_requires_ports(proto.as_ref()) && !has_port {
                     out.push(make_resource_diagnostic(
                         "E3687",
                         &format!(
@@ -682,7 +922,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-                if protocol_ignores_ports(proto.as_ref()) && has_port {
+                if sg_protocol_ignores_ports(proto.as_ref()) && has_port {
                     out.push(make_resource_diagnostic(
                         "W3687",
                         &format!("['FromPort', 'ToPort'] are ignored when using 'IpProtocol' value '{}'", val_display),
@@ -724,26 +964,37 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::DynamoDB::Table") {
-        if let (Some(serde_json::Value::Array(ks)), Some(serde_json::Value::Array(ad))) = (
-            resolve_concrete(m, name, "Properties.KeySchema"),
-            resolve_concrete(m, name, "Properties.AttributeDefinitions"),
-        ) {
-            let defined: HashSet<&str> =
-                ad.iter().filter_map(|a| a.get("AttributeName").and_then(|n| n.as_str())).collect();
-            for k in &ks {
-                if let Some(attr) = k.get("AttributeName").and_then(|n| n.as_str())
-                    && !defined.contains(attr)
-                {
-                    out.push(make_resource_diagnostic(
-                        "E3039",
-                        &format!("KeySchema attribute '{}' is not defined in AttributeDefinitions", attr),
-                        m,
-                        name,
-                        "Properties.KeySchema",
-                        Some("Add the attribute to AttributeDefinitions"),
-                    ));
-                }
+        let analysis = analyze_dynamodb_table_scenarios(m, name);
+        for mismatch in &analysis.attribute_mismatches {
+            let mut parts = Vec::new();
+            if !mismatch.missing.is_empty() {
+                parts.push(format!("missing definitions: [{}]", mismatch.missing.join(", ")));
             }
+            if !mismatch.unused.is_empty() {
+                parts.push(format!("unused definitions: [{}]", mismatch.unused.join(", ")));
+            }
+            let message = format!("AttributeDefinitions does not match KeySchema attributes. {}", parts.join("; "));
+            out.push(make_resource_diagnostic("E3039", &message, m, name, KEY_PROPERTIES, None));
+        }
+        if analysis.explicit_provisioned_missing_throughput {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode is 'PROVISIONED'",
+                m,
+                name,
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
+        }
+        if analysis.default_provisioned_missing_throughput {
+            out.push(make_resource_diagnostic(
+                "E3639",
+                "ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'",
+                m,
+                name,
+                "Properties.ProvisionedThroughput",
+                Some("Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'"),
+            ));
         }
     }
 
@@ -775,31 +1026,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for name in m.resources_of_type("AWS::IAM::Policy") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument")
-            && doc.is_object()
-            && doc.get("Statement").is_none()
-        {
-            out.push(make_resource_diagnostic(
-                "E3510",
-                "IAM identity policy must have a Statement property",
-                m,
-                name,
-                "Properties.PolicyDocument",
-                Some("Add a Statement array to the PolicyDocument"),
-            ));
-        }
-    }
-
-    let resource_policy_types = [
-        ("AWS::KMS::Key", "Properties.KeyPolicy"),
-        ("AWS::S3::BucketPolicy", "Properties.PolicyDocument"),
-        ("AWS::SNS::TopicPolicy", "Properties.PolicyDocument"),
-        ("AWS::SQS::QueuePolicy", "Properties.PolicyDocument"),
-    ];
-    for (rtype, path) in &resource_policy_types {
-        for name in m.resources_of_type(rtype) {
-            if let Some(doc) = resolve_concrete(m, name, path)
+    for rpp in &ctx.cached_data.rule_tables.resource_policy_paths {
+        let path = full_property_path(rpp);
+        for name in m.resources_of_type(&rpp.resource_type) {
+            if let Some(doc) = resolve_concrete(m, name, &path)
                 && doc.is_object()
                 && doc.get("Statement").is_none()
             {
@@ -808,7 +1038,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     "Resource-based policy must have a Statement property",
                     m,
                     name,
-                    path,
+                    &path,
                     Some("Add a Statement array to the policy document"),
                 ));
             }
@@ -1041,48 +1271,67 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let srta = m.resources_of_type("AWS::EC2::SubnetRouteTableAssociation");
-    for (i, a) in srta.iter().enumerate() {
-        for b in srta.iter().skip(i + 1) {
-            let a_sub = resolve_concrete(m, a, "Properties.SubnetId");
-            let b_sub = resolve_concrete(m, b, "Properties.SubnetId");
-            if a_sub.is_some()
-                && a_sub == b_sub
-                && !crate::functions::contains_unresolvable_content(
-                    &m.resolve_deep(a, "Properties.SubnetId")
-                        .or_else(|| m.resolve(a, "Properties.SubnetId").cloned())
-                        .unwrap_or(ResolvedValue::Dynamic { reason: "".into() }),
-                )
-            {
-                out.push(make_resource_diagnostic(
-                    "E3022",
-                    "Subnet has multiple SubnetRouteTableAssociations - only one is allowed",
-                    m,
-                    a,
-                    "Properties.SubnetId",
-                    None,
-                ));
-            }
-        }
+    for finding in duplicate_subnet_associations(m) {
+        out.push(make_resource_diagnostic(
+            "E3022",
+            &finding.message,
+            m,
+            &finding.resource_id,
+            "Properties.SubnetId",
+            Some("Associate each subnet with exactly one route table"),
+        ));
     }
 
     let creation_policy_types = [
-        "AWS::AutoScaling::AutoScalingGroup",
-        "AWS::EC2::Instance",
-        "AWS::CloudFormation::WaitCondition",
         "AWS::AppStream::Fleet",
+        "AWS::AutoScaling::AutoScalingGroup",
+        "AWS::CloudFormation::WaitCondition",
+        "AWS::EC2::Instance",
     ];
+    let creation_policy_fix =
+        format!("Remove CreationPolicy or change resource type to one of: {}", creation_policy_types.join(", "));
+    let update_policy_types = &ctx.cached_data.rule_tables.update_policy_resource_types;
+    let mut update_policy_types_for_message = update_policy_types.clone();
+    update_policy_types_for_message.sort();
+    let update_policy_fix = format!(
+        "Remove UpdatePolicy or change resource type to one of: {}",
+        update_policy_types_for_message.join(", ")
+    );
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (name, res) in resources {
-            if res.get("creation_policy").map(|v| !v.is_null()).unwrap_or(false) {
+            let creation_policy_status = m.lifecycle_attribute_status(name, KEY_CREATION_POLICY);
+            if creation_policy_status.may_be_present {
                 let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
                 if !creation_policy_types.contains(&rtype) {
                     out.push(make_resource_diagnostic(
                         "E3055",
-                        &format!("CreationPolicy is not valid on resource type '{}'", rtype),
+                        &format!("CreationPolicy is not supported on resource type '{}'", rtype),
                         m,
                         name,
-                        "",
+                        KEY_CREATION_POLICY,
+                        Some(&creation_policy_fix),
+                    ));
+                }
+            }
+            let update_policy_status = m.lifecycle_attribute_status(name, KEY_UPDATE_POLICY);
+            if update_policy_status.may_be_present {
+                let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
+                if !update_policy_types.iter().any(|t| t == rtype) {
+                    out.push(make_resource_diagnostic(
+                        "E3016",
+                        &format!("UpdatePolicy is not supported on resource type '{}'", rtype),
+                        m,
+                        name,
+                        KEY_UPDATE_POLICY,
+                        Some(&update_policy_fix),
+                    ));
+                } else if let Some(invalid_value) = update_policy_status.invalid_value.as_deref() {
+                    out.push(make_resource_diagnostic(
+                        "E3016",
+                        &format!("{} is not of type 'object'", invalid_value),
+                        m,
+                        name,
+                        KEY_UPDATE_POLICY,
                         None,
                     ));
                 }
@@ -1190,16 +1439,43 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
             && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions")
             && let Some(serde_json::Value::String(rt)) = resolve_concrete(m, name, "Properties.Runtime")
-            && !snapstart_runtime_supported(&rt)
+            && !snapstart_runtime_supported(
+                &rt,
+                &ctx.cached_data.rule_tables.snapstart_runtime_prefixes,
+                &ctx.cached_data.rule_tables.snapstart_unsupported_runtime_prefixes,
+                &ctx.cached_data.rule_tables.snapstart_unsupported_runtimes,
+            )
         {
             out.push(make_resource_diagnostic(
                 "E2530",
                 &format!("SnapStart is not supported with runtime '{}'", rt),
                 m,
                 name,
-                "Properties.SnapStart",
+                "Properties.SnapStart.ApplyOn",
                 Some("Use a supported Python, Java, or .NET runtime"),
             ));
+        }
+    }
+
+    // SnapStart enabled in an unsupported region. Only fires when a
+    // region is explicitly configured and absent from the supported regions list.
+    let snapstart_supported_regions = &ctx.cached_data.rule_tables.snapstart_supported_regions;
+    if let Some(region) = ctx.region.as_ref()
+        && !snapstart_supported_regions.iter().any(|sr| sr == region)
+    {
+        for name in m.resources_of_type("AWS::Lambda::Function") {
+            if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
+                && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions")
+            {
+                out.push(make_resource_diagnostic(
+                    "E2530",
+                    &format!("SnapStart is not supported in region '{}'", region),
+                    m,
+                    name,
+                    "Properties.SnapStart.ApplyOn",
+                    Some("Deploy to a region that supports SnapStart or disable SnapStart"),
+                ));
+            }
         }
     }
 
@@ -1271,13 +1547,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // list whose schema requires uniqueItems is covered by the Fatal uniqueItems
     // check instead, so it is excluded here. The `Command` property of
     // run-command resources legitimately repeats values and is exempt.
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
-            let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) else {
+            let Some(type_meta) = schema_metadata.get(&res.resource_type) else {
                 continue;
             };
-            let known_props = type_meta.get("property_types").and_then(|p| p.as_object());
-            let constraints = type_meta.get("property_constraints").and_then(|p| p.as_object());
             for prop in res.properties.keys() {
                 if prop == "Command" {
                     continue;
@@ -1285,13 +1560,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 // Only a property the schema actually defines can be a "list that
                 // permits duplicates"; an unknown property is a structural error
                 // handled elsewhere.
-                if !known_props.is_some_and(|p| p.contains_key(prop)) {
+                if !type_meta.property_types.contains_key(prop) {
                     continue;
                 }
-                let requires_unique = constraints
-                    .and_then(|c| c.get(prop))
-                    .and_then(|meta| meta.get("uniqueItems"))
-                    .and_then(|v| v.as_bool())
+                let requires_unique = type_meta
+                    .property_constraints
+                    .get(prop)
+                    .and_then(|constraints| constraints.unique_items)
                     .unwrap_or(false);
                 if requires_unique {
                     continue;
@@ -1329,40 +1604,27 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    static PREV_GEN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-        regex::Regex::new(r"(^|\.)([cmr][1-3]|cc2|cg1|cr1|g2|hi1|hs1|i2|t1)(\.|$)").expect("Invalid PREV_GEN_RE")
-    });
-    let instance_type_checks: &[(&str, &str)] = &[
-        ("AWS::AutoScaling::LaunchConfiguration", "Properties.InstanceType"),
-        ("AWS::EC2::Instance", "Properties.InstanceType"),
-        ("AWS::EC2::Host", "Properties.InstanceType"),
-        ("AWS::EC2::CapacityReservation", "Properties.InstanceType"),
-        ("AWS::RDS::DBInstance", "Properties.DBInstanceClass"),
-        ("AWS::ElastiCache::CacheCluster", "Properties.CacheNodeType"),
-        ("AWS::ElastiCache::ReplicationGroup", "Properties.CacheNodeType"),
-        ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.InstanceType"),
-        ("AWS::OpenSearchService::Domain", "Properties.ClusterConfig.InstanceType"),
-        ("AWS::Elasticsearch::Domain", "Properties.ElasticsearchClusterConfig.InstanceType"),
-    ];
-    for (rtype, prop_path) in instance_type_checks {
-        for name in m.resources_of_type(rtype) {
+    let prev_gen_re = &ctx.cached_data.previous_generation_instance_regex;
+    for rpp in &ctx.cached_data.rule_tables.previous_generation_instance_property_paths {
+        let path = full_property_path(rpp);
+        for name in m.resources_of_type(&rpp.resource_type) {
             // Only literal string instance types are checked; a value that comes
             // from a parameter Ref or other intrinsic is left alone because its
             // deploy-time value is not known here (the default is just one of many
             // possible values). Skip those to avoid flagging a parameter default
             // the author may never use.
-            if m.is_from_parameter(name, prop_path) || m.is_from_intrinsic(name, prop_path) {
+            if m.is_from_parameter(name, &path) || m.is_from_intrinsic(name, &path) {
                 continue;
             }
-            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, prop_path)
-                && PREV_GEN_RE.is_match(&val)
+            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path)
+                && prev_gen_re.is_match(&val)
             {
                 out.push(make_resource_diagnostic(
                     "I3100",
                     &format!("Previous generation instance type '{}' - consider upgrading", val),
                     m,
                     name,
-                    prop_path,
+                    &path,
                     Some("Upgrade to a current generation instance type"),
                 ));
             }
@@ -1661,7 +1923,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                 "Properties.IntelligentTieringConfigurations[{}].Tierings[{}].Days",
                                 config_idx, tier_idx
                             );
-                            if access_tier == "ARCHIVE_ACCESS" && days < 90 {
+                            if access_tier == "ARCHIVE_ACCESS" && !(90..=730).contains(&days) {
                                 out.push(make_resource_diagnostic(
                                     "E3061",
                                     &format!("Days {} for ARCHIVE_ACCESS must be between 90 and 730", days),
@@ -1671,14 +1933,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                     Some("Set Days between 90 and 730"),
                                 ));
                             }
-                            if access_tier == "DEEP_ARCHIVE_ACCESS" && days < 180 {
+                            if access_tier == "DEEP_ARCHIVE_ACCESS" && !(180..=730).contains(&days) {
                                 out.push(make_resource_diagnostic(
                                     "E3061",
                                     &format!("Days {} for DEEP_ARCHIVE_ACCESS must be between 180 and 730", days),
                                     m,
                                     name,
                                     &path,
-                                    Some("Set Days between 90 and 730"),
+                                    Some("Set Days between 180 and 730"),
                                 ));
                             }
                         }
@@ -1709,17 +1971,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let role_arn_props = [
-        ("AWS::Backup::BackupSelection", "Properties.BackupSelection.IamRoleArn"),
-        ("AWS::Batch::ComputeEnvironment", "Properties.ComputeResources.SpotIamFleetRole"),
-        ("AWS::Batch::ComputeEnvironment", "Properties.ServiceRole"),
-        ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.IamFleetRole"),
-        ("AWS::ECS::TaskDefinition", "Properties.ExecutionRoleArn"),
-        ("AWS::S3::Bucket", "Properties.ReplicationConfiguration.Role"),
-    ];
-    for (rtype, path) in &role_arn_props {
-        for name in m.resources_of_type(rtype) {
-            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, path)
+    for rpp in &ctx.cached_data.rule_tables.iam_role_arn_property_paths {
+        let path = full_property_path(rpp);
+        for name in m.resources_of_type(&rpp.resource_type) {
+            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path)
                 && !ARN_RE.is_match(&val)
             {
                 out.push(make_resource_diagnostic(
@@ -1727,7 +1982,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("IAM Role ARN '{}' does not match expected pattern", val),
                     m,
                     name,
-                    path,
+                    &path,
                     None,
                 ));
             }
@@ -2272,142 +2527,52 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    {
-        if let Some(iam_obj) = ctx
-            .cached_data
-            .iam_action_resource_patterns
-            .get("iam_action_resource_patterns")
-            .and_then(|v| v.as_object())
-            .or_else(|| ctx.cached_data.iam_action_resource_patterns.as_object())
-        {
-            let mut iam_patterns: HashMap<String, Vec<String>> = HashMap::new();
-            for (k, v) in iam_obj {
-                if let Some(arr) = v.as_array() {
-                    let formats: Vec<String> = arr.iter().filter_map(|s| s.as_str().map(String::from)).collect();
-                    if !formats.is_empty() {
-                        iam_patterns.insert(k.clone(), formats);
-                    }
-                }
-            }
-            if !iam_patterns.is_empty() {
-                for name in m.resources_of_type("AWS::IAM::Policy") {
-                    let doc_rv = m
-                        .resolve_deep(name, "Properties.PolicyDocument")
-                        .or_else(|| m.resolve(name, "Properties.PolicyDocument").cloned());
-                    let Some(rv) = doc_rv else {
-                        continue;
-                    };
-                    // Preserve Fn::If as `{"Fn::If": [cond, then, else]}` (rather
-                    // than collapsing to one branch) so the action-format check
-                    // can consider every branch's ARN - a resource is acceptable
-                    // if any reachable branch matches the action.
-                    let doc = resolved_to_json_preserving_conditionals(&rv);
-                    check_iam_action_resources(&mut out, m, name, &doc, &iam_patterns);
-                }
-            }
-        }
+    for name in m.resources_of_type("AWS::IAM::Policy") {
+        let doc_rv = m
+            .resolve_deep(name, "Properties.PolicyDocument")
+            .or_else(|| m.resolve(name, "Properties.PolicyDocument").cloned());
+        let Some(rv) = doc_rv else {
+            continue;
+        };
+        // Preserve Fn::If as `{"Fn::If": [cond, then, else]}` (rather
+        // than collapsing to one branch) so the action-format check
+        // can consider every branch's ARN - a resource is acceptable
+        // if any reachable branch matches the action.
+        let doc = resolved_to_json_preserving_conditionals(&rv);
+        check_iam_action_resources(&mut out, m, name, &doc, &ctx.cached_data.iam_action_resource_patterns);
     }
 
-    for vpc_name in m.resources_of_type("AWS::EC2::VPC") {
-        let vpc_cidr_str = match resolve_concrete(m, vpc_name, "Properties.CidrBlock")
-            .and_then(|v| if let serde_json::Value::String(s) = v { Some(s) } else { None })
-        {
-            Some(s) => s,
-            None => continue,
-        };
-        let vpc_net = match parse_ipv4_cidr(&vpc_cidr_str) {
-            Some(n) => n,
-            None => continue,
-        };
-        for subnet_name in m.resources_of_type("AWS::EC2::Subnet") {
-            let subnet_vpc = resolve_concrete(m, subnet_name, "Properties.VpcId");
-            let refs_this_vpc = m.follow_ref(subnet_name, "Properties.VpcId").map(|t| t == vpc_name).unwrap_or(false)
-                || subnet_vpc.as_ref().and_then(|v| v.as_str()) == Some(vpc_name);
-            if !refs_this_vpc {
-                continue;
-            }
-            if let Some(serde_json::Value::String(sub_cidr)) = resolve_concrete(m, subnet_name, "Properties.CidrBlock")
-                && let Some(sub_net) = parse_ipv4_cidr(&sub_cidr)
-                && !is_subnet_of(sub_net, vpc_net)
-            {
-                out.push(make_resource_diagnostic(
-                    "E3059",
-                    &format!("Subnet CIDR '{}' is not within VPC CIDR '{}'", sub_cidr, vpc_cidr_str),
-                    m,
-                    subnet_name,
-                    "Properties.CidrBlock",
-                    None,
-                ));
-            }
-        }
+    for finding in subnets_outside_vpc(m) {
+        out.push(make_resource_diagnostic(
+            "E3059",
+            &finding.message,
+            m,
+            &finding.subnet_id,
+            "Properties.CidrBlock",
+            None,
+        ));
     }
 
     {
-        for (rtype, id_props) in &ctx.cached_data.primary_identifiers {
-            let resources: Vec<&String> = m.resources_of_type(rtype).iter().collect();
-            if resources.len() < 2 {
-                continue;
-            }
-            // Build each resource's primary-id scenarios as (tuple, assumptions),
-            // where assumptions includes the condition assignment that produces the
-            // tuple plus the resource's own Condition. Comparing per scenario (not a
-            // single lex-min collapse across all branches) is required because two
-            // resources only collide when a satisfiable deploy-time assignment
-            // gives them the same identifier simultaneously.
-            let mut per_resource: Vec<(&String, Vec<PrimaryIdScenario>)> = Vec::new();
-            for r in &resources {
-                let scenarios = primary_id_scenarios(m, r, id_props);
-                if !scenarios.is_empty() {
-                    per_resource.push((*r, scenarios));
-                }
-            }
-
-            // tuple -> ordered set of resources that can collide on it.
-            let mut conflicts: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
-            for i in 0..per_resource.len() {
-                for j in (i + 1)..per_resource.len() {
-                    let (name_a, scenarios_a) = &per_resource[i];
-                    let (name_b, scenarios_b) = &per_resource[j];
-                    for sa in scenarios_a {
-                        for sb in scenarios_b {
-                            if sa.tuple != sb.tuple {
-                                continue;
-                            }
-                            // Both resources take this identical identifier only if
-                            // their producing condition assignments are jointly
-                            // satisfiable. Mutually exclusive branches never coexist.
-                            let mut assumptions = sa.assumptions.clone();
-                            assumptions.extend(sb.assumptions.iter().cloned());
-                            if m.conditions.is_satisfiable(&assumptions) {
-                                let entry = conflicts.entry(sa.tuple.clone()).or_default();
-                                entry.insert((*name_a).clone());
-                                entry.insert((*name_b).clone());
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (tuple, names) in &conflicts {
-                let instance_repr = render_primary_id_dict(id_props, tuple);
-                let resources_repr = render_resource_set(names);
-                let path = if id_props.len() == 1 {
-                    format!("Properties.{}", id_props[0])
+        let mut resource_types: Vec<&String> = m
+            .resources_by_type
+            .keys()
+            .filter(|resource_type| ctx.cached_data.primary_identifiers.contains_key(*resource_type))
+            .collect();
+        resource_types.sort_unstable();
+        for resource_type in resource_types {
+            let identifier_properties = &ctx.cached_data.primary_identifiers[resource_type];
+            let conflicts = m.primary_identifier_conflicts(resource_type, identifier_properties);
+            for (tuple, resources) in &conflicts {
+                let message =
+                    primary_identifier_conflict_message(resource_type, identifier_properties, tuple, resources);
+                let path = if identifier_properties.len() == 1 {
+                    format!("Properties.{}", identifier_properties[0])
                 } else {
                     KEY_PROPERTIES.to_string()
                 };
-                for rname in names {
-                    out.push(make_resource_diagnostic(
-                        "E3019",
-                        &format!(
-                            "Primary identifiers {} should have unique values across the resources {}",
-                            instance_repr, resources_repr
-                        ),
-                        m,
-                        rname,
-                        &path,
-                        None,
-                    ));
+                for resource_id in resources {
+                    out.push(make_resource_diagnostic("E3019", &message, m, resource_id, &path, None));
                 }
             }
         }
@@ -2426,63 +2591,52 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata").and_then(|s| s.as_object()) {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
-            if let Some(type_meta) = sm.get(&res.resource_type).and_then(|t| t.as_object()) {
-                let prop_types = type_meta.get("property_types").and_then(|p| p.as_object());
-                if let Some(props_meta) = type_meta.get("property_constraints").and_then(|p| p.as_object()) {
-                    for (prop, meta) in props_meta {
-                        let is_string =
-                            prop_types.and_then(|pt| pt.get(prop)).and_then(|v| v.as_str()) == Some("string");
-                        let max_len = meta
-                            .get("maxLength")
-                            .and_then(|v| v.as_u64())
-                            .or_else(|| if is_string { meta.get("maximum").and_then(|v| v.as_u64()) } else { None });
-                        let min_len = meta
-                            .get("minLength")
-                            .and_then(|v| v.as_u64())
-                            .or_else(|| if is_string { meta.get("minimum").and_then(|v| v.as_u64()) } else { None });
-                        if max_len.is_none() && min_len.is_none() {
-                            continue;
+            if let Some(type_meta) = schema_metadata.get(&res.resource_type) {
+                for (prop, constraints) in &type_meta.property_constraints {
+                    let is_string = type_meta.property_types.get(prop).map(|t| t == "string").unwrap_or(false);
+                    let max_len = constraints.max_length.or_else(|| {
+                        if is_string { constraints.maximum.as_ref().and_then(|v| v.as_u64()) } else { None }
+                    });
+                    let min_len = constraints.min_length.or_else(|| {
+                        if is_string { constraints.minimum.as_ref().and_then(|v| v.as_u64()) } else { None }
+                    });
+                    if max_len.is_none() && min_len.is_none() {
+                        continue;
+                    }
+                    let path = format!("Properties.{}", prop);
+                    // Only reported when the constraint is broken whichever
+                    // value the deployment picks: the shortest possibility
+                    // still too long, or the longest still too short. A value
+                    // the template states literally is checked against the
+                    // constraint by schema validation instead, and a value with
+                    // any unknown possibility yields no bounds at all.
+                    if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
+                        if let Some(max) = max_len
+                            && shortest as u64 > max
+                        {
+                            out.push(make_resource_diagnostic(
+                                "W9006",
+                                &format!("String length {} exceeds maximum {} for property '{}'", shortest, max, prop),
+                                m,
+                                name,
+                                &path,
+                                None,
+                            ));
                         }
-                        let path = format!("Properties.{}", prop);
-                        // Only reported when the constraint is broken whichever
-                        // value the deployment picks: the shortest possibility
-                        // still too long, or the longest still too short. A value
-                        // the template states literally is checked against the
-                        // constraint by schema validation instead, and a value with
-                        // any unknown possibility yields no bounds at all.
-                        if let Some((shortest, longest)) = m.estimated_string_length_bounds(name, &path) {
-                            if let Some(max) = max_len
-                                && shortest as u64 > max
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "W9006",
-                                    &format!(
-                                        "String length {} exceeds maximum {} for property '{}'",
-                                        shortest, max, prop
-                                    ),
-                                    m,
-                                    name,
-                                    &path,
-                                    None,
-                                ));
-                            }
-                            if let Some(min) = min_len
-                                && (longest as u64) < min
-                            {
-                                out.push(make_resource_diagnostic(
-                                    "W9006",
-                                    &format!(
-                                        "String length {} is below minimum {} for property '{}'",
-                                        longest, min, prop
-                                    ),
-                                    m,
-                                    name,
-                                    &path,
-                                    None,
-                                ));
-                            }
+                        if let Some(min) = min_len
+                            && (longest as u64) < min
+                        {
+                            out.push(make_resource_diagnostic(
+                                "W9006",
+                                &format!("String length {} is below minimum {} for property '{}'", longest, min, prop),
+                                m,
+                                name,
+                                &path,
+                                None,
+                            ));
                         }
                     }
                 }
@@ -2651,8 +2805,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancingV2::Listener") {
         if let Some(serde_json::Value::String(proto)) = resolve_concrete(m, name, "Properties.Protocol")
-            && (proto == "HTTPS" || proto == "TLS")
-            && resolve_concrete(m, name, "Properties.Certificates").is_none()
+            && ctx.cached_data.load_balancer_v2_certificate_protocols.contains(&proto)
+            && !m.has_property(name, "Properties.Certificates")
         {
             out.push(make_resource_diagnostic(
                 "E3676",
@@ -2666,10 +2820,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancing::LoadBalancer") {
-        if let Some(serde_json::Value::Array(listeners)) = resolve_concrete(m, name, "Properties.Listeners") {
+        if let Some(listeners) = resolved_list_items(m, name, "Properties.Listeners") {
             for (i, listener) in listeners.iter().enumerate() {
                 let proto = listener.get("Protocol").and_then(|p| p.as_str()).unwrap_or("");
-                if (proto.eq_ignore_ascii_case("HTTPS") || proto.eq_ignore_ascii_case("SSL"))
+                if ctx.cached_data.classic_load_balancer_certificate_protocols.contains(proto)
                     && listener.get("SSLCertificateId").is_none()
                 {
                     out.push(make_resource_diagnostic(
@@ -2688,27 +2842,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if let Some(serde_json::Value::Object(env_vars)) = resolve_concrete(m, name, "Properties.Environment.Variables")
         {
-            const RESERVED_KEYS: &[&str] = &[
-                "_HANDLER",
-                "_X_AMZN_TRACE_ID",
-                "AWS_DEFAULT_REGION",
-                "AWS_REGION",
-                "AWS_EXECUTION_ENV",
-                "AWS_LAMBDA_FUNCTION_NAME",
-                "AWS_LAMBDA_FUNCTION_MEMORY_SIZE",
-                "AWS_LAMBDA_FUNCTION_VERSION",
-                "AWS_LAMBDA_LOG_GROUP_NAME",
-                "AWS_LAMBDA_LOG_STREAM_NAME",
-                "AWS_ACCESS_KEY_ID",
-                "AWS_SECRET_ACCESS_KEY",
-                "AWS_SESSION_TOKEN",
-                "AWS_LAMBDA_RUNTIME_API",
-                "LAMBDA_TASK_ROOT",
-                "LAMBDA_RUNTIME_DIR",
-                "TZ",
-            ];
             for key in env_vars.keys() {
-                if RESERVED_KEYS.contains(&key.as_str()) {
+                if ctx.cached_data.lambda_reserved_environment_keys.contains(key) {
                     out.push(make_resource_diagnostic(
                         "E3663",
                         &format!("Environment variable '{}' is a Lambda reserved key", key),
@@ -2732,9 +2867,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             // value - so an excluded property whose value is an unresolved
             // Ref/intrinsic still anchors the finding.
             let props = m.resources.get(name.as_str()).map(|r| &r.properties);
-            if let Some(first_excluded) = ["Handler", "Runtime", "Layers"]
+            if let Some(first_excluded) = ctx
+                .cached_data
+                .lambda_image_excluded_properties
                 .iter()
-                .find(|excluded| props.map(|p| p.contains_key(**excluded)).unwrap_or(false))
+                .find(|excluded| props.map(|p| p.contains_key(excluded.as_str())).unwrap_or(false))
             {
                 out.push(make_resource_diagnostic(
                     "E3685",
@@ -2749,9 +2886,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ApiGateway::RestApi") {
-        let has_body = resolve_concrete(m, name, "Properties.Body").is_some()
-            || resolve_concrete(m, name, "Properties.BodyS3Location").is_some();
-        if !has_body && resolve_concrete(m, name, "Properties.Name").is_none() {
+        let has_body = m.has_property(name, "Properties.Body") || m.has_property(name, "Properties.BodyS3Location");
+        if !has_body && !m.has_property(name, "Properties.Name") {
             out.push(make_resource_diagnostic(
                 "E3660",
                 "'Name' is required when 'Body' or 'BodyS3Location' is not provided",
@@ -2827,30 +2963,60 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             Some(_) => {}
         }
     };
-    for &(rtype, bdm_prefix) in EBS_IOPS_BLOCK_DEVICE_PATHS {
-        for name in m.resources_of_type(rtype) {
-            for (bdm_path, ebs) in ebs_block_device_mappings(m, name, bdm_prefix) {
-                emit_ebs_iops(name, &bdm_path, &ebs, &mut out);
+    for rpp in &ctx.cached_data.rule_tables.ebs_iops_property_paths {
+        let wc_count = wildcard_count(rpp);
+        if wc_count == 1 {
+            // Single-wildcard: iterate over the array at the prefix path
+            let prefix = property_path_prefix(rpp);
+            for name in m.resources_of_type(&rpp.resource_type) {
+                for (bdm_path, ebs) in ebs_block_device_mappings(m, name, &prefix) {
+                    emit_ebs_iops(name, &bdm_path, &ebs, &mut out);
+                }
             }
-        }
-    }
-    // SpotFleet nests its block device mappings one array deeper, under each
-    // launch specification.
-    for name in m.resources_of_type("AWS::EC2::SpotFleet") {
-        if let Some(serde_json::Value::Array(specs)) =
-            resolve_concrete(m, name, "Properties.SpotFleetRequestConfigData.LaunchSpecifications")
-        {
-            for (spec_idx, spec) in specs.iter().enumerate() {
-                let Some(mappings) = spec.get("BlockDeviceMappings").and_then(|v| v.as_array()) else {
-                    continue;
-                };
-                for (idx, mapping) in mappings.iter().enumerate() {
-                    if let Some(ebs) = mapping.get("Ebs") {
-                        let path = format!(
-                            "Properties.SpotFleetRequestConfigData.LaunchSpecifications.{}.BlockDeviceMappings.{}",
-                            spec_idx, idx
-                        );
-                        emit_ebs_iops(name, &path, ebs, &mut out);
+        } else if wc_count == 2 {
+            // Double-wildcard (SpotFleet pattern): outer array then inner
+            // BlockDeviceMappings. The prefix is the path up to the FIRST
+            // wildcard; the middle segments are between the two wildcards.
+            let Some(first_wc) = rpp.segments.iter().position(|s| matches!(s, PathSegment::Wildcard)) else {
+                continue;
+            };
+            let outer_prefix: String = rpp.segments[..first_wc]
+                .iter()
+                .filter_map(|s| match s {
+                    PathSegment::Literal(l) => Some(l.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join(".");
+            // Middle segments between first and second wildcard
+            let Some(second_wc) = rpp.segments.iter().rposition(|s| matches!(s, PathSegment::Wildcard)) else {
+                continue;
+            };
+            let middle_segments: String = rpp.segments[first_wc + 1..second_wc]
+                .iter()
+                .filter_map(|s| match s {
+                    PathSegment::Literal(l) => Some(l.as_str()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join(".");
+            for name in m.resources_of_type(&rpp.resource_type) {
+                if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, &outer_prefix) {
+                    for (spec_idx, spec) in specs.iter().enumerate() {
+                        let inner_val = if middle_segments.is_empty() {
+                            Some(spec)
+                        } else {
+                            navigate_json_path(spec, &middle_segments)
+                        };
+                        let Some(serde_json::Value::Array(mappings)) = inner_val else {
+                            continue;
+                        };
+                        for (idx, mapping) in mappings.iter().enumerate() {
+                            if let Some(ebs) = mapping.get("Ebs") {
+                                let path = format!("{}.{}.{}.{}", outer_prefix, spec_idx, middle_segments, idx);
+                                emit_ebs_iops(name, &path, ebs, &mut out);
+                            }
+                        }
                     }
                 }
             }
@@ -2859,7 +3025,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::ElastiCache::ReplicationGroup") {
         if resolve_concrete(m, name, "Properties.Engine").as_ref().and_then(|v| v.as_str()) == Some("valkey")
-            && resolve_concrete(m, name, "Properties.TransitEncryptionEnabled").is_none()
+            && !m.has_property(name, "Properties.TransitEncryptionEnabled")
         {
             out.push(make_resource_diagnostic(
                 "E3704",
@@ -2978,10 +3144,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, prop_path, enum_key) in enum_checks {
+            let resources = m.resources_of_type(rtype);
+            if resources.is_empty() {
+                continue;
+            }
             let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
-            for name in m.resources_of_type(rtype) {
+            for name in resources {
                 if let Some(val) = resolve_enum_string(m, name, prop_path)
                     && !allowed.contains(val.as_str())
                 {
@@ -3028,10 +3198,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ),
         ];
         for &(rule_id, rtype, wildcard_path, report_path, enum_key) in wildcard_enum_checks {
+            let resources = m.resources_of_type(rtype);
+            if resources.is_empty() {
+                continue;
+            }
             let Some(allowed) = region_flat_allowed(&ctx.cached_data.enum_data, enum_key, region) else {
                 continue;
             };
-            for name in m.resources_of_type(rtype) {
+            for name in resources {
                 let mut reported = HashSet::new();
                 for val in resolve_concrete_strings(m, name, wildcard_path) {
                     if allowed.contains(val.as_str()) || !reported.insert(val.clone()) {
@@ -3065,14 +3239,14 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 let Some(val) = resolve_enum_string(m, name, "Properties.DBInstanceClass") else {
                     continue;
                 };
-                if let Some(sorted) =
-                    region_enums::conditional_invalid_enum(region_map, region, "DBInstanceClass", true, &val, |prop| {
+                if let Some(mismatch) =
+                    region_enums::conditional_enum_mismatch(region_map, region, "DBInstanceClass", true, &val, |prop| {
                         resolve_enum_string(m, name, &format!("Properties.{}", prop))
                     })
                 {
                     out.push(make_resource_diagnostic(
                         "E3025",
-                        &region_enums::conditional_invalid_message(&val, &sorted, region),
+                        &region_enums::conditional_mismatch_message(&val, &mismatch, region),
                         m,
                         name,
                         "Properties.DBInstanceClass",
@@ -3082,9 +3256,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        // E3694: RDS DBCluster DBClusterInstanceClass. Like E3025 this is a
-        // conditional schema keyed on Engine, but Engine is NOT lowercased for
-        // DBCluster, so match the const case-sensitively.
+        // RDS DBCluster DBClusterInstanceClass uses a conditional schema keyed
+        // on Engine, but Engine is not lowercased for DBCluster, so match the
+        // const case-sensitively.
         if let Some(region_map) =
             region_map_for_key(&ctx.cached_data.enum_data, "data/aws_rds_dbcluster_dbclusterinstanceclass_enum")
         {
@@ -3092,7 +3266,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 let Some(val) = resolve_enum_string(m, name, "Properties.DBClusterInstanceClass") else {
                     continue;
                 };
-                if let Some(sorted) = region_enums::conditional_invalid_enum(
+                if let Some(mismatch) = region_enums::conditional_enum_mismatch(
                     region_map,
                     region,
                     "DBClusterInstanceClass",
@@ -3102,7 +3276,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ) {
                     out.push(make_resource_diagnostic(
                         "E3694",
-                        &region_enums::conditional_invalid_message(&val, &sorted, region),
+                        &region_enums::conditional_mismatch_message(&val, &mismatch, region),
                         m,
                         name,
                         "Properties.DBClusterInstanceClass",
@@ -3112,10 +3286,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(allowed) =
-            region_flat_allowed(&ctx.cached_data.enum_data, "data/aws_amazonmq_broker_instancetype_enum", region)
+        let amazonmq_brokers = m.resources_of_type("AWS::AmazonMQ::Broker");
+        if !amazonmq_brokers.is_empty()
+            && let Some(allowed) =
+                region_flat_allowed(&ctx.cached_data.enum_data, "data/aws_amazonmq_broker_instancetype_enum", region)
         {
-            for name in m.resources_of_type("AWS::AmazonMQ::Broker") {
+            for name in amazonmq_brokers {
                 if let Some(val) = resolve_enum_string(m, name, "Properties.HostInstanceType")
                     && !allowed.contains(val.as_str())
                 {
@@ -3131,12 +3307,15 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
 
-        if let Some(allowed) = region_flat_allowed(
-            &ctx.cached_data.enum_data,
-            "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
-            region,
-        ) {
-            for name in m.resources_of_type("AWS::EMR::InstanceFleetConfig") {
+        let emr_instance_fleets = m.resources_of_type("AWS::EMR::InstanceFleetConfig");
+        if !emr_instance_fleets.is_empty()
+            && let Some(allowed) = region_flat_allowed(
+                &ctx.cached_data.enum_data,
+                "data/aws_emr_cluster_instancetypeconfig_instancetype_enum",
+                region,
+            )
+        {
+            for name in emr_instance_fleets {
                 if let Some(val) = resolve_enum_string(m, name, "Properties.InstanceType")
                     && !allowed.contains(val.as_str())
                 {
@@ -3154,21 +3333,46 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::ElasticLoadBalancingV2::LoadBalancer") {
-        let lb_type = resolve_concrete(m, name, "Properties.Type")
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_else(|| "application".to_string());
-        if lb_type == "application"
-            && let Some(serde_json::Value::Array(subnets)) = resolve_concrete(m, name, "Properties.Subnets")
-            && subnets.len() < 2
-        {
-            out.push(make_resource_diagnostic(
-                "E3680",
-                "Application load balancer requires at least 2 subnets",
-                m,
-                name,
-                "Properties.Subnets",
-                None,
-            ));
+        if !alb_is_application_type(m, name) {
+            continue;
+        }
+        for (subnet_property, message) in ALB_SUBNET_MINIMUM_MESSAGES {
+            let path = format!("Properties.{}", subnet_property);
+            if resolved_item_count(m, name, &path).is_some_and(|count| count < ALB_MINIMUM_SUBNETS) {
+                out.push(make_resource_diagnostic("E3680", message, m, name, &path, None));
+            }
+        }
+    }
+
+    for name in m.resources_of_type("AWS::RDS::DBCluster") {
+        if let Some(path) = dbcluster_monitoring_mismatch_path(m, name) {
+            out.push(make_resource_diagnostic("E3689", DBCLUSTER_MONITORING_MESSAGE, m, name, path, None));
+        }
+    }
+
+    for name in m.resources_of_type("AWS::ApiGateway::Stage") {
+        let Some(settings) = resolved_list_items(m, name, "Properties.MethodSettings") else {
+            continue;
+        };
+        for (idx, setting) in settings.iter().enumerate() {
+            if !stage_method_setting_configures_something(setting) {
+                continue;
+            }
+            if let Some(resource_path) = setting.get("ResourcePath").and_then(|v| v.as_str())
+                && !resource_path.starts_with('/')
+            {
+                out.push(make_resource_diagnostic(
+                    "E3723",
+                    &format!(
+                        "ResourcePath '{}' must start with '/' when a method setting is configured",
+                        resource_path
+                    ),
+                    m,
+                    name,
+                    &format!("Properties.MethodSettings.{}.ResourcePath", idx),
+                    None,
+                ));
+            }
         }
     }
 
@@ -3283,7 +3487,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &record_type,
                     &records,
                     "Properties.ResourceRecords",
-                    |property_path| standalone_route53_record_source_path(m, name, property_path, &conditions),
+                    |property_path| route53_scenario_source_path(m, name, property_path, &conditions),
                 );
             }
         }
@@ -3321,7 +3525,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     for name in m.resources_of_type("AWS::ElastiCache::ReplicationGroup") {
         if resolve_concrete(m, name, "Properties.Engine").as_ref().and_then(|v| v.as_str()) == Some("redis") {
             // NumCacheClusters is ignored when NumNodeGroups is specified
-            if resolve_concrete(m, name, "Properties.NumNodeGroups").is_some() {
+            if m.has_property(name, "Properties.NumNodeGroups") {
                 continue;
             }
             if let Some(num) = resolve_concrete(m, name, "Properties.NumCacheClusters").and_then(|v| v.as_i64())
@@ -3483,55 +3687,38 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     // if its value is a string not starting with s3:// or https://, it warns.
     // SAM templates are excluded entirely.
     if !m.transforms.iter().any(|t| t == TRANSFORM_SERVERLESS) {
-        const PACKAGE_PROPS: &[(&str, &[&str])] = &[
-            ("AWS::Lambda::Function", &["Code"]),
-            ("AWS::Lambda::LayerVersion", &["Content"]),
-            ("AWS::ElasticBeanstalk::ApplicationVersion", &["SourceBundle"]),
-            ("AWS::StepFunctions::StateMachine", &["DefinitionS3Location"]),
-            ("AWS::AppSync::GraphQLSchema", &["DefinitionS3Location"]),
-            ("AWS::AppSync::Resolver", &["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"]),
-            (
-                "AWS::AppSync::FunctionConfiguration",
-                &["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-            ),
-            ("AWS::CloudFormation::Stack", &["TemplateURL"]),
-            ("AWS::CodeCommit::Repository", &["Code.S3"]),
-            ("AWS::ApiGateway::RestApi", &["BodyS3Location"]),
-        ];
-        for (rtype, props) in PACKAGE_PROPS {
-            for name in m.resources_of_type(rtype) {
-                for prop in *props {
-                    let path = format!("Properties.{}", prop);
-                    // Only string literals are inspected here; a value wrapped in
-                    // an intrinsic (Fn::Join/Fn::Sub building an S3 URL) resolves
-                    // at deploy time and is left alone, so skip intrinsic-sourced
-                    // values.
-                    if m.is_from_intrinsic(name, &path) {
+        for rpp in &ctx.cached_data.rule_tables.package_property_paths {
+            let path = full_property_path(rpp);
+            for name in m.resources_of_type(&rpp.resource_type) {
+                // Only string literals are inspected here; a value wrapped in
+                // an intrinsic (Fn::Join/Fn::Sub building an S3 URL) resolves
+                // at deploy time and is left alone, so skip intrinsic-sourced
+                // values.
+                if m.is_from_intrinsic(name, &path) {
+                    continue;
+                }
+                if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path) {
+                    if val.starts_with("s3://") || val.starts_with("https://") {
                         continue;
                     }
-                    if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path) {
-                        if val.starts_with("s3://") || val.starts_with("https://") {
-                            continue;
-                        }
-                        out.push(make_resource_diagnostic(
-                            "W3002",
-                            "This code may only work with 'package' cli command",
-                            m,
-                            name,
-                            &path,
-                            None,
-                        ));
-                    }
+                    out.push(make_resource_diagnostic(
+                        "W3002",
+                        "This code may only work with 'package' cli command",
+                        m,
+                        name,
+                        &path,
+                        None,
+                    ));
                 }
             }
         }
     }
 
-    // API Gateway mixing inline definitions with external Body
+    // API Gateway mixing inline definitions with related resources
     {
-        let apigw_resource_types = ["AWS::ApiGateway::Method"];
+        let apigw_resource_types = &ctx.cached_data.rule_tables.api_gateway_mixing_resource_types;
         let mut rest_api_refs: HashMap<String, Vec<String>> = HashMap::new();
-        for rtype in &apigw_resource_types {
+        for rtype in apigw_resource_types {
             for name in m.resources_of_type(rtype) {
                 if let Some(api_id) = m.follow_ref(name, "Properties.RestApiId") {
                     rest_api_refs.entry(api_id.to_string()).or_default().push(name.to_string());
@@ -3539,20 +3726,24 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             }
         }
         for (api_id, referrers) in &rest_api_refs {
-            if referrers.is_empty() {
+            let Some(api) = m.resources.get(api_id) else {
                 continue;
-            }
-            let has_body = resolve_concrete(m, api_id, "Properties.Body").is_some()
-                || resolve_concrete(m, api_id, "Properties.BodyS3Location").is_some();
-            if has_body {
+            };
+            for property in ["Body", "BodyS3Location"] {
+                if !api.properties.contains_key(property) {
+                    continue;
+                }
                 for referrer in referrers {
+                    let resource_type = &m.resources[referrer].resource_type;
                     out.push(make_resource_diagnostic(
                         "W3660",
                         &format!(
-                            "Resource references RestApi '{}' which has Body/BodyS3Location - mixing inline definitions with external body",
-                            api_id
+                            "Defining '{property}' with a relation to resource '{referrer}' of type '{resource_type}' may result in drift and orphaned resources"
                         ),
-                        m, referrer, "Properties.RestApiId", None,
+                        m,
+                        api_id,
+                        &format!("Properties.{property}"),
+                        None,
                     ));
                 }
             }
@@ -3593,35 +3784,55 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // EBS Iops silently ignored for certain volume types
     {
-        const IOPS_IGNORED_TYPES: &[&str] = &["gp2", "st1", "sc1", "standard"];
-        const BDM_RESOURCE_TYPES: &[(&str, &str)] = &[
-            ("AWS::EC2::Instance", "Properties.BlockDeviceMappings"),
-            ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.BlockDeviceMappings"),
-            ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications"),
-            ("AWS::AutoScaling::LaunchConfiguration", "Properties.BlockDeviceMappings"),
-            ("AWS::OpsWorks::Instance", "Properties.BlockDeviceMappings"),
-        ];
-        for (rtype, base_path) in BDM_RESOURCE_TYPES {
-            for name in m.resources_of_type(rtype) {
-                if *rtype == "AWS::EC2::SpotFleet" {
-                    // SpotFleet has nested launch specs
-                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, base_path) {
+        let iops_ignored_types = &ctx.cached_data.rule_tables.ebs_iops_ignored_volume_types;
+        let iops_ignored_refs: Vec<&str> = iops_ignored_types.iter().map(|s| s.as_str()).collect();
+        for rpp in &ctx.cached_data.rule_tables.ebs_iops_property_paths {
+            let wc_count = wildcard_count(rpp);
+            if wc_count == 1 {
+                let prefix = property_path_prefix(rpp);
+                for name in m.resources_of_type(&rpp.resource_type) {
+                    if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, &prefix) {
+                        check_bdm_iops_ignored(&mut out, m, name, &bdms, &prefix, "W3671", &iops_ignored_refs);
+                    }
+                }
+            } else if wc_count == 2 {
+                // SpotFleet-style double-wildcard
+                let Some(first_wc) = rpp.segments.iter().position(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let outer_prefix: String = rpp.segments[..first_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                let Some(second_wc) = rpp.segments.iter().rposition(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let middle_segments: String = rpp.segments[first_wc + 1..second_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                for name in m.resources_of_type(&rpp.resource_type) {
+                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, &outer_prefix) {
                         for (si, spec) in specs.iter().enumerate() {
-                            if let Some(bdms) = spec.get("BlockDeviceMappings").and_then(|b| b.as_array()) {
-                                check_bdm_iops_ignored(
-                                    &mut out,
-                                    m,
-                                    name,
-                                    bdms,
-                                    &format!("{}.{}.BlockDeviceMappings", base_path, si),
-                                    "W3671",
-                                    IOPS_IGNORED_TYPES,
-                                );
+                            let bdms_val = if middle_segments.is_empty() {
+                                Some(spec)
+                            } else {
+                                navigate_json_path(spec, &middle_segments)
+                            };
+                            if let Some(serde_json::Value::Array(bdms)) = bdms_val {
+                                let base = format!("{}.{}.{}", outer_prefix, si, middle_segments);
+                                check_bdm_iops_ignored(&mut out, m, name, bdms, &base, "W3671", &iops_ignored_refs);
                             }
                         }
                     }
-                } else if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, base_path) {
-                    check_bdm_iops_ignored(&mut out, m, name, &bdms, base_path, "W3671", IOPS_IGNORED_TYPES);
                 }
             }
         }
@@ -3629,9 +3840,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // RDS DBCluster - SnapshotIdentifier makes MasterUsername ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
-        if resolve_concrete(m, name, "Properties.SnapshotIdentifier").is_some()
-            && resolve_concrete(m, name, "Properties.MasterUsername").is_some()
-        {
+        if m.has_property(name, "Properties.SnapshotIdentifier") && m.has_property(name, "Properties.MasterUsername") {
             out.push(make_resource_diagnostic(
                 "W3688",
                 "MasterUsername is ignored when SnapshotIdentifier is present",
@@ -3645,9 +3854,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // RDS DBCluster - SourceDBClusterIdentifier makes several properties ignored
     for name in m.resources_of_type("AWS::RDS::DBCluster") {
-        if resolve_concrete(m, name, "Properties.SourceDBClusterIdentifier").is_some() {
+        if m.has_property(name, "Properties.SourceDBClusterIdentifier") {
             for ignored in &["MasterUserPassword", "MasterUsername", "StorageEncrypted"] {
-                if resolve_concrete(m, name, &format!("Properties.{}", ignored)).is_some() {
+                if m.has_property(name, &format!("Properties.{}", ignored)) {
                     out.push(make_resource_diagnostic(
                         "W3689",
                         &format!("'{}' is ignored when SourceDBClusterIdentifier is present", ignored),
@@ -3674,7 +3883,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             for ignored in
                 &["PerformanceInsightsEnabled", "PerformanceInsightsKmsKeyId", "PerformanceInsightsRetentionPeriod"]
             {
-                if resolve_concrete(m, name, &format!("Properties.{}", ignored)).is_some() {
+                if m.has_property(name, &format!("Properties.{}", ignored)) {
                     out.push(make_resource_diagnostic(
                         "W3693",
                         &format!("'{}' is ignored when EngineMode is 'serverless'", ignored),
@@ -3728,37 +3937,18 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // VirtualName ignored when Ebs is specified in block device mappings
     {
-        const BDM_RESOURCE_TYPES_W3698: &[(&str, &str)] = &[
-            ("AWS::EC2::Instance", "Properties.BlockDeviceMappings"),
-            ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.BlockDeviceMappings"),
-            ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications"),
-            ("AWS::AutoScaling::LaunchConfiguration", "Properties.BlockDeviceMappings"),
-            ("AWS::OpsWorks::Instance", "Properties.BlockDeviceMappings"),
-        ];
-        for (rtype, base_path) in BDM_RESOURCE_TYPES_W3698 {
-            for name in m.resources_of_type(rtype) {
-                if *rtype == "AWS::EC2::SpotFleet" {
-                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, base_path) {
-                        for (si, spec) in specs.iter().enumerate() {
-                            if let Some(bdms) = spec.get("BlockDeviceMappings").and_then(|b| b.as_array()) {
-                                check_bdm_virtualname_ignored(
-                                    &mut out,
-                                    m,
-                                    name,
-                                    bdms,
-                                    &format!("{}.{}.BlockDeviceMappings", base_path, si),
-                                );
-                            }
-                        }
-                    }
-                } else {
+        for rpp in &ctx.cached_data.rule_tables.ebs_iops_property_paths {
+            let wc_count = wildcard_count(rpp);
+            if wc_count == 1 {
+                let prefix = property_path_prefix(rpp);
+                for name in m.resources_of_type(&rpp.resource_type) {
                     // Concrete resolution handles the common non-conditional case.
-                    if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, base_path) {
-                        check_bdm_virtualname_ignored(&mut out, m, name, &bdms, base_path);
+                    if let Some(serde_json::Value::Array(bdms)) = resolve_concrete(m, name, &prefix) {
+                        check_bdm_virtualname_ignored(&mut out, m, name, &bdms, &prefix);
                     } else {
                         // Fall back to conditional branch traversal for the
                         // virtual-name-ignored check only
-                        let bdm_arrays = resolve_all_json(m, name, base_path);
+                        let bdm_arrays = resolve_all_json(m, name, &prefix);
                         for bdms_val in &bdm_arrays {
                             if let serde_json::Value::Array(bdms) = bdms_val {
                                 for (i, bdm) in bdms.iter().enumerate() {
@@ -3770,7 +3960,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                                                 "E3715",
                                                 &format!("'{}' is not a valid ephemeral device name. Expected format is 'ephemeralN' where N is 0-23", vname),
                                                 m, name,
-                                                &format!("{}.{}.VirtualName", base_path, i),
+                                                &format!("{}.{}.VirtualName", prefix, i),
                                                 None,
                                             ));
                                     }
@@ -3778,6 +3968,209 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                             }
                         }
                     }
+                }
+            } else if wc_count == 2 {
+                // SpotFleet-style double-wildcard
+                let Some(first_wc) = rpp.segments.iter().position(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let outer_prefix: String = rpp.segments[..first_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                let Some(second_wc) = rpp.segments.iter().rposition(|s| matches!(s, PathSegment::Wildcard)) else {
+                    continue;
+                };
+                let middle_segments: String = rpp.segments[first_wc + 1..second_wc]
+                    .iter()
+                    .filter_map(|s| match s {
+                        PathSegment::Literal(l) => Some(l.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                for name in m.resources_of_type(&rpp.resource_type) {
+                    if let Some(serde_json::Value::Array(specs)) = resolve_concrete(m, name, &outer_prefix) {
+                        for (si, spec) in specs.iter().enumerate() {
+                            let bdms_val = if middle_segments.is_empty() {
+                                spec.as_array()
+                            } else {
+                                navigate_json_path(spec, &middle_segments).and_then(|v| v.as_array())
+                            };
+                            if let Some(bdms) = bdms_val {
+                                check_bdm_virtualname_ignored(
+                                    &mut out,
+                                    m,
+                                    name,
+                                    bdms,
+                                    &format!("{}.{}.{}", outer_prefix, si, middle_segments),
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Validate ECS Fargate tasks have required properties and values.
+    // Each property scenario is paired with a compatible Fargate scenario so
+    // values from mutually exclusive EC2 deployments cannot create findings.
+    {
+        let supported_log_drivers = &ctx.cached_data.fargate_supported_log_drivers;
+        let supported_log_drivers_rendered = render_str_list(supported_log_drivers);
+        let supported_log_driver_fix = &ctx.cached_data.fargate_supported_log_driver_fix;
+
+        for name in m.resources_of_type("AWS::ECS::TaskDefinition") {
+            let fargate_scenarios = fargate_condition_scenarios(m, name);
+            if fargate_scenarios.is_empty() {
+                continue;
+            }
+
+            let properties_scenarios = m.resolve_properties_scenarios(name);
+            let property_can_be_missing = |property_name: &str| {
+                properties_scenarios.iter().any(|(properties, conditions)| {
+                    !scenario_has_effective_property(properties, property_name)
+                        && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                })
+            };
+
+            let network_mode_scenarios = m.resolve_scenarios_json(name, "Properties.NetworkMode");
+            let network_mode_can_be_missing = property_can_be_missing("NetworkMode");
+            if network_mode_can_be_missing {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires NetworkMode to be specified as 'awsvpc'",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set NetworkMode to 'awsvpc'"),
+                ));
+            }
+            let mut invalid_network_modes = HashSet::new();
+            for (value, conditions) in &network_mode_scenarios {
+                if let Some(network_mode) = value.as_str()
+                    && network_mode != "awsvpc"
+                    && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                    && invalid_network_modes.insert(network_mode.to_string())
+                {
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        &format!("Fargate requires NetworkMode 'awsvpc', got '{}'", network_mode),
+                        m,
+                        name,
+                        "Properties.NetworkMode",
+                        Some("Set NetworkMode to 'awsvpc'"),
+                    ));
+                }
+            }
+
+            let cpu_scenarios = m.resolve_scenarios_json(name, "Properties.Cpu");
+            let cpu_can_be_missing = property_can_be_missing("Cpu");
+            if cpu_can_be_missing {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires Cpu to be specified",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set Cpu to a valid Fargate value (256, 512, 1024, 2048, 4096, 8192, 16384, or 32768)"),
+                ));
+            }
+            let mut invalid_cpu_values = HashSet::new();
+            for (value, conditions) in &cpu_scenarios {
+                if scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                    && matches!(cpu_is_offered(value), Some(false))
+                {
+                    let rendered = render_value(value);
+                    if invalid_cpu_values.insert(rendered.clone()) {
+                        out.push(make_resource_diagnostic(
+                            "E3048",
+                            &format!(
+                                "Fargate Cpu value {} is not valid. Valid sizes are {} CPU units or {} vCPU.",
+                                rendered,
+                                render_str_list(CPU_UNIT_LABELS),
+                                render_str_list(VCPU_SIZES.iter().map(|(label, _)| *label)),
+                            ),
+                            m,
+                            name,
+                            "Properties.Cpu",
+                            Some("Use a valid Fargate Cpu size in CPU units or vCPU"),
+                        ));
+                    }
+                }
+            }
+
+            let memory_can_be_missing = property_can_be_missing("Memory");
+            if memory_can_be_missing {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate requires Memory to be specified",
+                    m,
+                    name,
+                    KEY_PROPERTIES,
+                    Some("Set Memory to a valid Fargate value"),
+                ));
+            }
+
+            let placement_is_unsupported = properties_scenarios.iter().any(|(properties, conditions)| {
+                scenario_has_effective_property(properties, "PlacementConstraints")
+                    && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+            });
+            if placement_is_unsupported {
+                out.push(make_resource_diagnostic(
+                    "E3048",
+                    "Fargate does not support PlacementConstraints",
+                    m,
+                    name,
+                    "Properties.PlacementConstraints",
+                    Some("Remove PlacementConstraints for Fargate tasks"),
+                ));
+            }
+
+            // Expanding the whole list preserves both condition branches even
+            // when `ContainerDefinitions` itself is wrapped in `Fn::If`; every
+            // returned scenario is concrete enough to inspect by index.
+            let mut reported_drivers: HashSet<(usize, String)> = HashSet::new();
+            for (container_value, container_conditions) in
+                m.resolve_scenarios_json(name, "Properties.ContainerDefinitions")
+            {
+                if !scenario_overlaps_any(m, name, &container_conditions, &fargate_scenarios) {
+                    continue;
+                }
+                let Some(container_definitions) = container_value.as_array() else {
+                    continue;
+                };
+                for (container_index, container_definition) in container_definitions.iter().enumerate() {
+                    let Some(driver) = container_definition
+                        .get("LogConfiguration")
+                        .and_then(|configuration| configuration.get("LogDriver"))
+                        .and_then(serde_json::Value::as_str)
+                    else {
+                        continue;
+                    };
+                    if supported_log_drivers.iter().any(|supported| supported == driver)
+                        || !reported_drivers.insert((container_index, driver.to_string()))
+                    {
+                        continue;
+                    }
+                    let driver_path =
+                        format!("Properties.ContainerDefinitions.{container_index}.LogConfiguration.LogDriver");
+                    out.push(make_resource_diagnostic(
+                        "E3048",
+                        &format!(
+                            "Fargate does not support log driver '{}'. Supported drivers: {}",
+                            driver, supported_log_drivers_rendered,
+                        ),
+                        m,
+                        name,
+                        &driver_path,
+                        Some(supported_log_driver_fix),
+                    ));
                 }
             }
         }
@@ -3874,8 +4267,8 @@ fn region_flat_allowed<'a>(
     enum_data: &'a HashMap<String, serde_json::Value>,
     enum_key: &str,
     region: Option<&str>,
-) -> Option<BTreeSet<&'a str>> {
-    region_enums::flat_allowed_values(region_map_for_key(enum_data, enum_key)?, region)
+) -> Option<HashSet<&'a str>> {
+    region_enums::flat_allowed_value_set(region_map_for_key(enum_data, enum_key)?, region)
 }
 
 /// A scalar string property value, collapsing an `Fn::If`-wrapped value to its
@@ -3922,91 +4315,6 @@ fn collect_concrete_strings(value: &ResolvedValue, out: &mut Vec<String>) {
         }
         _ => {}
     }
-}
-
-/// Renders `{'Prop1': 'val1', 'Prop2': 'val2'}` in Python `repr` style for duplicate-identifier messages.
-fn render_primary_id_dict(props: &[String], values: &[String]) -> String {
-    let pairs: Vec<String> = props.iter().zip(values.iter()).map(|(p, v)| format!("'{}': '{}'", p, v)).collect();
-    format!("{{{}}}", pairs.join(", "))
-}
-
-/// Renders `{'A', 'B'}` in Python repr style for a Python set of resource names.
-/// Python `repr(set)` uses iteration order; we sort for determinism across engines.
-fn render_resource_set(names: &BTreeSet<String>) -> String {
-    let quoted: Vec<String> = names.iter().map(|n| format!("'{}'", n)).collect();
-    format!("{{{}}}", quoted.join(", "))
-}
-
-/// needed to detect primary-identifier duplication across templates that
-/// switch the identifier on a condition (e.g. `!If [cond, "x", !Ref AWS::NoValue]`).
-/// One way a resource's primary-identifier tuple can resolve, paired with the
-/// condition assignment (`assumptions`) that produces it. Used by the
-/// duplicate-identifier check to test whether two resources can share an
-/// identifier in a satisfiable deployment.
-struct PrimaryIdScenario {
-    tuple: Vec<String>,
-    assumptions: Vec<(String, bool)>,
-}
-
-fn scenario_value_to_string(v: &serde_json::Value) -> Option<String> {
-    if v.is_null() {
-        return None;
-    }
-    Some(match v {
-        serde_json::Value::String(s) => s.clone(),
-        other => other.to_string(),
-    })
-}
-
-/// Enumerate a resource's primary-identifier scenarios. Each property's
-/// `(value, condition_map)` scenarios are combined across all identifier
-/// properties; a scenario is kept only when every property resolves to a
-/// concrete value and the merged condition assignments are mutually consistent.
-/// The resource's own `Condition` (if any) is folded into every scenario.
-fn primary_id_scenarios(m: &Arc<SemanticModel>, rid: &str, id_props: &[String]) -> Vec<PrimaryIdScenario> {
-    let base_assumptions: Vec<(String, bool)> = match m.resources.get(rid).and_then(|r| r.condition.as_deref()) {
-        Some(cond) => vec![(cond.to_string(), true)],
-        None => Vec::new(),
-    };
-    let mut scenarios =
-        vec![PrimaryIdScenario { tuple: Vec::with_capacity(id_props.len()), assumptions: base_assumptions }];
-    for prop in id_props {
-        let path = format!("Properties.{}", prop);
-        let prop_scenarios = m.resolve_scenarios_json(rid, &path);
-        let mut next = Vec::new();
-        for existing in &scenarios {
-            for (value, cond_map) in &prop_scenarios {
-                let Some(val_str) = scenario_value_to_string(value) else {
-                    continue;
-                };
-                let mut assumptions = existing.assumptions.clone();
-                let mut consistent = true;
-                for (cond, truth) in cond_map {
-                    if let Some((_, prior)) = assumptions.iter().find(|(c, _)| c == cond) {
-                        if prior != truth {
-                            consistent = false;
-                            break;
-                        }
-                    } else {
-                        assumptions.push((cond.clone(), *truth));
-                    }
-                }
-                if !consistent {
-                    continue;
-                }
-                let mut tuple = existing.tuple.clone();
-                tuple.push(val_str);
-                next.push(PrimaryIdScenario { tuple, assumptions });
-            }
-        }
-        scenarios = next;
-        if scenarios.is_empty() {
-            break;
-        }
-    }
-    // Keep only scenarios with a complete tuple and a satisfiable assignment.
-    scenarios.retain(|s| s.tuple.len() == id_props.len() && m.conditions.is_satisfiable(&s.assumptions));
-    scenarios
 }
 
 /// First scalar (string/number/bool) value that repeats in the array, formatted
@@ -4267,83 +4575,6 @@ fn check_iam_action_resources(
     }
 }
 
-type Ipv4Cidr = (u32, u8); // (network_addr, prefix_len)
-
-fn parse_ipv4_cidr(s: &str) -> Option<Ipv4Cidr> {
-    let (addr_str, prefix_str) = s.split_once('/')?;
-    let prefix: u8 = prefix_str.parse().ok()?;
-    if prefix > 32 {
-        return None;
-    }
-    let parts: Vec<u8> = addr_str.split('.').filter_map(|p| p.parse().ok()).collect();
-    if parts.len() != 4 {
-        return None;
-    }
-    let addr = (parts[0] as u32) << 24 | (parts[1] as u32) << 16 | (parts[2] as u32) << 8 | parts[3] as u32;
-    let mask = if prefix == 0 { 0 } else { !0u32 << (32 - prefix) };
-    Some((addr & mask, prefix))
-}
-
-fn is_subnet_of(sub: Ipv4Cidr, vpc: Ipv4Cidr) -> bool {
-    if sub.1 < vpc.1 {
-        return false;
-    } // subnet prefix must be >= vpc prefix (smaller or equal network)
-    let vpc_mask = if vpc.1 == 0 { 0 } else { !0u32 << (32 - vpc.1) };
-    (sub.0 & vpc_mask) == vpc.0
-}
-
-fn check_iam_statements(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    name: &str,
-    doc: &serde_json::Value,
-    path: &str,
-) {
-    if let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
-        for stmt in stmts {
-            if !stmt.is_object() {
-                continue;
-            }
-
-            if stmt.get("Effect").is_none() {
-                out.push(make_resource_diagnostic(
-                    "W3515",
-                    "IAM policy statement is missing required 'Effect' property",
-                    m,
-                    name,
-                    path,
-                    Some("Add Effect: Allow or Effect: Deny to the statement"),
-                ));
-            }
-
-            if let Some(effect) = stmt.get("Effect").and_then(|e| e.as_str())
-                && effect != "Allow"
-                && effect != "Deny"
-            {
-                out.push(make_resource_diagnostic(
-                    "E3514",
-                    &format!("IAM policy statement Effect must be 'Allow' or 'Deny', got '{}'", effect),
-                    m,
-                    name,
-                    path,
-                    Some("Set Effect to 'Allow' or 'Deny'"),
-                ));
-            }
-
-            if stmt.get("Action").is_none() && stmt.get("NotAction").is_none() {
-                out.push(make_resource_diagnostic(
-                    "E9005",
-                    "IAM policy statement must have 'Action' or 'NotAction'",
-                    m,
-                    name,
-                    path,
-                    Some("Add an Action or NotAction to the statement"),
-                ));
-            }
-        }
-    }
-}
-
 fn check_dynamic_ref_spaces(
     out: &mut Vec<Diagnostic>,
     m: &Arc<SemanticModel>,
@@ -4443,69 +4674,60 @@ mod tests {
     }
 
     #[test]
-    fn parse_cidr_valid() {
-        let (addr, prefix) = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        assert_eq!(prefix, 16);
-        assert_eq!(addr, 0x0A000000); // 10.0.0.0
+    fn ports_are_meaningful_for_icmpv6_in_every_spelling() {
+        for proto in [
+            serde_json::json!("icmpv6"),
+            serde_json::json!("ICMPv6"),
+            serde_json::json!("ICMPV6"),
+            serde_json::json!("58"),
+            serde_json::json!(58),
+        ] {
+            assert!(
+                !sg_protocol_ignores_ports(Some(&proto)),
+                "{} carries an ICMP type/code, ports are not ignored",
+                proto
+            );
+        }
     }
 
     #[test]
-    fn parse_cidr_host_bits_masked() {
-        let (addr, _) = parse_ipv4_cidr("10.0.1.5/16").unwrap();
-        assert_eq!(addr, 0x0A000000); // masked to 10.0.0.0
+    fn ports_are_optional_for_icmpv6_but_required_for_tcp_udp_icmp() {
+        for proto in
+            [serde_json::json!("icmpv6"), serde_json::json!("ICMPv6"), serde_json::json!("58"), serde_json::json!(58)]
+        {
+            assert!(!sg_protocol_requires_ports(Some(&proto)), "{} may omit its type/code", proto);
+        }
+        for proto in [
+            serde_json::json!("tcp"),
+            serde_json::json!("UDP"),
+            serde_json::json!("icmp"),
+            serde_json::json!("6"),
+            serde_json::json!(17),
+            serde_json::json!(1),
+        ] {
+            assert!(sg_protocol_requires_ports(Some(&proto)), "{} must state its ports", proto);
+        }
     }
 
     #[test]
-    fn parse_cidr_slash_32() {
-        let (addr, prefix) = parse_ipv4_cidr("192.168.1.1/32").unwrap();
-        assert_eq!(prefix, 32);
-        assert_eq!(addr, 0xC0A80101);
+    fn ports_are_ignored_for_wildcard_and_other_protocols_only() {
+        for proto in [serde_json::json!("-1"), serde_json::json!(-1), serde_json::json!("esp"), serde_json::json!(50)] {
+            assert!(sg_protocol_ignores_ports(Some(&proto)), "{} allows every port, so a range is ignored", proto);
+        }
+        for proto in
+            [serde_json::json!("tcp"), serde_json::json!("ICMP"), serde_json::json!(6), serde_json::json!("17")]
+        {
+            assert!(!sg_protocol_ignores_ports(Some(&proto)), "{} uses its ports", proto);
+        }
     }
 
     #[test]
-    fn parse_cidr_slash_0() {
-        let (addr, prefix) = parse_ipv4_cidr("10.0.0.0/0").unwrap();
-        assert_eq!(prefix, 0);
-        assert_eq!(addr, 0);
-    }
-
-    #[test]
-    fn parse_cidr_invalid_prefix() {
-        assert_eq!(parse_ipv4_cidr("10.0.0.0/33"), None, "prefix > 32 should return None");
-    }
-
-    #[test]
-    fn parse_cidr_invalid_format() {
-        assert_eq!(parse_ipv4_cidr("not-a-cidr"), None, "non-CIDR string should return None");
-        assert_eq!(parse_ipv4_cidr("10.0.0/16"), None, "incomplete IP should return None");
-        assert_eq!(parse_ipv4_cidr(""), None, "empty string should return None");
-    }
-
-    #[test]
-    fn subnet_of_true() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        let sub = parse_ipv4_cidr("10.0.1.0/24").unwrap();
-        assert!(is_subnet_of(sub, vpc));
-    }
-
-    #[test]
-    fn subnet_of_same_network() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        assert!(is_subnet_of(vpc, vpc));
-    }
-
-    #[test]
-    fn subnet_of_false_different_network() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        let sub = parse_ipv4_cidr("172.16.0.0/24").unwrap();
-        assert!(!is_subnet_of(sub, vpc));
-    }
-
-    #[test]
-    fn subnet_of_false_larger_subnet() {
-        let vpc = parse_ipv4_cidr("10.0.0.0/24").unwrap();
-        let sub = parse_ipv4_cidr("10.0.0.0/16").unwrap();
-        assert!(!is_subnet_of(sub, vpc));
+    fn unresolved_protocol_neither_requires_nor_ignores_ports() {
+        let unresolved_ref = serde_json::json!({"Ref": "ProtocolParam"});
+        assert!(!sg_protocol_requires_ports(None));
+        assert!(!sg_protocol_ignores_ports(None));
+        assert!(!sg_protocol_requires_ports(Some(&unresolved_ref)));
+        assert!(!sg_protocol_ignores_ports(Some(&unresolved_ref)));
     }
 
     #[test]

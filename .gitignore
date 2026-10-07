@@ -63,3 +63,9 @@ src/bindings-python/generated/**/*
 !.kiro/steering/
 !.kiro/steering/**
 !CLAUDE.md
+
+# Machine-local context
+.kiro/steering/private/
+.kiro/steering/private/**
+.kiro/private/
+.kiro/private/**

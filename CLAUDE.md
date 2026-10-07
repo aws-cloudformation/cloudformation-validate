@@ -5,7 +5,24 @@ AWS CloudFormation templates: parse JSON/YAML → structured diagnostics (schema
 best-practice). Rules + schemas compile into the binary - no network, no credentials. Ships as a Rust CLI,
 Rust library, Node WASM package, Python package, Go module, and JVM (Kotlin/Java) library over one shared core.
 
-Deeper architecture notes live in `.kiro/steering/` (`product.md`, `structure.md`, `tech.md`)
+Deeper architecture notes live in `.kiro/steering/` (`product.md`, `structure.md`, `tech.md`, `private-context.md`,
+and `version-control.md`).
+
+## Confidential agent context and skills
+
+Before starting any task, if `.kiro/steering/private/` exists, use a direct filesystem directory read that does not
+apply `.gitignore` to recursively discover and read every readable regular file in it before planning or making changes.
+Do not rely on a gitignore-aware glob or search as the sole discovery mechanism, and do not follow symlinks that resolve
+outside `.kiro/steering/private/`. Use applicable content as supplemental agent context, and follow any task-relevant
+skill instructions found there, resolving conflicts according to the normal instruction priority. Treat both filenames
+and contents as confidential: do not quote, summarize, or copy them into tracked files, logs, commit messages, review
+descriptions, or responses unless the user explicitly asks for that specific disclosure. The directory and its contents
+must remain untracked and must never be added to version control. If the directory is absent or empty, continue normally.
+
+## Version control
+
+Never run `git add` or `git commit` in this repository for any path. Do not stage or commit changes through another
+tool. Leave all changes unstaged for the user to review and manage.
 
 ## Commands and validation selection
 
@@ -20,16 +37,16 @@ cargo build                                   # whole workspace (debug)
 cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate (add --release for optimized)
 
 # Core Rust tests - only when they cover the changed behavior
-cargo test -p cel-engine <name>               # single crate / filtered test - preferred while iterating
+cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test - preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
-# CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
+# CI runs coverage, not plain test: cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
 
 # Required after every Rust source change
 cargo fmt --all
 cargo clippy --locked --all-targets --workspace -- -D warnings
 
 # Run the CLI
-cargo run -p cfn-validate -- <template|dir> --engine rego|cel --format standard|detailed --level fatal|error|warn|info|debug
+cargo run -p cfn-validate -- <template|dir> --engine rego|cel|composite --format standard|detailed --level fatal|error|warn|info|debug
 cargo run -p cfn-validate -- --list-rules
 ```
 
@@ -44,18 +61,18 @@ Validation depends on the changed surface:
 - Non-Rust-only changes such as documentation, GitHub workflows, scripts, or binding-language code: do not run Cargo
   format, clippy, or tests unless the file is a Cargo/build input and the command actually exercises it. Use the
   artifact-specific syntax checker, build, test runner, or dry-run instead.
-- Rule, schema-data, or template changes still require the focused validator, engine-parity, corpus, and golden-file
+- Rule, schema-data, or template changes still require the focused validator, engine-parity, corpus, and snapshot
   checks that exercise the changed diagnostics; they do not justify unrelated Cargo tests.
 
 ### Debugging tools (use these, not `println!`)
 
 ```bash
 # Dump the full SemanticModel - ALWAYS start here. If the model is wrong, fix template-model.
-cargo run -p template-model --example inspect -- <template>
+cargo run -p cloudformation-validate-template-model --example inspect -- <template>
 
 # Accuracy vs cfn-lint. Requires a local cfn-lint checkout - first check whether cfn-lint is available on the
 # machine (`cfn-lint --version`), then ask the user for the checkout path; never assume or hardcode a location.
-CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel
+CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel|composite
 ```
 
 Scratch files, debug output, and tool artifacts go in `./tmp/` at the project root - never scatter them in
@@ -63,8 +80,9 @@ the tree.
 
 ## Architecture (the non-obvious rules)
 
-- **The two engines must stay at parity, but parity must preserve correctness.** `EngineType::Rego` (default) and
-  `EngineType::Cel` must produce identical diagnostics (ID, severity, location, message) for any template - divergence
+- **The two built-in rule engines must stay at parity, but parity must preserve correctness.** `EngineType::Rego` and
+  `EngineType::Cel` are independent implementations of the built-in rules and must produce identical diagnostics
+  (ID, severity, location, message) for any template - divergence
   is a bug. A mismatch is a signal to investigate, not permission to make the outputs agree mechanically. Establish
   the correct behavior from CloudFormation's contracts and semantics first, preserve an engine that already implements
   that behavior, and fix the incorrect engine or the shared lower-level implementation. Never regress the correct
@@ -72,7 +90,12 @@ the tree.
   first-principles evidence establishes that it is a false positive, with focused regression coverage for the corrected
   behavior. Every rule exists in both engines or in neither; add/fix it in both in the same change. Rego rules are
   hand-written policies in `rego-engine/handwritten/rego/`; CEL rules are native Rust in `cel-engine/src/rules/` (the
-  CEL interpreter is only for user-supplied custom rules).
+  CEL interpreter is only for user-supplied custom rules). `EngineType::Composite` is the default `--engine` selector:
+  it evaluates the built-in rules with CEL (plus custom CEL and Guard rules) and layers an optional external-only Rego
+  engine (custom Rego) on top, built only when Rego rules are supplied. It is additive, not a third implementation of the
+  built-in rules - with no custom rules `rego`, `cel`, and `composite` all produce the same diagnostics, so a
+  built-in-rule mismatch is still diagnosed and fixed in the Rego or CEL implementation. The CLI exposes all three as
+  `--engine rego|cel|composite`.
 - **`rules/src/registry.rs` (`RULE_REGISTRY`) is the single source of truth** for every rule's ID, severity,
   category, and description. A rule that evaluates but isn't registered is a bug. IDs match `[FEWID]\d{4}`
   (F=Fatal, E=Error, W=Warn, I=Info, D=Debug; enum variant `Warn`, serialized `WARN`).
@@ -83,8 +106,10 @@ the tree.
 - **Generated binding artifacts are workflow-owned.** The `build-artifacts` workflow commits them. Local generation
   is permitted only when needed to test a hand-maintained change, and every generated artifact must be reverted after
   the affected binding tests pass.
-- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`, translated
-  to engine-agnostic IR by `guard-translator`). See `src/CUSTOM_RULES.md`.
+- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`). Guard rules are
+  evaluated by the Guard evaluator itself (`guard-translator` wraps `cloudformation-guard-lang`) against the authored
+  template, through one `GuardRuleSet` in `validation-engine` that every engine calls - never translated into Rego or
+  CEL. See `src/CUSTOM_RULES.md`.
 
 ## Correctness rules - non-negotiable
 
@@ -148,8 +173,9 @@ workflow-only edits.
 3. Check the SemanticModel with `inspect`; fix `template-model` if the model is wrong.
 4. Compare against cfn-lint for E/W/I or cfn-guard for Guard. Investigate a cfn-lint mismatch using the independent
    evidence rather than assuming cfn-lint is correct. Validate Fatal behavior against the compiled schemas.
-5. Run `cfn-validate` with both engines, then the corpus; preserve parity and zero false positives. Regenerate the
-   golden file if diagnostics legitimately changed.
+5. Run `cfn-validate` with all three engines (`rego`, `cel`, `composite`), then the corpus; all three outputs must
+   agree and stay free of false positives, and any built-in-rule mismatch is diagnosed in the Rego or CEL
+   implementation. Regenerate the snapshot files if diagnostics legitimately changed.
 6. For core Rust changes, run only Cargo tests that cover the change; use the workspace suite once only when its broad
    coverage is relevant. For every Rust change, run format and clippy. For binding changes, run the affected packaged
    binding build/tests instead of Cargo tests and revert any generated binding artifacts afterward.

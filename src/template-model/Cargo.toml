@@ -1,7 +1,9 @@
 [package]
-name = "template-model"
+name = "cloudformation-validate-template-model"
+publish = true
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 description.workspace = true
 repository.workspace = true
@@ -27,6 +29,7 @@ regex = "1"
 fancy-regex = "0.18"
 yaml-rust2 = "0.11.0"
 base64 = "0.22"
+ipnetwork = "0.21.1"
 log = "0.4"
 web-time = "1"
 tsify = { version = "0.5", optional = true, features = ["js"] }

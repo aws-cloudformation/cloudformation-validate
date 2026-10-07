@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const __wbg_wasmcelengine_free: (a: number, b: number) => void;
+export const __wbg_wasmcompositeengine_free: (a: number, b: number) => void;
 export const __wbg_wasmregoengine_free: (a: number, b: number) => void;
 export const __wbg_wasmschemavalidator_free: (a: number, b: number) => void;
 export const __wbg_wasmsemanticmodel_free: (a: number, b: number) => void;
@@ -10,7 +11,8 @@ export const version: () => [number, number];
 export const wasmcelengine_engineName: (a: number) => [number, number];
 export const wasmcelengine_listRules: (a: number) => [number, number, number];
 export const wasmcelengine_new: (a: any) => [number, number, number];
-export const wasmcelengine_validateDetailed: (
+export const wasmcelengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
+export const wasmcelengine_validateTemplate: (
     a: number,
     b: number,
     c: number,
@@ -18,7 +20,11 @@ export const wasmcelengine_validateDetailed: (
     e: number,
     f: number,
 ) => [number, number, number];
-export const wasmcelengine_validateStandard: (
+export const wasmcompositeengine_engineName: (a: number) => [number, number];
+export const wasmcompositeengine_listRules: (a: number) => [number, number, number];
+export const wasmcompositeengine_new: (a: any) => [number, number, number];
+export const wasmcompositeengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
+export const wasmcompositeengine_validateTemplate: (
     a: number,
     b: number,
     c: number,
@@ -29,15 +35,8 @@ export const wasmcelengine_validateStandard: (
 export const wasmregoengine_engineName: (a: number) => [number, number];
 export const wasmregoengine_listRules: (a: number) => [number, number, number];
 export const wasmregoengine_new: (a: any) => [number, number, number];
-export const wasmregoengine_validateDetailed: (
-    a: number,
-    b: number,
-    c: number,
-    d: any,
-    e: number,
-    f: number,
-) => [number, number, number];
-export const wasmregoengine_validateStandard: (
+export const wasmregoengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
+export const wasmregoengine_validateTemplate: (
     a: number,
     b: number,
     c: number,

@@ -143,8 +143,8 @@ pub(crate) struct Resolver<'a> {
     pub(crate) extra_condition_refs: HashMap<String, Vec<String>>,
     pub(crate) inline_conditions: Vec<(String, crate::conditions::ConditionExpr)>,
     resolution_source_map: HashMap<(String, String), String>, // (resource_id, property_path) → source description
-    /// (resource_id, property_path) → the authored expression behind a value that
-    /// stayed opaque, used to establish whether two such values are one value.
+    /// (resource_id, property_path) → authored expression retained for opaque
+    /// value identity or for inspecting an intrinsic that resolved concretely.
     value_node_map: HashMap<(String, String), NodeRef>,
     parameter_overrides: &'a HashMap<String, String>,
     pseudo_parameter_overrides: &'a crate::model::PseudoParameterOverrides,
@@ -153,6 +153,10 @@ pub(crate) struct Resolver<'a> {
     condition_stack: Vec<(String, bool)>, // (condition_name, is_true_branch)
     current_path: String,
     depth: u32,
+    /// Whether the resolver exceeded its recursion depth limit during resolution.
+    pub(crate) depth_exceeded: bool,
+    /// Whether enum variant expansion exceeded its limit during resolution.
+    pub(crate) enum_expansion_exceeded: bool,
     local_bindings: HashMap<String, ResolvedValue>,
     /// Per-resource `DefinitionSubstitutions` keys: a `${var}` placeholder in a
     /// Step Functions definition is legitimate exactly when `var` is one of the
@@ -198,6 +202,8 @@ impl<'a> Resolver<'a> {
             condition_stack: Vec::new(),
             current_path: String::new(),
             depth: 0,
+            depth_exceeded: false,
+            enum_expansion_exceeded: false,
             local_bindings: HashMap::new(),
             def_subs_resources: HashMap::new(),
         }
@@ -218,17 +224,19 @@ impl<'a> Resolver<'a> {
         }
         if self.depth >= MAX_RESOLVE_DEPTH {
             warn!("Recursion depth limit ({}) exceeded at path '{}'", MAX_RESOLVE_DEPTH, self.current_path);
+            self.depth_exceeded = true;
             return ResolvedValue::Dynamic { reason: "recursion limit exceeded".into() };
         }
         self.depth += 1;
         let result = self.resolve_node_inner(node_ref);
         self.depth -= 1;
         let result = opaque_if_dynamic_reference(result);
-        // A value that stays opaque carries no contents to compare, so the
-        // expression that produced it is kept: it is the only thing that can
-        // later show whether two such values are the same value. A value that
-        // resolved to contents needs no such record.
-        if !matches!(result, ResolvedValue::Concrete { value: _ })
+        // Opaque values retain their authored expression because it is the only
+        // way to establish value identity. Intrinsics also retain their node when
+        // they resolve concretely so validators can inspect authored structure
+        // rather than mistaking a parameter default for the deploy-time value.
+        let authored_intrinsic = matches!(self.arena.node(node_ref), Node::Intrinsic(_));
+        if (!matches!(result, ResolvedValue::Concrete { value: _ }) || authored_intrinsic)
             && let Some(ref resource_id) = self.current_resource
         {
             self.value_node_map.insert((resource_id.clone(), self.current_path.clone()), node_ref);
@@ -337,7 +345,12 @@ impl<'a> Resolver<'a> {
         match intrinsic {
             IntrinsicFn::Ref(target) => self.resolve_ref(target, span),
             IntrinsicFn::GetAtt(resource, attr) => {
-                self.record_edge(resource, RefKind::GetAtt { attr: attr.clone() }, span);
+                if self.is_output_context() {
+                    let path = format!("{}.Fn::GetAtt", self.current_path);
+                    self.record_edge_at_path(resource, RefKind::GetAtt { attr: attr.clone() }, span, path);
+                } else {
+                    self.record_edge(resource, RefKind::GetAtt { attr: attr.clone() }, span);
+                }
                 ResolvedValue::Reference { target: resource.clone(), kind: RefKind::GetAtt { attr: attr.clone() } }
             }
             IntrinsicFn::If(cond, t_ref, f_ref) => {
@@ -444,7 +457,11 @@ impl<'a> Resolver<'a> {
                                         | ResolvedValue::Conditional { condition: _, if_true: _, if_false: _ }
                                 )
                             }) {
-                                return join_with_enum_list(ds, items);
+                                let (result, was_curtailed) = join_with_enum_list(ds, items);
+                                if was_curtailed {
+                                    self.enum_expansion_exceeded = true;
+                                }
+                                return result;
                             }
                             // Partial join: substitute concrete items, placeholder for others
                             let parts: Vec<String> = items
@@ -624,7 +641,15 @@ impl<'a> Resolver<'a> {
                 };
                 ResolvedValue::Dynamic { reason }
             }
-            IntrinsicFn::Transform(_, _) => ResolvedValue::Dynamic { reason: "macro output".into() },
+            IntrinsicFn::Transform(_, parameters) => {
+                let saved = self.current_path.clone();
+                for (key, argument) in parameters {
+                    self.current_path = format!("{}.Fn::Transform.Parameters.{}", saved, key);
+                    self.resolve_node(*argument);
+                }
+                self.current_path = saved;
+                ResolvedValue::Dynamic { reason: "macro output".into() }
+            }
             IntrinsicFn::GetAZs(region_ref) => {
                 if let Some(ref rid) = self.current_resource {
                     self.resolution_source_map
@@ -902,13 +927,13 @@ impl<'a> Resolver<'a> {
         }
 
         if PSEUDO_PARAMETERS.contains(&target) {
-            if target == PSEUDO_NO_VALUE {
-                return Some(ResolvedValue::Concrete { value: serde_json::Value::Null.into() });
-            }
             if let Some(ref rid) = self.current_resource {
                 self.resolution_source_map
                     .entry((rid.clone(), self.current_path.clone()))
                     .or_insert_with(|| format!("Intrinsic/{}", TAG_REF));
+            }
+            if target == PSEUDO_NO_VALUE {
+                return Some(ResolvedValue::Concrete { value: serde_json::Value::Null.into() });
             }
             if let Some(val) = self.pseudo_parameter_overrides.get(target) {
                 return Some(ResolvedValue::Concrete { value: serde_json::Value::String(val).into() });
@@ -1297,7 +1322,10 @@ impl<'a> Resolver<'a> {
             if i + 1 < bytes.len() && bytes[i] == b'$' && bytes[i + 1] == b'{' {
                 let start = i + 2;
                 if let Some(end) = template[start..].find('}') {
-                    vars.push(template[start..start + end].trim().to_string());
+                    let variable = template[start..start + end].trim();
+                    if !variable.starts_with('!') {
+                        vars.push(variable.to_string());
+                    }
                     i = start + end + 1;
                 } else {
                     i += 1;
@@ -1308,6 +1336,7 @@ impl<'a> Resolver<'a> {
         }
 
         let mut sub_map: HashMap<String, ResolvedValue> = HashMap::new();
+        let invalid_refs_before = self.invalid_ref_count();
         if let Some(explicit_subs) = subs {
             for (k, v) in explicit_subs {
                 sub_map.insert(k.clone(), self.resolve_node(*v));
@@ -1323,6 +1352,7 @@ impl<'a> Resolver<'a> {
                 }
             }
         }
+        let sub_map_is_valid = self.invalid_ref_count() == invalid_refs_before;
 
         for var in &vars {
             if sub_map.contains_key(var) {
@@ -1333,7 +1363,12 @@ impl<'a> Resolver<'a> {
                 let resource = &var[..dot_pos];
                 let attr = &var[dot_pos + 1..];
                 if self.resource_ids.contains(resource) {
-                    self.record_edge(resource, RefKind::GetAtt { attr: attr.to_string() }, span);
+                    if self.is_output_context() {
+                        let path = format!("{}.Fn::Sub", self.current_path);
+                        self.record_edge_at_path(resource, RefKind::GetAtt { attr: attr.to_string() }, span, path);
+                    } else {
+                        self.record_edge(resource, RefKind::GetAtt { attr: attr.to_string() }, span);
+                    }
                     sub_map.insert(
                         var.clone(),
                         ResolvedValue::Reference {
@@ -1351,9 +1386,20 @@ impl<'a> Resolver<'a> {
             // `${Resource}` substitution as a `Ref`, so recording an extra `Sub`
             // edge would double-count the dependency (surfacing a spurious second
             // dependency finding under a `Sub` label that misrepresents the edge).
-            let resolved = self
-                .lookup_ref(var, span)
-                .unwrap_or_else(|| ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) });
+            let resolved = match self.lookup_ref(var, span) {
+                Some(value) => value,
+                None => {
+                    if sub_map_is_valid {
+                        let path = if self.is_output_context() {
+                            format!("{}.Fn::Sub", self.current_path)
+                        } else {
+                            self.current_path.clone()
+                        };
+                        self.record_edge_at_path(var, RefKind::Sub { var: var.clone() }, span, path);
+                    }
+                    ResolvedValue::Dynamic { reason: format!("unknown sub variable: {}", var) }
+                }
+            };
             sub_map.insert(var.clone(), resolved);
         }
 
@@ -1369,9 +1415,10 @@ impl<'a> Resolver<'a> {
 
         if vars.is_empty()
             && subs.is_none()
+            && !template.contains("${!")
             && let Some(ref rid) = self.current_resource
         {
-            self.redundant_subs.entry(rid.clone()).or_default().push(self.current_path.clone());
+            self.redundant_subs.entry(rid.clone()).or_default().push(format!("{}.Fn::Sub", self.current_path));
         }
 
         if template.contains("arn:aws:")
@@ -1386,7 +1433,7 @@ impl<'a> Resolver<'a> {
         }
 
         let all_concrete = sub_map.values().all(|v| matches!(v, ResolvedValue::Concrete { value: _ }));
-        if all_concrete && !sub_map.is_empty() {
+        if all_concrete {
             let mut result = template.to_string();
             for (var, val) in &sub_map {
                 if let ResolvedValue::Concrete { value: v } = val {
@@ -1394,7 +1441,9 @@ impl<'a> Resolver<'a> {
                     result = result.replace(&format!("${{{}}}", var), &replacement);
                 }
             }
-            return ResolvedValue::Concrete { value: serde_json::Value::String(result).into() };
+            return ResolvedValue::Concrete {
+                value: serde_json::Value::String(crate::transform_expansion::unescape_sub_literals(&result)).into(),
+            };
         }
 
         let has_enum = sub_map.values().any(|v| matches!(v, ResolvedValue::Enum { variants: _ }));
@@ -1444,10 +1493,15 @@ impl<'a> Resolver<'a> {
                             }
                         }
                         // If unresolved vars remain, produce Dynamic with partial info
-                        if result.contains("${") {
+                        if crate::transform_expansion::contains_sub_variable(&result) {
                             ResolvedValue::Dynamic { reason: format!("{}{}", SUB_PARTIAL_PREFIX, result) }
                         } else {
-                            ResolvedValue::Concrete { value: serde_json::Value::String(result).into() }
+                            ResolvedValue::Concrete {
+                                value: serde_json::Value::String(crate::transform_expansion::unescape_sub_literals(
+                                    &result,
+                                ))
+                                .into(),
+                            }
                         }
                     })
                     .collect();
@@ -1483,7 +1537,19 @@ impl<'a> Resolver<'a> {
         }
     }
 
+    fn invalid_ref_count(&self) -> usize {
+        self.invalid_refs.values().map(Vec::len).sum()
+    }
+
     fn record_edge(&mut self, target: &str, kind: RefKind, span: &SourceSpan) {
+        self.record_edge_at_path(target, kind, span, self.current_path.clone());
+    }
+
+    /// Records a reference edge with an explicit source path. Use this when the
+    /// edge path must include a terminal intrinsic segment that differs from the
+    /// resolver's walking path (e.g. output edges that must carry the intrinsic
+    /// function name at the end for precise diagnostic locations).
+    fn record_edge_at_path(&mut self, target: &str, kind: RefKind, span: &SourceSpan, path: String) {
         if let Some(ref resource) = self.current_resource.clone() {
             let condition_context = if self.condition_stack.is_empty() {
                 None
@@ -1494,13 +1560,18 @@ impl<'a> Resolver<'a> {
             };
             self.edges.push(ResolverEdge {
                 source_resource: resource.clone(),
-                source_path: self.current_path.clone(),
+                source_path: path,
                 target: target.to_string(),
                 kind,
                 span: *span,
                 condition_context,
             });
         }
+    }
+
+    /// Whether the currently resolving resource is an output pseudo-resource.
+    fn is_output_context(&self) -> bool {
+        self.current_resource.as_ref().is_some_and(|r| r.starts_with(OUTPUT_PSEUDO_RESOURCE_PREFIX))
     }
 
     pub fn set_current_resource(&mut self, resource_id: &str) {
@@ -1602,9 +1673,12 @@ fn join_resolved(delim: &str, values: &ResolvedValue) -> ResolvedValue {
     }
 }
 
-fn join_with_enum_list(delim: &str, items: &[ResolvedValue]) -> ResolvedValue {
-    // Build cartesian product of all items, expanding Enum variants
+pub(crate) fn join_with_enum_list(delim: &str, items: &[ResolvedValue]) -> (ResolvedValue, bool) {
+    // Build cartesian product of all items, expanding Enum variants.
+    // Returns (result, curtailed) where curtailed is true only if a combination
+    // that would have been the (MAX_ENUM_EXPANSION+1)th was attempted.
     let mut combos: Vec<Vec<String>> = vec![vec![]];
+    let mut curtailed = false;
     for item in items {
         match item {
             ResolvedValue::Concrete { value: v } => {
@@ -1625,35 +1699,40 @@ fn join_with_enum_list(delim: &str, items: &[ResolvedValue]) -> ResolvedValue {
                     })
                     .collect();
                 if strs.is_empty() {
-                    return ResolvedValue::Dynamic { reason: "Join with non-concrete enum".into() };
+                    return (ResolvedValue::Dynamic { reason: "Join with non-concrete enum".into() }, false);
                 }
                 let mut new_combos = Vec::new();
                 for combo in &combos {
                     for s in &strs {
+                        if new_combos.len() == MAX_ENUM_EXPANSION {
+                            curtailed = true;
+                            break;
+                        }
                         let mut c = combo.clone();
                         c.push(s.clone());
                         new_combos.push(c);
-                        if new_combos.len() > MAX_ENUM_EXPANSION {
-                            break;
-                        }
                     }
-                    if new_combos.len() > MAX_ENUM_EXPANSION {
+                    if curtailed {
                         break;
                     }
                 }
                 combos = new_combos;
             }
             _ => {
-                return ResolvedValue::Dynamic { reason: "Join with unresolvable list element".into() };
+                return (ResolvedValue::Dynamic { reason: "Join with unresolvable list element".into() }, false);
             }
         }
     }
     let results: Vec<ResolvedValue> = combos
         .into_iter()
-        .take(MAX_ENUM_EXPANSION)
         .map(|parts| ResolvedValue::Concrete { value: serde_json::Value::String(parts.join(delim)).into() })
         .collect();
-    if results.len() == 1 { results.into_iter().next().unwrap() } else { ResolvedValue::Enum { variants: results } }
+    let result = if results.len() == 1 {
+        results.into_iter().next().unwrap()
+    } else {
+        ResolvedValue::Enum { variants: results }
+    };
+    (result, curtailed)
 }
 
 fn select_resolved(idx: &serde_json::Value, list: &ResolvedValue) -> ResolvedValue {
@@ -2033,6 +2112,8 @@ pub fn extract_parameters(ir: &TemplateIR) -> (HashMap<String, ParameterInfo>, V
                         .filter_map(|r| match ir.arena.node(*r) {
                             Node::String(s) => Some(s.clone()),
                             Node::Int(i) => Some(i.to_string()),
+                            Node::Float(f) => Some(f.to_string()),
+                            Node::Bool(b) => Some(b.to_string()),
                             _ => None,
                         })
                         .collect()
@@ -2756,6 +2837,7 @@ mod tests {
             Some(ResolvedValue::Concrete { value: v }) => assert!(v.is_null()),
             other => panic!("Expected Concrete(null), got {:?}", other),
         }
+        assert!(model.is_from_intrinsic("R", "Properties.V"));
     }
 
     #[test]
@@ -3270,5 +3352,94 @@ mod tests {
             Some(ResolvedValue::Dynamic { .. }) => {}
             other => panic!("Expected Dynamic, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn output_getatt_edge_carries_terminal_intrinsic_path() {
+        // Output edges for explicit GetAtt must end with `.Fn::GetAtt` so
+        // diagnostics point at the intrinsic, not the parent value.
+        let input = r#"{
+            "Resources":{"R":{"Type":"T","Properties":{}}},
+            "Outputs":{
+                "DottedString":{"Value":{"Fn::GetAtt":["R","Arn"]}},
+                "ListForm":{"Value":{"Fn::GetAtt":["R","Arn"]}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model.graph.edges.iter().filter(|e| e.source_resource.starts_with("__output__")).collect();
+        assert_eq!(edges.len(), 2);
+        for edge in &edges {
+            assert!(
+                edge.source_path.ends_with(".Fn::GetAtt"),
+                "output GetAtt edge path should end with .Fn::GetAtt, got: {}",
+                edge.source_path,
+            );
+        }
+    }
+
+    #[test]
+    fn output_sub_implicit_getatt_edge_carries_fn_sub_path() {
+        // Implicit GetAtt inside Fn::Sub in an output must end with `.Fn::Sub`.
+        let input = r#"{
+            "Resources":{"R":{"Type":"T","Properties":{}}},
+            "Outputs":{
+                "SubOut":{"Value":{"Fn::Sub":"${R.Arn}"}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model
+            .graph
+            .edges
+            .iter()
+            .filter(|e| e.source_resource.starts_with("__output__"))
+            .filter(|e| matches!(&e.kind, RefKind::GetAtt { .. }))
+            .collect();
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].source_path, "Outputs/SubOut/Value.Fn::Sub");
+    }
+
+    #[test]
+    fn output_join_nested_getatt_edge_path() {
+        // GetAtt nested inside Fn::Join in an output carries the full traversal
+        // path ending with the terminal `.Fn::GetAtt`.
+        let input = r#"{
+            "Resources":{"R":{"Type":"T","Properties":{}}},
+            "Outputs":{
+                "JoinOut":{"Value":{"Fn::Join":["",["ignored",{"Fn::GetAtt":["R","Arn"]}]]}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model
+            .graph
+            .edges
+            .iter()
+            .filter(|e| e.source_resource == "__output__JoinOut")
+            .filter(|e| matches!(&e.kind, RefKind::GetAtt { .. }))
+            .collect();
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].source_path, "Outputs/JoinOut/Value.Fn::Join.1.1.Fn::GetAtt");
+    }
+
+    #[test]
+    fn resource_getatt_edge_path_unchanged() {
+        // Resource (non-output) GetAtt edges must NOT carry the terminal
+        // intrinsic segment, preserving existing behavior.
+        let input = r#"{
+            "Resources":{
+                "R":{"Type":"T","Properties":{"V":{"Fn::GetAtt":["Other","Arn"]}}},
+                "Other":{"Type":"T2","Properties":{}}
+            }
+        }"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).unwrap();
+        let edges: Vec<_> = model
+            .graph
+            .edges
+            .iter()
+            .filter(|e| e.source_resource == "R")
+            .filter(|e| matches!(&e.kind, RefKind::GetAtt { .. }))
+            .collect();
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].source_path, "Properties.V");
+        assert!(!edges[0].source_path.contains("Fn::GetAtt"));
     }
 }

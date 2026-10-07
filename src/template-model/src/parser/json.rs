@@ -735,6 +735,24 @@ mod tests {
         assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
     }
 
+    /// The same unknown `Fn::`-prefixed key repeated across a template is served
+    /// from a per-thread suggestion cache after the first lookup. A key far from
+    /// every function (`Fn::AccountIdFromAlias`) must stay data on every repeat -
+    /// producing no W1103 - while a genuine near-miss typo still warns exactly
+    /// once, proving the cache neither invents nor suppresses suggestions.
+    #[test]
+    fn repeated_unknown_fn_keys_are_consistent_with_a_single_typo() {
+        let input = r#"{"Resources":{
+            "A":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::AccountIdFromAlias":"one"}}},
+            "B":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":{"Fn::AccountIdFromAlias":"two"}}},
+            "C":{"Type":"AWS::SNS::Topic","Properties":{"DisplayName":{"Fn::GetAttt":["A","Arn"]}}}
+        }}"#;
+        let ir = parse_json(input.as_bytes()).unwrap();
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
+    }
+
     #[test]
     fn fn_foreach_iterator_key_does_not_emit_w1103() {
         let input =

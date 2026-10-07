@@ -9,6 +9,7 @@ violation contains make_diag_full("W2010", "WARN", name, edge.sourcePath,
     sprintf("Don't use 'NoEcho' parameter '%s' in resource metadata", [target]),
     "Move the parameter reference out of Metadata or remove NoEcho",
     "") if {
+    cfn_rule_active("W2010")
     some name, res in input.resources
     some edge in res.outgoingRefs
     edge.kind == "Ref"

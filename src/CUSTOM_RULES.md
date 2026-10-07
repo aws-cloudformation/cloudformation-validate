@@ -1,7 +1,9 @@
 # Custom Rules Reference
 
-Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run only in `CelEngine`, Rego rules
-run only in `RegoEngine`, and Guard rules are translated for either engine.
+Custom rules can be written as CEL JSON, Rego, or CloudFormation Guard. CEL rules run in `CelEngine`, Rego rules
+run in `RegoEngine`, and Guard rules run in either engine through one shared Guard evaluator. The composite engine
+accepts all three: it layers custom CEL rules and Guard rules on the built-in rules through the CEL engine that owns
+the built-ins, and layers custom Rego rules through a separate external-only Rego engine.
 
 ## Rule IDs and Severity
 
@@ -209,7 +211,9 @@ violation contains v if {
 
 Most resource paths passed to resolution and location functions start with `Properties.`, for example
 `"Properties.BucketName"`. The exceptions are explicitly property-name APIs: `has_property(name, "BucketName")` and
-the field list passed to `properties_scenarios` use bare top-level property names.
+the field list passed to `properties_scenarios` use bare top-level property names. `CompositeEngine` constructs Rego in
+external-only mode but still registers every builtin documented below and loads the embedded data tables, so the same
+custom Rego API is available there; only the product's handwritten built-in policy packages are omitted.
 
 The engine disables strict builtin errors. A builtin invocation with an invalid argument type or a failed parse is
 therefore normally undefined rather than an engine-terminating error. Functions that deliberately use `false`, `null`,
@@ -253,15 +257,17 @@ v := {
 
 | Builtin                           | Signature                                                      | Behavior                                                                                                                                                   |
 |-----------------------------------|----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `resolve`                         | `(resource_id, path) -> value`                                 | Deep-resolves a property. Chooses the first enum value and true conditional branch; references become target IDs; unresolved dynamic values are undefined. |
+| `resolve`                         | `(resource_id, path) -> value`                                 | Deep-resolves a property. Chooses the first enum value and true conditional branch; a `Ref`/`Fn::GetAtt` to a template resource becomes that resource's logical ID string (also inside a resolved list); unresolved dynamic values are undefined. A rule that validates literal content should exclude a logical ID with `not input.resources[value]`, or read the reference explicitly with `follow_ref`/`authored_form`. |
 | `resolve_preserving_conditionals` | `(resource_id, path) -> value`                                 | Resolves while retaining each conditional as `{"Fn::If": [condition, true_value, false_value]}`.                                                           |
-| `resolve_all`                     | `(resource_id, path) -> [value]`                               | Returns all concrete enum and conditional outcomes. References and dynamic values contribute no values.                                                    |
+| `resolve_all`                     | `(resource_id, path) -> [value]`                               | Returns all concrete enum and conditional outcomes. A property that is itself a reference or dynamic value contributes no values; a reference inside a resolved list is rendered as in `resolve`.                     |
 | `resolve_scenarios`               | `(resource_id, path) -> [{value, conditions, path?}]`          | Returns values with their condition assignments. A `.{}.` path segment expands array indices and adds the concrete `path`.                                 |
 | `properties_scenarios`            | `(resource_id, [property_name]) -> [{properties, conditions}]` | Returns satisfiable property scenarios projected to the requested top-level fields; null fields are omitted.                                               |
 | `is_dynamic`                      | `(resource_id, path) -> bool`                                  | Whether the value or a nested value contains a dynamic value or unresolved reference; missing paths return `false`.                                        |
 | `is_from_parameter`               | `(resource_id, path) -> bool`                                  | Whether resolution originated from a parameter.                                                                                                            |
 | `is_from_intrinsic`               | `(resource_id, path) -> bool`                                  | Whether resolution originated from an intrinsic function.                                                                                                  |
 | `follow_ref`                      | `(resource_id, path) -> target_id`                             | Follows a `Ref`/`Fn::GetAtt` to its target; undefined when there is no reference.                                                                          |
+| `value_identity`                  | `(resource_id, path) -> string`                                | A key two values share only when they are provably the same value - by content when concrete, by expression when opaque; undefined when nothing settles it. |
+| `referenced_resource_or_value_identity` | `(resource_id, path) -> string`                          | Like `value_identity`, but a `Ref`/`Fn::GetAtt` to a template resource is keyed by that resource, so `!Ref Vpc` and `!GetAtt Vpc.VpcId` are one key.       |
 | `authored_form`                   | `(resource_id, path) -> value`                                 | Reconstructs a literal, `{"Ref": target}`, or `{"Fn::GetAtt": [target, attr]}`; undefined for absent or opaque functions.                                  |
 | `resolve_type`                    | `(resource_id, path) -> string`                                | Returns `string`, `number`, `boolean`, `array`, `object`, `null`, `conditional`, `dynamic`, `reference`, or `enum`.                                        |
 | `flatten_list`                    | `(resource_id, path) -> [{value, index}]`                      | Flattens list, enum, and conditional alternatives into indexed items; a scalar becomes one item and a missing path returns `[]`.                           |
@@ -292,7 +298,7 @@ condition assignment and should be emitted with `make_diag_conditional`.
 | `resource_condition`      | `(resource_id) -> string or null`                | Resource's gating condition, or `null` when unconditional.                                                                          |
 | `is_satisfiable`          | `({condition_name: bool}) -> bool`               | Whether the condition assignment is satisfiable; an empty assignment returns `true`.                                                |
 | `unreachable_if_branches` | `(resource_id) -> [{resourceId, path, message}]` | Finds immediate `Fn::If` branches unreachable under surrounding conditions. `__output__<name>` addresses an output.                 |
-| `has_property`            | `(resource_id, property_name) -> bool`           | Whether the resource has the named top-level property. Use `"BucketName"`, not `"Properties.BucketName"`.                           |
+| `has_property`            | `(resource_id, property_name) -> bool`           | Whether the resource authors the named property, whatever its value: a `Ref`, `Fn::GetAtt`, or `Fn::ImportValue` counts as present. Use `"BucketName"`, not `"Properties.BucketName"`. |
 | `property_can_be_absent`  | `(resource_id, path) -> bool`                    | Whether the property is missing or can resolve to null/`AWS::NoValue` in a scenario.                                                |
 
 ### Parameters and Template Metadata
@@ -310,9 +316,9 @@ condition assignment and should be emitted with `make_diag_conditional`.
 |--------------------------------|--------------------------------------------------------------|-----------------------------------------------------------------------------------------|
 | `schema_properties`            | `(resource_type) -> [string]`                                | Schema-defined property names; unknown types return `[]`.                               |
 | `schema_required`              | `(resource_type) -> [string]`                                | Required property names; unknown types return `[]`.                                     |
-| `schema_type`                  | `(resource_type, property_name) -> string`                   | Schema type, or undefined.                                                              |
-| `schema_enum`                  | `(resource_type, property_name) -> [value]`                  | Allowed enum values; absent enum metadata returns `[]`.                                 |
-| `attribute_type`               | `(resource_type, attribute_name) -> string`                  | Schema metadata type for an attribute, or undefined.                                    |
+| `schema_type`                  | `(resource_type, property_name) -> string`                   | Primary schema type (the first declared type when the schema lists several), or undefined. |
+| `schema_enum`                  | `(resource_type, property_name) -> [value]`                  | Allowed values, including those the service matches case-insensitively; absent enum metadata returns `[]`. |
+| `attribute_type`               | `(resource_type, attribute_name) -> string`                  | Primary schema type for a top-level attribute, or undefined.                            |
 | `getatt_return_type`           | `(resource_type, attribute_name) -> string`                  | Known `Fn::GetAtt` return type; defaults to `string`.                                   |
 | `schema_string_length`         | `(resource_type, property_name) -> {minLength?, maxLength?}` | String length constraints, or undefined when none are known.                            |
 | `schema_requires_unique_items` | `(resource_type, property_name) -> bool`                     | Whether the property schema sets `uniqueItems: true`; missing metadata returns `false`. |
@@ -358,9 +364,11 @@ do not fetch regional data themselves.
 | Builtin                          | Signature                                        | Behavior                                                                                                                 |
 |----------------------------------|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | `hardcoded_azs`                  | `(resource_id, resource_type) -> [{path, zone}]` | Hardcoded Availability Zones found in the resource.                                                                      |
+| `subnets_outside_vpc_findings`   | `() -> [{subnetId, message}]`                    | Subnets whose IPv4 CIDR, in some deployment scenario, lies outside every IPv4 network of their VPC (own `CidrBlock` plus `VPCCidrBlock` attachments); silent when any of those networks is only known at deployment. |
+| `overlapping_subnet_findings`    | `() -> [{subnetId, message, earlierSubnetId, earlierSubnetMessage}]` | Pairs of subnets of provably the same VPC whose IPv4 CIDRs overlap in coexisting deployment scenarios, attributed to the later subnet. |
 | `pipeline_artifacts`             | `(resource_id) -> {issues: [{message}]}`         | Finds duplicate CodePipeline outputs and inputs that do not reference a previously defined output.                       |
 | `pipeline_artifact_count_issues` | `(resource_id) -> {issues: [{message}]}`         | Checks CodePipeline action input/output artifact counts, including conditional branches, against embedded action bounds. |
-| `estimate_string_length`         | `(resource_id, path) -> integer`                 | Estimated resolved length for literals and supported string intrinsics, or undefined.                                    |
+| `estimated_string_length_bounds` | `(resource_id, path) -> {shortest, longest}`     | Shortest and longest resolved length for literals and supported string intrinsics; undefined when the length cannot be pinned for every possibility. |
 
 ### Rego Example
 
@@ -398,47 +406,47 @@ violation contains v if {
 
 ## Guard DSL Rules
 
-[CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) rules are translated
-internally and can run with either engine. The Guard rule name becomes the diagnostic ID. Guard names begin with an
-ASCII letter and continue with letters, digits, or `_`, which is within the custom-ID character set. Every Guard
-finding reports `ERROR`.
+[CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) rules are evaluated by
+the Guard evaluator itself (the `cloudformation-guard-lang` crate that `cfn-guard` is built on), so every engine - Rego,
+CEL, or composite - reports exactly the checks `cfn-guard validate` reports for the same template and rules. The full
+Guard language is supported: type blocks, `when` conditions, `let` assignments and `%variable` queries, filters such
+as `Resources.*[ Type == 'AWS::S3::Bucket' ]`, `[*]` and `some` queries, block clauses, `OR` groups, regex literals,
+named-rule dependencies, parameterized rules, and Guard's built-in functions (`count`, `join`, `regex_replace`, ...).
+A file that does not parse is rejected when the engine is constructed, with the file name in the error.
 
-### Structure
+### What is evaluated
 
-```text
-rule <rule_name> [when <condition>] {
-    <ResourceType> [when <condition>] {
-        <property_check>
-        <<error message>>
-    }
-}
-```
+Guard rules run against the template as you wrote it, with every intrinsic function in its long form (`!Ref X` is
+`{"Ref": "X"}`, `!GetAtt A.B` is `{"Fn::GetAtt": ["A", "B"]}`), which is the view `cfn-guard` has. Intrinsic
+functions are therefore structs, exactly as in `cfn-guard`: `Properties.BucketName == "foo"` fails for
+`BucketName: !Ref Name`, `Properties.BucketName EXISTS` passes for it, and a rule can inspect the intrinsic
+(`Properties.KmsKeyId.Ref EXISTS`). Resolved parameter defaults, mappings, and conditions are not substituted.
 
-Access-check `when` conditions and nested `when` blocks are supported. Parameterized rule definitions and references
-to another named rule, including references inside `when`, are rejected at load time because translated rules must be
-self-contained; inline the referenced checks instead.
+### Findings
 
-### Operators
+Each failed check becomes one diagnostic:
 
-| Operator                                    | Meaning                      |
-|---------------------------------------------|------------------------------|
-| `==`, `!=`                                  | Equality and inequality      |
-| `>`, `>=`, `<`, `<=`                        | Numeric comparison           |
-| `IN`                                        | Value in list                |
-| `EXISTS`, `NOT EXISTS`                      | Property presence or absence |
-| `EMPTY`, `NOT EMPTY`                        | Empty or non-empty value     |
-| `IS_STRING`, `IS_LIST`, `IS_MAP`, `IS_BOOL` | Type checks                  |
-| `IS_INT`, `IS_FLOAT`, `IS_NULL`             | Numeric and null type checks |
-| `NOT`                                       | Negates a supported check    |
+- **Rule ID** - the Guard rule name. Guard names begin with an ASCII letter and continue with letters, digits, or
+  `_`, which is within the custom-ID character set.
+- **Severity** - always `ERROR`; the Guard language has no severity.
+- **Category** - `guard:<file stem>` (`policies/s3-checks.guard` gives `guard:s3_checks`), so a whole file can be
+  excluded with `--exclude-category`.
+- **Message** - the check's `<<custom message>>` when it has one; otherwise `Guard check `<clause>` failed`, with
+  `: property `<path>` is missing` appended when the check failed because the property was absent. An `OR` group
+  yields one diagnostic naming every alternative.
+- **Location** - the template value the check was evaluated against: a resource, the property path (`Properties.Tags.0.Key`),
+  or the deepest node that exists when the property is missing. A finding in another section (for example
+  `Parameters.*.Type == "String"`) is attributed to that parameter, and a failed named-rule dependency has no
+  template location.
 
 ### Example
 
 ```text
-rule s3_encryption {
-    AWS::S3::Bucket {
-        Properties.BucketEncryption EXISTS
-        <<S3 bucket must have encryption configured>>
-    }
+let buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
+
+rule s3_encryption when %buckets !empty {
+    %buckets.Properties.BucketEncryption EXISTS
+    <<S3 bucket must have encryption configured>>
 }
 
 rule s3_versioning {
@@ -447,7 +455,19 @@ rule s3_versioning {
         <<S3 bucket must have versioning enabled>>
     }
 }
+
+rule s3_tags_owned {
+    AWS::S3::Bucket {
+        Properties.Tags[*] {
+            Key == "Owner" OR Key == "Team"
+            <<Every tag key must be Owner or Team>>
+        }
+    }
+}
 ```
+
+`cfn-guard validate -d template.yaml -r rules.guard` reports the same failures for the same input, which makes it the
+reference when a Guard finding looks wrong.
 
 ---
 
@@ -456,6 +476,10 @@ rule s3_versioning {
 |                            | CEL (JSON)                                  | Rego                                         | Guard DSL                     |
 |----------------------------|---------------------------------------------|----------------------------------------------|-------------------------------|
 | **Best for**               | Property checks and data-driven predicates  | Complex resolution and cross-resource logic  | Declarative compliance checks |
-| **Engine**                 | `CelEngine`                                 | `RegoEngine`                                 | Either                        |
-| **Template introspection** | Shared model variables plus CEL functions   | Shared model plus all 67 custom builtins     | Translated property checks    |
-| **Cross-resource checks**  | Via `resources`, `edges`, and other globals | Via `input`, graph builtins, and SAT helpers | No cross-rule references      |
+| **Engine**                 | `CelEngine` or composite                    | `RegoEngine` or composite                    | Either engine, or composite   |
+| **Template introspection** | Shared model variables plus CEL functions   | Shared model plus all 67 custom builtins     | The authored template, as `cfn-guard` sees it |
+| **Cross-resource checks**  | Via `resources`, `edges`, and other globals | Via `input`, graph builtins, and SAT helpers | Guard queries over `Resources.*` |
+
+The composite engine evaluates the built-in rules with CEL and layers custom rules from all three formats on top:
+custom CEL rules and Guard rules run in the same CEL engine that owns the built-ins, while custom Rego rules run in a
+separate external-only Rego engine, constructed only when Rego rules are supplied.

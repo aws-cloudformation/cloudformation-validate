@@ -17,7 +17,7 @@ fn main() {
     let path = match path {
         Some(p) => p.clone(),
         None => {
-            eprintln!("Usage: cargo run -p template-model --example inspect -- <template|dir>");
+            eprintln!("Usage: cargo run -p cloudformation-validate-template-model --example inspect -- <template|dir>");
             eprintln!();
             eprintln!("Inspect a CloudFormation template or all files in a directory (recursive).");
             process::exit(2);

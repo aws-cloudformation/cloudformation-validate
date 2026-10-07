@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Valid lifecycle intrinsic scenarios. CreationPolicy contains nested functions
+  and a root Fn::If, while DeletionPolicy and UpdateReplacePolicy use standard
+  intrinsic functions without a transform and resolve to allowed policy values.
+Parameters:
+  Policy:
+    Type: String
+    AllowedValues: [Retain, Delete]
+  Toggle:
+    Type: String
+    AllowedValues: [enabled, disabled]
+Mappings:
+  Policies:
+    Retain:
+      Deletion: Retain
+      Replacement: Retain
+    Delete:
+      Deletion: Delete
+      Replacement: Delete
+Conditions:
+  Maybe: !Equals [!Ref Toggle, enabled]
+  NotMaybe: !Not [!Condition Maybe]
+  Never: !And [!Condition Maybe, !Condition NotMaybe]
+Resources:
+  CreationPolicyObject:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Select [0, [1, 2]]
+        Timeout: !Sub
+          - 'PT${Minutes}M'
+          - Minutes: 10
+
+  ConditionalCreationPolicy:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If
+      - Maybe
+      - ResourceSignal: {Count: 1}
+      - ResourceSignal: {Count: 2}
+
+  CorrelatedCreationPolicy:
+    Type: AWS::CloudFormation::WaitCondition
+    Condition: Maybe
+    CreationPolicy: !If [Maybe, {ResourceSignal: {Count: 1}}, invalid]
+
+  ImpossibleCreationPolicyBranch:
+    Type: AWS::CloudFormation::WaitCondition
+    CreationPolicy: !If [Never, invalid, {ResourceSignal: {Count: 1}}]
+
+  ConditionalValidPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If [Maybe, Retain, Delete]
+    UpdateReplacePolicy: !If [Maybe, Retain, Delete]
+
+  FindInMapPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !FindInMap [Policies, !Ref Policy, Deletion]
+    UpdateReplacePolicy: !FindInMap [Policies, !Ref Policy, Replacement]
+
+  DynamicRefPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Ref Policy
+    UpdateReplacePolicy: !Ref Policy
+
+  SubPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Sub
+      - '${DeletionPolicyName}'
+      - DeletionPolicyName: Retain
+    UpdateReplacePolicy: !Sub
+      - '${ReplacementPolicyName}'
+      - ReplacementPolicyName: Delete
+
+  SelectPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Select [0, [Retain, Delete]]
+    UpdateReplacePolicy: !Select [1, [Delete, Retain]]
+
+  JoinPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !Join ['t', [Re, ain]]
+    UpdateReplacePolicy: !Join ['t', [Dele, e]]
+
+  CorrelatedConditionalPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Maybe
+    DeletionPolicy: !If [Maybe, Retain, InvalidDeletion]
+    UpdateReplacePolicy: !If [Maybe, Retain, InvalidReplacement]
+
+  ImpossibleBranchPolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    DeletionPolicy: !If [Never, InvalidDeletion, Retain]
+    UpdateReplacePolicy: !If [Never, InvalidReplacement, Retain]
+
+  ImpossibleResourcePolicies:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Condition: Never
+    DeletionPolicy: InvalidDeletion
+    UpdateReplacePolicy: InvalidReplacement

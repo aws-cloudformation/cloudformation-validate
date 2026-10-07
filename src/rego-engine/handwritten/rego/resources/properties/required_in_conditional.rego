@@ -8,6 +8,7 @@ violation contains make_diag_full("E3024", "ERROR", name,
     "'Key' is a required property",
     "Tag Key cannot be null or AWS::NoValue",
     "") if {
+    cfn_rule_active("E3024")
     some name, res in input.resources
     tags := object.get(res.properties, "Tags", null)
     is_array(tags)
@@ -24,6 +25,7 @@ violation contains make_diag_full("E3003", "ERROR", name,
     "'Key' is a required property",
     "Tag Key cannot be null or AWS::NoValue",
     "") if {
+    cfn_rule_active("E3003")
     some name, res in input.resources
     tags := object.get(res.properties, "Tags", null)
     is_array(tags)
@@ -42,6 +44,7 @@ violation contains make_diag_full("E3003", "ERROR", name,
     "'DefaultCacheBehavior' is a required property",
     "Add DefaultCacheBehavior to the Fn::If branch",
     "") if {
+    cfn_rule_active("E3003")
     some name in resources_of_type("AWS::CloudFront::Distribution")
     some scenario in resolve_scenarios(name, "Properties.DistributionConfig.DefaultCacheBehavior")
     scenario.value == null
@@ -53,6 +56,7 @@ violation contains make_diag_full("E3003", "ERROR", name,
     "'TargetOriginId' is a required property",
     "Add TargetOriginId to the DefaultCacheBehavior",
     "") if {
+    cfn_rule_active("E3003")
     some name in resources_of_type("AWS::CloudFront::Distribution")
     some scenario in resolve_scenarios(name, "Properties.DistributionConfig.DefaultCacheBehavior")
     is_object(scenario.value)
@@ -65,6 +69,7 @@ violation contains make_diag_full("E3003", "ERROR", name,
     "'ViewerProtocolPolicy' is a required property",
     "Add ViewerProtocolPolicy to the DefaultCacheBehavior",
     "") if {
+    cfn_rule_active("E3003")
     some name in resources_of_type("AWS::CloudFront::Distribution")
     some scenario in resolve_scenarios(name, "Properties.DistributionConfig.DefaultCacheBehavior")
     is_object(scenario.value)

@@ -7,6 +7,7 @@ violation contains make_diag_full("W9009", "WARN", name, "",
     sprintf("Resource type '%s' is deprecated - consider using a newer alternative", [rtype]),
     sprintf("Replace %s with a supported alternative", [rtype]),
     "") if {
+    cfn_rule_active("W9009")
     some name, res in input.resources
     rtype := res.resourceType
     rtype in data.deprecated_resource_types

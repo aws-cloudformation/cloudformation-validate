@@ -1,0 +1,6 @@
+Resources:
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: resolve:ssm:/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id

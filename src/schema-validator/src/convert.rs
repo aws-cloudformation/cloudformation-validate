@@ -32,12 +32,15 @@ impl From<build::PropType> for PropType {
 
 impl From<build::ConditionSchema> for ConditionSchema {
     fn from(source: build::ConditionSchema) -> Self {
-        let build::ConditionSchema { properties, required, prop_type, any_of } = source;
+        let build::ConditionSchema { properties, required, absent, prop_type, any_of, one_of, not } = source;
         ConditionSchema {
             properties: props(properties),
             required,
+            absent,
             prop_type: prop_type.map(Into::into),
             any_of: any_of.into_iter().map(Into::into).collect(),
+            one_of: one_of.into_iter().map(Into::into).collect(),
+            not: not.map(|negated| Box::new((*negated).into())),
         }
     }
 }
@@ -80,7 +83,6 @@ impl From<build::PropSchema> for PropSchema {
             min_properties,
             max_properties,
             format,
-            description,
             properties,
             required,
             additional_properties,
@@ -116,7 +118,6 @@ impl From<build::PropSchema> for PropSchema {
             min_properties,
             max_properties,
             format,
-            description,
             properties: props(properties),
             required,
             required_present: false,
@@ -152,7 +153,6 @@ impl From<build::CompiledSchema> for CompiledSchema {
             replacement_strategy,
             documentation_url,
             source_url,
-            description,
             all_of,
             any_of,
             one_of,
@@ -178,7 +178,6 @@ impl From<build::CompiledSchema> for CompiledSchema {
             replacement_strategy,
             documentation_url,
             source_url,
-            description,
             all_of: all_of.into_iter().map(Into::into).collect(),
             any_of: any_of.into_iter().map(Into::into).collect(),
             one_of: one_of.into_iter().map(Into::into).collect(),
@@ -268,7 +267,6 @@ mod tests {
         assert_eq!(name.pattern.as_deref(), Some("^a"));
         assert_eq!(name.min_length, Some(1));
         assert_eq!(name.max_length, Some(4));
-        assert_eq!(name.description.as_deref(), Some("d"));
 
         assert_eq!(compiled.properties["Items"].unique_items, Some(true));
         assert!(compiled.properties["Items"].items.is_some(), "items must survive the conversion");

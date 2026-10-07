@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("E2504", "ERROR", name,
     "Properties.QueueName",
     sprintf("FIFO queue name '%s' must end with '.fifo'", [qname])) if {
+    cfn_rule_active("E2504")
     some name in resources_of_type("AWS::SQS::Queue")
     some fifo in resolve_all(name, "Properties.FifoQueue")
     fifo == true

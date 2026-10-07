@@ -6,6 +6,7 @@ import rego.v1
 violation contains make_diag_at("E3504", "ERROR", name,
     "Properties.BackupPlanRule",
     sprintf("MoveToColdStorageAfterDays (%d) must be less than DeleteAfterDays (%d)", [move_days, delete_days])) if {
+    cfn_rule_active("E3504")
     some name in resources_of_type("AWS::Backup::BackupPlan")
     some item in flatten_list(name, "Properties.BackupPlan.BackupPlanRule")
     rule := item.value
@@ -30,6 +31,7 @@ violation contains make_diag_at("E3504", "ERROR", name,
 violation contains make_diag_at("I3013", "INFO", name,
     "Properties",
     sprintf("'%s' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", [props[first_missing]])) if {
+    cfn_rule_active("I3013")
     some rtype, props in data.retention_period_requirements
     some name in resources_of_type(rtype)
     _i3013_applies(name, rtype)

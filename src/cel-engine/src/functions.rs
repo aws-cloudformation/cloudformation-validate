@@ -9,11 +9,11 @@ use template_model::consts::{FIELD_PROPERTIES, FIELD_RESOURCES};
 use template_model::resolved_value::contains_dynamic_resolved;
 use template_model::resolver::ResolvedValue;
 
-/// Function names available to custom and translated-Guard CEL rules: the
-/// interpreter's standard-library functions, the parse-time macros, and the
-/// `type` function registered by [`build_custom_context`]. Used to reject a rule
-/// that calls a function that would never resolve - closing the gap where an
-/// unknown-function error only surfaced if a matching resource happened to exist.
+/// Function names available to custom CEL rules: the interpreter's
+/// standard-library functions, the parse-time macros, and the `type` function
+/// registered by [`build_custom_context`]. Used to reject a rule that calls a
+/// function that would never resolve - closing the gap where an unknown-function
+/// error only surfaced if a matching resource happened to exist.
 const SUPPORTED_FUNCTIONS: &[&str] = &[
     // CEL macros. These are expanded into comprehensions at parse time and so
     // never appear as function references, but are listed defensively.
@@ -49,8 +49,7 @@ const SUPPORTED_FUNCTIONS: &[&str] = &[
     "getMinutes",
     "getSeconds",
     "getMilliseconds",
-    // Registered by `build_custom_context` so Guard type-check operators translate
-    // to a runnable expression.
+    // Registered by `build_custom_context` so a rule can test a value's kind.
     TYPE_FUNCTION_NAME,
 ];
 
@@ -79,8 +78,8 @@ fn is_plain_identifier(name: &str) -> bool {
     chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
 }
 
-/// The CEL type name of a value, matching the spelling the Guard translator emits
-/// for `IS_STRING`/`IS_LIST`/… operators (`"string"`, `"list"`, `"int"`, …).
+/// The CEL type name of a value as custom rules compare it (`"string"`,
+/// `"list"`, `"int"`, …).
 fn cel_type_name(value: &Value) -> &'static str {
     match value {
         Value::List(_) => "list",
@@ -159,8 +158,8 @@ pub fn build_custom_context(
 ) -> Context<'static> {
     let mut ctx = Context::default();
     // `type(x)` returns the CEL type name of `x` as a string. The interpreter has
-    // no built-in `type`, so without this a Guard type-check operator (translated
-    // to `type(resource.X) == "string"`) would error at evaluation instead of
+    // no built-in `type`, so without this a rule that tests a value's kind
+    // (`type(resource.X) == "string"`) would error at evaluation instead of
     // comparing types.
     ctx.add_function(TYPE_FUNCTION_NAME, |value: Value| -> String { cel_type_name(&value).to_string() });
     if let Some(obj) = input.as_object() {

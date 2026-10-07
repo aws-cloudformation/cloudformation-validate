@@ -10,6 +10,7 @@ import rego.v1
 violation contains make_diag_at("E3706", "ERROR", name,
     "Properties.MaxSize",
     sprintf("%s is less than the minimum of %d", [render_value(max_raw), min_num])) if {
+    cfn_rule_active("E3706")
     some name in resources_of_type("AWS::AutoScaling::AutoScalingGroup")
     max_raw := resolve(name, "Properties.MaxSize")
     min_num := coerce_to_number(resolve(name, "Properties.MinSize"))
@@ -21,9 +22,10 @@ violation contains make_diag_at("E3706", "ERROR", name,
 violation contains make_diag_at("E3676", "ERROR", name,
     "Properties.Certificates",
     sprintf("%s listener requires Certificates", [proto])) if {
+    cfn_rule_active("E3676")
     some name in resources_of_type("AWS::ElasticLoadBalancingV2::Listener")
     proto := resolve(name, "Properties.Protocol")
-    proto in {"HTTPS", "TLS"}
+    proto in data.load_balancer_v2_certificate_protocols
     not has_property(name, "Certificates")
 }
 
@@ -31,20 +33,12 @@ violation contains make_diag_at("E3676", "ERROR", name,
 violation contains make_diag_at("E3663", "ERROR", name,
     "Properties.Environment.Variables",
     sprintf("Environment variable '%s' is a Lambda reserved key", [key])) if {
+    cfn_rule_active("E3663")
     some name in resources_of_type("AWS::Lambda::Function")
     env := resolve(name, "Properties.Environment.Variables")
     is_object(env)
     some key in object.keys(env)
-    key in _lambda_reserved_env_keys
-}
-
-_lambda_reserved_env_keys := {
-    "_HANDLER", "_X_AMZN_TRACE_ID", "AWS_DEFAULT_REGION", "AWS_REGION",
-    "AWS_EXECUTION_ENV", "AWS_LAMBDA_FUNCTION_NAME", "AWS_LAMBDA_FUNCTION_MEMORY_SIZE",
-    "AWS_LAMBDA_FUNCTION_VERSION", "AWS_LAMBDA_LOG_GROUP_NAME",
-    "AWS_LAMBDA_LOG_STREAM_NAME", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
-    "AWS_SESSION_TOKEN", "AWS_LAMBDA_RUNTIME_API", "LAMBDA_TASK_ROOT",
-    "LAMBDA_RUNTIME_DIR", "TZ",
+    key in data.lambda_reserved_environment_keys
 }
 
 # E3685: Container image Lambda functions cannot specify Handler, Runtime, or
@@ -54,19 +48,19 @@ _lambda_reserved_env_keys := {
 violation contains make_diag_at("E3685", "ERROR", name,
     sprintf("Properties.%s", [first_prop]),
     "Container image functions cannot specify Handler, Runtime, or Layers properties") if {
+    cfn_rule_active("E3685")
     some name in resources_of_type("AWS::Lambda::Function")
     resolve(name, "Properties.PackageType") == "Image"
-    present := [p | some p in _image_excluded_props; has_property(name, p)]
+    present := [p | some p in data.lambda_image_excluded_properties; has_property(name, p)]
     count(present) > 0
     first_prop := present[0]
 }
-
-_image_excluded_props := ["Handler", "Runtime", "Layers"]
 
 # E3660: API Gateway RestApi requires Name when not using Body/BodyS3Location
 violation contains make_diag_at("E3660", "ERROR", name,
     "Properties.Name",
     "'Name' is required when 'Body' or 'BodyS3Location' is not provided") if {
+    cfn_rule_active("E3660")
     some name in resources_of_type("AWS::ApiGateway::RestApi")
     not has_property(name, "Body")
     not has_property(name, "BodyS3Location")
@@ -77,19 +71,38 @@ violation contains make_diag_at("E3660", "ERROR", name,
 violation contains make_diag_at("E3704", "ERROR", name,
     "Properties.TransitEncryptionEnabled",
     "TransitEncryptionEnabled must be explicitly set when Engine is 'valkey'") if {
+    cfn_rule_active("E3704")
     some name in resources_of_type("AWS::ElastiCache::ReplicationGroup")
     resolve(name, "Properties.Engine") == "valkey"
     not has_property(name, "TransitEncryptionEnabled")
 }
 
-# E3680: Application load balancer requires at least 2 subnets
+# A load balancer without a Type is an application load balancer. A Type that
+# is present but does not resolve to a string (a parameter reference) is left
+# alone rather than assumed.
+_alb_type(name) := lb_type if {
+    lb_type := resolve(name, "Properties.Type")
+    is_string(lb_type)
+}
+
+_alb_type(name) := "application" if {
+    not has_property(name, "Type")
+}
+
+_alb_subnet_minimum_messages := {
+    "Subnets": "Application load balancer requires at least 2 subnets",
+    "SubnetMappings": "Application load balancer requires at least 2 subnet mappings",
+}
+
+# Application load balancers must span at least 2 subnets, whether given as
+# Subnets or as SubnetMappings
 violation contains make_diag_at("E3680", "ERROR", name,
-    "Properties.Subnets",
-    "Application load balancer requires at least 2 subnets") if {
+    sprintf("Properties.%s", [subnet_property]), message) if {
+    cfn_rule_active("E3680")
     some name in resources_of_type("AWS::ElasticLoadBalancingV2::LoadBalancer")
-    lb_type := object.get(input.resources[name], "resourceType", "application")
-    lb_type in {"application", ""}
-    subnets := resolve(name, "Properties.Subnets")
+    _alb_type(name) == "application"
+    some subnet_property, message in _alb_subnet_minimum_messages
+    subnets := resolve(name, sprintf("Properties.%s", [subnet_property]))
     is_array(subnets)
     count(subnets) < 2
 }

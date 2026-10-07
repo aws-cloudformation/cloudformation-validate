@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  An inverted TCP/UDP port range is an error on inline egress rules and on
+  standalone SecurityGroupIngress/SecurityGroupEgress resources, not only on
+  inline ingress rules.
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Inverted egress range
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 80
+          CidrIp: 10.0.0.0/8
+  StandaloneIngressInverted:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 80
+      CidrIp: 10.0.0.0/8
+  StandaloneEgressInverted:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: udp
+      FromPort: 5000
+      ToPort: 4000
+      CidrIp: 10.0.0.0/8

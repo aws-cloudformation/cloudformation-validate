@@ -69,7 +69,7 @@ impl GeneratedRuleRegistry {
                 continue;
             }
             let rules: Vec<&RuleDescriptor> =
-                rules.iter().filter(|r| !is_excluded(&r.rule_id, excluded_cats)).collect();
+                rules.iter().filter(|r| !is_rule_category_excluded(&r.rule_id, excluded_cats)).collect();
             if rules.is_empty() {
                 continue;
             }
@@ -81,7 +81,7 @@ impl GeneratedRuleRegistry {
         }
 
         for rule in &self.global_rules {
-            if is_excluded(&rule.rule_id, excluded_cats) {
+            if is_rule_category_excluded(&rule.rule_id, excluded_cats) {
                 continue;
             }
             for (rid, res) in &model.resources {
@@ -93,7 +93,10 @@ impl GeneratedRuleRegistry {
     }
 }
 
-fn is_excluded(rule_id: &str, excluded_cats: &HashSet<&str>) -> bool {
+/// Whether `rule_id`'s registry category is one of `excluded_cats`. Every
+/// built-in rule filters on its own registry category, regardless of which
+/// module or rule table hosts it.
+pub(crate) fn is_rule_category_excluded(rule_id: &str, excluded_cats: &HashSet<&str>) -> bool {
     lookup_rule(rule_id).is_some_and(|r| excluded_cats.contains(r.category.as_str()))
 }
 

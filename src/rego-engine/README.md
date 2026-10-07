@@ -16,11 +16,11 @@ Rules are organized into Rego packages by category:
 | `references`     | `data.references.violation`     | Cross-resource refs  |
 | `best_practices` | `data.best_practices.violation` | Best practices       |
 | `resources`      | `data.resources.violation`      | Resource-specific    |
-| `all_violations` | `data.all_violations.violation` | All packages at once |
 
-Rules come from four sources: handwritten Rego policies (embedded), generated data from
-data-source (embedded), user-provided custom Rego policies, and Guard DSL files translated
-to Rego at engine initialization.
+Rules come from four sources: handwritten Rego policies embedded by this crate's build script, generated shared data
+embedded by data-source, user-provided custom Rego policies, and Guard DSL files. Guard files are not translated to
+Rego: they are evaluated by the shared Guard evaluator in [validation-engine](../validation-engine/README.md), which
+every engine calls, so the same Guard rule yields the same findings in every engine.
 
 ## Custom Builtins
 
@@ -31,7 +31,7 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 
 | Builtin              | Signature                                                     | Purpose                                              |
 |----------------------|---------------------------------------------------------------|------------------------------------------------------|
-| `resolve`            | `(resource_id, path) → value`                                 | Resolve a property value through intrinsic functions |
+| `resolve`            | `(resource_id, path) → value`                                 | Resolve a property value through intrinsic functions; a reference is rendered per the evaluating package, see below |
 | `resolve_all`        | `(resource_id, path) → [values]`                              | Resolve all scenario values for a property           |
 | `resolve_scenarios`  | `(resource_id, path) → [{value, conditions}]`                 | Resolve all (value, condition_map) pairs             |
 | `resolve_ref_target` | `(resource_id, path) → {resourceType, condition, properties}` | Resolve the target of a reference                    |
@@ -42,12 +42,28 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | `follow_ref`         | `(resource_id, path) → target_id`                             | Follow a Ref/GetAtt to its target resource           |
 | `flatten_list`       | `(resource_id, path) → [{value, index}]`                      | Flatten nested arrays                                |
 
+#### Reference rendering
+
+A `Ref`/`Fn::GetAtt` to a template resource has no literal before deployment, and `resolve` (and a reference inside a
+list returned by `resolve_all`) renders it according to the package being evaluated:
+
+- **Handwritten built-in policies** receive the `{"__ref": target}` marker object, the same shape the `input` document
+  uses. It is never a bare string, so a format or enum check that guards with `is_string` skips the reference instead of
+  judging a logical ID as if it were the value, while a presence check still sees a value.
+- **Custom rules** receive the target's logical ID as a plain string, the contract they were written against; a custom
+  rule may look the target up in `input.resources` or compare it with another logical ID. Rules that validate literal
+  content should exclude a logical ID with `not input.resources[value]`, or read the reference explicitly with
+  `follow_ref` or `authored_form`.
+
+The rendering is selected per package around each `eval_rule` query, so the two kinds evaluate on one engine instance
+without observing each other's rendering. Guard rules are not affected: they never evaluate through Rego.
+
 ### Resource Queries
 
 | Builtin             | Signature                         | Purpose                                  |
 |---------------------|-----------------------------------|------------------------------------------|
 | `get_resource`      | `(resource_id) → resource_object` | Get full resolved resource data          |
-| `has_property`      | `(resource_id, path) → bool`      | Check if a property exists on a resource |
+| `has_property`      | `(resource_id, path) → bool`      | Check if a property is authored, even when its value is only known at deployment |
 | `resources_of_type` | `(type_name) → [resource_ids]`    | Get all logical IDs of a resource type   |
 | `has_transform`     | `(transform_name) → bool`         | Check if a transform is declared         |
 
@@ -87,8 +103,8 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 |------------------------|--------------------------------------------|--------------------------------|
 | `schema_properties`    | `(resource_type) → [property_names]`       | List schema-defined properties |
 | `schema_required`      | `(resource_type) → [required_names]`       | List required properties       |
-| `schema_type`          | `(resource_type, property) → type_string`  | Get schema type for a property |
-| `schema_enum`          | `(resource_type, property) → [values]`     | Get allowed enum values        |
+| `schema_type`          | `(resource_type, property) → type_string`  | Primary schema type (first declared when several) |
+| `schema_enum`          | `(resource_type, property) → [values]`     | Allowed values (incl. case-insensitive enums) |
 | `attribute_type`       | `(resource_type, property) → type_string`  | Get schema attribute type      |
 | `getatt_return_type`   | `(resource_type, attribute) → type_string` | Get GetAtt return type         |
 | `schema_string_length` | `(resource_type, property) → {min, max}`   | Get string length constraints  |
@@ -119,4 +135,4 @@ namespace prefix. For example, a policy calls `resolve(name, "Properties.BucketN
 | `coerce_to_number`       | `(value) → number`              | CloudFormation-style number coercion          |
 | `coerce_to_string`       | `(value) → string`              | CloudFormation-style string coercion          |
 | `cfn_type_compatible`    | `(value, expected_type) → bool` | Check CFN type compatibility with coercion    |
-| `estimate_string_length` | `(resource_id, path) → number`  | Estimate resolved string length               |
+| `estimated_string_length_bounds` | `(resource_id, path) → {shortest, longest}` | Shortest and longest resolved string length; undefined when the length cannot be pinned for every possibility |

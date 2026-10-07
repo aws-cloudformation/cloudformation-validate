@@ -3,11 +3,14 @@ package resources
 import rego.v1
 
 # E3512: Resource-based IAM policies must have Statement
-resource_policy_paths := {
-    {"type": "AWS::KMS::Key", "path": "Properties.KeyPolicy"},
-    {"type": "AWS::S3::BucketPolicy", "path": "Properties.PolicyDocument"},
-    {"type": "AWS::SNS::TopicPolicy", "path": "Properties.PolicyDocument"},
-    {"type": "AWS::SQS::QueuePolicy", "path": "Properties.PolicyDocument"},
+_resource_policy_checks contains {"type": rtype, "path": prop_path} if {
+    some raw_path in data.rule_tables.resource_policy_paths
+    parts := split(raw_path, "/")
+    count(parts) > 2
+    parts[0] == "Resources"
+    rtype := parts[1]
+    prop_parts := array.slice(parts, 2, count(parts))
+    prop_path := concat(".", prop_parts)
 }
 
 violation contains make_diag_full("E3512", "ERROR", name,
@@ -15,7 +18,8 @@ violation contains make_diag_full("E3512", "ERROR", name,
     "Resource-based policy must have a Statement property",
     "Add a Statement array to the policy document",
     "") if {
-    some prop in resource_policy_paths
+    cfn_rule_active("E3512")
+    some prop in _resource_policy_checks
     some name in resources_of_type(prop.type)
     doc := resolve(name, prop.path)
     is_object(doc)
@@ -40,6 +44,7 @@ violation contains make_diag_full("W2511", "WARN", name,
     "IAM Policy Version should be updated to '2012-10-17'",
     "Update the policy document Version to '2012-10-17'",
     "") if {
+    cfn_rule_active("W2511")
     some prop in _policy_version_paths
     some name in resources_of_type(prop.type)
     some scenario in resolve_scenarios(name, prop.path)

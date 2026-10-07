@@ -37,6 +37,9 @@
       "RestApiId",
       "StageName"
     ],
+    "AWS::ApiGatewayV2::ApiGatewayManagedOverrides": [
+      "ApiId"
+    ],
     "AWS::ApiGatewayV2::DomainName": [
       "DomainName"
     ],
@@ -75,11 +78,18 @@
       "StackName",
       "Name"
     ],
+    "AWS::AppStream::Fleet": [
+      "Name"
+    ],
     "AWS::AppStream::ImageBuilder": [
       "Name"
     ],
     "AWS::AppStream::Stack": [
       "Name"
+    ],
+    "AWS::AppStream::StackFleetAssociation": [
+      "FleetName",
+      "StackName"
     ],
     "AWS::AppStream::StackUserAssociation": [
       "StackName",
@@ -200,6 +210,12 @@
     "AWS::CloudWatch::MetricStream": [
       "Name"
     ],
+    "AWS::CloudWatch::ResourceMetricsConfiguration": [
+      "ResourceArn"
+    ],
+    "AWS::CloudWatch::View": [
+      "Name"
+    ],
     "AWS::CodeBuild::Project": [
       "Name"
     ],
@@ -282,8 +298,17 @@
     "AWS::Config::ConfigurationAggregator": [
       "ConfigurationAggregatorName"
     ],
+    "AWS::Config::ConfigurationRecorder": [
+      "Name"
+    ],
     "AWS::Config::ConformancePack": [
       "ConformancePackName"
+    ],
+    "AWS::Config::DeliveryChannel": [
+      "Name"
+    ],
+    "AWS::Config::OrganizationConfigRule": [
+      "OrganizationConfigRuleName"
     ],
     "AWS::Config::OrganizationConformancePack": [
       "OrganizationConformancePackName"
@@ -351,8 +376,14 @@
       "DomainName",
       "SegmentDefinitionName"
     ],
+    "AWS::DAX::ParameterGroup": [
+      "ParameterGroupName"
+    ],
     "AWS::DMS::EventSubscription": [
       "SubscriptionName"
+    ],
+    "AWS::DMS::ReplicationSubnetGroup": [
+      "ReplicationSubnetGroupIdentifier"
     ],
     "AWS::DataBrew::Dataset": [
       "Name"
@@ -395,6 +426,12 @@
     ],
     "AWS::DevOpsAgent::PrivateConnection": [
       "Name"
+    ],
+    "AWS::DocDB::DBClusterParameterGroup": [
+      "Name"
+    ],
+    "AWS::DocDB::DBSubnetGroup": [
+      "DBSubnetGroupName"
     ],
     "AWS::DocDB::EventSubscription": [
       "SubscriptionName"
@@ -618,6 +655,9 @@
       "EventBusName",
       "StatementId"
     ],
+    "AWS::EventsV2::ResourcePolicy": [
+      "EventBusArn"
+    ],
     "AWS::FIS::TargetAccountConfiguration": [
       "ExperimentTemplateId",
       "AccountId"
@@ -652,6 +692,9 @@
     "AWS::Glue::DataCatalogEncryptionSettings": [
       "CatalogId"
     ],
+    "AWS::Glue::DataQualityRuleset": [
+      "Name"
+    ],
     "AWS::Glue::Database": [
       "DatabaseName"
     ],
@@ -662,6 +705,15 @@
       "SchemaVersionId",
       "Key",
       "Value"
+    ],
+    "AWS::Glue::SecurityConfiguration": [
+      "Name"
+    ],
+    "AWS::Glue::TableOptimizer": [
+      "TableName",
+      "DatabaseName",
+      "Type",
+      "CatalogId"
     ],
     "AWS::Glue::Trigger": [
       "Name"
@@ -750,6 +802,10 @@
     "AWS::IoT::MitigationAction": [
       "ActionName"
     ],
+    "AWS::IoT::PolicyPrincipalAttachment": [
+      "PolicyName",
+      "Principal"
+    ],
     "AWS::IoT::ProvisioningTemplate": [
       "TemplateName"
     ],
@@ -774,6 +830,10 @@
     ],
     "AWS::IoT::ThingGroup": [
       "ThingGroupName"
+    ],
+    "AWS::IoT::ThingPrincipalAttachment": [
+      "ThingName",
+      "Principal"
     ],
     "AWS::IoT::ThingType": [
       "ThingTypeName"
@@ -930,6 +990,9 @@
     "AWS::Lightsail::InstanceSnapshot": [
       "InstanceSnapshotName"
     ],
+    "AWS::Lightsail::KeyPair": [
+      "KeyPairName"
+    ],
     "AWS::Lightsail::LoadBalancer": [
       "LoadBalancerName"
     ],
@@ -1025,7 +1088,13 @@
       "FlowArn",
       "Name"
     ],
+    "AWS::MediaConvert::JobTemplate": [
+      "Name"
+    ],
     "AWS::MediaConvert::Preset": [
+      "Name"
+    ],
+    "AWS::MediaConvert::Queue": [
       "Name"
     ],
     "AWS::MediaLive::Multiplexprogram": [
@@ -1230,9 +1299,16 @@
       "AnalysisId",
       "AwsAccountId"
     ],
+    "AWS::QuickSight::ApprovalPolicy": [
+      "PolicyId"
+    ],
     "AWS::QuickSight::CustomPermissions": [
       "AwsAccountId",
       "CustomPermissionsName"
+    ],
+    "AWS::QuickSight::DLPSetting": [
+      "AwsAccountId",
+      "DlpSettingId"
     ],
     "AWS::QuickSight::Dashboard": [
       "AwsAccountId",
@@ -1277,6 +1353,22 @@
     "AWS::QuickSight::VPCConnection": [
       "AwsAccountId",
       "VPCConnectionId"
+    ],
+    "AWS::RAM::PermissionAssociation": [
+      "ResourceShareArn",
+      "PermissionArn"
+    ],
+    "AWS::RAM::PrincipalAssociation": [
+      "ResourceShareArn",
+      "Principal"
+    ],
+    "AWS::RAM::ResourceAssociation": [
+      "ResourceShareArn",
+      "ResourceArn"
+    ],
+    "AWS::RAM::SourceAssociation": [
+      "ResourceShareArn",
+      "SourceId"
     ],
     "AWS::RDS::CustomDBEngineVersion": [
       "Engine",
@@ -1365,6 +1457,12 @@
       "HostedZoneId",
       "Name"
     ],
+    "AWS::Route53::RecordSet": [
+      "Name",
+      "HostedZoneId",
+      "Type",
+      "SetIdentifier"
+    ],
     "AWS::Route53RecoveryReadiness::Cell": [
       "CellName"
     ],
@@ -1447,8 +1545,15 @@
     "AWS::SES::EmailIdentity": [
       "EmailIdentity"
     ],
+    "AWS::SES::EmailIdentityCertificate": [
+      "EmailIdentity",
+      "FromAddress"
+    ],
     "AWS::SES::MultiRegionEndpoint": [
       "EndpointName"
+    ],
+    "AWS::SES::ReceiptRuleSet": [
+      "RuleSetName"
     ],
     "AWS::SES::Tenant": [
       "TenantName"
@@ -1574,6 +1679,10 @@
     "AWS::ServiceCatalog::TagOptionAssociation": [
       "TagOptionId",
       "ResourceId"
+    ],
+    "AWS::ServiceDiscovery::Instance": [
+      "ServiceId",
+      "InstanceId"
     ],
     "AWS::Signer::ProfilePermission": [
       "StatementId",

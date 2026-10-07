@@ -50,6 +50,21 @@ def main():
     if code == 0:
         errors.append("zero iterations should fail, got exit 0")
 
+    # Rego rules cannot be loaded into the CEL engine
+    code, out, err = run(["--engine", "cel", "--iterations", "1", "--rego-rules", "rules.rego"])
+    if code == 0 or "--rego-rules" not in err:
+        errors.append(f"--rego-rules with --engine cel should fail naming the flag, got exit {code}: {err.strip()}")
+
+    # A scenario name is a single lowercase path component
+    code, out, err = run(["--engine", "rego", "--iterations", "1", "--scenario", "Bad Name"])
+    if code == 0 or "--scenario" not in err:
+        errors.append(f"invalid --scenario should fail naming the flag, got exit {code}: {err.strip()}")
+
+    # --guard-rules / --rego-rules require a value
+    code, out, err = run(["--engine", "rego", "--iterations", "1", "--guard-rules"])
+    if code == 0:
+        errors.append("--guard-rules without a value should fail, got exit 0")
+
     if errors:
         print("FAILURES:")
         for e in errors:

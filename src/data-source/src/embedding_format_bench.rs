@@ -16,7 +16,7 @@
 //!   - lz4+json            (lz4_flex + serde_json)
 //!   - lz4+postcard        (typed only, lz4_flex + postcard)
 //!
-//! Run: cargo run -p data-source --example embedding_format_bench --features bench --release
+//! Run: cargo run -p cloudformation-validate-data-source --example embedding_format_bench --features bench --release
 
 use data_source::types::{
     CodepipelineArtifactCounts, DeprecatedResourceTypes, GetattData, KnownResourceTypes, PrimaryIdentifiers,
@@ -49,9 +49,9 @@ const DATA_FILES: &[(&str, &str)] = &[
     ("aws_ec2_instance_instancetype_enum", "generated/data"),
     ("aws_emr_cluster_instancetypeconfig_instancetype_enum", "generated/data"),
     ("aws_gamelift_fleet_ec2instancetype_enum", "generated/data"),
-    ("codepipeline_action_artifact_counts", "handwritten"),
+    ("codepipeline_action_artifact_counts", "generated/data"),
     ("deprecated_resource_types", "handwritten"),
-    ("retention_period_requirements", "handwritten"),
+    ("retention_period_requirements", "generated/data"),
     ("sensitive_ports", "handwritten"),
     ("generated_rules", "generated/cel-rules"),
 ];
@@ -62,8 +62,6 @@ const DATA_FILES: &[(&str, &str)] = &[
 struct RefTypes {
     #[serde(default)]
     ref_returns: HashMap<String, String>,
-    #[serde(default)]
-    getatt_returns: HashMap<String, HashMap<String, String>>,
     #[serde(default)]
     format_compatible_types: HashMap<String, Vec<String>>,
 }

@@ -1,0 +1,84 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Valid intrinsic-generated IAM Resource ARNs must remain accepted
+Parameters:
+  BucketName:
+    Type: String
+    Default: my-bucket
+  DynamoTableArn:
+    Type: String
+  SsoInstanceArn:
+    Type: String
+Resources:
+  RoleInlinePolicy:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: test-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: inline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                Resource:
+                  Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*"
+  PolicyWithJoinResource:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: test
+      Roles:
+        - !Ref RoleInlinePolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "s3:GetObject"
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:aws:s3:::"
+                  - !Ref BucketName
+                  - "/*"
+  PolicyWithSubResource:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "s3:*"
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${BucketName}/*"
+  PolicyWithRefResource:
+    Type: AWS::IAM::UserPolicy
+    Properties:
+      UserName: test-user
+      PolicyName: test
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "dynamodb:*"
+            Resource: !Ref DynamoTableArn
+  SSOPermissionSet:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      InstanceArn: !Ref SsoInstanceArn
+      Name: ValidPermSet
+      InlinePolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowS3
+            Effect: Allow
+            Action: "s3:*"
+            Resource: "*"

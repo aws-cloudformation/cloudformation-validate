@@ -1,49 +1,29 @@
 use super::patterns::AMI_ID_RE;
+use super::resources_extra::{scenario_has_effective_property, scenario_is_reachable};
 use super::{EvalContext, NativeRuleRegistry};
+use data_source::rule_data::{PathSegment, ResourcePropertyPath};
 use diagnostics::Diagnostic;
-use rules::Category;
 use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use template_model::SemanticModel;
 use template_model::coercion::{coerce_to_bool, coerce_to_integer, coerce_to_string};
 use template_model::consts::{
     EDGE_KIND_REF, FIELD_KIND, FIELD_OUTGOING_REFS, FIELD_PROPERTIES, FIELD_RESOURCES, FIELD_SOURCE_PATH, FIELD_TARGET,
-    KEY_PROPERTIES, TRANSFORM_SERVERLESS,
+    KEY_DELETION_POLICY, KEY_PROPERTIES, KEY_UPDATE_REPLACE_POLICY, TRANSFORM_SERVERLESS,
+    effective_deployed_resource_type,
 };
+use template_model::iam_policy::{inline_identity_policy_document_paths, policy_has_allow_not_action_scenarios};
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
 static ACCT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"arn:[^:]*:[^:]*:[^:]*:\d{12}:").expect("Invalid ACCT_RE pattern"));
 
-/// Compile-time fallback when generated stateful_resource_types.json is absent.
-static FALLBACK_STATEFUL_TYPES: LazyLock<HashSet<String>> = LazyLock::new(|| {
-    [
-        "AWS::S3::Bucket",
-        "AWS::RDS::DBInstance",
-        "AWS::RDS::DBCluster",
-        "AWS::DynamoDB::Table",
-        "AWS::DynamoDB::GlobalTable",
-        "AWS::EFS::FileSystem",
-        "AWS::Logs::LogGroup",
-        "AWS::Neptune::DBCluster",
-        "AWS::Neptune::DBInstance",
-        "AWS::DocDB::DBCluster",
-        "AWS::DocDB::DBInstance",
-        "AWS::OpenSearchService::Domain",
-        "AWS::Redshift::Cluster",
-        "AWS::CloudFormation::Stack",
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect()
-});
-
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::BestPractice, eval_best_practices);
-    reg.add(Category::BestPractice, eval_retention_period_rules);
-    reg.add(Category::BestPractice, eval_deprecated_resource_types);
-    reg.add(Category::Security, eval_sensitive_port_rules);
+    reg.add(eval_best_practices);
+    reg.add(eval_retention_period_rules);
+    reg.add(eval_deprecated_resource_types);
+    reg.add(eval_sensitive_port_rules);
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
@@ -156,15 +136,14 @@ fn rds_storage_encryption_warns(model: &SemanticModel, resource_id: &str) -> boo
 fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let m = ctx.model;
-    let stateful_types = if ctx.cached_data.stateful_resource_types.is_empty() {
-        &*FALLBACK_STATEFUL_TYPES
-    } else {
-        &ctx.cached_data.stateful_resource_types
-    };
+    let stateful_types = &ctx.cached_data.stateful_resource_types;
 
     for (name, res) in &m.resources {
-        if stateful_types.contains(&res.resource_type) && res.resource_type != "AWS::S3::Bucket" {
-            if res.deletion_policy.is_none() {
+        let effective_type = effective_deployed_resource_type(&res.resource_type);
+        if stateful_types.contains(effective_type) && effective_type != "AWS::S3::Bucket" {
+            let deletion_present = m.lifecycle_attribute_status(name, KEY_DELETION_POLICY).may_be_present;
+            let update_replace_present = m.lifecycle_attribute_status(name, KEY_UPDATE_REPLACE_POLICY).may_be_present;
+            if !deletion_present {
                 out.push(make_resource_diagnostic("I3011",
                     "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
                     m,
@@ -173,7 +152,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-            if res.update_replace_policy.is_none() {
+            if !update_replace_present {
                 out.push(make_resource_diagnostic("I3011",
                     "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
                     m,
@@ -186,14 +165,13 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (name, res) in &m.resources {
+        let deletion_present = m.lifecycle_attribute_status(name, KEY_DELETION_POLICY).may_be_present;
+        let update_replace_present = m.lifecycle_attribute_status(name, KEY_UPDATE_REPLACE_POLICY).may_be_present;
         // A lone policy whose value is "Delete" is the default behavior, so
         // requiring its counterpart adds no protection and the configuration is
         // valid. Only warn when the single present policy asks for something
         // other than Delete.
-        if res.deletion_policy.is_some()
-            && res.update_replace_policy.is_none()
-            && !policy_is_delete(res.deletion_policy.as_ref())
-        {
+        if deletion_present && !update_replace_present && !policy_is_delete(res.deletion_policy.as_ref()) {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -203,10 +181,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                 None,
             ));
         }
-        if res.update_replace_policy.is_some()
-            && res.deletion_policy.is_none()
-            && !policy_is_delete(res.update_replace_policy.as_ref())
-        {
+        if update_replace_present && !deletion_present && !policy_is_delete(res.update_replace_policy.as_ref()) {
             out.push(make_resource_diagnostic(
                 "W3011",
                 "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
@@ -218,34 +193,51 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let policy_doc_types: &[&str] = &[
-        "AWS::IAM::Policy",
-        "AWS::IAM::ManagedPolicy",
-        "AWS::SQS::QueuePolicy",
-        "AWS::SNS::TopicPolicy",
-        "AWS::S3::BucketPolicy",
+    let policy_doc_types: &[(&str, &str)] = &[
+        ("AWS::IAM::Policy", "Properties.PolicyDocument"),
+        ("AWS::IAM::ManagedPolicy", "Properties.PolicyDocument"),
+        ("AWS::SQS::QueuePolicy", "Properties.PolicyDocument"),
+        ("AWS::SNS::TopicPolicy", "Properties.PolicyDocument"),
+        ("AWS::S3::BucketPolicy", "Properties.PolicyDocument"),
     ];
-    for rtype in policy_doc_types {
+    for (rtype, doc_path) in policy_doc_types {
         for name in m.resources_of_type(rtype) {
-            if let Some(doc) = resolve_concrete(m, name, "Properties.PolicyDocument") {
-                check_notaction_policy(&mut out, m, name, &doc);
+            if policy_has_allow_not_action_scenarios(m, name, doc_path) {
+                out.push(make_resource_diagnostic("W2512",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
+m,
+name,
+"",
+None,
+));
             }
         }
     }
     for rtype in &["AWS::IAM::Role", "AWS::IAM::User", "AWS::IAM::Group"] {
         for name in m.resources_of_type(rtype) {
-            if let Some(serde_json::Value::Array(policies)) = resolve_concrete(m, name, "Properties.Policies") {
-                for policy in &policies {
-                    if let Some(doc) = policy.get("PolicyDocument") {
-                        check_notaction_policy(&mut out, m, name, doc);
-                    }
+            for doc_path in inline_identity_policy_document_paths(m, name, "Properties.Policies") {
+                if policy_has_allow_not_action_scenarios(m, name, &doc_path) {
+                    out.push(make_resource_diagnostic("W2512",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
+m,
+name,
+"",
+None,
+));
+                    break;
                 }
             }
         }
     }
     for name in m.resources_of_type("AWS::SSO::PermissionSet") {
-        if let Some(doc) = resolve_concrete(m, name, "Properties.InlinePolicy") {
-            check_notaction_policy(&mut out, m, name, &doc);
+        if policy_has_allow_not_action_scenarios(m, name, "Properties.InlinePolicy") {
+            out.push(make_resource_diagnostic("W2512",
+"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
+m,
+name,
+"",
+None,
+));
         }
     }
 
@@ -317,17 +309,11 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    const PASSWORD_PROPS: &[&str] = &[
-        "MasterUserPassword",
-        "Password",
-        "AdminPassword",
-        "MasterPassword",
-        "LoginPassword",
-        "DbPassword",
-        "UserPassword",
-    ];
+    let password_props = &ctx.cached_data.rule_tables.password_property_names;
 
-    // Build a set of (resource, prop) pairs that are Refs to parameters
+    // Build a set of (resource, path_suffix) pairs that are Refs to parameters.
+    // The path_suffix is the portion after "Properties." (may be nested, e.g.
+    // "Config.Password").
     let mut ref_to_param_props: HashSet<(String, String)> = HashSet::new();
     if let Some(resources) = ctx.input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (rname, res) in resources {
@@ -338,11 +324,13 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
                     let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                     let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
-                    if let Some(prop) = sp.strip_prefix("Properties.")
-                        && PASSWORD_PROPS.contains(&prop)
-                        && m.parameters.contains_key(target)
-                    {
-                        ref_to_param_props.insert((rname.clone(), prop.to_string()));
+                    if let Some(suffix) = sp.strip_prefix("Properties.") {
+                        // Check if the final segment of the path is a password
+                        // property name (handles both flat and nested paths).
+                        let leaf = suffix.rsplit('.').next().unwrap_or(suffix);
+                        if password_props.iter().any(|p| p == leaf) && m.parameters.contains_key(target) {
+                            ref_to_param_props.insert((rname.clone(), suffix.to_string()));
+                        }
                     }
                 }
             }
@@ -351,33 +339,52 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     if let Some(resources) = ctx.input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (rname, _res) in resources {
-            for prop in PASSWORD_PROPS {
-                let path = format!("Properties.{}", prop);
+            // Recursively find all password property names within the resource's
+            // properties tree. Each found location yields a path suffix relative
+            // to "Properties." (e.g. "MasterUserPassword" or "Config.Password").
+            let props_json = ctx
+                .input
+                .get(FIELD_RESOURCES)
+                .and_then(|r| r.get(rname.as_str()))
+                .and_then(|r| r.get(FIELD_PROPERTIES));
+            let mut found_paths: Vec<String> = Vec::new();
+            if let Some(props) = props_json {
+                find_password_property_paths(props, password_props, String::new(), &mut found_paths);
+            }
+            for suffix in &found_paths {
+                let path = format!("Properties.{}", suffix);
+                let prop_leaf = suffix.rsplit('.').next().unwrap_or(suffix);
 
                 // Check for non-secure dynamic references via raw property. Both
                 // deploy-time-opaque variants carry the reference literal in `reason`
                 // (an embedded reference resolves to `TypedDynamic`).
-                if let Some(res) = m.resources.get(rname.as_str())
-                    && let Some(ResolvedValue::Dynamic { reason } | ResolvedValue::TypedDynamic { reason, .. }) =
-                        res.properties.get(*prop)
-                {
-                    if reason.contains("{{resolve:")
-                        && !reason.contains("{{resolve:ssm-secure:")
-                        && !reason.contains("{{resolve:secretsmanager:")
+                if let Some(res) = m.resources.get(rname.as_str()) {
+                    // For flat (non-nested) paths, check the direct properties map.
+                    // For nested paths, use the resolver which traverses the model.
+                    let is_dynamic =
+                        if !suffix.contains('.') { res.properties.get(prop_leaf) } else { m.resolve(rname, &path) };
+                    if let Some(ResolvedValue::Dynamic { reason } | ResolvedValue::TypedDynamic { reason, .. }) =
+                        is_dynamic
                     {
-                        out.push(make_resource_diagnostic(
-                            "W2501",
-                            &format!(
-                                "Password should use a secure dynamic reference for Resources/{}/Properties/{}",
-                                rname, prop
-                            ),
-                            m,
-                            rname,
-                            &path,
-                            None,
-                        ));
+                        if reason.contains("{{resolve:")
+                            && !reason.contains("{{resolve:ssm-secure:")
+                            && !reason.contains("{{resolve:secretsmanager:")
+                        {
+                            out.push(make_resource_diagnostic(
+                                "W2501",
+                                &format!(
+                                    "Password should use a secure dynamic reference for Resources/{}/Properties/{}",
+                                    rname,
+                                    suffix.replace('.', "/")
+                                ),
+                                m,
+                                rname,
+                                &path,
+                                None,
+                            ));
+                        }
+                        continue;
                     }
-                    continue;
                 }
 
                 if let Some(scenarios) = m.resolve_scenarios_json(rname, &path).first()
@@ -396,7 +403,8 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                             "W2501",
                             &format!(
                                 "Password should use a secure dynamic reference for Resources/{}/Properties/{}",
-                                rname, prop
+                                rname,
+                                suffix.replace('.', "/")
                             ),
                             m,
                             rname,
@@ -407,7 +415,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                     }
 
                     // Skip if this is a Ref to a parameter (handled by parameter-level check)
-                    if ref_to_param_props.contains(&(rname.clone(), prop.to_string())) {
+                    if ref_to_param_props.contains(&(rname.clone(), suffix.to_string())) {
                         continue;
                     }
 
@@ -416,7 +424,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                         value: scenarios.0.clone().into(),
                     }) {
                         out.push(make_resource_diagnostic("W2501",
-                                &format!("Property '{}' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference", prop),
+                                &format!("Property '{}' should not be a hardcoded string - use a parameter with NoEcho or a dynamic reference", prop_leaf),
                                 m, rname, &path, None,
                             ));
                     }
@@ -426,6 +434,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     // Parameter used as a password without NoEcho - emit at the parameter location.
+    // Works with both flat and nested paths via the outgoingRefs sourcePath.
     if let Some(resources) = ctx.input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_rname, res) in resources {
             let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) else {
@@ -436,8 +445,10 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                     continue;
                 }
                 let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
-                let prop = sp.strip_prefix("Properties.").unwrap_or("");
-                if !PASSWORD_PROPS.contains(&prop) {
+                let suffix = sp.strip_prefix("Properties.").unwrap_or("");
+                // Check if the leaf segment is a password property name.
+                let leaf = suffix.rsplit('.').next().unwrap_or(suffix);
+                if !password_props.iter().any(|p| p == leaf) {
                     continue;
                 }
                 let Some(target) = edge.get(FIELD_TARGET).and_then(|t| t.as_str()) else {
@@ -448,7 +459,7 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                 {
                     out.push(make_resource_diagnostic(
                         "W2501",
-                        &format!("Parameter {} used as {}, therefore NoEcho should be True", target, prop),
+                        &format!("Parameter {} used as {}, therefore NoEcho should be True", target, leaf),
                         m,
                         "",
                         &format!("Parameters/{}", target),
@@ -459,8 +470,13 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
+    // Parameter references in exact secret-property slots should use a dynamic
+    // reference instead. The sourced routes use exact resource paths with
+    // wildcard matching, distinct from recursive password-name matching.
+    let secret_paths = &ctx.cached_data.rule_tables.secret_dynamic_reference_property_paths;
     if let Some(resources) = ctx.input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (rname, res) in resources {
+            let rtype = res.get(template_model::consts::FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
             let Some(edges) = res.get(FIELD_OUTGOING_REFS).and_then(|r| r.as_array()) else {
                 continue;
             };
@@ -469,14 +485,13 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
                     continue;
                 }
                 let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
-                let prop = sp.strip_prefix("Properties.").unwrap_or("");
-                if !PASSWORD_PROPS.contains(&prop) {
-                    continue;
-                }
                 let Some(target) = edge.get(FIELD_TARGET).and_then(|t| t.as_str()) else {
                     continue;
                 };
                 if !m.parameters.contains_key(target) {
+                    continue;
+                }
+                if !source_path_matches_secret_slot(rtype, sp, secret_paths) {
                     continue;
                 }
                 out.push(make_resource_diagnostic(
@@ -494,18 +509,20 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    if let Some(sm) = ctx.cached_data.schema_metadata().get("schema_metadata") {
+    {
+        let schema_metadata = ctx.cached_data.schema_metadata_catalog();
         for (name, res) in &m.resources {
             if res.resource_type.ends_with("::MODULE") {
                 continue;
             }
-            let supports_tags = sm
+            let supports_tags = schema_metadata
                 .get(&res.resource_type)
-                .and_then(|entry| entry.get("properties"))
-                .and_then(|p| p.as_array())
-                .map(|arr| arr.iter().any(|v| v.as_str() == Some("Tags")))
+                .map(|entry| entry.properties.iter().any(|p| p == "Tags"))
                 .unwrap_or(false);
-            if supports_tags && !res.properties.contains_key("Tags") {
+            let tags_missing = m.resolve_properties_scenarios(name).iter().any(|(properties, conditions)| {
+                scenario_is_reachable(m, name, conditions) && !scenario_has_effective_property(properties, "Tags")
+            });
+            if supports_tags && tags_missing {
                 out.push(make_resource_diagnostic(
                     "I9040",
                     &format!(
@@ -521,25 +538,32 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    let snapstart_runtimes = ["java11", "java17", "java21"];
-    for name in m.resources_of_type("AWS::Lambda::Function") {
-        if let Some(serde_json::Value::String(rt)) = resolve_concrete(m, name, "Properties.Runtime")
-            && snapstart_runtimes.contains(&rt.as_str())
-        {
-            let has_snap = resolve_concrete(m, name, "Properties.SnapStart")
-                .and_then(|v| v.get("ApplyOn").and_then(|a| a.as_str()).map(|s| s.to_string()))
-                .unwrap_or_default();
-            if has_snap != "PublishedVersions" {
-                let mut diag = make_resource_diagnostic(
-                    "I2530",
-                    &format!("Runtime '{}' should consider using SnapStart for improved performance", rt),
-                    m,
-                    name,
-                    "Properties.Runtime",
-                    Some("Add SnapStart with ApplyOn set to 'PublishedVersions'"),
-                );
-                diag.documentation_url = Some("https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html".into());
-                out.push(diag);
+    let snapstart_prefixes = &ctx.cached_data.rule_tables.snapstart_recommendation_runtime_prefixes;
+    let snapstart_excluded = &ctx.cached_data.rule_tables.snapstart_recommendation_excluded_runtimes;
+    let snapstart_supported_regions = &ctx.cached_data.rule_tables.snapstart_supported_regions;
+    let region_supported =
+        ctx.region.as_ref().map(|r| snapstart_supported_regions.iter().any(|sr| sr == r)).unwrap_or(true); // No region configured means we cannot exclude — assume supported.
+    if region_supported {
+        for name in m.resources_of_type("AWS::Lambda::Function") {
+            if let Some(serde_json::Value::String(rt)) = resolve_concrete(m, name, "Properties.Runtime")
+                && snapstart_prefixes.iter().any(|prefix| rt.starts_with(prefix.as_str()))
+                && !snapstart_excluded.iter().any(|excl| excl == &rt)
+            {
+                let has_snap = resolve_concrete(m, name, "Properties.SnapStart")
+                    .and_then(|v| v.get("ApplyOn").and_then(|a| a.as_str()).map(|s| s.to_string()))
+                    .unwrap_or_default();
+                if has_snap != "PublishedVersions" {
+                    let mut diag = make_resource_diagnostic(
+                        "I2530",
+                        &format!("Runtime '{}' should consider using SnapStart for improved performance", rt),
+                        m,
+                        name,
+                        "Properties.SnapStart.ApplyOn",
+                        Some("Add SnapStart with ApplyOn set to 'PublishedVersions'"),
+                    );
+                    diag.documentation_url = Some("https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html".into());
+                    out.push(diag);
+                }
             }
         }
     }
@@ -571,6 +595,27 @@ fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     out
+}
+
+/// Checks whether a source path (dotted, e.g. `Properties.LoginProfile.Password`)
+/// from a given resource type matches one of the secret dynamic reference property
+/// paths from rule tables. The rule table paths use slash-separated segments with
+/// `*` wildcards (e.g. `Resources/AWS::IAM::User/Properties/LoginProfile/Password`).
+fn source_path_matches_secret_slot(
+    resource_type: &str,
+    source_path: &str,
+    secret_paths: &[ResourcePropertyPath],
+) -> bool {
+    secret_paths.iter().filter(|p| p.resource_type == resource_type).any(|p| {
+        let path_segs: Vec<&str> = source_path.split('.').collect();
+        if path_segs.len() != p.segments.len() {
+            return false;
+        }
+        p.segments.iter().zip(&path_segs).all(|(seg, part)| match seg {
+            PathSegment::Wildcard => true,
+            PathSegment::Literal(expected) => expected == *part,
+        })
+    })
 }
 
 fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -632,26 +677,6 @@ fn rds_dbinstance_needs_retention(ctx: &EvalContext, name: &str) -> bool {
     !engine.starts_with("aurora") && props.get("SourceDBInstanceIdentifier").is_none()
 }
 
-fn check_notaction_policy(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, doc: &serde_json::Value) {
-    if let Some(stmts) = doc.get("Statement").and_then(|s| s.as_array()) {
-        for stmt in stmts {
-            let effect = stmt.get("Effect").and_then(|e| e.as_str()).unwrap_or("");
-            if effect != "Allow" {
-                continue;
-            }
-            if stmt.get("NotAction").is_some() {
-                out.push(make_resource_diagnostic("W2512",
-"IAM policy uses NotAction which grants all actions except those listed - consider using Action instead",
-m,
-name,
-"",
-None,
-));
-            }
-        }
-    }
-}
-
 fn eval_deprecated_resource_types(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     for (name, res) in &ctx.model.resources {
@@ -672,9 +697,6 @@ fn eval_deprecated_resource_types(ctx: &EvalContext) -> Vec<Diagnostic> {
 fn eval_sensitive_port_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
     let mut out = Vec::new();
     let ports = &ctx.cached_data.sensitive_ports;
-    if ports.is_empty() {
-        return out;
-    }
     let m = ctx.model;
 
     // Check AWS::EC2::SecurityGroup inline ingress rules
@@ -756,5 +778,109 @@ fn check_sg_rule(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, name: &str, 
                 Some("Restrict the CIDR range to specific IP addresses"),
             ));
         }
+    }
+}
+
+/// Recursively walks a JSON value (resource properties) and collects dot-separated
+/// path suffixes for every key that matches a password property name. Handles
+/// nested objects and arrays, yielding paths like "Config.Password" or
+/// "Items.0.AccountPassword".
+fn find_password_property_paths(
+    value: &serde_json::Value,
+    password_names: &[String],
+    prefix: String,
+    out: &mut Vec<String>,
+) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, child) in map {
+                let child_path = if prefix.is_empty() { key.clone() } else { format!("{}.{}", prefix, key) };
+                if password_names.iter().any(|p| p == key) {
+                    out.push(child_path.clone());
+                }
+                // Recurse into nested objects/arrays to find deeper occurrences.
+                find_password_property_paths(child, password_names, child_path, out);
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for (idx, item) in arr.iter().enumerate() {
+                let item_path = if prefix.is_empty() { idx.to_string() } else { format!("{}.{}", prefix, idx) };
+                find_password_property_paths(item, password_names, item_path, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_password_paths_flat_property() {
+        let props = serde_json::json!({
+            "MasterUserPassword": "secret",
+            "Engine": "mysql"
+        });
+        let names = vec!["MasterUserPassword".to_string(), "Password".to_string()];
+        let mut paths = Vec::new();
+        find_password_property_paths(&props, &names, String::new(), &mut paths);
+        assert_eq!(paths, vec!["MasterUserPassword"]);
+    }
+
+    #[test]
+    fn find_password_paths_nested_in_object() {
+        let props = serde_json::json!({
+            "Config": {
+                "AccountPassword": "hardcoded"
+            }
+        });
+        let names = vec!["AccountPassword".to_string()];
+        let mut paths = Vec::new();
+        find_password_property_paths(&props, &names, String::new(), &mut paths);
+        assert_eq!(paths, vec!["Config.AccountPassword"]);
+    }
+
+    #[test]
+    fn find_password_paths_nested_in_array() {
+        let props = serde_json::json!({
+            "Items": [
+                {"AccountPassword": "pw1"},
+                {"Other": "val"}
+            ]
+        });
+        let names = vec!["AccountPassword".to_string()];
+        let mut paths = Vec::new();
+        find_password_property_paths(&props, &names, String::new(), &mut paths);
+        assert_eq!(paths, vec!["Items.0.AccountPassword"]);
+    }
+
+    #[test]
+    fn find_password_paths_deeply_nested() {
+        let props = serde_json::json!({
+            "Level1": {
+                "Level2": {
+                    "Level3": {
+                        "Password": "deep"
+                    }
+                }
+            }
+        });
+        let names = vec!["Password".to_string()];
+        let mut paths = Vec::new();
+        find_password_property_paths(&props, &names, String::new(), &mut paths);
+        assert_eq!(paths, vec!["Level1.Level2.Level3.Password"]);
+    }
+
+    #[test]
+    fn find_password_paths_no_match() {
+        let props = serde_json::json!({
+            "Engine": "mysql",
+            "InstanceType": "db.m5.large"
+        });
+        let names = vec!["Password".to_string(), "MasterUserPassword".to_string()];
+        let mut paths = Vec::new();
+        find_password_property_paths(&props, &names, String::new(), &mut paths);
+        assert!(paths.is_empty());
     }
 }

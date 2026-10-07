@@ -8,7 +8,9 @@
 //! into the engines by reference.
 
 use crate::compiled::{CompiledSchema, PropSchema};
-use serde::{Deserialize, Serialize};
+use data_source::types::{
+    SchemaMetadataCatalog, SchemaMetadataEntry, SchemaPropertyConstraints, primary_identifier_override,
+};
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
@@ -25,13 +27,15 @@ pub(crate) static GETATT_RETURN_TYPE_OVERRIDES: LazyLock<HashMap<String, HashMap
         let overrides = artifact
             .get("getatt_return_type_overrides")
             .expect("Embedded getatt_return_type_overrides must contain getatt_return_type_overrides");
-        serde_json::from_value(overrides.clone())
-            .expect("Embedded getatt_return_type_overrides must contain a valid override map")
+        let overrides: HashMap<String, HashMap<String, String>> = serde_json::from_value(overrides.clone())
+            .expect("Embedded getatt_return_type_overrides must contain a valid override map");
+        assert!(!overrides.is_empty(), "Embedded getatt_return_type_overrides must not be empty");
+        overrides
     });
 
 /// Applies the hand-maintained GetAtt return-type corrections for `type_name`
 /// over a freshly derived attribute-type map.
-pub(crate) fn apply_getatt_return_type_overrides(type_name: &str, attr_types: &mut HashMap<String, String>) {
+fn apply_getatt_return_type_overrides(type_name: &str, attr_types: &mut HashMap<String, String>) {
     if let Some(corrections) = GETATT_RETURN_TYPE_OVERRIDES.get(type_name) {
         for (attribute, return_type) in corrections {
             if attr_types.contains_key(attribute) {
@@ -65,46 +69,10 @@ pub struct OverlayCatalog {
     /// No entry when primaryIdentifier is empty; "string" when multiple, readOnly,
     /// or unresolvable; otherwise the resolved single property type.
     pub ref_returns: HashMap<String, String>,
-    /// Schema metadata matching the shape the Rego/CEL engines expect: top-level
-    /// keys are resource type names, values mirror the `schema_metadata` JSON
-    /// structure consumed by `schema_properties`, `schema_required`,
-    /// `schema_type`, `schema_enum`, and `schema_string_length`.
-    pub schema_metadata: HashMap<String, SchemaMetadataEntry>,
-}
-
-/// Per-resource-type schema metadata matching the JSON structure the engines
-/// consume from the build-time `schema_metadata` artifact.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct SchemaMetadataEntry {
-    /// Top-level property names.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub properties: Vec<String>,
-    /// Top-level required property names.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required: Vec<String>,
-    /// Maps property name → type string (e.g. "string", "integer", "object").
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub property_types: HashMap<String, String>,
-    /// Maps property name → list of allowed enum values.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub property_enums: HashMap<String, Vec<serde_json::Value>>,
-    /// Maps property name → constraint object (scalar constraints like
-    /// minLength, maxLength, pattern, min/max items, format, nested
-    /// sub_properties, array items type/schema, etc.).
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub property_constraints: HashMap<String, serde_json::Value>,
-    /// Maps trigger property → list of properties that must also be present.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_required: HashMap<String, Vec<String>>,
-    /// Maps trigger property → list of properties that must NOT be present.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependent_excluded: HashMap<String, Vec<String>>,
-    /// At-least-one-of group (logical OR of required properties).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required_or: Vec<String>,
-    /// Exactly-one-of group (logical XOR of required properties).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required_xor: Vec<String>,
+    /// Per-type schema metadata for the overlaid resource types, in the same
+    /// typed model the schema validator and both rule engines share. An overlay
+    /// entry replaces the base catalog entry for the type it touches.
+    pub schema_metadata: SchemaMetadataCatalog,
 }
 
 impl OverlayCatalog {
@@ -141,12 +109,7 @@ impl OverlayCatalog {
                 getatt_attributes.insert(type_name.clone(), attrs.clone());
             }
 
-            // GetAtt attribute types: ALL top-level properties plus full-path
-            // readOnly attributes where type is resolvable, with the
-            // hand-maintained return-type corrections applied last so an
-            // overlay cannot regress them.
-            let mut attr_types = derive_getatt_attribute_types(schema, &attrs);
-            apply_getatt_return_type_overrides(type_name, &mut attr_types);
+            let attr_types = derive_getatt_attribute_types(schema);
             if !attr_types.is_empty() {
                 getatt_attribute_types.insert(type_name.clone(), attr_types);
             }
@@ -194,14 +157,16 @@ fn derive_getatt_attributes(schema: &CompiledSchema) -> Vec<String> {
     attrs
 }
 
-/// Derive GetAtt attribute return types. Includes:
-/// - Resolved types for ALL top-level properties (used for output type checking)
-/// - Full-path readOnly attributes where the type is resolvable
-fn derive_getatt_attribute_types(schema: &CompiledSchema, read_only_attrs: &[String]) -> HashMap<String, String> {
+/// Derive GetAtt attribute return types, matching the build-time generator:
+/// - The resolved primary type of every top-level property (output string-type
+///   and property type-mismatch checks look attributes up here)
+/// - Every nested readOnly attribute path (such as `Endpoint.Address`) whose
+///   type resolves
+/// - The hand-maintained return-type corrections applied last, so an overlay
+///   cannot regress them
+pub(crate) fn derive_getatt_attribute_types(schema: &CompiledSchema) -> HashMap<String, String> {
     let mut types = HashMap::new();
 
-    // ALL top-level properties (matching build-time codegen which iterates
-    // over raw `properties` and extracts `type`)
     for (name, prop) in &schema.properties {
         let resolved = prop.resolve(&schema.definitions);
         if let Some(pt) = resolved.prop_type.as_ref().and_then(|p| p.primary()) {
@@ -209,8 +174,7 @@ fn derive_getatt_attribute_types(schema: &CompiledSchema, read_only_attrs: &[Str
         }
     }
 
-    // Full-path readOnly attributes (nested paths like "Config.Endpoint")
-    for attr in read_only_attrs {
+    for attr in &schema.read_only_properties {
         if attr.contains('.')
             && let Some(prop_type) = resolve_property_type(schema, attr)
         {
@@ -218,14 +182,19 @@ fn derive_getatt_attribute_types(schema: &CompiledSchema, read_only_attrs: &[Str
         }
     }
 
+    apply_getatt_return_type_overrides(&schema.type_name, &mut types);
     types
 }
 
 /// Derive primary identifier property names, matching build-time semantics:
+/// - A type in the shared override table uses its overriding properties
 /// - Exclude the whole entry if any primary path is readOnly
 /// - Include only non-nested root property names
 /// - Returns None if the schema has no primaryIdentifier or should be excluded
 fn derive_primary_identifiers(schema: &CompiledSchema, read_only_set: &HashSet<&str>) -> Option<Vec<String>> {
+    if let Some(overridden) = primary_identifier_override(&schema.type_name) {
+        return Some(overridden);
+    }
     if schema.primary_identifier.is_empty() {
         return None;
     }
@@ -261,7 +230,7 @@ fn derive_primary_identifiers(schema: &CompiledSchema, read_only_set: &HashSet<&
 /// - No entry when primaryIdentifier is empty
 /// - "string" when multiple identifiers, readOnly, or unresolvable
 /// - Otherwise the resolved single property type
-fn derive_ref_return_type(schema: &CompiledSchema, read_only_set: &HashSet<&str>) -> Option<String> {
+pub(crate) fn derive_ref_return_type(schema: &CompiledSchema, read_only_set: &HashSet<&str>) -> Option<String> {
     if schema.primary_identifier.is_empty() {
         return None;
     }
@@ -323,56 +292,38 @@ fn resolve_nested_property_type(
     resolve_nested_property_type(schema, &remaining_parts[1..], &resolved.properties, visited_refs)
 }
 
-/// Build the schema metadata entry for a resource type matching the JSON shape
-/// consumed by the rule engines. Recursively processes nested sub-properties
-/// and array items to match the build-time `process.rs` output.
+/// Build the schema metadata entry for a resource type in the shared typed
+/// model: the type's top-level properties, each with its primary type, allowed
+/// values, and own scalar constraints. Matches the build-time `process.rs`
+/// output field for field, which the parity test below enforces.
 fn derive_schema_metadata(schema: &CompiledSchema) -> SchemaMetadataEntry {
     let mut properties: Vec<String> = schema.properties.keys().cloned().collect();
     properties.sort();
 
-    let required = schema.required.clone();
-
     let mut property_types: HashMap<String, String> = HashMap::new();
     let mut property_enums: HashMap<String, Vec<serde_json::Value>> = HashMap::new();
-    let mut property_constraints: HashMap<String, serde_json::Value> = HashMap::new();
-
-    let mut visiting: HashSet<String> = HashSet::new();
+    let mut property_constraints: HashMap<String, SchemaPropertyConstraints> = HashMap::new();
 
     for (name, prop) in &schema.properties {
-        // Guard recursive refs deterministically
-        let ref_name = prop.ref_name.clone();
-        if let Some(ref rn) = ref_name {
-            if visiting.contains(rn) {
-                continue;
-            }
-            visiting.insert(rn.clone());
-        }
-
         let resolved = prop.resolve(&schema.definitions);
-        // Type
         if let Some(pt) = resolved.prop_type.as_ref().and_then(|p| p.primary()) {
             property_types.insert(name.clone(), pt.to_string());
         }
-        // Enums
+        // `enum` and `enumCaseInsensitive` are one value set in two comparison
+        // modes; a property carries one of them.
         if !resolved.enum_values.is_empty() {
             property_enums.insert(name.clone(), resolved.enum_values.clone());
         } else if !resolved.enum_case_insensitive.is_empty() {
             property_enums.insert(name.clone(), resolved.enum_case_insensitive.clone());
         }
-        // Constraints (scalar/format/nested/items)
-        let constraint = build_property_constraint(&resolved, &schema.definitions, &mut visiting);
-        if !constraint.is_null() {
+        if let Some(constraint) = build_property_constraint(&resolved) {
             property_constraints.insert(name.clone(), constraint);
-        }
-
-        if let Some(ref rn) = ref_name {
-            visiting.remove(rn);
         }
     }
 
     SchemaMetadataEntry {
         properties,
-        required,
+        required: schema.required.clone(),
         property_types,
         property_enums,
         property_constraints,
@@ -380,169 +331,63 @@ fn derive_schema_metadata(schema: &CompiledSchema) -> SchemaMetadataEntry {
         dependent_excluded: schema.dependent_excluded.clone(),
         required_or: schema.required_or.clone(),
         required_xor: schema.required_xor.clone(),
+        ..Default::default()
     }
 }
 
-fn string_list_map_to_value(values: &HashMap<String, Vec<String>>) -> serde_json::Value {
-    let mut keys: Vec<&String> = values.keys().collect();
-    keys.sort();
-    let mut object = serde_json::Map::new();
-    for key in keys {
-        object.insert(
-            key.clone(),
-            serde_json::Value::Array(values[key].iter().cloned().map(serde_json::Value::String).collect()),
-        );
+/// Convert a schema `minimum`/`maximum` (stored as `f64`) into the JSON number
+/// form the build-time artifact records: a whole value becomes an integer, and
+/// any other finite value keeps its decimal form. The integer conversion
+/// saturates at the `i64` range, which is how the artifact's largest bound
+/// (`i64::MAX`, not exactly representable as `f64`) reads back as itself.
+/// Returns `None` only for a non-finite value, which a JSON-sourced bound can
+/// never be.
+fn f64_to_number(value: f64) -> Option<serde_json::Number> {
+    if value.fract() == 0.0 && value >= i64::MIN as f64 && value <= i64::MAX as f64 {
+        Some(serde_json::Number::from(value as i64))
+    } else {
+        serde_json::Number::from_f64(value)
     }
-    serde_json::Value::Object(object)
 }
 
-/// Serialize an f64 as a JSON integer when it represents a whole number,
-/// matching the JSON representation that process.rs produces from raw schema
-/// values (which are always parsed as serde_json::Number, not f64).
-fn f64_to_json(v: f64) -> serde_json::Value {
-    if v.fract() == 0.0 && v.abs() < (i64::MAX as f64) { serde_json::json!(v as i64) } else { serde_json::json!(v) }
-}
-
-/// Build the constraint JSON object for a resolved property schema.
-/// Matches the build-time `extract_property_constraints` in process.rs.
-fn build_property_constraint(
-    prop: &PropSchema,
-    definitions: &HashMap<String, PropSchema>,
-    visiting: &mut HashSet<String>,
-) -> serde_json::Value {
-    let mut obj = serde_json::Map::new();
-
-    if let Some(ref v) = prop.pattern {
-        obj.insert("pattern".into(), serde_json::json!(v));
-    }
-    if let Some(v) = prop.minimum {
-        obj.insert("minimum".into(), f64_to_json(v));
-    }
-    if let Some(v) = prop.maximum {
-        obj.insert("maximum".into(), f64_to_json(v));
-    }
-    if let Some(v) = prop.min_length {
-        obj.insert("minLength".into(), serde_json::json!(v));
-    }
-    if let Some(v) = prop.max_length {
-        obj.insert("maxLength".into(), serde_json::json!(v));
-    }
-    if let Some(v) = prop.min_items {
-        obj.insert("minItems".into(), serde_json::json!(v));
-    }
-    if let Some(v) = prop.max_items {
-        obj.insert("maxItems".into(), serde_json::json!(v));
-    }
-    if let Some(ref v) = prop.format {
-        obj.insert("format".into(), serde_json::json!(v));
-    }
-    if let Some(true) = prop.unique_items {
-        obj.insert("uniqueItems".into(), serde_json::json!(true));
-    }
-
-    // Nested sub-properties (object type with properties)
-    if !prop.properties.is_empty() {
-        let sub = build_nested_metadata(&prop.properties, &prop.required, definitions, visiting);
-        obj.insert("sub_properties".into(), sub);
-        if !prop.dependent_required.is_empty() {
-            obj.insert("dependent_required".into(), string_list_map_to_value(&prop.dependent_required));
-        }
-        if !prop.dependent_excluded.is_empty() {
-            obj.insert("dependent_excluded".into(), string_list_map_to_value(&prop.dependent_excluded));
-        }
-    }
-
-    // Array items
-    if let Some(ref items_schema) = prop.items {
-        let item_ref_name = items_schema.ref_name.clone();
-        let skip_items = item_ref_name.as_ref().map(|n| visiting.contains(n)).unwrap_or(false);
-        if !skip_items {
-            if let Some(ref rn) = item_ref_name {
-                visiting.insert(rn.clone());
-            }
-            let resolved_items = items_schema.resolve(definitions);
-            let mut item_obj = serde_json::Map::new();
-            if let Some(pt) = resolved_items.prop_type.as_ref().and_then(|p| p.primary()) {
-                item_obj.insert("type".into(), serde_json::Value::String(pt.to_string()));
-            }
-            if !resolved_items.properties.is_empty() {
-                let nested =
-                    build_nested_metadata(&resolved_items.properties, &resolved_items.required, definitions, visiting);
-                item_obj.insert("schema".into(), nested);
-            }
-            if !resolved_items.dependent_required.is_empty() {
-                item_obj
-                    .insert("dependent_required".into(), string_list_map_to_value(&resolved_items.dependent_required));
-            }
-            if !resolved_items.dependent_excluded.is_empty() {
-                item_obj
-                    .insert("dependent_excluded".into(), string_list_map_to_value(&resolved_items.dependent_excluded));
-            }
-            if !item_obj.is_empty() {
-                obj.insert("items".into(), serde_json::Value::Object(item_obj));
-            }
-            if let Some(ref rn) = item_ref_name {
-                visiting.remove(rn);
-            }
-        }
-    }
-
-    if obj.is_empty() { serde_json::Value::Null } else { serde_json::Value::Object(obj) }
-}
-
-/// Builds a nested metadata object for sub-properties, matching the recursive
-/// `build_property_schema_obj` shape from process.rs.
-fn build_nested_metadata(
-    properties: &HashMap<String, PropSchema>,
-    required: &[String],
-    definitions: &HashMap<String, PropSchema>,
-    visiting: &mut HashSet<String>,
-) -> serde_json::Value {
-    let mut props: Vec<String> = properties.keys().cloned().collect();
-    props.sort();
-    let req: Vec<String> = required.to_vec();
-    let mut pt: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
-    let mut pe: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
-    let mut pc: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
-
-    for (pn, ps) in properties {
-        let ref_name = ps.ref_name.clone();
-        if let Some(ref rn) = ref_name {
-            if visiting.contains(rn) {
-                continue;
-            }
-            visiting.insert(rn.clone());
-        }
-
-        let resolved = ps.resolve(definitions);
-        if let Some(t) = resolved.prop_type.as_ref().and_then(|p| p.primary()) {
-            pt.insert(pn.clone(), serde_json::Value::String(t.to_string()));
-        }
-        if !resolved.enum_values.is_empty() {
-            pe.insert(pn.clone(), serde_json::json!(resolved.enum_values));
-        } else if !resolved.enum_case_insensitive.is_empty() {
-            pe.insert(pn.clone(), serde_json::json!(resolved.enum_case_insensitive));
-        }
-        let constraints = build_property_constraint(&resolved, definitions, visiting);
-        if !constraints.is_null() {
-            pc.insert(pn.clone(), constraints);
-        }
-
-        if let Some(ref rn) = ref_name {
-            visiting.remove(rn);
-        }
-    }
-
-    let mut obj = serde_json::json!({
-        "properties": props,
-        "required": req,
-        "property_types": pt,
-        "property_enums": pe,
-    });
-    if !pc.is_empty() {
-        obj["property_constraints"] = serde_json::Value::Object(pc);
-    }
-    obj
+/// Build the typed constraints for a resolved property schema, or `None` when
+/// the property states no scalar constraint of its own. Matches the build-time
+/// `extract_property_constraints` in process.rs.
+fn build_property_constraint(prop: &PropSchema) -> Option<SchemaPropertyConstraints> {
+    let constraints = SchemaPropertyConstraints {
+        pattern: prop.pattern.clone(),
+        minimum: prop.minimum.and_then(f64_to_number),
+        maximum: prop.maximum.and_then(f64_to_number),
+        min_length: prop.min_length,
+        max_length: prop.max_length,
+        min_items: prop.min_items,
+        max_items: prop.max_items,
+        format: prop.format.clone(),
+        unique_items: (prop.unique_items == Some(true)).then_some(true),
+        additional: Default::default(),
+    };
+    let SchemaPropertyConstraints {
+        pattern,
+        minimum,
+        maximum,
+        min_length,
+        max_length,
+        min_items,
+        max_items,
+        format,
+        unique_items,
+        additional: _,
+    } = &constraints;
+    let any = pattern.is_some()
+        || minimum.is_some()
+        || maximum.is_some()
+        || min_length.is_some()
+        || max_length.is_some()
+        || min_items.is_some()
+        || max_items.is_some()
+        || format.is_some()
+        || unique_items.is_some();
+    any.then_some(constraints)
 }
 
 #[cfg(test)]
@@ -671,8 +516,8 @@ mod tests {
 
         // Constraints for Name
         let name_constraints = meta.property_constraints.get("Name").expect("Name constraints");
-        assert_eq!(name_constraints.get("minLength"), Some(&json!(1)));
-        assert_eq!(name_constraints.get("maxLength"), Some(&json!(64)));
+        assert_eq!(name_constraints.min_length, Some(1));
+        assert_eq!(name_constraints.max_length, Some(64));
     }
 
     #[test]
@@ -759,7 +604,7 @@ mod tests {
     }
 
     #[test]
-    fn catalog_nested_metadata_and_items() {
+    fn catalog_metadata_describes_top_level_properties_only() {
         let mut store = CompiledSchemaStore::new();
         store
             .apply_overlay(
@@ -772,10 +617,13 @@ mod tests {
                                 "Name": { "type": "string", "maxLength": 32 },
                                 "Port": { "type": "integer", "minimum": 1 }
                             },
-                            "required": ["Name"]
+                            "required": ["Name"],
+                            "dependentRequired": { "Name": ["Port"] }
                         },
                         "Items": {
                             "type": "array",
+                            "minItems": 1,
+                            "uniqueItems": true,
                             "items": {
                                 "type": "object",
                                 "properties": {
@@ -784,7 +632,10 @@ mod tests {
                                 },
                                 "required": ["Key"]
                             }
-                        }
+                        },
+                        "Document": { "type": ["object", "string"] },
+                        "Mode": { "type": "string", "enumCaseInsensitive": ["fast", "slow"] },
+                        "Ratio": { "type": "number", "minimum": 0.5, "maximum": 2.0 }
                     },
                     "additionalProperties": false
                 }),
@@ -794,26 +645,27 @@ mod tests {
         let catalog = OverlayCatalog::from_store(&store, &["AWS::Test::Nested".to_string()]);
         let meta = catalog.schema_metadata.get("AWS::Test::Nested").expect("metadata");
 
-        // Config has sub_properties
-        let config_c = meta.property_constraints.get("Config").expect("Config constraints");
-        let sub = config_c.get("sub_properties").expect("sub_properties for Config");
-        assert!(sub["properties"].as_array().unwrap().contains(&json!("Name")));
-        assert!(sub["properties"].as_array().unwrap().contains(&json!("Port")));
-        assert!(sub["required"].as_array().unwrap().contains(&json!("Name")));
-        assert_eq!(sub["property_types"]["Name"], json!("string"));
-        assert_eq!(sub["property_types"]["Port"], json!("integer"));
-        let name_c = sub["property_constraints"]["Name"].as_object().expect("Name constraints in sub");
-        assert_eq!(name_c.get("maxLength"), Some(&json!(32)));
-        let port_c = sub["property_constraints"]["Port"].as_object().expect("Port constraints in sub");
-        assert_eq!(port_c.get("minimum"), Some(&json!(1)));
+        // A nested object states no scalar constraint of its own, so it has no
+        // constraint entry; its sub-properties and dependency groups belong to the
+        // schema validator, not the metadata.
+        assert_eq!(meta.property_types.get("Config"), Some(&"object".to_string()));
+        assert!(!meta.property_constraints.contains_key("Config"), "nested shape must not be repeated");
+        assert!(meta.dependent_required.is_empty(), "a nested dependency group is not lifted to the resource");
 
-        // Items has items schema
+        // An array records its own bounds and uniqueness, not its element schema.
         let items_c = meta.property_constraints.get("Items").expect("Items constraints");
-        let items = items_c.get("items").expect("items sub-schema");
-        assert_eq!(items["type"], json!("object"));
-        let items_schema = items.get("schema").expect("items.schema");
-        assert!(items_schema["properties"].as_array().unwrap().contains(&json!("Key")));
-        assert!(items_schema["required"].as_array().unwrap().contains(&json!("Key")));
+        assert_eq!(items_c.min_items, Some(1));
+        assert_eq!(items_c.unique_items, Some(true));
+        assert!(items_c.additional.is_empty());
+
+        // A union type reports its first declared member; case-insensitive enum
+        // values are the property's allowed values; a whole-number bound written
+        // as a float reads back as an integer.
+        assert_eq!(meta.property_types.get("Document"), Some(&"object".to_string()));
+        assert_eq!(meta.property_enums.get("Mode"), Some(&vec![json!("fast"), json!("slow")]));
+        let ratio_c = meta.property_constraints.get("Ratio").expect("Ratio constraints");
+        assert_eq!(ratio_c.minimum, Some(serde_json::Number::from_f64(0.5).expect("finite")));
+        assert_eq!(ratio_c.maximum, Some(serde_json::Number::from(2)));
     }
 
     #[test]
@@ -937,9 +789,9 @@ mod tests {
         let catalog = OverlayCatalog::from_store(&store, &["AWS::Test::Format".to_string()]);
         let meta = catalog.schema_metadata.get("AWS::Test::Format").expect("metadata");
         let email_c = meta.property_constraints.get("Email").expect("Email constraints");
-        assert_eq!(email_c.get("format"), Some(&json!("email")));
+        assert_eq!(email_c.format.as_deref(), Some("email"));
         let arn_c = meta.property_constraints.get("Arn").expect("Arn constraints");
-        assert_eq!(arn_c.get("format"), Some(&json!("AWS::EC2::VPC.Id")));
+        assert_eq!(arn_c.format.as_deref(), Some("AWS::EC2::VPC.Id"));
     }
 
     #[test]
@@ -990,5 +842,139 @@ mod tests {
         let meta = catalog.schema_metadata.get("AWS::Test::OrXor").expect("metadata");
         assert_eq!(meta.required_or, vec!["A".to_string(), "B".to_string()]);
         assert_eq!(meta.required_xor, vec!["B".to_string(), "C".to_string()]);
+    }
+
+    /// The runtime derivation (from `CompiledSchema`) and the committed artifact
+    /// (built by `process.rs` from the raw provider schemas) are two paths to the
+    /// same metadata. An overlaid type replaces its artifact entry with the derived
+    /// one, so the two must agree exactly on every bundled type: property names,
+    /// required lists, primary types, allowed values, scalar constraints, and
+    /// dependency groups. Order-insensitive fields are compared as sets so map
+    /// iteration order cannot cause a spurious mismatch.
+    #[test]
+    fn full_catalog_derivation_matches_committed_artifact() {
+        let document: data_source::types::SchemaMetadataDocument =
+            serde_json::from_slice(&data_source::embedded::SCHEMA_METADATA_BYTES).expect("committed artifact parses");
+        let store = CompiledSchemaStore::new();
+        let mut checked = 0usize;
+        let mut mismatches: Vec<String> = Vec::new();
+        for (type_name, artifact_entry) in &document.schema_metadata {
+            let Some(schema) = store.get(type_name) else {
+                mismatches.push(format!("{type_name}: in the artifact but not in the compiled store"));
+                continue;
+            };
+            let derived = derive_schema_metadata(schema);
+            checked += 1;
+
+            let mut report = |field: &str, artifact: &dyn std::fmt::Debug, derived: &dyn std::fmt::Debug| {
+                mismatches
+                    .push(format!("{type_name}: {field} diverges\n  artifact: {artifact:?}\n  derived:  {derived:?}"));
+            };
+            if derived.properties != artifact_entry.properties {
+                report("properties", &artifact_entry.properties, &derived.properties);
+            }
+            if derived.required != artifact_entry.required {
+                report("required", &artifact_entry.required, &derived.required);
+            }
+            if derived.property_types != artifact_entry.property_types {
+                report("property_types", &artifact_entry.property_types, &derived.property_types);
+            }
+            if derived.property_enums != artifact_entry.property_enums {
+                report("property_enums", &artifact_entry.property_enums, &derived.property_enums);
+            }
+            let artifact_constraints = serde_json::to_value(&artifact_entry.property_constraints).expect("serializes");
+            let derived_constraints = serde_json::to_value(&derived.property_constraints).expect("serializes");
+            if artifact_constraints != derived_constraints {
+                report("property_constraints", &artifact_constraints, &derived_constraints);
+            }
+            if derived.dependent_required != artifact_entry.dependent_required {
+                report("dependent_required", &artifact_entry.dependent_required, &derived.dependent_required);
+            }
+            if derived.dependent_excluded != artifact_entry.dependent_excluded {
+                report("dependent_excluded", &artifact_entry.dependent_excluded, &derived.dependent_excluded);
+            }
+            if derived.required_or != artifact_entry.required_or {
+                report("required_or", &artifact_entry.required_or, &derived.required_or);
+            }
+            if derived.required_xor != artifact_entry.required_xor {
+                report("required_xor", &artifact_entry.required_xor, &derived.required_xor);
+            }
+            assert!(derived.additional.is_empty(), "{type_name}: derived entry must not carry unmodeled fields");
+        }
+        assert_eq!(
+            checked,
+            store.len(),
+            "every compiled schema must have an artifact entry (artifact has {}, store has {})",
+            document.schema_metadata.len(),
+            store.len()
+        );
+        assert!(
+            mismatches.is_empty(),
+            "{} bundled type(s) derive differently from the committed artifact:\n{}",
+            mismatches.len(),
+            mismatches.join("\n")
+        );
+    }
+
+    /// The GetAtt, primary-identifier, and Ref-return catalogs the runtime derives
+    /// for an overlaid type must match what the build pipeline records for the
+    /// same bundled type, so applying an overlay never changes how an untouched
+    /// attribute or identifier is typed. GetAtt attribute *names* are compared as
+    /// a subset because the artifact also folds in the attributes CloudFormation
+    /// exposes beyond the schema's readOnly properties.
+    #[test]
+    fn full_catalog_derivation_matches_committed_getatt_primary_and_ref_artifacts() {
+        #[derive(serde::Deserialize)]
+        struct RefTypesArtifact {
+            ref_returns: HashMap<String, String>,
+        }
+        let getatt: data_source::types::GetattData =
+            serde_json::from_slice(&data_source::embedded::GETATT_ATTRIBUTES_BYTES).expect("getatt artifact parses");
+        let primary: data_source::types::PrimaryIdentifiers =
+            serde_json::from_slice(&data_source::embedded::PRIMARY_IDENTIFIERS_BYTES).expect("primary ids parse");
+        let refs: RefTypesArtifact =
+            serde_json::from_slice(&data_source::embedded::REF_TYPES_BYTES).expect("ref_types artifact parses");
+
+        let store = CompiledSchemaStore::new();
+        let type_names: Vec<String> = store.type_names().map(String::from).collect();
+        let catalog = OverlayCatalog::from_store(&store, &type_names);
+
+        let mut mismatches: Vec<String> = Vec::new();
+        for type_name in &type_names {
+            let artifact_attrs = getatt.getatt_attributes.get(type_name).cloned().unwrap_or_default();
+            for attr in catalog.getatt_attributes.get(type_name).into_iter().flatten() {
+                if !artifact_attrs.contains(attr) {
+                    mismatches
+                        .push(format!("{type_name}: derived GetAtt attribute '{attr}' missing from the artifact"));
+                }
+            }
+            let artifact_types = getatt.getatt_attribute_types.get(type_name).cloned().unwrap_or_default();
+            let derived_types = catalog.getatt_attribute_types.get(type_name).cloned().unwrap_or_default();
+            if artifact_types != derived_types {
+                mismatches.push(format!(
+                    "{type_name}: getatt_attribute_types diverge\n  artifact: {artifact_types:?}\n  derived:  {derived_types:?}"
+                ));
+            }
+            if primary.primary_identifiers.get(type_name) != catalog.primary_identifiers.get(type_name) {
+                mismatches.push(format!(
+                    "{type_name}: primary_identifiers diverge\n  artifact: {:?}\n  derived:  {:?}",
+                    primary.primary_identifiers.get(type_name),
+                    catalog.primary_identifiers.get(type_name)
+                ));
+            }
+            if refs.ref_returns.get(type_name) != catalog.ref_returns.get(type_name) {
+                mismatches.push(format!(
+                    "{type_name}: ref_returns diverge\n  artifact: {:?}\n  derived:  {:?}",
+                    refs.ref_returns.get(type_name),
+                    catalog.ref_returns.get(type_name)
+                ));
+            }
+        }
+        assert!(
+            mismatches.is_empty(),
+            "{} bundled type(s) derive differently from the committed artifacts:\n{}",
+            mismatches.len(),
+            mismatches.join("\n")
+        );
     }
 }

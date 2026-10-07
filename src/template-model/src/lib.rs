@@ -1,14 +1,19 @@
 #[cfg(feature = "uniffi-bindings")]
 uniffi::setup_scaffolding!();
 
+pub(crate) mod authored_template;
+pub mod budget;
 pub mod coercion;
 pub mod conditions;
 pub mod consts;
 pub mod defect;
 pub mod diagnostic;
 pub(crate) mod dynamic_ref;
+pub mod dynamodb;
+pub mod fargate;
 pub(crate) mod graph;
 pub mod hardcoded_az;
+pub mod iam_policy;
 pub(crate) mod intrinsic_arg_shapes;
 pub mod ir;
 pub mod json_value;
@@ -23,6 +28,7 @@ pub mod region_enums;
 pub mod regions;
 pub mod resolved_value;
 pub mod resolver;
+pub mod route_table;
 pub(crate) mod rules;
 pub(crate) mod sam;
 pub mod schedule;
@@ -32,7 +38,9 @@ pub mod template_section;
 pub(crate) mod transform_expansion;
 pub(crate) mod value_identity;
 pub mod value_patterns;
+pub mod vpc_cidr;
 
+pub use budget::BudgetKind;
 pub use consts::PSEUDO_PARAMETERS;
 pub use consts::{
     DEFAULT_ACCOUNT_ID, DEFAULT_STACK_NAME, FORMAT_VERSION, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM,
@@ -42,7 +50,7 @@ pub use consts::{
 pub use defect::{DefectPhase, ParseDefect};
 pub use ir::*;
 pub use json_value::JsonValue;
-pub use message::{quote, render_str_list, render_value, render_value_list};
+pub use message::{primary_identifier_conflict_message, quote, render_str_list, render_value, render_value_list};
 pub use model::{ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
 pub use pattern::{
     CompiledPattern, anchor_allowed_pattern, compile as compile_pattern, default_matches_pattern, is_service_valid,
@@ -52,6 +60,7 @@ pub use regions::{
     availability_zones_for_region, is_known_region, partition_for_region, url_suffix_for_region,
 };
 pub use schedule::schedule_expression_errors;
+pub use serialization::resolved_value_to_json;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};
 pub use template_section::{EntityType, TopLevelSection, entity_identity};
 pub use value_patterns::{
@@ -60,3 +69,7 @@ pub use value_patterns::{
 };
 
 pub(crate) use defect::{make_parse_defect, make_parse_defect_at, make_parse_defect_for_resource};
+
+pub fn is_custom_resource_type(resource_type: &str) -> bool {
+    resource_type.starts_with("Custom::") || resource_type == "AWS::CloudFormation::CustomResource"
+}

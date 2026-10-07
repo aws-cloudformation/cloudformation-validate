@@ -307,6 +307,28 @@ export interface DiagnosticRuleAssertion {
 }
 
 /**
+ * A single budget-exhaustion record in report metadata.
+ */
+export interface BudgetExhaustionRecord {
+    /**
+     * Stable lower camelCase budget kind identifier.
+     */
+    kind: string;
+    /**
+     * Human-readable explanation of the exhausted budget.
+     */
+    description?: string;
+    /**
+     * The numeric limit that was exhausted.
+     */
+    limit: number;
+    /**
+     * Whether exhausting this budget makes the overall analysis incomplete.
+     */
+    analysisIncomplete: boolean;
+}
+
+/**
  * A single edge in the template\'s reference graph, from a referencing resource to its target.
  */
 export interface ReferenceEdge {
@@ -334,6 +356,53 @@ export interface ReferenceEdge {
      * Name of the condition under which this reference is active, if it is inside a conditional branch.
      */
     conditionContext?: string;
+}
+
+/**
+ * A single validation finding in the public report shape: the targeted entity is
+ * carried as a nested `entity` struct and the source location is flattened into
+ * individual line/column fields. The enrichment fields - `documentation_url`,
+ * `rule_description`, `phase`, and `context` - are carried only when a report is
+ * projected at the `DETAILED` detail level; the `STANDARD` detail level leaves them
+ * `None`, so they are omitted from serialization.
+ */
+export interface Diagnostic {
+    /**
+     * Identifier of the rule that produced this finding; its leading letter encodes the severity.
+     */
+    ruleId: string;
+    severity: Severity;
+    message: string;
+    /**
+     * Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
+     */
+    source: RuleOrigin;
+    /**
+     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
+     */
+    entity?: Entity;
+    /**
+     * Path to the offending property within the resource, such as \'Properties.Name\'.
+     */
+    propertyPath?: string;
+    suggestedFix?: string;
+    category?: string;
+    /**
+     * Line in the source template where the finding begins (1-based).
+     */
+    startLine?: number;
+    startColumn?: number;
+    endLine?: number;
+    endColumn?: number;
+    relatedResources?: RelatedResource[];
+    /**
+     * Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
+     */
+    conditionScenario?: Record<string, boolean>;
+    documentationUrl?: string;
+    ruleDescription?: string;
+    phase?: Phase;
+    context?: ViolationContext;
 }
 
 /**
@@ -605,6 +674,41 @@ export interface RelatedResource {
 }
 
 /**
+ * Configuration for a composite engine that evaluates the built-in rules with
+ * one engine and caller-supplied external rules with another.
+ *
+ * The built-in rules are always evaluated, so this config only carries the
+ * external rules layered on top plus the shared schema configuration. Custom
+ * rules can be supplied in all three formats: Rego rules are evaluated by the
+ * external engine, while CEL custom rules and Guard rules are evaluated by the
+ * engine that owns the built-ins. It has no field for engine-native built-in
+ * custom rules because the composite fixes which engine owns the built-ins.
+ */
+export interface CompositeEngineConfig {
+    /**
+     * Custom Rego rules layered on top of the built-in rules.
+     */
+    regoRules?: ExternalRuleSource[];
+    /**
+     * Custom CEL rules layered on top of the built-in rules. They are evaluated
+     * by the same engine that owns the built-ins, since CEL custom rules are a
+     * CEL-engine feature.
+     */
+    celRules?: ExternalRuleSource[];
+    /**
+     * Guard DSL rules as raw source text, layered on top of the built-in rules.
+     */
+    guardRules?: ExternalRuleSource[];
+    /**
+     * Optional schema validator configuration. A standalone engine derives its
+     * schema-aware rule metadata from this config. Language APIs also use it to
+     * construct the schema validator bundled with the engine, so both components
+     * observe the same additional schemas.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
+}
+
+/**
  * Configuration for constructing a [`SchemaValidator`] with optional overlay
  * schemas. Bindings and the CLI use this to build the validator separately from
  * the rule engine.
@@ -623,19 +727,7 @@ export interface SchemaValidatorConfig {
 export type DetailLevel = 'STANDARD' | 'DETAILED';
 
 /**
- * Detailed validation result: like the standard report but with per-diagnostic context and enrichment.
- */
-export interface DetailedReport {
-    filePath: string;
-    status: ReportStatus;
-    version: string;
-    metadata: ReportMetadata;
-    performance: PerformanceMetrics;
-    diagnostics: DetailedDiagnostic[];
-}
-
-/**
- * Extra detail about a specific violation, present only in the detailed report.
+ * Extra detail about a specific violation, present only at the `DETAILED` detail level.
  */
 export interface ViolationContext {
     /**
@@ -692,10 +784,12 @@ export interface IdRange {
 }
 
 /**
- * Outcome of a validation run. `Ok` means the engine completed; `Error` means
- * the pipeline could not run (e.g. parse failure).
+ * Outcome of a validation run. `Ok` means validation completed without
+ * correctness-affecting curtailment. `AnalysisIncomplete` means a deterministic
+ * budget curtailed analysis in a way that could omit findings. `Error` means
+ * the validation pipeline could not run, such as when parsing fails.
  */
-export type ReportStatus = 'OK' | 'ERROR';
+export type ReportStatus = 'OK' | 'ANALYSIS_INCOMPLETE' | 'ERROR';
 
 /**
  * Per-resource observations collected while resolving intrinsics, used to drive lint checks.
@@ -764,19 +858,7 @@ export interface ResolutionSource {
 /**
  * Selects which validation engine evaluates rules.
  */
-export type EngineType = 'REGO' | 'CEL';
-
-/**
- * Standard validation result: the report plus flattened diagnostics.
- */
-export interface StandardReport {
-    filePath: string;
-    status: ReportStatus;
-    version: string;
-    metadata: ReportMetadata;
-    performance: PerformanceMetrics;
-    diagnostics: StandardDiagnostic[];
-}
+export type EngineType = 'REGO' | 'CEL' | 'COMPOSITE';
 
 /**
  * Suppress a rule for a specific logical resource ID. An absent `rule_id`
@@ -862,6 +944,20 @@ export interface Entity {
 }
 
 /**
+ * The serializable validation result: report metadata, performance metrics, and
+ * the flattened diagnostics. The per-diagnostic enrichment fields are present only
+ * when the report is projected at the `DETAILED` detail level.
+ */
+export interface ValidationReport {
+    filePath: string;
+    status: ReportStatus;
+    version: string;
+    metadata: ReportMetadata;
+    performance: PerformanceMetrics;
+    diagnostics: Diagnostic[];
+}
+
+/**
  * The template resource a diagnostic is attributed to, when it targets one.
  */
 export interface ResourceRef {
@@ -941,86 +1037,6 @@ export interface PseudoParameterOverrides {
  */
 export type RuleOrigin = 'SCHEMA' | 'CFN_LINT' | 'ENGINE' | 'CUSTOM' | 'GUARD';
 
-/**
- *r" A single validation finding with its source location flattened into individual fields.
- */
-export interface StandardDiagnostic {
-    /**
-     * Identifier of the rule that produced this finding; its leading letter encodes the severity.
-     */
-    ruleId: string;
-    severity: Severity;
-    message: string;
-    /**
-     * Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
-     */
-    source: RuleOrigin;
-    /**
-     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
-     */
-    entity?: Entity;
-    /**
-     * Path to the offending property within the resource, such as \'Properties.Name\'.
-     */
-    propertyPath?: string;
-    suggestedFix?: string;
-    category?: string;
-    /**
-     * Line in the source template where the finding begins (1-based).
-     */
-    startLine?: number;
-    startColumn?: number;
-    endLine?: number;
-    endColumn?: number;
-    relatedResources?: RelatedResource[];
-    /**
-     * Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
-     */
-    conditionScenario?: Record<string, boolean>;
-}
-
-/**
- *r" A validation finding with additional context and enrichment beyond the standard finding.
- */
-export interface DetailedDiagnostic {
-    /**
-     * Identifier of the rule that produced this finding; its leading letter encodes the severity.
-     */
-    ruleId: string;
-    severity: Severity;
-    message: string;
-    /**
-     * Where the rule came from, such as a provider schema, the built-in engine, or a user-supplied rule.
-     */
-    source: RuleOrigin;
-    /**
-     * The named template entity this finding targets - a resource, parameter, output, mapping, condition, or template rule - if any.
-     */
-    entity?: Entity;
-    /**
-     * Path to the offending property within the resource, such as \'Properties.Name\'.
-     */
-    propertyPath?: string;
-    suggestedFix?: string;
-    category?: string;
-    /**
-     * Line in the source template where the finding begins (1-based).
-     */
-    startLine?: number;
-    startColumn?: number;
-    endLine?: number;
-    endColumn?: number;
-    relatedResources?: RelatedResource[];
-    /**
-     * Condition name to boolean assignment under which this finding applies, when it depends on template conditions.
-     */
-    conditionScenario?: Record<string, boolean>;
-    documentationUrl?: string;
-    ruleDescription?: string;
-    phase?: Phase;
-    context?: ViolationContext;
-}
-
 export interface EngineConfig {
     /**
      * Engine-native custom rules (Rego or CEL depending on engine).
@@ -1074,6 +1090,11 @@ export interface ReportMetadata {
      * Minimum severity included in the report; lower-severity findings are omitted.
      */
     severityLevel: Severity;
+    /**
+     * Records of deterministic validation budgets exhausted during this run.
+     * Absent when no budget was exhausted.
+     */
+    budgetExhaustions?: BudgetExhaustionRecord[] | undefined;
 }
 
 export interface Summary {
@@ -1087,6 +1108,7 @@ export interface Summary {
 export interface ValidateConfig {
     include?: RuleFilterConfig;
     exclude?: RuleFilterConfig;
+    detailLevel?: DetailLevel;
     severityLevel?: Severity;
     parameterOverrides?: Record<string, string>;
     pseudoParameterOverrides?: PseudoParameterOverrides;
@@ -1095,7 +1117,7 @@ export interface ValidateConfig {
 }
 
 export interface WasmSchemaValidationResult {
-    diagnostics: StandardDiagnostic[];
+    diagnostics: Diagnostic[];
     metric: PhaseMetric;
 }
 
@@ -1107,8 +1129,18 @@ export class WasmCelEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: EngineConfig);
-    validateDetailed(template: Uint8Array, options: ValidateConfig, file_path: string): any;
-    validateStandard(template: Uint8Array, options: ValidateConfig, file_path: string): any;
+    validateAwsCliCommand(request: any): any;
+    validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
+}
+
+export class WasmCompositeEngine {
+    free(): void;
+    [Symbol.dispose](): void;
+    engineName(): string;
+    listRules(): any;
+    constructor(config: CompositeEngineConfig);
+    validateAwsCliCommand(request: any): any;
+    validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 
 export class WasmRegoEngine {
@@ -1117,8 +1149,8 @@ export class WasmRegoEngine {
     engineName(): string;
     listRules(): any;
     constructor(config: EngineConfig);
-    validateDetailed(template: Uint8Array, options: ValidateConfig, file_path: string): any;
-    validateStandard(template: Uint8Array, options: ValidateConfig, file_path: string): any;
+    validateAwsCliCommand(request: any): any;
+    validateTemplate(template: Uint8Array, options: ValidateConfig, file_path: string): any;
 }
 
 export class WasmSchemaValidator {

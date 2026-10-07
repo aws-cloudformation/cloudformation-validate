@@ -1,0 +1,143 @@
+# Properties whose values are only known at deployment - Fn::GetAtt,
+# Fn::ImportValue, or a Ref to a parameter without a default - are still
+# present. Rules that require a property must not report them as missing.
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DbPort:
+    Type: Number
+  ApiName:
+    Type: String
+  TlsEnabled:
+    Type: String
+    AllowedValues: ['true', 'false']
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: regression
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.0.0/24
+      Tags:
+        - Key: Name
+          Value: regression
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      Tags:
+        - Key: Name
+          Value: regression
+  Cluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: aurora-postgresql
+      MasterUsername: clusteradmin
+      MasterUserPassword: '{{resolve:secretsmanager:cluster-secret}}'
+      BackupRetentionPeriod: 7
+      Tags:
+        - Key: Name
+          Value: regression
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Ports taken from a resource attribute
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 10.0.0.0/16
+          FromPort: !GetAtt Cluster.Endpoint.Port
+          ToPort: !GetAtt Cluster.Endpoint.Port
+      Tags:
+        - Key: Name
+          Value: regression
+  IngressFromAttribute:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      CidrIp: 10.0.0.0/16
+      FromPort: !GetAtt Cluster.Endpoint.Port
+      ToPort: !GetAtt Cluster.Endpoint.Port
+  IngressFromImport:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      CidrIp: 10.0.0.0/16
+      FromPort: !ImportValue SharedPort
+      ToPort: !ImportValue SharedPort
+  EgressFromParameter:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: udp
+      CidrIp: 10.0.0.0/16
+      FromPort: !Ref DbPort
+      ToPort: !Ref DbPort
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: example.com
+      Tags:
+        - Key: Name
+          Value: regression
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets: [!Ref Subnet1, !Ref Subnet2]
+      Tags:
+        - Key: Name
+          Value: regression
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref Vpc
+      Port: 80
+      Protocol: HTTP
+      Tags:
+        - Key: Name
+          Value: regression
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref Certificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+  RestApiNamedByParameter:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Ref ApiName
+      Tags:
+        - Key: Name
+          Value: regression
+  RestApiFromImportedBody:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Body: !ImportValue SharedOpenApiBody
+      Tags:
+        - Key: Name
+          Value: regression
+  ValkeyGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    Properties:
+      ReplicationGroupDescription: Transit encryption chosen at deployment
+      Engine: valkey
+      CacheNodeType: cache.t4g.micro
+      TransitEncryptionEnabled: !Ref TlsEnabled
+      Tags:
+        - Key: Name
+          Value: regression

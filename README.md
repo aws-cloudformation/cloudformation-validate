@@ -1,8 +1,23 @@
-# cloudformation-validate
+# AWS CloudFormation Validate
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/aws-cloudformation/cloudformation-validate?include_prereleases)](https://github.com/aws-cloudformation/cloudformation-validate/releases)
 [![Main CI](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/aws-cloudformation/cloudformation-validate/actions/workflows/codeql.yml)
+[![inspect.software](https://raw.githubusercontent.com/inspect-software/badges/main/v1/a/aws-cloudformation/cloudformation-validate.svg)](https://inspect.software/software/aws-cloudformation/cloudformation-validate)
+[![Offline](https://img.shields.io/badge/runtime-fully%20offline-success)](#features)
+
+[![crates.io version](https://img.shields.io/crates/v/cloudformation-validate?logo=rust)](https://crates.io/crates/cloudformation-validate)
+[![npm version](https://img.shields.io/npm/v/%40aws%2Fcloudformation-validate?logo=npm)](https://www.npmjs.com/package/@aws/cloudformation-validate)
+[![Maven Central](https://img.shields.io/maven-central/v/software.amazon.cloudformation/cloudformation-validate?logo=apachemaven)](https://central.sonatype.com/artifact/software.amazon.cloudformation/cloudformation-validate)
+[![PyPI version](https://img.shields.io/pypi/v/cloudformation-validate?logo=pypi)](https://pypi.org/project/cloudformation-validate/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go.svg)](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go)
+
+[![Rust toolchain](https://img.shields.io/badge/Rust%20toolchain-1.96.0-orange?logo=rust)](src/rust-toolchain.toml)
+[![Node.js](https://img.shields.io/node/v/%40aws%2Fcloudformation-validate?logo=nodedotjs)](src/bindings-wasm/README.md)
+[![Python](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftest.pypi.org%2Fpypi%2Fcloudformation-validate%2Fjson&query=%24.info.requires_python&label=Python&logo=python)](src/bindings-python/README.md)
+[![Go](https://img.shields.io/badge/Go-%3E%3D1.26-00ADD8?logo=go)](src/bindings-go/README.md)
+[![JVM](https://img.shields.io/badge/JVM-8%2B-orange?logo=openjdk)](src/bindings-jvm/README.md)
 
 Fast, offline, embeddable validation for AWS CloudFormation templates.
 
@@ -19,14 +34,24 @@ JVM library (Kotlin/Java) - all backed by the same validation core.
 - **Offline-first.** Rules and AWS resource schemas are baked into the binary. Nothing is fetched at runtime.
 - **Structured diagnostics.** Every finding carries a stable rule ID, severity, precise source span (line/column),
   resource path, and an optional suggested fix - designed for IDEs, CI, and agents, not just humans.
-- **Two interchangeable engines.** A [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) engine and a
-  [CEL](https://cel.dev/) engine evaluate the same rule set and produce identical results.
+- **Standalone engines.** The [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) and
+  [CEL](https://cel.dev/) engines independently evaluate the same built-in rule set and produce identical results.
+- **Composite engine (default).** CEL evaluates every built-in rule plus your custom CEL and Guard rules, while a
+  separate external-only Rego engine evaluates your custom Rego rules, layered on top. It is additive - with no custom
+  rules it produces the same diagnostics as the standalone Rego and CEL engines - and it is the default engine. Select a
+  standalone engine with `--engine rego`/`--engine cel`, or build `RegoEngine`/`CelEngine` directly when embedding.
 - **Additional schemas.** Merge your own CloudFormation resource provider schemas on top of the bundled ones, so
   templates using properties or values CloudFormation has not published yet validate cleanly
   (`--additional-schema`, or `EngineConfig.schema_validator_config.additional_schemas` when embedding).
 - **Custom rules.** Extend validation with your own rules in CEL (JSON), Rego, or
   [CloudFormation Guard](https://docs.aws.amazon.com/cfn-guard/latest/ug/what-is-guard.html) DSL.
+- **AWS CLI command validation.** Model a create or update API call as CloudFormation resource state and validate it
+  offline before it is sent; any call that cannot be modeled exactly is skipped, never guessed. Available from the
+  Rust library and every language binding (see
+  [validation-engine/API.md](src/validation-engine/API.md#validating-an-aws-cli-command) and the binding READMEs).
 - **Embeddable everywhere.** Use it from the CLI, Rust, Node.js, Python, Go, or the JVM.
+- **Built into the AWS CDK.** `aws-cdk-lib` validates every synthesized template with this library by default through
+  its `CloudFormationValidatePlugin` - no setup required.
 - **Sub-second** validation for typical templates.
 
 ## How it works
@@ -38,8 +63,9 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 2. **Schema validate** - check each resource against the compiled CloudFormation provider schemas, producing
    Fatal-severity diagnostics for structural violations (type mismatches, missing required properties, invalid enums,
    pattern and constraint failures).
-3. **Evaluate rules** - the selected engine (Rego or CEL) evaluates lint rules against the semantic model, producing
-   Error/Warning/Info diagnostics for semantic issues, cross-resource references, security risks, and best practices.
+3. **Evaluate rules** - the selected engine (Rego, CEL, or Composite) evaluates lint rules against the semantic model,
+   producing Error/Warning/Info diagnostics for semantic issues, cross-resource references, security risks, and best
+   practices.
 4. **Validate Step Functions** - check `AWS::StepFunctions::StateMachine` definitions (state types, `StartAt`/`Next`
    references, required fields).
 5. **Enrich, filter, report** - attach rule descriptions and context, apply include/exclude filters and severity
@@ -47,11 +73,13 @@ When a template is submitted, `cloudformation-validate` runs a fixed pipeline:
 
 ## Installation
 
-Use a prebuilt CLI or install a published language binding; Rust and this source repository are not required.
+Use the prebuilt CLI, embed the Rust library, or install a published language binding; this source repository is not
+required.
 
 | Interface | Published artifact | Install |
 |-----------|--------------------|---------|
-| CLI | [GitHub Releases](https://github.com/aws-cloudformation/cloudformation-validate/releases) | [Download the newest binary for Linux, macOS, or Windows](INSTALLATION.md#command-line-interface) |
+| CLI binary | [GitHub Releases](https://github.com/aws-cloudformation/cloudformation-validate/releases) | [Download the newest binary for Linux, macOS, or Windows](INSTALLATION.md#command-line-interface) |
+| Rust library | [crates.io: `cloudformation-validate`](https://crates.io/crates/cloudformation-validate) | `cargo add cloudformation-validate` |
 | Node.js | [npm: `@aws/cloudformation-validate`](https://www.npmjs.com/package/@aws/cloudformation-validate) | `npm install @aws/cloudformation-validate` |
 | Python | [PyPI](https://pypi.org/project/cloudformation-validate/) / [TestPyPI beta](https://test.pypi.org/project/cloudformation-validate/) | `python3 -m pip install cloudformation-validate` |
 | Go | [Go module](https://pkg.go.dev/github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go) | `go get github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go@latest` |
@@ -69,7 +97,7 @@ cargo run -p cfn-validate -- template.yaml
 # Validate every template in a directory (recurses, picks up .yaml/.yml/.json)
 cargo run -p cfn-validate -- ./templates/
 
-# Use the CEL engine instead of the default Rego engine
+# Use the CEL engine instead of the default composite engine
 cargo run -p cfn-validate -- template.yaml --engine cel
 
 # Compact output for IDEs/CI
@@ -87,41 +115,74 @@ cargo run -p cfn-validate -- template.yaml --guard-rule-source ./my-rules/
 
 ## Embedding as a library
 
-### Rust
+### Rust [(bindings-rust)](src/bindings-rust/README.md)
+
+Add the library facade:
+
+```toml
+[dependencies]
+cloudformation-validate = "1.10.0"
+```
 
 Construct an engine and a schema validator once, then validate many templates:
 
 ```rust
-use rego_engine::RegoEngine;
-use schema_validator::SchemaValidator;
-use validation_engine::{validate_bytes_with_path, EngineConfig, ValidateConfig};
+use cloudformation_validate::{
+    CompositeEngine, CompositeEngineConfig, SchemaValidator, ValidateConfig, validate_bytes_with_path,
+};
 
 let schema_validator = SchemaValidator::default();
-let engine = RegoEngine::new(EngineConfig::default())?;
+let engine = CompositeEngine::new(CompositeEngineConfig::default())?;
 
-let bytes = std::fs::read("template.yaml") ?;
+let bytes = std::fs::read("template.yaml")?;
 let report = validate_bytes_with_path(
-    & engine,
-    & schema_validator,
-    & bytes,
-    ValidateConfig::default (),
+    &engine,
+    &schema_validator,
+    &bytes,
+    ValidateConfig::default(),
     "template.yaml".to_string(),
-) ?;
+)?;
 
-for d in & report.diagnostics {
+for d in &report.diagnostics {
     println!("[{}] {} - {}", d.severity, d.rule_id, d.message);
 }
 ```
 
+The `RegoEngine` and `CelEngine` are interchangeable. For an additive setup, `CompositeEngine` evaluates the built-in
+rules with CEL and layers your own custom rules on top through its own `CompositeEngineConfig`: custom CEL rules and
+Guard rules run in the CEL engine that owns the built-ins, while custom Rego rules run in a separate external-only Rego
+engine that is built only when Rego rules are supplied:
+
+```rust
+use cloudformation_validate::{CompositeEngine, CompositeEngineConfig, ExternalRuleSource};
+
+let engine = CompositeEngine::new(
+    CompositeEngineConfig::new()
+        .with_cel_rules([ExternalRuleSource { name: "checks.json".into(), content: cel_source }])
+        .with_rego_rules([ExternalRuleSource { name: "checks.rego".into(), content: rego_source }])
+        .with_guard_rules([ExternalRuleSource { name: "policy.guard".into(), content: guard_source }]),
+)?;
+```
+
 See [validation-engine/API.md](src/validation-engine/API.md) for the full embedding API.
+
+Every language binding exposes one template-validation method. Its optional per-call configuration accepts a
+`STANDARD` or `DETAILED` detail level; omitting it uses `DETAILED`. Both levels return the same report and diagnostic
+models, with enrichment fields absent at `STANDARD`.
+
+The template can be read from disk or passed as content already in memory - a string or raw bytes - so a template
+produced by a generator, an editor buffer, or an API response is validated without touching the filesystem. In-memory
+templates carry an optional name that labels the report and its diagnostics, defaulting to `template`: Node.js wraps
+the content in `TemplateContent`, Python accepts `bytes` or a `TemplateContent`, the JVM offers `ByteArray` and
+`String` overloads, Go takes `[]byte`, and Rust always validates bytes.
 
 ### Node.js [(bindings-wasm)](src/bindings-wasm/README.md)
 
 ```typescript
-import {RegoEngine, TemplateFile} from "@aws/cloudformation-validate";
+import {CompositeEngine, TemplateFile} from "@aws/cloudformation-validate";
 
-const engine = new RegoEngine();
-const report = engine.validateStandard(new TemplateFile("template.yaml"));
+const engine = new CompositeEngine();
+const report = engine.validateTemplate(new TemplateFile("template.yaml"));
 for (const d of report.diagnostics) {
     console.log(`[${d.severity}] ${d.ruleId}: ${d.message}`);
 }
@@ -131,10 +192,10 @@ engine.free();
 ### Python [(bindings-python)](src/bindings-python/README.md)
 
 ```python
-from cloudformation_validate import RegoEngine
+from cloudformation_validate import CompositeEngine
 
-engine = RegoEngine()
-report = engine.validate_standard("template.yaml")
+engine = CompositeEngine()
+report = engine.validate_template("template.yaml")
 for d in report.diagnostics:
     print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 ```
@@ -144,13 +205,13 @@ for d in report.diagnostics:
 ```go
 import cfnvalidate "github.com/aws-cloudformation/cloudformation-validate/src/bindings-go/go"
 
-engine, err := cfnvalidate.NewRegoEngine(nil)
+engine, err := cfnvalidate.NewCompositeEngine(nil)
 if err != nil {
     log.Fatal(err)
 }
 defer engine.Destroy()
 
-report, err := engine.ValidateStandardFile("template.yaml", nil)
+report, err := engine.ValidateTemplateFile("template.yaml", nil)
 for _, d := range report.Diagnostics {
     fmt.Printf("[%s] %s: %s\n", d.Severity, d.RuleID, d.Message)
 }
@@ -162,8 +223,8 @@ for _, d := range report.Diagnostics {
 import software.amazon.cloudformation.validate.*
 import java.io.File
 
-val engine = RegoEngine()
-val report = engine.validateStandard(File("template.yaml"))
+val engine = CompositeEngine()
+val report = engine.validateTemplate(File("template.yaml"))
 for (d in report.diagnostics) {
     println("[${d.severity}] ${d.ruleId}: ${d.message}")
 }
@@ -175,7 +236,9 @@ Bring your own rules in any of three formats - all loadable from the CLI and the
 
 - **CEL** (`.json`) - property and data-driven checks, evaluated by the CEL engine.
 - **Rego** (`.rego`) - complex cross-resource logic, evaluated by the Rego engine.
-- **Guard DSL** (`.guard`) - declarative compliance rules, translated automatically and usable with either engine.
+- **Guard DSL** (`.guard`) - declarative compliance rules. Rules are evaluated by the CloudFormation Guard evaluator
+  itself against the template as written, so every engine reports exactly what `cfn-guard validate` reports; a file
+  that does not parse is rejected at load time.
 
 See [RULES](src/rules/README.md) and [CUSTOM_RULES.md](src/CUSTOM_RULES.md) for the formats, available context, and
 examples.
@@ -194,7 +257,8 @@ This is a Cargo workspace. The main crates:
 | [schema-validator](src/schema-validator/README.md)   | JSON Schema validation against compiled CloudFormation provider schemas                                                       |
 | [rego-engine](src/rego-engine/README.md)             | Rego-based rule evaluation with custom builtins                                                                               |
 | [cel-engine](src/cel-engine/README.md)               | Native Rust rules plus a CEL interpreter for custom rules                                                                     |
-| [guard-translator](src/guard-translator/README.md)   | Parses Guard DSL into an engine-agnostic intermediate representation                                                          |
+| [composite-engine](src/composite-engine/README.md)   | `CompositeEngine` - CEL evaluates the built-in, custom CEL, and Guard rules; an optional external-only Rego engine evaluates custom Rego |
+| [guard-translator](src/guard-translator/README.md)   | Evaluates Guard DSL with the Guard evaluator against the authored template and maps its report to findings                    |
 | [data-source](src/data-source/README.md)             | Build-time pipeline: downloads and processes CloudFormation schemas, generates the validation artifacts baked into the binary |
 
 ## Security

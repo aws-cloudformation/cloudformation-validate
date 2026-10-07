@@ -2,29 +2,67 @@ package resources
 
 import rego.v1
 
-# E3510: IAM identity policy must have valid structure
-violation contains make_diag_full("E3510", "ERROR", name,
-    "Properties.PolicyDocument",
-    "IAM identity policy must have a Statement property",
-    "Add a Statement array to the PolicyDocument",
-    "") if {
+# IAM identity policy structural validation via the shared builtin.
+# Covers IAM::Policy, ManagedPolicy, UserPolicy, RolePolicy, GroupPolicy,
+# SSO::PermissionSet, and inline Policies on Role/User/Group.
+
+# --- Single-document policy types ---
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
     some name in resources_of_type("AWS::IAM::Policy")
-    doc := resolve(name, "Properties.PolicyDocument")
-    is_object(doc)
-    not doc.Statement
+    some finding in iam_identity_policy_findings(name, "Properties.PolicyDocument")
 }
 
-# Also check inline policies on roles
-violation contains make_diag_full("E3510", "ERROR", name,
-    sprintf("Properties.Policies[%d].PolicyDocument", [idx]),
-    "IAM inline policy must have a Statement property",
-    "Add a Statement array to the PolicyDocument",
-    "") if {
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
+    some name in resources_of_type("AWS::IAM::ManagedPolicy")
+    some finding in iam_identity_policy_findings(name, "Properties.PolicyDocument")
+}
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
+    some name in resources_of_type("AWS::IAM::UserPolicy")
+    some finding in iam_identity_policy_findings(name, "Properties.PolicyDocument")
+}
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
+    some name in resources_of_type("AWS::IAM::RolePolicy")
+    some finding in iam_identity_policy_findings(name, "Properties.PolicyDocument")
+}
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
+    some name in resources_of_type("AWS::IAM::GroupPolicy")
+    some finding in iam_identity_policy_findings(name, "Properties.PolicyDocument")
+}
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
+    some name in resources_of_type("AWS::SSO::PermissionSet")
+    some finding in iam_identity_policy_findings(name, "Properties.InlinePolicy")
+}
+
+# --- Inline policies on Role/User/Group (Properties.Policies[*].PolicyDocument) ---
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
     some name in resources_of_type("AWS::IAM::Role")
-    policies := resolve(name, "Properties.Policies")
-    is_array(policies)
-    some idx, pol in policies
-    doc := pol.PolicyDocument
-    is_object(doc)
-    not doc.Statement
+    some doc_path in iam_inline_policy_document_paths(name, "Properties.Policies")
+    some finding in iam_identity_policy_findings(name, doc_path)
+}
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
+    some name in resources_of_type("AWS::IAM::User")
+    some doc_path in iam_inline_policy_document_paths(name, "Properties.Policies")
+    some finding in iam_identity_policy_findings(name, doc_path)
+}
+
+violation contains make_diag_at_source("E3510", "ERROR", name, finding.effective_path, finding.source_path, finding.message) if {
+    cfn_rule_active("E3510")
+    some name in resources_of_type("AWS::IAM::Group")
+    some doc_path in iam_inline_policy_document_paths(name, "Properties.Policies")
+    some finding in iam_identity_policy_findings(name, doc_path)
 }

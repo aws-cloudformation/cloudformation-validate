@@ -254,7 +254,7 @@ Resources:
 #[cfg(test)]
 mod guard_tests {
     use cel_engine::CelEngine;
-    use rules::{FilterConfig, RuleFilterConfig, Severity};
+    use rules::{FilterConfig, RuleFilterConfig, RuleOrigin, Severity};
     use schema_validator::SchemaValidator;
     use std::sync::LazyLock;
     use validation_engine::guard::resolve_guard_config;
@@ -271,55 +271,93 @@ rule s3_versioning_check {
 }
 "#;
 
-    #[test]
-    fn guard_rule_registers_with_correct_metadata() {
-        let config = EngineConfig {
+    const VERSIONED_AND_UNVERSIONED_BUCKETS: &[u8] = b"AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Versioned:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+  Suspended:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Suspended
+  Unconfigured:
+    Type: AWS::S3::Bucket
+";
+
+    fn versioning_engine() -> CelEngine {
+        CelEngine::new(EngineConfig {
             guard_rules: vec![ExternalRuleSource {
                 name: "s3_versioning.guard".into(),
                 content: GUARD_S3_VERSIONING.into(),
             }],
             ..Default::default()
-        };
-        let engine = CelEngine::new(config).unwrap();
-        let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
-        let report = validate_bytes(&engine, &SV, template, ValidateConfig::default()).unwrap();
-        let rules = engine.list_rules();
-        let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check");
-        assert!(guard_rule.is_some(), "Guard rule should appear in list_rules");
-        let guard_rule = guard_rule.unwrap();
-        assert_eq!(guard_rule.category.as_deref(), Some("guard:s3_versioning"));
-        for d in report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check") {
-            assert_eq!(d.severity, Severity::Error);
-            assert_eq!(d.category.as_deref(), Some("guard:s3_versioning"));
-        }
+        })
+        .expect("engine with a Guard rule builds")
     }
 
     #[test]
-    fn guard_rule_pack_loads_from_directory() {
-        let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()]).unwrap_or_default();
-        let config = EngineConfig { guard_rules, ..Default::default() };
-        let engine = CelEngine::new(config);
-        // Pack loading may fail if translated CEL has issues from wildcard let assignments.
-        // This tests that the pack name derivation uses the directory name.
-        if let Ok(engine) = engine {
-            let rules = engine.list_rules();
-            let guard_rules: Vec<_> =
-                rules.iter().filter(|r| r.category.as_deref().is_some_and(|c| c.starts_with("guard:"))).collect();
-            assert!(!guard_rules.is_empty(), "Should have loaded guard rules from pack directory");
+    fn guard_rule_fires_only_on_non_compliant_buckets_with_metadata_and_location() {
+        let engine = versioning_engine();
+        let report =
+            validate_bytes(&engine, &SV, VERSIONED_AND_UNVERSIONED_BUCKETS, ValidateConfig::default()).unwrap();
+
+        let mut failing: Vec<(&str, &str)> = report
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule_id == "s3_versioning_check")
+            .map(|d| (d.resource_logical_id().unwrap_or_default(), d.property_path.as_deref().unwrap_or_default()))
+            .collect();
+        failing.sort();
+        assert_eq!(
+            failing,
+            vec![("Suspended", "Properties.VersioningConfiguration.Status"), ("Unconfigured", "")],
+            "the versioned bucket passes; the other two fail at the deepest node the check reached"
+        );
+        for d in report.diagnostics.iter().filter(|d| d.rule_id == "s3_versioning_check") {
+            assert_eq!(d.severity, Severity::Error);
+            assert_eq!(d.source, RuleOrigin::Guard);
+            assert_eq!(d.category.as_deref(), Some("guard:s3_versioning"));
+            assert_eq!(d.message, "S3 bucket must have versioning enabled");
+            assert!(d.location.is_some(), "a Guard finding on a resource carries a source span");
         }
+
+        let rules = engine.list_rules();
+        let guard_rule = rules.iter().find(|r| r.id == "s3_versioning_check").expect("Guard rule is listed");
+        assert_eq!(guard_rule.category.as_deref(), Some("guard:s3_versioning"));
+        assert_eq!(guard_rule.description, "S3 bucket must have versioning enabled");
+        assert_eq!(guard_rule.origin, RuleOrigin::Guard);
+    }
+
+    #[test]
+    fn guard_rule_pack_loads_every_file_from_directory() {
+        let guard_rules = resolve_guard_config(&["../guard-translator/tests/fixtures/pack".into()])
+            .expect("the pack directory resolves to its .guard files");
+        let engine = CelEngine::new(EngineConfig { guard_rules, ..Default::default() }).expect("pack loads");
+
+        let mut guard_categories: Vec<String> = engine
+            .list_rules()
+            .into_iter()
+            .filter(|r| r.origin == RuleOrigin::Guard)
+            .filter_map(|r| r.category)
+            .collect();
+        guard_categories.sort();
+        guard_categories.dedup();
+        assert_eq!(guard_categories, vec!["guard:elb_https", "guard:s3_versioning"]);
     }
 
     #[test]
     fn guard_rule_excluded_by_category_filter() {
-        let config = EngineConfig {
-            guard_rules: vec![ExternalRuleSource {
-                name: "s3_versioning.guard".into(),
-                content: GUARD_S3_VERSIONING.into(),
-            }],
-            ..Default::default()
-        };
-        let engine = CelEngine::new(config).unwrap();
-        let template = b"AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      VersioningConfiguration:\n        Status: Enabled\n";
+        let engine = versioning_engine();
+        let unfiltered =
+            validate_bytes(&engine, &SV, VERSIONED_AND_UNVERSIONED_BUCKETS, ValidateConfig::default()).unwrap();
+        assert!(
+            unfiltered.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
+            "sanity: the Guard rule fires before the category filter is applied"
+        );
+
         let validate_config = ValidateConfig {
             filters: FilterConfig::new(
                 RuleFilterConfig::default(),
@@ -327,11 +365,23 @@ rule s3_versioning_check {
             ),
             ..Default::default()
         };
-        let report = validate_bytes(&engine, &SV, template, validate_config).unwrap();
+        let report = validate_bytes(&engine, &SV, VERSIONED_AND_UNVERSIONED_BUCKETS, validate_config).unwrap();
         assert!(
             !report.diagnostics.iter().any(|d| d.rule_id == "s3_versioning_check"),
             "Guard rule should be filtered out by category exclusion"
         );
+    }
+
+    #[test]
+    fn guard_syntax_error_fails_engine_construction_naming_the_file() {
+        let error = CelEngine::new(EngineConfig {
+            guard_rules: vec![ExternalRuleSource { name: "broken.guard".into(), content: "rule { nope".into() }],
+            ..Default::default()
+        })
+        .err()
+        .expect("a Guard syntax error must fail construction")
+        .to_string();
+        assert!(error.contains("broken.guard"), "got: {error}");
     }
 }
 

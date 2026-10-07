@@ -8,6 +8,7 @@ violation contains make_diag_full("E3700", "ERROR", name,
     "First stage of a pipeline must contain at least one Source action",
     "Add an action with ActionTypeId.Category=Source to the first stage",
     "") if {
+    cfn_rule_active("E3700")
     some name in resources_of_type("AWS::CodePipeline::Pipeline")
     stages := resolve(name, "Properties.Stages")
     is_array(stages)

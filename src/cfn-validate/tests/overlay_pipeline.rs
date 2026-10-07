@@ -7,11 +7,12 @@
 //! overlay introduces.
 
 use cel_engine::CelEngine;
+use composite_engine::CompositeEngine;
 use data_source::AdditionalSchemaSource;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use schema_validator::SchemaValidator;
-use validation_engine::{EngineConfig, ValidationEngine, validate_bytes};
+use validation_engine::{CompositeEngineConfig, EngineConfig, ValidationEngine, validate_bytes};
 
 /// A Lambda function using a property no registry schema will ever have.
 const LAMBDA_WITH_OVERRIDE_PROP: &[u8] = br#"
@@ -233,24 +234,44 @@ fn config_from_fixture_directory() -> EngineConfig {
     }
 }
 
-/// Runs the full pipeline on both engines, returning `(rego, cel)` diagnostics.
+/// Runs the full pipeline on both built-in engines, returning `(rego, cel)`
+/// diagnostics for the caller's direct Rego-vs-CEL comparisons.
+///
+/// The default composite selector is run on the same overlay too - built from a
+/// `CompositeEngineConfig` that carries the overlay's schema configuration - and
+/// asserted to track the CEL engine it evaluates the built-in rules with, so every
+/// overlay scenario is covered on all three engines without changing the callers.
 fn validate_on_both_engines(config: EngineConfig, template: &[u8]) -> (Vec<Diagnostic>, Vec<Diagnostic>) {
     let schema_config = config.schema_validator_config.clone().unwrap_or_default();
-    let validator = SchemaValidator::new(schema_config).expect("the configured overlay must build a validator");
+    let validator = SchemaValidator::new(schema_config.clone()).expect("the configured overlay must build a validator");
     let mut engine_config = config;
     engine_config.schema_validator_config = None;
     let rego = RegoEngine::new_with_schema_validator(engine_config.clone(), &validator).expect("rego engine builds");
     let cel = CelEngine::new_with_schema_validator(engine_config, &validator).expect("cel engine builds");
+    let composite = CompositeEngine::new(CompositeEngineConfig::new().with_schema_validator_config(schema_config))
+        .expect("composite engine builds");
     let run = |engine: &dyn ValidationEngine| {
         validate_bytes(engine, &validator, template, Default::default()).expect("validation must succeed").diagnostics
     };
-    (run(&rego), run(&cel))
+    let rego_diagnostics = run(&rego);
+    let cel_diagnostics = run(&cel);
+    let composite_diagnostics = run(&composite);
+    assert_composite_tracks_cel(&cel_diagnostics, &composite_diagnostics);
+    (rego_diagnostics, cel_diagnostics)
 }
 
 fn assert_engine_parity(rego: &[Diagnostic], cel: &[Diagnostic]) {
     let rego_diagnostics = serde_json::to_value(rego).expect("rego diagnostics serialize");
     let cel_diagnostics = serde_json::to_value(cel).expect("cel diagnostics serialize");
     assert_eq!(rego_diagnostics, cel_diagnostics, "both engines must produce identical diagnostics");
+}
+
+/// The composite selector evaluates the built-in rules with CEL, so on the same
+/// overlay it must produce identical diagnostics to the standalone CEL engine.
+fn assert_composite_tracks_cel(cel: &[Diagnostic], composite: &[Diagnostic]) {
+    let cel_diagnostics = serde_json::to_value(cel).expect("cel diagnostics serialize");
+    let composite_diagnostics = serde_json::to_value(composite).expect("composite diagnostics serialize");
+    assert_eq!(composite_diagnostics, cel_diagnostics, "the composite selector must track the CEL engine");
 }
 
 #[test]
@@ -482,4 +503,39 @@ fn overlay_on_a_corrected_type_preserves_getatt_return_type_overrides() {
         );
     }
     assert_eq!(rule_ids(&rego), rule_ids(&cel), "both engines must agree on the corrected type");
+}
+
+#[test]
+fn composite_external_rule_observes_shared_schema_overlay() {
+    let engine_config = config_with(OVERRIDE_PROP_SCHEMA);
+    let schema_config = engine_config.schema_validator_config.expect("overlay config must be present");
+    let validator = SchemaValidator::new(schema_config).expect("the configured overlay must build a validator");
+    let custom_rule = validation_engine::ExternalRuleSource {
+        name: "overlay_metadata.rego".into(),
+        content: r#"
+package overlay_metadata
+import rego.v1
+
+violation contains make_diag("OVERLAY_EXTERNAL", "error", name, "overlay metadata available") if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    "TestForOverride" in schema_properties("AWS::Lambda::Function")
+    has_property(name, "TestForOverride")
+}
+"#
+        .into(),
+    };
+    let composite = CompositeEngine::new_with_schema_validator(
+        CompositeEngineConfig::new().with_rego_rules([custom_rule]),
+        &validator,
+    )
+    .expect("composite engine must share the overlaid validator");
+
+    let report = validate_bytes(&composite, &validator, LAMBDA_WITH_OVERRIDE_PROP, Default::default())
+        .expect("validation must succeed");
+    let finding = report
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.rule_id == "OVERLAY_EXTERNAL")
+        .expect("the external rule must observe overlay-derived schema metadata");
+    assert_eq!(finding.resource_logical_id(), Some("Fn"));
 }

@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  UseAlternateSize: !Equals [!Ref "AWS::Region", us-east-1]
+Resources:
+  QuarterVcpuHalfGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: quarter-vcpu-half-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: ".25 vCPU"
+      Memory: "0.5 GB"
+      Tags:
+        - Key: Name
+          Value: quarter-vcpu-half-gb
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  EightVcpuSixtyGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: eight-vcpu-sixty-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "8 vCPU"
+      Memory: "60 GB"
+      Tags:
+        - Key: Name
+          Value: eight-vcpu-sixty-gb
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  SixteenVcpuFortyGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: sixteen-vcpu-forty-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "16 VCPU"
+      Memory: "40 gb"
+      Tags:
+        - Key: Name
+          Value: sixteen-vcpu-forty-gb
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  ThirtyTwoVcpuSixtyGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: thirty-two-vcpu-sixty-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "32 vCPU"
+      Memory: "60 GB"
+      Tags:
+        - Key: Name
+          Value: thirty-two-vcpu-sixty-gb
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  ThirtyTwoVcpuOneTwentyGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: thirty-two-vcpu-one-twenty-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "32768"
+      Memory: "122880"
+      Tags:
+        - Key: Name
+          Value: thirty-two-vcpu-one-twenty-gb
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  ThirtyTwoVcpuTwoFortyFourGb:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: thirty-two-vcpu-two-forty-four-gb
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "32768"
+      Memory: "244 GB"
+      Tags:
+        - Key: Name
+          Value: thirty-two-vcpu-two-forty-four-gb
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+
+  ConditionalRequiredProperties:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: conditional-required-properties
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: !If [UseAlternateSize, awsvpc, awsvpc]
+      Cpu: !If [UseAlternateSize, "256", ".25 vCPU"]
+      Memory: !If [UseAlternateSize, "512", "0.5 GB"]
+      PlacementConstraints: !If [UseAlternateSize, !Ref "AWS::NoValue", !Ref "AWS::NoValue"]
+      Tags:
+        - Key: Name
+          Value: conditional-required-properties
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

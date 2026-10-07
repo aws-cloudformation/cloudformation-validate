@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Bucket: {Type: AWS::S3::Bucket}
+Outputs:
+  MissingRef: {Value: !Ref DoesNotExist}
+  MissingGetAtt: {Value: !GetAtt DoesNotExist.Arn}
+  MissingSubRef: {Value: !Sub '${DoesNotExist}'}
+  MissingSubGetAtt: {Value: !Sub '${DoesNotExist.Arn}'}
+  InvalidExistingAttribute: {Value: !GetAtt Bucket.DoesNotExist}

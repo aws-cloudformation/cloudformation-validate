@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  UseInlineTemplate: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  MissingTemplateSourceInOneWorld:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: missing-template-source
+      PermissionModel: SELF_MANAGED
+      TemplateBody: !If
+        - UseInlineTemplate
+        - '{"AWSTemplateFormatVersion":"2010-09-09","Resources":{}}'
+        - !Ref AWS::NoValue
+      TemplateURL: !Ref AWS::NoValue

@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm") version "2.4.0" // keep in sync with configs.yml kotlin-version
@@ -44,6 +45,17 @@ dependencies {
 
 kotlin {
     jvmToolchain(21) // keep in sync with configs.yml java-version
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_1_8)
+        // Resolve JDK APIs against the Java 8 platform so a JDK 9+ member (e.g. String.isBlank)
+        // is never bound while compiling on the JDK 21 toolchain.
+        freeCompilerArgs.add("-Xjdk-release=1.8")
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 // ── Source layout ───────────────────────────────────────────────────────────────
@@ -114,7 +126,7 @@ dokka {
     dokkaSourceSets.main {
         sourceRoots.from(dokkaSources)
         classpath.from(configurations.named("compileClasspath"))
-        jdkVersion.set(21)
+        jdkVersion.set(8)
         reportUndocumented.set(false)
         skipEmptyPackages.set(true)
     }

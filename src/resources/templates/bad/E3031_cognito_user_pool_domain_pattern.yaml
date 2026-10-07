@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  A Cognito user pool domain is either a hosted-UI prefix (lowercase
+  alphanumerics and hyphens, not starting or ending with a hyphen) or, with
+  CustomDomainConfig, a fully qualified lowercase domain name with at least one
+  dot. GitHub issue 300.
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      UserPoolName: domain-pattern-repro
+  PrefixLeadingHyphen:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: -myprefix
+  PrefixTrailingHyphen:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: myprefix-
+  PrefixOnlyHyphens:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: "---"
+  PrefixUppercase:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: MyPrefix
+  CustomDomainWithoutDots:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: nodots
+      CustomDomainConfig:
+        CertificateArn: !Sub arn:${AWS::Partition}:acm:us-east-1:${AWS::AccountId}:certificate/11111111-2222-3333-4444-555555555555
+  CustomDomainLeadingHyphen:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: -auth.example.com
+      CustomDomainConfig:
+        CertificateArn: !Sub arn:${AWS::Partition}:acm:us-east-1:${AWS::AccountId}:certificate/11111111-2222-3333-4444-555555555555

@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: "2010-09-09"
+# Nested `Fn::GetAtt` paths into a `$ref`-typed object attribute resolve to the
+# leaf's type: `Endpoint.Address` is a string and is valid in an output and in a
+# string property. Counterexample for the object-attribute check.
+Resources:
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: mysql
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      MasterUsername: admin
+      ManageMasterUserPassword: true
+      StorageEncrypted: true
+      BackupRetentionPeriod: 7
+      DeletionProtection: true
+      PubliclyAccessible: false
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !GetAtt Database.Endpoint.Address
+Outputs:
+  EndpointAddress:
+    Value: !GetAtt Database.Endpoint.Address
+  EndpointPort:
+    Value: !GetAtt Database.Endpoint.Port

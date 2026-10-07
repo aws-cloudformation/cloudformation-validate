@@ -11,6 +11,7 @@ import rego.v1
 violation contains make_diag_at("W9002", "WARN", name,
     sprintf("Properties.%s", [prop]),
     sprintf("Property '%s' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead", [prop])) if {
+    cfn_rule_active("W9002")
     some name, res in input.resources
     some prop in object.keys(res.properties)
     endswith(prop, "Arn")

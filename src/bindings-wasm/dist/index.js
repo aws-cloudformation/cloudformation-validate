@@ -1,16 +1,209 @@
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
-exports.CelEngine =
+exports.CompositeEngine =
+    exports.CelEngine =
     exports.RegoEngine =
     exports.SchemaValidator =
     exports.TemplateModel =
     exports.SchemaFile =
     exports.RuleFile =
+    exports.TemplateContent =
     exports.TemplateFile =
+    exports.DEFAULT_TEMPLATE_NAME =
+    exports.AwsCliCommand =
         void 0;
 exports.version = version;
 const fs_1 = require('fs');
+/**
+ * Service, operation, and input values for one AWS CLI command.
+ *
+ * `serviceName` is the canonical botocore service name and is normalized only
+ * for ASCII case. Callers adapting an SDK request must translate its native
+ * service identity before constructing this request; endpoint and signing-name
+ * aliases are never guessed by the validation core.
+ */
+class AwsCliCommand {
+    constructor(serviceName, operationName, parameters, options = {}) {
+        this.serviceName = serviceName;
+        this.operationName = operationName;
+        if (!isPlainRecord(parameters)) {
+            throw new TypeError('parameters must be a plain object with string keys');
+        }
+        const copiedParameters = Object.create(null);
+        for (const key of Reflect.ownKeys(parameters)) {
+            if (typeof key !== 'string') {
+                throw new TypeError('request parameter names must be strings');
+            }
+            const descriptor = Object.getOwnPropertyDescriptor(parameters, key);
+            if (descriptor === undefined || !('value' in descriptor)) {
+                throw new TypeError(`request parameter ${JSON.stringify(key)} must be a value property`);
+            }
+            copiedParameters[key] = descriptor.value;
+        }
+        this.parameters = copiedParameters;
+        this.servicePrefix = options.servicePrefix;
+        this.httpMethod = options.httpMethod;
+        this.isReadOnly = options.isReadOnly;
+    }
+}
+exports.AwsCliCommand = AwsCliCommand;
+const MIN_SIGNED_64 = -(1n << 63n);
+const MAX_SIGNED_64 = (1n << 63n) - 1n;
+const MAX_UNSIGNED_64 = (1n << 64n) - 1n;
+const MAX_REQUEST_VALUE_DEPTH = 64;
+const DATE_GET_TIME = Date.prototype.getTime;
+const DATE_TO_ISO_STRING = Date.prototype.toISOString;
+const UINT8_ARRAY_FOR_EACH = Uint8Array.prototype.forEach;
+function isPlainRecord(value) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+}
+function unsupportedValue(typeName) {
+    return { type: 'UNSUPPORTED', type_name: typeName };
+}
+function encodeAwsCliValue(value, depth = 0, ancestors = new Set()) {
+    if (depth > MAX_REQUEST_VALUE_DEPTH) {
+        return unsupportedValue('recursion depth exceeded');
+    }
+    if (value === null) {
+        return { type: 'NULL' };
+    }
+    if (typeof value === 'boolean') {
+        return { type: 'BOOLEAN', value };
+    }
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) {
+            return unsupportedValue('non-finite floating-point number');
+        }
+        if (Number.isInteger(value)) {
+            return Number.isSafeInteger(value)
+                ? { type: 'INTEGER', value }
+                : unsupportedValue('integer outside the JavaScript safe range');
+        }
+        return { type: 'NUMBER', value };
+    }
+    if (typeof value === 'bigint') {
+        if (value >= MIN_SIGNED_64 && value <= MAX_SIGNED_64) {
+            return { type: 'INTEGER', value };
+        }
+        if (value >= 0n && value <= MAX_UNSIGNED_64) {
+            return { type: 'UNSIGNED_INTEGER', value };
+        }
+        return unsupportedValue('integer outside the 64-bit request range');
+    }
+    if (typeof value === 'string') {
+        return { type: 'STRING', value };
+    }
+    if (value instanceof Uint8Array) {
+        const bytes = [];
+        try {
+            UINT8_ARRAY_FOR_EACH.call(value, (byte) => {
+                bytes.push(byte);
+            });
+        } catch {
+            return unsupportedValue('invalid Uint8Array');
+        }
+        return { type: 'BYTES', value: bytes };
+    }
+    if (value instanceof Date) {
+        try {
+            const timestamp = DATE_GET_TIME.call(value);
+            return Number.isFinite(timestamp)
+                ? { type: 'STRING', value: DATE_TO_ISO_STRING.call(value) }
+                : unsupportedValue('invalid Date');
+        } catch {
+            return unsupportedValue('invalid Date');
+        }
+    }
+    if (Array.isArray(value)) {
+        if (ancestors.has(value)) {
+            return unsupportedValue('cyclic array');
+        }
+        ancestors.add(value);
+        try {
+            const lengthDescriptor = Object.getOwnPropertyDescriptor(value, 'length');
+            if (
+                lengthDescriptor === undefined ||
+                !('value' in lengthDescriptor) ||
+                !Number.isSafeInteger(lengthDescriptor.value) ||
+                lengthDescriptor.value < 0
+            ) {
+                return unsupportedValue('array with invalid length');
+            }
+            const items = [];
+            for (let index = 0; index < lengthDescriptor.value; index += 1) {
+                const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+                if (descriptor === undefined) {
+                    return unsupportedValue('sparse array');
+                }
+                if (!('value' in descriptor)) {
+                    return unsupportedValue('array with accessor elements');
+                }
+                items.push(encodeAwsCliValue(descriptor.value, depth + 1, ancestors));
+            }
+            return { type: 'ARRAY', items };
+        } finally {
+            ancestors.delete(value);
+        }
+    }
+    if (isPlainRecord(value)) {
+        if (ancestors.has(value)) {
+            return unsupportedValue('cyclic object');
+        }
+        ancestors.add(value);
+        try {
+            const entries = Object.create(null);
+            for (const key of Reflect.ownKeys(value)) {
+                if (typeof key !== 'string') {
+                    return unsupportedValue('mapping with non-string keys');
+                }
+                const descriptor = Object.getOwnPropertyDescriptor(value, key);
+                if (descriptor === undefined || !('value' in descriptor)) {
+                    return unsupportedValue('mapping with accessor properties');
+                }
+                entries[key] = encodeAwsCliValue(descriptor.value, depth + 1, ancestors);
+            }
+            return { type: 'OBJECT', entries };
+        } finally {
+            ancestors.delete(value);
+        }
+    }
+    return unsupportedValue(typeof value);
+}
+function toWireAwsCliCommand(request) {
+    const parameters = Object.create(null);
+    for (const [name, value] of Object.entries(request.parameters)) {
+        try {
+            parameters[name] = encodeAwsCliValue(value);
+        } catch {
+            parameters[name] = unsupportedValue('request value inspection failed');
+        }
+    }
+    return {
+        serviceName: request.serviceName,
+        operationName: request.operationName,
+        parameters,
+        ...(request.servicePrefix === undefined ? {} : { servicePrefix: request.servicePrefix }),
+        ...(request.httpMethod === undefined ? {} : { httpMethod: request.httpMethod }),
+        ...(request.isReadOnly === undefined ? {} : { isReadOnly: request.isReadOnly }),
+    };
+}
+function fromWireAwsCliCommandValidation(validation) {
+    const template = validation.template;
+    return {
+        ...validation,
+        templateSource: validation.templateSource ?? null,
+        report: validation.report ?? null,
+        template: template == null ? null : Uint8Array.from(template),
+    };
+}
 const bridge = require('./bindings_wasm');
+/** Name reported for an in-memory template when the caller does not supply one. */
+exports.DEFAULT_TEMPLATE_NAME = 'template';
+/** A template read from disk; the path labels the report and its diagnostics. */
 class TemplateFile {
     constructor(path) {
         this.path = path;
@@ -20,6 +213,27 @@ class TemplateFile {
     }
 }
 exports.TemplateFile = TemplateFile;
+/**
+ * A template already held in memory as UTF-8 text or raw bytes, so nothing is
+ * read from disk. `name` labels the report and its diagnostics exactly like a
+ * {@link TemplateFile} path does and defaults to {@link DEFAULT_TEMPLATE_NAME}.
+ */
+class TemplateContent {
+    constructor(content, name = exports.DEFAULT_TEMPLATE_NAME) {
+        this.content = content;
+        this.name = name;
+        if (typeof content !== 'string' && !(content instanceof Uint8Array)) {
+            throw new TypeError('template content must be a string or a Uint8Array');
+        }
+    }
+    readBytes() {
+        return typeof this.content === 'string' ? new TextEncoder().encode(this.content) : this.content;
+    }
+}
+exports.TemplateContent = TemplateContent;
+function templateLabel(template) {
+    return template instanceof TemplateContent ? template.name : template.path;
+}
 class RuleFile {
     constructor(path) {
         this.path = path;
@@ -56,6 +270,16 @@ function toAdditionalSchemas(sources) {
 function toWasmEngineConfig(config) {
     return {
         customRules: toExternalRuleSources(config?.customRules),
+        guardRules: toExternalRuleSources(config?.guardRules),
+        schemaValidatorConfig: config?.schemaValidatorConfig
+            ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
+            : undefined,
+    };
+}
+function toWasmCompositeEngineConfig(config) {
+    return {
+        regoRules: toExternalRuleSources(config?.regoRules),
+        celRules: toExternalRuleSources(config?.celRules),
         guardRules: toExternalRuleSources(config?.guardRules),
         schemaValidatorConfig: config?.schemaValidatorConfig
             ? toWasmSchemaValidatorConfig(config.schemaValidatorConfig)
@@ -126,16 +350,25 @@ class SchemaValidator {
     }
 }
 exports.SchemaValidator = SchemaValidator;
-function createEngineClass(WasmClass) {
+function createEngineClass(WasmClass, toWasmConfig) {
     return class {
         constructor(config) {
-            this.inner = new WasmClass(toWasmEngineConfig(config));
+            this.inner = new WasmClass(toWasmConfig(config));
+        }
+        validateTemplate(template, config) {
+            return this.inner.validateTemplate(template.readBytes(), config ?? {}, templateLabel(template));
         }
         validateStandard(template, config) {
-            return this.inner.validateStandard(template.readBytes(), config ?? {}, template.path);
+            return this.validateTemplate(template, { ...config, detailLevel: 'STANDARD' });
         }
         validateDetailed(template, config) {
-            return this.inner.validateDetailed(template.readBytes(), config ?? {}, template.path);
+            return this.validateTemplate(template, { ...config, detailLevel: 'DETAILED' });
+        }
+        validateAwsCliCommand(request) {
+            if (!(request instanceof AwsCliCommand)) {
+                throw new TypeError('request must be an AwsCliCommand');
+            }
+            return fromWireAwsCliCommandValidation(this.inner.validateAwsCliCommand(toWireAwsCliCommand(request)));
         }
         listRules() {
             return this.inner.listRules();
@@ -148,8 +381,9 @@ function createEngineClass(WasmClass) {
         }
     };
 }
-exports.RegoEngine = createEngineClass(bridge.WasmRegoEngine);
-exports.CelEngine = createEngineClass(bridge.WasmCelEngine);
+exports.RegoEngine = createEngineClass(bridge.WasmRegoEngine, toWasmEngineConfig);
+exports.CelEngine = createEngineClass(bridge.WasmCelEngine, toWasmEngineConfig);
+exports.CompositeEngine = createEngineClass(bridge.WasmCompositeEngine, toWasmCompositeEngineConfig);
 function version() {
     return bridge.version();
 }

@@ -9,6 +9,7 @@ import rego.v1
 
 violation contains make_diag_at("W3010", "WARN", name, az.path,
     sprintf("Avoid hardcoding availability zones '%s'", [az.zone])) if {
+    cfn_rule_active("W3010")
     some name, res in input.resources
     some az in hardcoded_azs(name, res.resourceType)
 }

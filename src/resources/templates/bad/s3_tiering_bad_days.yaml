@@ -9,3 +9,12 @@ Resources:
           Tierings:
             - AccessTier: ARCHIVE_ACCESS
               Days: 30
+        - Id: tier2
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 800
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 100
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 900

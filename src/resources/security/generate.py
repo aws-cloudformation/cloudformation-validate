@@ -10,7 +10,13 @@ Fixtures produced:
 
     deep_nesting.json          one resource with a very deeply nested property value
     many_conditions.yaml       many interdependent conditions over shared inputs
+    scenario_assignment_budget.yaml
+                               bundled-schema composition at the exact 256-world
+                               assignment boundary and one condition beyond it
     many_resources.yaml        a large number of independent resources
+    cross_reference_fanout.yaml
+                               500 resources with a dense resource-to-resource
+                               reference graph
     cross_resource_scale.yaml  many resources sharing one primary identifier value
                                (worst case for pair-comparison rules)
     pathological_conditions.yaml  conditions with large dependency closures over
@@ -65,6 +71,29 @@ CONDITION_BASE_VARS = 4
 CONDITION_TOTAL = 200
 # Number of resources in the scale fixtures.
 RESOURCE_COUNT = 500
+# Dense cross-resource graph: every policy references every topic. The split
+# reaches the 500-resource template limit while keeping the generated file and
+# repeated security-gate runtime bounded.
+CROSS_REFERENCE_TOPIC_COUNT = 475
+CROSS_REFERENCE_POLICY_COUNT = RESOURCE_COUNT - CROSS_REFERENCE_TOPIC_COUNT
+CROSS_REFERENCE_EDGE_COUNT = CROSS_REFERENCE_TOPIC_COUNT * CROSS_REFERENCE_POLICY_COUNT
+
+# Schema scenario-assignment fixture. The selected provider schema has a
+# nine-way object composition. Eight independently conditional properties
+# produce exactly 2^8 assignments; the ninth doubles that work and must produce
+# a visible precision-loss advisory instead of an unproven schema finding.
+SCENARIO_ASSIGNMENT_BOUNDARY_INPUTS = 8
+SCENARIO_ASSIGNMENT_PROPERTIES = (
+    "ManualSearchAIAgentConfiguration",
+    "AnswerRecommendationAIAgentConfiguration",
+    "SelfServiceAIAgentConfiguration",
+    "EmailResponseAIAgentConfiguration",
+    "EmailOverviewAIAgentConfiguration",
+    "EmailGenerativeAnswerAIAgentConfiguration",
+    "OrchestrationAIAgentConfiguration",
+    "NoteTakingAIAgentConfiguration",
+    "CaseSummarizationAIAgentConfiguration",
+)
 
 # Pathological-conditions fixture. Unlike many_conditions.yaml (tiny closures),
 # every derived condition here is an And/Or over the SAME large set of base
@@ -214,6 +243,59 @@ def gen_many_conditions() -> None:
     write("many_conditions.yaml", "\n".join(lines) + "\n")
 
 
+def gen_scenario_assignment_budget() -> None:
+    """Exercise exact and curtailed schema scenario-assignment analysis.
+
+    Each configuration property is independently present or absent. The first
+    resource reaches the exact assignment limit and must validate every world.
+    Adding the ninth property exceeds the limit, so validation must report that
+    analysis was curtailed without claiming a schema violation it did not prove.
+    """
+    if len(SCENARIO_ASSIGNMENT_PROPERTIES) != SCENARIO_ASSIGNMENT_BOUNDARY_INPUTS + 1:
+        raise RuntimeError("scenario assignment fixture requires one property beyond the exact boundary")
+
+    lines = [
+        HEADER,
+        "AWSTemplateFormatVersion: '2010-09-09'",
+        "Description: 'Fixture: schema scenario assignment budget boundary. Generated; no sensitive data.'",
+        "Parameters:",
+    ]
+    for index in range(len(SCENARIO_ASSIGNMENT_PROPERTIES)):
+        lines.extend(
+            [
+                f"  Toggle{index:02d}:",
+                "    Type: String",
+                "    AllowedValues: ['yes', 'no']",
+                "    Default: 'no'",
+            ]
+        )
+
+    lines.append("Conditions:")
+    for index in range(len(SCENARIO_ASSIGNMENT_PROPERTIES)):
+        lines.append(f"  Use{index:02d}: !Equals [!Ref Toggle{index:02d}, 'yes']")
+
+    lines.append("Resources:")
+    resources = (
+        ("ExactBoundaryAgent", SCENARIO_ASSIGNMENT_BOUNDARY_INPUTS),
+        ("ExhaustedBudgetAgent", len(SCENARIO_ASSIGNMENT_PROPERTIES)),
+    )
+    for resource_name, property_count in resources:
+        lines.extend(
+            [
+                f"  {resource_name}:",
+                "    Type: AWS::Wisdom::AIAgent",
+                "    Properties:",
+                "      AssistantId: 00000000-0000-0000-0000-000000000000",
+                "      Type: MANUAL_SEARCH",
+                "      Configuration:",
+            ]
+        )
+        for index, property_name in enumerate(SCENARIO_ASSIGNMENT_PROPERTIES[:property_count]):
+            lines.append(f"        {property_name}: !If [Use{index:02d}, {{}}, !Ref AWS::NoValue]")
+
+    write("scenario_assignment_budget.yaml", "\n".join(lines) + "\n")
+
+
 def gen_many_resources() -> None:
     """RESOURCE_COUNT independent resources."""
     lines = [
@@ -226,6 +308,54 @@ def gen_many_resources() -> None:
         lines.append(f"  Topic{i:04d}:")
         lines.append("    Type: AWS::SNS::Topic")
     write("many_resources.yaml", "\n".join(lines) + "\n")
+
+
+def gen_cross_reference_fanout() -> None:
+    """A dense resource-to-resource graph with CROSS_REFERENCE_EDGE_COUNT edges.
+
+    Every topic policy references every topic. This produces many distinct Ref
+    edges without cycles or invalid targets, exercising graph construction,
+    serialization, authored-reference rules, and repeated engine evaluation at
+    the 500-resource CloudFormation limit.
+    """
+    lines = [
+        HEADER,
+        "AWSTemplateFormatVersion: '2010-09-09'",
+        "Description: 'Fixture: dense cross-resource reference fan-out. Generated; no sensitive data.'",
+        "Resources:",
+    ]
+    for index in range(CROSS_REFERENCE_TOPIC_COUNT):
+        lines.extend(
+            [
+                f"  Topic{index:04d}:",
+                "    Type: AWS::SNS::Topic",
+                "    Properties:",
+                "      Tags:",
+                "        - Key: Purpose",
+                "          Value: cross-reference-security-fixture",
+            ]
+        )
+    for policy_index in range(CROSS_REFERENCE_POLICY_COUNT):
+        lines.extend(
+            [
+                f"  Policy{policy_index:04d}:",
+                "    Type: AWS::SNS::TopicPolicy",
+                "    Properties:",
+                "      PolicyDocument:",
+                "        Version: '2012-10-17'",
+                "        Statement:",
+                f"          - Sid: AllowEventsPublish{policy_index:04d}",
+                "            Effect: Allow",
+                "            Principal:",
+                "              Service: events.amazonaws.com",
+                "            Action: 'sns:Publish'",
+                "            Resource: '*'",
+                "      Topics:",
+            ]
+        )
+        for topic_index in range(CROSS_REFERENCE_TOPIC_COUNT):
+            lines.append(f"        - !Ref Topic{topic_index:04d}")
+    write("cross_reference_fanout.yaml", "\n".join(lines) + "\n")
 
 
 def gen_cross_resource_scale() -> None:
@@ -627,16 +757,141 @@ def gen_combined_conditions() -> None:
     write("combined_conditions.yaml", "\n".join(lines) + "\n")
 
 
+# ForEach branch-explosion fixture. Three levels of nested Fn::ForEach loops each
+# iterating over a collection of values. The loop body is intentionally wide
+# (many properties per resource) so that the combinatorial expansion exhausts the
+# 100k work budget after a few hundred generated resources, allowing both engines
+# and all binding suites to finish within 60 seconds.
+FOREACH_EXPLOSION_OUTER = 8
+FOREACH_EXPLOSION_MIDDLE = 8
+FOREACH_EXPLOSION_INNER = 8
+# Number of metadata entries copied into each generated resource. Metadata is
+# intentionally schema-opaque: it creates deterministic transform work without
+# producing one schema diagnostic per synthetic field. At 256 entries, the full
+# 8³ expansion exceeds the 100k work budget before 500 resources materialize.
+FOREACH_BODY_PROPERTIES = 256
+
+
+def gen_foreach_branch_explosion() -> None:
+    """Nested Fn::ForEach loops that exceed the expansion-work budget."""
+    outer_items = ", ".join(f"O{i}" for i in range(FOREACH_EXPLOSION_OUTER))
+    middle_items = ", ".join(f"M{i}" for i in range(FOREACH_EXPLOSION_MIDDLE))
+    inner_items = ", ".join(f"I{i}" for i in range(FOREACH_EXPLOSION_INNER))
+    # Build a wide metadata body so each iteration consumes deterministic
+    # expansion work without asking the resource schema to validate fake fields.
+    prop_lines = ""
+    for p in range(FOREACH_BODY_PROPERTIES):
+        prop_lines += f"                    Prop{p}: !Sub \"value-${{A}}-${{B}}-${{C}}-{p}\"\n"
+    content = f"""{HEADER}AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Fixture: nested Fn::ForEach branch explosion. Generated; no sensitive data.
+Transform: AWS::LanguageExtensions
+Resources:
+  Fn::ForEach::Outer:
+    - A
+    - [{outer_items}]
+    - Fn::ForEach::Middle:
+        - B
+        - [{middle_items}]
+        - Fn::ForEach::Inner:
+            - C
+            - [{inner_items}]
+            - R&{{A}}&{{B}}&{{C}}:
+                Type: AWS::SNS::Topic
+                Properties:
+                  TopicName: !Sub "topic-${{A}}-${{B}}-${{C}}"
+                Metadata:
+                  ExpansionPayload:
+{prop_lines}"""
+    write("foreach_branch_explosion.yaml", content)
+
+
+# Deep YAML nesting fixture. A YAML template with mapping-heavy nesting
+# at a depth that would overflow a recursive traversal. Confirms the YAML
+# loader enforces the structural nesting bound and rejects the document with
+# a located parse error rather than building a deep tree that could exhaust
+# the stack during traversal/drop.
+YAML_NESTING_DEPTH = 600
+
+
+def gen_deep_yaml_nesting() -> None:
+    """A YAML template with very deep mapping nesting."""
+    lines = [
+        HEADER.rstrip(),
+        'AWSTemplateFormatVersion: "2010-09-09"',
+        "Description: >-",
+        "  Fixture: deeply nested YAML mappings. Generated; no sensitive data.",
+        "Resources:",
+        "  DeepResource:",
+        "    Type: AWS::SNS::Topic",
+        "    Properties:",
+        "      DeliveryPolicy:",
+    ]
+    indent = 8
+    for i in range(YAML_NESTING_DEPTH):
+        lines.append(f"{' ' * indent}Level{i}:")
+        indent += 2
+    lines.append(f"{' ' * indent}leaf: value")
+    write("deep_yaml_nesting.yaml", "\n".join(lines) + "\n")
+
+
+# Deep valid-intrinsic resolution fixture. A template with deeply nested Fn::If
+# intrinsics that the resolver must walk. It uses long-form mappings so this
+# fixture isolates intrinsic construction and resolution; the separate deep-YAML
+# fixture covers parser depth. The depth remains substantial but below both the
+# resolver and YAML nesting limits.
+DEEP_INTRINSIC_DEPTH = 64
+
+
+def gen_deep_intrinsic_resolution() -> None:
+    """A valid template with deeply nested long-form Fn::If mappings."""
+    lines = [
+        HEADER.rstrip(),
+        'AWSTemplateFormatVersion: "2010-09-09"',
+        "Description: >-",
+        "  Fixture: deeply nested Fn::If chains. Generated; no sensitive data.",
+        "Conditions:",
+        "  IsUsEast1: !Equals [!Ref 'AWS::Region', 'us-east-1']",
+        "Resources:",
+        "  DeepIfResource:",
+        "    Type: AWS::SNS::Topic",
+        "    Properties:",
+        "      TopicName:",
+        "        Fn::If:",
+    ]
+
+    # Each true branch contains another long-form Fn::If. Reusing one condition
+    # verifies that scenario resolution follows an established assignment rather
+    # than materializing an exponential set of impossible worlds.
+    def append_if_arguments(depth: int, indent: int) -> None:
+        prefix = " " * indent
+        lines.append(f"{prefix}- IsUsEast1")
+        if depth + 1 == DEEP_INTRINSIC_DEPTH:
+            lines.append(f'{prefix}- "deep-leaf-value"')
+        else:
+            lines.append(f"{prefix}- Fn::If:")
+            append_if_arguments(depth + 1, indent + 4)
+        lines.append(f"{prefix}- fallback-{depth}")
+
+    append_if_arguments(0, 10)
+
+    write("deep_intrinsic_resolution.yaml", "\n".join(lines) + "\n")
+
 def main() -> None:
     gen_deep_nesting()
     gen_many_conditions()
+    gen_scenario_assignment_budget()
     gen_many_resources()
+    gen_cross_reference_fanout()
     gen_cross_resource_scale()
     gen_pathological_conditions()
     gen_condition_fusion()
     gen_condition_chain_boundary()
     gen_condition_chain_wide()
     gen_combined_conditions()
+    gen_foreach_branch_explosion()
+    gen_deep_yaml_nesting()
+    gen_deep_intrinsic_resolution()
 
 
 if __name__ == "__main__":

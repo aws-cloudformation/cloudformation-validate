@@ -6,16 +6,24 @@ the semantic model, the schema validator, custom rules, and error handling.
 Standard library only - no test dependencies.
 """
 
+import json
 import os
-import re
 import tempfile
 import unittest
 from unittest import mock
 
 import cloudformation_validate._native as native_loader
 from cloudformation_validate import (
+    DEFAULT_TEMPLATE_NAME,
     AdditionalSchemaSource,
+    AwsCliCommand,
+    AwsCliCommandValidationStatus,
+    AwsCliOperationKind,
+    AwsCliTemplateSource,
     CelEngine,
+    CompositeEngine,
+    CompositeEngineConfig,
+    DetailLevel,
     EngineConfig,
     EntityType,
     ExternalRuleSource,
@@ -26,6 +34,7 @@ from cloudformation_validate import (
     RuleOrigin,
     SchemaValidator,
     Severity,
+    TemplateContent,
     TemplateModel,
     ValidateConfig,
     ValidationError,
@@ -68,23 +77,13 @@ LAMBDA_OVERLAY_SCHEMA = """{
 }"""
 
 
-def read_workspace_version():
-    cargo_toml = os.path.join(WORKSPACE, "Cargo.toml")
-    in_workspace_package = False
-    with open(cargo_toml, encoding="utf-8") as f:
-        for line in f:
-            stripped = line.strip()
-            if stripped == "[workspace.package]":
-                in_workspace_package = True
-                continue
-            if in_workspace_package and stripped.startswith("["):
-                break
-            if in_workspace_package and stripped.startswith("version = "):
-                match = re.fullmatch(r'version = "([^"]+)"', stripped)
-                if not match:
-                    raise AssertionError(f"malformed version line in {cargo_toml}: {line}")
-                return match.group(1)
-    raise AssertionError(f"missing 'version = ' under [workspace.package] in {cargo_toml}")
+def read_expected_version():
+    expected_version_path = os.path.join(RESOURCES, "expected", "version.txt")
+    with open(expected_version_path, encoding="utf-8") as f:
+        expected_version = f.read().strip()
+    if not expected_version:
+        raise AssertionError(f"{expected_version_path} must not be empty")
+    return expected_version
 
 
 def load_rule(filename):
@@ -99,11 +98,12 @@ def diagnostic_keys(report):
 # Engines compile their rule sets at construction; build each once for the module.
 REGO = RegoEngine()
 CEL = CelEngine()
+COMPOSITE = CompositeEngine()
 
 
 class VersionTest(unittest.TestCase):
-    def test_version_matches_workspace_cargo_toml(self):
-        self.assertEqual(read_workspace_version(), version())
+    def test_version_matches_expected_version_fixture(self):
+        self.assertEqual(read_expected_version(), version())
 
 
 class EngineConstructionTest(unittest.TestCase):
@@ -116,15 +116,17 @@ class EngineConstructionTest(unittest.TestCase):
 
 class ListRulesTest(unittest.TestCase):
     def test_rules_non_empty_and_sorted_by_id(self):
-        for engine in (REGO, CEL):
+        for engine in (REGO, CEL, COMPOSITE):
             ids = [r.id for r in engine.list_rules()]
             self.assertTrue(ids, "rule list must not be empty")
             self.assertEqual(ids, sorted(ids), "rules must be sorted by id")
 
-    def test_cel_and_rego_list_identical_rules(self):
+    def test_all_engines_list_identical_rules(self):
         rego_rules = [(r.id, r.severity.name, r.description) for r in REGO.list_rules()]
         cel_rules = [(r.id, r.severity.name, r.description) for r in CEL.list_rules()]
+        composite_rules = [(r.id, r.severity.name, r.description) for r in COMPOSITE.list_rules()]
         self.assertEqual(rego_rules, cel_rules)
+        self.assertEqual(rego_rules, composite_rules)
 
 
 class SchemaValidatorTest(unittest.TestCase):
@@ -141,65 +143,165 @@ class SchemaValidatorTest(unittest.TestCase):
 
 
 class ValidateTest(unittest.TestCase):
-    def test_good_template_passes_both_engines(self):
-        for engine in (REGO, CEL):
-            report = engine.validate_standard(GOOD_TEMPLATE)
+    def test_good_template_passes_all_engines(self):
+        for engine in (REGO, CEL, COMPOSITE):
+            report = engine.validate_template(GOOD_TEMPLATE)
             self.assertEqual(ReportStatus.OK, report.status)
             errors = [d for d in report.diagnostics if d.severity in (Severity.ERROR, Severity.FATAL)]
             self.assertEqual([], errors, f"good template must have no errors via {engine.engine_name()}")
 
     def test_template_path_recorded_in_report(self):
-        report = REGO.validate_standard(GOOD_TEMPLATE)
+        report = REGO.validate_template(GOOD_TEMPLATE)
         self.assertEqual(GOOD_TEMPLATE, report.file_path)
 
     def test_bytes_input_fires_diagnostics(self):
-        report = REGO.validate_standard(UNENCRYPTED_BUCKET)
+        report = REGO.validate_template(UNENCRYPTED_BUCKET)
         self.assertTrue(report.diagnostics, "unencrypted bucket template must produce diagnostics")
 
     def test_engines_agree_on_diagnostics(self):
-        self.assertEqual(
-            diagnostic_keys(REGO.validate_standard(UNENCRYPTED_BUCKET)),
-            diagnostic_keys(CEL.validate_standard(UNENCRYPTED_BUCKET)),
-            "Rego and CEL must produce identical diagnostics",
-        )
+        expected = diagnostic_keys(REGO.validate_template(UNENCRYPTED_BUCKET))
+        self.assertTrue(expected, "the unencrypted bucket must produce built-in diagnostics")
+        for engine in (CEL, COMPOSITE):
+            self.assertEqual(
+                expected,
+                diagnostic_keys(engine.validate_template(UNENCRYPTED_BUCKET)),
+                f"{engine.engine_name()} must produce the same diagnostics as rego",
+            )
 
     def test_severity_level_filters_below_threshold(self):
         config = ValidateConfig(severity_level=Severity.ERROR)
-        report = REGO.validate_standard(UNENCRYPTED_BUCKET, config)
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, config)
         below = [d for d in report.diagnostics if d.severity in (Severity.WARN, Severity.INFO, Severity.DEBUG)]
         self.assertEqual([], below, "severity_level=ERROR must exclude WARN/INFO/DEBUG")
 
-    def test_validate_detailed_counts_match_diagnostics(self):
-        report = REGO.validate_detailed(UNENCRYPTED_BUCKET)
+    def test_report_counts_match_diagnostics(self):
+        report = REGO.validate_template(UNENCRYPTED_BUCKET)
         counts = report.metadata.counts
         total = counts.fatal + counts.errors + counts.warnings + counts.informational + counts.debug
         self.assertEqual(len(report.diagnostics), total)
 
     def test_unparseable_template_reports_error_status(self):
-        report = REGO.validate_standard(b"not: a: valid: yaml: [")
+        report = REGO.validate_template(b"not: a: valid: yaml: [")
         self.assertEqual(ReportStatus.ERROR, report.status)
         self.assertTrue(report.diagnostics, "parse failure must surface as a diagnostic")
 
 
+class TemplateContentTest(unittest.TestCase):
+    """In-memory templates (str or bytes wrapped in TemplateContent) validate exactly
+    like the same template read from disk, with a caller-controlled report path."""
+
+    IN_MEMORY_TEMPLATE = os.path.join(TEMPLATES, "bad", "invalid_deletion_policy.yaml")
+
+    def _template_text(self) -> str:
+        with open(self.IN_MEMORY_TEMPLATE, encoding="utf-8") as f:
+            return f.read()
+
+    def test_str_content_matches_file_on_every_engine(self):
+        for engine in (REGO, CEL, COMPOSITE):
+            from_file = engine.validate_template(self.IN_MEMORY_TEMPLATE)
+            from_str = engine.validate_template(TemplateContent(self._template_text()))
+            self.assertTrue(from_file.diagnostics, f"{engine.engine_name()}: fixture must produce diagnostics")
+            self.assertEqual(from_file.diagnostics, from_str.diagnostics, engine.engine_name())
+            self.assertEqual(from_file.status, from_str.status, engine.engine_name())
+
+    def test_bytes_content_matches_file_on_every_engine(self):
+        with open(self.IN_MEMORY_TEMPLATE, "rb") as f:
+            template_bytes = f.read()
+        for engine in (REGO, CEL, COMPOSITE):
+            from_file = engine.validate_template(self.IN_MEMORY_TEMPLATE)
+            from_bytes = engine.validate_template(TemplateContent(template_bytes))
+            self.assertEqual(from_file.diagnostics, from_bytes.diagnostics, engine.engine_name())
+
+    def test_default_name_labels_in_memory_reports(self):
+        self.assertEqual("template", DEFAULT_TEMPLATE_NAME)
+        self.assertEqual(DEFAULT_TEMPLATE_NAME, REGO.validate_template(TemplateContent("Resources: {}")).file_path)
+        self.assertEqual(DEFAULT_TEMPLATE_NAME, REGO.validate_template(b"Resources: {}").file_path)
+
+    def test_supplied_name_labels_the_report(self):
+        template = TemplateContent("Resources: {}", name="inline/template.yaml")
+        self.assertEqual("inline/template.yaml", template.name)
+        self.assertEqual("inline/template.yaml", REGO.validate_template(template).file_path)
+
+    def test_malformed_str_content_reports_error_status(self):
+        report = CEL.validate_template(TemplateContent("not: a: valid: yaml: ["))
+        self.assertEqual(ReportStatus.ERROR, report.status)
+        self.assertEqual("F1101", report.diagnostics[0].rule_id)
+
+    def test_rejects_content_that_is_neither_str_nor_bytes(self):
+        with self.assertRaises(TypeError):
+            TemplateContent(42)
+        with self.assertRaises(TypeError):
+            TemplateContent({"Resources": {}})
+
+    def test_template_model_parses_str_content(self):
+        from_file = TemplateModel(self.IN_MEMORY_TEMPLATE)
+        from_str = TemplateModel(TemplateContent(self._template_text()))
+        self.assertEqual(list(from_file.resources()), list(from_str.resources()))
+        self.assertEqual(from_file.to_diagnostic_model(), from_str.to_diagnostic_model())
+
+    def test_schema_validator_validates_str_content_like_file(self):
+        validator = SchemaValidator()
+        from_file = validator.validate(self.IN_MEMORY_TEMPLATE)
+        self.assertEqual(from_file, validator.validate(TemplateContent(self._template_text())))
+
+
+class DetailLevelTest(unittest.TestCase):
+    """validate_template returns a detailed-shaped report whose enrichment is
+    governed by config.detail_level, which defaults to DETAILED."""
+
+    def _enrichment_shape(self, report):
+        return [
+            (d.rule_id, d.phase is not None, d.context is not None, d.rule_description is not None)
+            for d in report.diagnostics
+        ]
+
+    def test_standard_detail_omits_enrichment(self):
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.STANDARD))
+        self.assertTrue(report.diagnostics, "template must produce diagnostics")
+        self.assertTrue(
+            all(d.phase is None and d.context is None for d in report.diagnostics),
+            "STANDARD must leave the phase tag and violation context unset",
+        )
+
+    def test_detailed_detail_populates_enrichment(self):
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.DETAILED))
+        self.assertTrue(
+            all(d.phase is not None for d in report.diagnostics),
+            "DETAILED must tag every diagnostic with its evaluation phase",
+        )
+
+    def test_omitting_detail_level_defaults_to_detailed(self):
+        default_shape = self._enrichment_shape(REGO.validate_template(UNENCRYPTED_BUCKET))
+        detailed_shape = self._enrichment_shape(
+            REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.DETAILED))
+        )
+        standard_shape = self._enrichment_shape(
+            REGO.validate_template(UNENCRYPTED_BUCKET, ValidateConfig(detail_level=DetailLevel.STANDARD))
+        )
+        self.assertEqual(detailed_shape, default_shape, "omitting detail_level must behave as DETAILED")
+        self.assertNotEqual(standard_shape, default_shape, "the default must not be STANDARD")
+
+
 class AdditionalSchemasTest(unittest.TestCase):
-    def test_additional_schemas_apply_through_the_public_config_on_both_engines(self):
+    def test_additional_schemas_apply_through_the_public_config_on_all_engines(self):
         from cloudformation_validate import SchemaValidatorConfig
 
-        config = EngineConfig(
-            schema_validator_config=SchemaValidatorConfig(
-                additional_schemas=[AdditionalSchemaSource(type_name=None, schema=LAMBDA_OVERLAY_SCHEMA)]
-            )
+        schema_config = SchemaValidatorConfig(
+            additional_schemas=[AdditionalSchemaSource(type_name=None, schema=LAMBDA_OVERLAY_SCHEMA)]
         )
-        for name, baseline, engine_type in (
-            ("rego", REGO, RegoEngine),
-            ("cel", CEL, CelEngine),
+        engine_config = EngineConfig(schema_validator_config=schema_config)
+        composite_config = CompositeEngineConfig(schema_validator_config=schema_config)
+        for name, baseline, configured in (
+            ("rego", REGO, RegoEngine(engine_config)),
+            ("cel", CEL, CelEngine(engine_config)),
+            ("composite", COMPOSITE, CompositeEngine(composite_config)),
         ):
-            baseline_report = baseline.validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
+            baseline_report = baseline.validate_template(TEMPLATE_WITH_OVERLAY_PROPERTY)
             self.assertTrue(
                 any(d.rule_id == "F3002" for d in baseline_report.diagnostics),
                 f"{name} baseline must report the unpublished property",
             )
-            report = engine_type(config).validate_standard(TEMPLATE_WITH_OVERLAY_PROPERTY)
+            report = configured.validate_template(TEMPLATE_WITH_OVERLAY_PROPERTY)
             self.assertFalse(
                 any(d.rule_id == "F3002" for d in report.diagnostics),
                 f"{name} public config must apply the overlay",
@@ -219,7 +321,7 @@ class AdditionalSchemasTest(unittest.TestCase):
 
 class CustomRulesTest(unittest.TestCase):
     def assert_custom_rule_fires(self, engine):
-        report = engine.validate_standard(UNENCRYPTED_BUCKET)
+        report = engine.validate_template(UNENCRYPTED_BUCKET)
         custom = [d for d in report.diagnostics if d.rule_id == "CUSTOM001"]
         self.assertEqual(1, len(custom), f"custom rule must fire once via {engine.engine_name()}")
         self.assertEqual("S3 bucket must have encryption configured", custom[0].message)
@@ -236,16 +338,90 @@ class CustomRulesTest(unittest.TestCase):
         )
         self.assert_custom_rule_fires(RegoEngine(config))
 
-    def test_guard_rule_fires_on_both_engines(self):
-        config = EngineConfig(
-            guard_rules=[
-                ExternalRuleSource(name="guard_encryption.guard", content=load_rule("guard_encryption.guard"))
-            ]
+    def test_composite_cel_custom_rule_fires(self):
+        config = CompositeEngineConfig(
+            cel_rules=[ExternalRuleSource(name="cel_custom.json", content=load_rule("cel_custom.json"))]
         )
-        for engine in (RegoEngine(config), CelEngine(config)):
-            report = engine.validate_standard(UNENCRYPTED_BUCKET)
+        self.assert_custom_rule_fires(CompositeEngine(config))
+
+    def test_composite_rego_custom_rule_fires(self):
+        config = CompositeEngineConfig(
+            rego_rules=[ExternalRuleSource(name="rego_custom.rego", content=load_rule("rego_custom.rego"))]
+        )
+        self.assert_custom_rule_fires(CompositeEngine(config))
+
+    def test_guard_rule_fires_on_all_engines(self):
+        guard_rule = ExternalRuleSource(name="guard_encryption.guard", content=load_rule("guard_encryption.guard"))
+        engine_config = EngineConfig(guard_rules=[guard_rule])
+        engines = (
+            RegoEngine(engine_config),
+            CelEngine(engine_config),
+            CompositeEngine(CompositeEngineConfig(guard_rules=[guard_rule])),
+        )
+        for engine in engines:
+            report = engine.validate_template(UNENCRYPTED_BUCKET)
             guard_hits = [d for d in report.diagnostics if "encryption" in d.message.lower()]
             self.assertTrue(guard_hits, f"guard rule must fire via {engine.engine_name()}")
+
+
+class CompositeEngineTest(unittest.TestCase):
+    def test_composite_engine_reports_name_composite(self):
+        self.assertEqual("composite", COMPOSITE.engine_name())
+
+    def test_default_composite_matches_builtin_engine_diagnostics(self):
+        composite_keys = diagnostic_keys(COMPOSITE.validate_template(UNENCRYPTED_BUCKET))
+        self.assertEqual(
+            diagnostic_keys(CEL.validate_template(UNENCRYPTED_BUCKET)),
+            composite_keys,
+            "composite with no custom rules must produce exactly the built-in diagnostics",
+        )
+        self.assertEqual(
+            diagnostic_keys(REGO.validate_template(UNENCRYPTED_BUCKET)),
+            composite_keys,
+            "composite defaults must match the parity engines",
+        )
+
+    def test_cel_custom_rule_fires_alongside_builtins(self):
+        config = CompositeEngineConfig(
+            cel_rules=[ExternalRuleSource(name="cel_custom.json", content=load_rule("cel_custom.json"))]
+        )
+        report = CompositeEngine(config).validate_template(UNENCRYPTED_BUCKET)
+
+        custom = [d for d in report.diagnostics if d.rule_id == "CUSTOM001"]
+        self.assertEqual(1, len(custom), "custom cel rule must fire exactly once")
+        self.assertEqual("S3 bucket must have encryption configured", custom[0].message)
+
+        builtin_keys = sorted(
+            (d.rule_id, d.severity.name, d.start_line, d.start_column)
+            for d in report.diagnostics
+            if d.rule_id != "CUSTOM001"
+        )
+        self.assertEqual(
+            diagnostic_keys(CEL.validate_template(UNENCRYPTED_BUCKET)),
+            builtin_keys,
+            "built-in diagnostics must appear exactly once alongside the custom cel finding",
+        )
+
+    def test_rego_custom_rule_fires_alongside_builtins(self):
+        config = CompositeEngineConfig(
+            rego_rules=[ExternalRuleSource(name="rego_custom.rego", content=load_rule("rego_custom.rego"))]
+        )
+        report = CompositeEngine(config).validate_template(UNENCRYPTED_BUCKET)
+
+        custom = [d for d in report.diagnostics if d.rule_id == "CUSTOM001"]
+        self.assertEqual(1, len(custom), "custom rego rule must fire exactly once")
+        self.assertEqual("S3 bucket must have encryption configured", custom[0].message)
+
+        builtin_keys = sorted(
+            (d.rule_id, d.severity.name, d.start_line, d.start_column)
+            for d in report.diagnostics
+            if d.rule_id != "CUSTOM001"
+        )
+        self.assertEqual(
+            diagnostic_keys(CEL.validate_template(UNENCRYPTED_BUCKET)),
+            builtin_keys,
+            "built-in diagnostics must appear exactly once alongside the custom finding",
+        )
 
 
 class TemplateModelTest(unittest.TestCase):
@@ -296,7 +472,7 @@ class LogicalIdFilterTest(unittest.TestCase):
                 ]
             )
         )
-        report = REGO.validate_standard(UNENCRYPTED_BUCKET, config)
+        report = REGO.validate_template(UNENCRYPTED_BUCKET, config)
         matching = [
             diagnostic
             for diagnostic in report.diagnostics
@@ -314,8 +490,8 @@ class NativeLoaderTest(unittest.TestCase):
 
 class InvalidInputTest(unittest.TestCase):
     def test_empty_template_reports_fatal_parse_rule(self):
-        for engine in (REGO, CEL):
-            report = engine.validate_standard(os.path.join(TEMPLATES, "empty.yaml"))
+        for engine in (REGO, CEL, COMPOSITE):
+            report = engine.validate_template(os.path.join(TEMPLATES, "empty.yaml"))
             self.assertEqual(ReportStatus.ERROR, report.status)
             self.assertEqual("F1101", report.diagnostics[0].rule_id)
             self.assertEqual(Severity.FATAL, report.diagnostics[0].severity)
@@ -346,7 +522,7 @@ class TemplateModelFixtureTest(unittest.TestCase):
 class CombinedCustomGuardListingTest(unittest.TestCase):
     def assert_sorted_and_identical(self, cel, rego):
         # Rego discovers custom rule metadata during evaluation.
-        rego.validate_standard(os.path.join(TEMPLATES, "bad", "invalid_deletion_policy.yaml"))
+        rego.validate_template(os.path.join(TEMPLATES, "bad", "invalid_deletion_policy.yaml"))
         listings = {}
         for name, engine in (("cel", cel), ("rego", rego)):
             rules = engine.list_rules()
@@ -413,6 +589,76 @@ class CombinedCustomGuardListingTest(unittest.TestCase):
                 self.assertEqual(severity, actual_severity, rule_id)
             self.assertEqual(origin, actual_origin, rule_id)
             self.assertEqual(description, actual_description, rule_id)
+
+
+class AwsCliCommandTest(unittest.TestCase):
+    def test_s3_create_bucket_synthesizes_on_all_engines(self):
+        request = AwsCliCommand("s3", "CreateBucket", {"Bucket": "synthetic-bucket"})
+        results = {}
+        for engine in (REGO, CEL, COMPOSITE):
+            name = engine.engine_name()
+            validation = engine.validate_aws_cli_command(request)
+            self.assertEqual(AwsCliCommandValidationStatus.VALIDATED, validation.status, name)
+            self.assertEqual(AwsCliOperationKind.CLOUD_FORMATION_CREATE, validation.operation_kind, name)
+            self.assertEqual(["AWS::S3::Bucket"], validation.resource_types, name)
+            self.assertEqual(AwsCliTemplateSource.SYNTHESIZED_CREATE, validation.template_source, name)
+            self.assertIsNotNone(validation.report, name)
+            self.assertIsNotNone(validation.template, f"{name}: a validated request must carry template bytes")
+            document = json.loads(validation.template)
+            self.assertEqual("AWS::S3::Bucket", document["Resources"]["Resource"]["Type"], name)
+            self.assertEqual("synthetic-bucket", document["Resources"]["Resource"]["Properties"]["BucketName"], name)
+            results[name] = validation
+        # Every engine must agree with rego on the modeled template and diagnostics, not timings.
+        for name, result in results.items():
+            if name == "rego":
+                continue
+            self.assertEqual(results["rego"].template, result.template, name)
+            self.assertEqual(diagnostic_keys(results["rego"].report), diagnostic_keys(result.report), name)
+
+    def test_validate_template_preserves_exact_template_body_bytes(self):
+        # Distinctive whitespace and key order a reserialization would not reproduce.
+        template_body = b'{\n    "Resources": {\n        "Bucket": { "Type": "AWS::S3::Bucket" }\n    }\n}'
+        request = AwsCliCommand("cloudformation", "ValidateTemplate", {"TemplateBody": template_body})
+        for engine in (REGO, CEL, COMPOSITE):
+            name = engine.engine_name()
+            validation = engine.validate_aws_cli_command(request)
+            self.assertEqual(AwsCliCommandValidationStatus.VALIDATED, validation.status, name)
+            self.assertEqual(AwsCliTemplateSource.TEMPLATE_BODY, validation.template_source, name)
+            self.assertEqual(template_body, validation.template, f"{name}: TemplateBody must be preserved byte-for-byte")
+
+    def test_conservatively_skips_nested_dynamodb_fields(self):
+        request = AwsCliCommand(
+            "dynamodb",
+            "CreateTable",
+            {
+                "TableName": "Synthetic",
+                "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+                "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
+                "BillingMode": "PAY_PER_REQUEST",
+            },
+        )
+        for engine in (REGO, CEL, COMPOSITE):
+            name = engine.engine_name()
+            validation = engine.validate_aws_cli_command(request)
+            self.assertEqual(AwsCliCommandValidationStatus.SKIPPED, validation.status, name)
+            self.assertIsNone(validation.report, name)
+            self.assertIsNone(validation.template, name)
+            self.assertEqual(["AWS::DynamoDB::Table"], validation.resource_types, name)
+            self.assertIn("has no mapping", validation.reason, name)
+
+    def test_does_not_guess_noncanonical_service_alias(self):
+        # CloudWatch's canonical botocore name is "cloudwatch"; "monitoring" is its
+        # signing name. The core resolves the canonical name but never the alias.
+        canonical = AwsCliCommand("cloudwatch", "PutMetricAlarm", {"AlarmName": "synthetic"})
+        alias = AwsCliCommand("monitoring", "PutMetricAlarm", {"AlarmName": "synthetic"})
+        for engine in (REGO, CEL, COMPOSITE):
+            name = engine.engine_name()
+            canonical_validation = engine.validate_aws_cli_command(canonical)
+            self.assertIn("AWS::CloudWatch::Alarm", canonical_validation.resource_types, name)
+            alias_validation = engine.validate_aws_cli_command(alias)
+            self.assertEqual(AwsCliCommandValidationStatus.SKIPPED, alias_validation.status, name)
+            self.assertNotIn("AWS::CloudWatch::Alarm", alias_validation.resource_types, name)
+            self.assertIsNone(alias_validation.template, name)
 
 
 if __name__ == "__main__":

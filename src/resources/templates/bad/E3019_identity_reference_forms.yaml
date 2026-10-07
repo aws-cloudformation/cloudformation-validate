@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  BucketName: {Type: String}
+  Toggle: {Type: String, AllowedValues: [left, right]}
+Conditions:
+  Left: !Equals [!Ref Toggle, left]
+  Right: !Equals [!Ref Toggle, right]
+Resources:
+  RefBucket:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Ref BucketName}
+  SubBucket:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: !Sub '${BucketName}'}
+  ExplicitSubBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ['${Selected}', {Selected: !Ref BucketName}]
+  JoinBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ['', [!Ref BucketName]]
+  LiteralA:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: literal-same-name}
+  LiteralB:
+    Type: AWS::S3::Bucket
+    Properties: {BucketName: literal-same-name}

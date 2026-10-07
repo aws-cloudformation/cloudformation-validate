@@ -10,8 +10,8 @@ diagnostics so they are not needed for cfn-lint parity comparison.
 Use compare_benchmarks.py for cross-binding performance comparison.
 
 Usage:
-    python3 scripts/compare_cfnlint.py --cfn-lint-root /path/to/cfn-lint [--engine rego|cel] [--skip-build]
-    CFN_LINT_ROOT=/path/to/cfn-lint python3 scripts/compare_cfnlint.py [--engine rego|cel] [--skip-build]
+    python3 scripts/compare_cfnlint.py --cfn-lint-root /path/to/cfn-lint [--engine rego|cel|composite] [--skip-build]
+    CFN_LINT_ROOT=/path/to/cfn-lint python3 scripts/compare_cfnlint.py [--engine rego|cel|composite] [--skip-build]
 
 When no flags are provided, runs all engines × all formats (standard, full).
 Reports are written to scripts/<engine>/report_<engine>_<format>.md.
@@ -40,7 +40,7 @@ OUTPUT_PATH = None
 SKIP_BUILD = False
 
 
-ALL_ENGINES = ["rego", "cel"]
+ALL_ENGINES = ["rego", "cel", "composite"]
 OUTPUT_FORMAT = "detailed"
 ITERATIONS = 1
 # Rules that are correct engine-only findings - cfn-lint does not implement them.
@@ -151,7 +151,7 @@ def _warn_if_benchmark_stale(bench_bin):
     With --skip-build the script reuses whatever cfn-benchmark exists. A common
     trap is rebuilding only `cfn-validate` (`cargo build -p cfn-validate --bin
     cfn-validate`), which leaves cfn-benchmark stale - the comparison then runs on
-    old behavior while a freshly-built golden passes, producing phantom results.
+    old behavior while a freshly-built snapshot passes, producing phantom results.
     """
     bench_mtime = bench_bin.stat().st_mtime
     newest_src = 0.0
@@ -212,8 +212,10 @@ def normalize_cfnlint_diags(diags):
         if len(path_parts) >= 2 and path_parts[0] == "Resources":
             resource_id = str(path_parts[1])
             if len(path_parts) >= 3 and path_parts[2] == "Properties":
-                prop_parts = [str(p) for p in path_parts[3:]]
+                prop_parts = [str(part) for part in path_parts[3:]]
                 prop_path = "Properties." + ".".join(prop_parts) if prop_parts else "Properties"
+            elif len(path_parts) >= 3:
+                prop_path = ".".join(str(part) for part in path_parts[2:])
         cfnlint_id = rule.get("Id", "")
         cfnlint_sev = d.get("Level", "")
         engine_id = cfnlint_rule_to_engine(cfnlint_id)
@@ -363,6 +365,33 @@ def _diag_sort_key(d):
     )
 
 
+
+_NON_RESOURCE_SECTIONS = (
+    "Outputs",
+    "Conditions",
+    "Mappings",
+    "Parameters",
+    "Rules",
+    "Metadata",
+    "Transform",
+    "Globals",
+)
+
+
+def _normalize_engine_identity(resource_id, resource_path):
+    """Normalize section paths to cfn-lint's dotted, resource-free identity."""
+    if resource_id:
+        return resource_id, resource_path
+    for section in _NON_RESOURCE_SECTIONS:
+        if resource_path == section or resource_path.startswith((f"{section}/", f"{section}.")):
+            return "", resource_path.replace("/", ".")
+    return resource_id, resource_path
+
+
+def _cfnlint_fired_original_rule(diagnostics, rule_id):
+    return any(diagnostic.get("cfnlint_rule_id") == rule_id for diagnostic in diagnostics)
+
+
 def cfnlint_rule_to_engine(rule_id):
     """Translate a cfn-lint rule ID to the engine's canonical ID."""
     return _CFNLINT_TO_ENGINE.get(rule_id, rule_id)
@@ -401,15 +430,11 @@ def load_engine_results():
             resource_path = d.get("propertyPath", "")
             if rule_id == "F0000":
                 # cfn-lint's E0000 parse-error records never carry a Path, so the
-                # engine's richer identity (entity + duplicated-key path) would
-                # defeat both matching passes; compare on the bare rule instead.
+                # engine's richer identity would defeat matching.
                 resource_id = ""
                 resource_path = ""
-            elif resource_path.startswith("Outputs/"):
-                resource_path = resource_path.replace("/", ".")
-                resource_id = ""
-            elif resource_id and resource_path.startswith("Outputs."):
-                resource_id = ""
+            else:
+                resource_id, resource_path = _normalize_engine_identity(resource_id, resource_path)
             diags.append({
                 "rule_id": rule_id,
                 "rule_description": d.get("ruleDescription", ""),
@@ -690,9 +715,7 @@ def run_single():
         # short-circuits nested chains and skips branches under parent schema
         # failures. Unmatched engine E1028 is engine-extra only when cfn-lint
         # fired E1028 on this template or quotes the same condition; else FP.
-        cfnlint_fired_e1028 = any(
-            d.get("rule_id") == "E1028" for d in cfnlint_all[key]
-        )
+        cfnlint_fired_e1028 = _cfnlint_fired_original_rule(cfnlint_all[key], "E1028")
 
         def _cfnlint_saw_condition(engine_diag):
             m = re.search(r"Fn::If condition '([^']+)'", engine_diag.get("message", ""))

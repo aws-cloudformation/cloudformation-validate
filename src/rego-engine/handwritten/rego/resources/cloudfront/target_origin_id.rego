@@ -10,6 +10,7 @@ violation contains make_diag_full("E3057", "ERROR", name,
     sprintf("TargetOriginId '%s' does not match any Origin Id in the distribution", [target_id]),
     "Set TargetOriginId to match one of the Origin Ids defined in Origins",
     "") if {
+    cfn_rule_active("E3057")
     some name in resources_of_type("AWS::CloudFront::Distribution")
     dist := resolve(name, "Properties.DistributionConfig")
     is_object(dist)

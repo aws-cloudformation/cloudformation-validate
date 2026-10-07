@@ -1,10 +1,15 @@
-//! Regenerate the golden `expected/validation_reports.json` from `cfn-validate`
-//! `--format detailed` output - a Rust port of the former `generate.py`, run in
-//! parallel across CPU cores because serial Python (≈1000 engine-initializing
-//! subprocess launches) is too slow.
+//! Regenerate the `expected/validation_reports*.json` snapshot chunks from
+//! `cfn-validate --format detailed` output — a Rust port of the former
+//! `generate.py`, run in parallel across CPU cores because serial Python
+//! (≈1000 engine-initializing subprocess launches) is too slow.
 //!
-//! Runs BOTH engines (rego and cel) on every template and verifies they produce
-//! identical diagnostics. Fails loudly on any divergence or missing output.
+//! Runs all three engines (rego, cel, composite) on every template and verifies
+//! they produce identical diagnostics. Fails loudly on any divergence or missing
+//! output.
+//!
+//! Reports are deterministically partitioned into numbered files
+//! (`validation_reports1.json`, `validation_reports2.json`, …) with at most
+//! [`TEMPLATES_PER_CHUNK`] template reports per file, sorted by template key.
 //!
 //! Run from the workspace root, in release (the generator itself is CPU-bound):
 //!     cargo run --release -p resources --example generate_validation_reports
@@ -19,32 +24,48 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
-use resources::{discover_snapshot_templates, resources_root, templates_dir, validation_reports_file, workspace_root};
+use resources::{
+    TEMPLATES_PER_CHUNK, discover_snapshot_chunks, discover_snapshot_templates, expected_dir,
+    legacy_validation_reports_file, resources_root, snapshot_chunk_filename, templates_dir, workspace_root,
+};
 use serde_json::{Map, Value};
 
-/// Engines that must agree on every template. Rego is the reference persisted to
-/// the golden file; cel is validated against it for parity.
-const ENGINES: &[&str] = &["rego", "cel"];
+/// Engines that must agree on every template. [`REFERENCE_ENGINE`] is the one
+/// persisted to the snapshot chunks; every other engine is validated against it
+/// for parity.
+const ENGINES: &[&str] = &["rego", "cel", "composite"];
 
-/// Fields stripped before the rego-vs-cel parity comparison
-const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics", "suppressed"];
+/// The engine whose report is persisted to the snapshot chunks and against which
+/// every other engine is compared.
+const REFERENCE_ENGINE: &str = "composite";
 
-/// Top-level fields compared across engines but not persisted to the golden file.
-const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance"];
+/// Fields stripped before the cross-engine parity comparison.
+const PARITY_IGNORED_FIELDS: &[&str] = &["performance", "benchmarkMetrics"];
 
-/// `metadata` fields compared across engines but not persisted to the golden file because they describe
+/// Top-level fields compared across engines but not persisted to the snapshot chunks.
+const OUTPUT_ONLY_TOP_LEVEL_FIELDS: &[&str] = &["performance", "version"];
+
+/// `metadata` fields compared across engines but not persisted to the snapshot chunks because they describe
 /// the current binary's rule and data-source bundle.
 const OUTPUT_ONLY_METADATA_FIELDS: &[&str] = &["rulesEvaluated", "cfnLintVersion", "resourceSchemaVersion"];
 
 /// Identity of a single diagnostic, used only to describe parity divergences.
 type DiagnosticKey = (String, String, String, String, String);
 
-/// The result of validating one template with both engines.
+/// How one engine diverged from the reference engine on a single template: the
+/// diagnostics unique to that engine and those unique to the reference.
+struct EngineDivergence {
+    engine: String,
+    only_in_engine: Vec<DiagnosticKey>,
+    only_in_reference: Vec<DiagnosticKey>,
+}
+
+/// The result of validating one template with every engine.
 enum Outcome {
-    /// Both engines agreed; carries the report to persist (rego, output-trimmed).
+    /// Every engine agreed; carries the reference report to persist (output-trimmed).
     Persist(Value),
-    /// Engines diverged; carries the diagnostics unique to each.
-    Parity { only_rego: Vec<DiagnosticKey>, only_cel: Vec<DiagnosticKey> },
+    /// One or more engines diverged from the reference; carries each divergence.
+    Parity(Vec<EngineDivergence>),
     /// A binary invocation produced no output or unparseable JSON.
     Fatal(String),
 }
@@ -56,9 +77,10 @@ fn main() {
     };
 
     let templates = discover_snapshot_templates();
-    println!("Output file: {}", validation_reports_file().display());
+    let output_dir = expected_dir();
+    println!("Output directory: {}", output_dir.display());
     println!("Discovered {} templates", templates.len());
-    println!("Running both engines ({}) on each template...\n", ENGINES.join(" + "));
+    println!("Running all {} engines ({}) on each template...\n", ENGINES.len(), ENGINES.join(" + "));
 
     let outcomes = run_all(&cfn_validate, &templates);
 
@@ -70,7 +92,7 @@ fn main() {
             Outcome::Persist(report) => {
                 persisted.insert(template.clone(), report);
             }
-            Outcome::Parity { only_rego, only_cel } => parity_failures.push((template.clone(), only_rego, only_cel)),
+            Outcome::Parity(divergences) => parity_failures.push((template.clone(), divergences)),
             Outcome::Fatal(message) => fatals.push((template.clone(), message)),
         }
     }
@@ -84,27 +106,79 @@ fn main() {
 
     if !parity_failures.is_empty() {
         eprintln!("\nFATAL: {} template(s) have engine parity failures:\n", parity_failures.len());
-        for (template, only_rego, only_cel) in &parity_failures {
+        for (template, divergences) in &parity_failures {
             eprintln!("  {template}");
-            for (rule_id, severity, message, resource, path) in only_rego {
-                eprintln!("    rego-only: [{severity}] {rule_id} | {resource} {path} | {message}");
-            }
-            for (rule_id, severity, message, resource, path) in only_cel {
-                eprintln!("    cel-only:  [{severity}] {rule_id} | {resource} {path} | {message}");
+            for divergence in divergences {
+                for (rule_id, severity, message, resource, path) in &divergence.only_in_engine {
+                    eprintln!("    {}-only: [{severity}] {rule_id} | {resource} {path} | {message}", divergence.engine);
+                }
+                for (rule_id, severity, message, resource, path) in &divergence.only_in_reference {
+                    eprintln!(
+                        "    {REFERENCE_ENGINE}-only (missing from {}): [{severity}] {rule_id} | {resource} {path} | {message}",
+                        divergence.engine
+                    );
+                }
             }
         }
         fail(&format!("{} template(s) have engine parity failures", parity_failures.len()));
     }
 
-    let count = persisted.len();
-    let rendered = serde_json::to_string_pretty(&Value::Object(persisted))
-        .unwrap_or_else(|e| fail(&format!("serialize golden: {e}")));
-    if let Err(e) = std::fs::write(validation_reports_file(), rendered + "\n") {
-        fail(&format!("write {}: {e}", validation_reports_file().display()));
+    let total_count = persisted.len();
+    if total_count == 0 {
+        fail("no template reports were produced — nothing to write");
+    }
+    write_chunked_snapshots(&persisted);
+    cleanup_stale_artifacts(total_count);
+
+    println!("\nWrote {total_count} template results across chunks to {}", output_dir.display());
+    println!("Engine parity verified: {} on all {total_count} templates", ENGINES.join(" == "));
+}
+
+/// Partition the persisted reports into deterministically-sorted chunks and write each.
+fn write_chunked_snapshots(persisted: &Map<String, Value>) {
+    let mut sorted_keys: Vec<&String> = persisted.keys().collect();
+    sorted_keys.sort();
+
+    let dir = expected_dir();
+    for (chunk_index_zero, chunk_keys) in sorted_keys.chunks(TEMPLATES_PER_CHUNK).enumerate() {
+        let chunk_number = chunk_index_zero + 1;
+        let chunk_map: Map<String, Value> =
+            chunk_keys.iter().map(|key| ((*key).clone(), persisted[*key].clone())).collect();
+
+        let rendered = serde_json::to_string_pretty(&Value::Object(chunk_map))
+            .unwrap_or_else(|e| fail(&format!("serialize chunk {chunk_number}: {e}")));
+
+        let path = dir.join(snapshot_chunk_filename(chunk_number));
+        if let Err(e) = std::fs::write(&path, rendered + "\n") {
+            fail(&format!("write {}: {e}", path.display()));
+        }
+        println!("  wrote {} ({} templates)", snapshot_chunk_filename(chunk_number), chunk_keys.len());
+    }
+}
+
+/// Remove the legacy single file and any stale numbered chunks beyond what was just written.
+/// Failures are fatal (except NotFound, which is race-safe to ignore).
+fn cleanup_stale_artifacts(total_templates: usize) {
+    let expected_chunk_count = total_templates.div_ceil(TEMPLATES_PER_CHUNK);
+
+    let legacy = legacy_validation_reports_file();
+    match std::fs::remove_file(&legacy) {
+        Ok(()) => println!("  removed legacy validation_reports.json"),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => fail(&format!("remove legacy {}: {e}", legacy.display())),
     }
 
-    println!("\nWrote {count} template results to {}", validation_reports_file().display());
-    println!("Engine parity verified: rego == cel on all {count} templates");
+    let existing_chunks =
+        discover_snapshot_chunks().unwrap_or_else(|e| fail(&format!("discover stale chunks for cleanup: {e}")));
+    for (index, path) in existing_chunks {
+        if index > expected_chunk_count {
+            match std::fs::remove_file(&path) {
+                Ok(()) => println!("  removed stale {}", snapshot_chunk_filename(index)),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => fail(&format!("remove stale chunk {}: {e}", path.display())),
+            }
+        }
+    }
 }
 
 /// Build the release `cfn-validate` binary this generator drives, and return its path.
@@ -128,7 +202,7 @@ fn build_release_binary() -> Result<PathBuf, String> {
     Ok(binary)
 }
 
-/// Validate every template with both engines, fanning out across CPU cores.
+/// Validate every template with every engine, fanning out across CPU cores.
 /// Returns one [`Outcome`] per template, in the input order.
 fn run_all(cfn_validate: &PathBuf, templates: &[String]) -> Vec<Outcome> {
     let total = templates.len();
@@ -163,30 +237,50 @@ fn run_all(cfn_validate: &PathBuf, templates: &[String]) -> Vec<Outcome> {
     ordered.into_iter().map(|(_, outcome, _)| outcome).collect()
 }
 
-/// Run both engines on one template and decide its [`Outcome`].
+/// Run every engine on one template and decide its [`Outcome`], comparing each
+/// non-reference engine against [`REFERENCE_ENGINE`] and persisting the
+/// reference's report when they all agree.
 fn validate_template(cfn_validate: &PathBuf, template: &str) -> (Outcome, f64) {
-    let (rego, rego_validation_ms) = match run_cfn_validate(cfn_validate, template, "rego") {
-        Ok(result) => result,
-        Err(message) => return (Outcome::Fatal(message), 0.0),
-    };
-    let (cel, cel_validation_ms) = match run_cfn_validate(cfn_validate, template, "cel") {
-        Ok(result) => result,
-        Err(message) => return (Outcome::Fatal(message), rego_validation_ms),
-    };
-    let cli_validation_ms = rego_validation_ms.max(cel_validation_ms);
-
-    let rego_comparable = strip_fields(&rego, PARITY_IGNORED_FIELDS);
-    let cel_comparable = strip_fields(&cel, PARITY_IGNORED_FIELDS);
-
-    if rego_comparable != cel_comparable {
-        let rego_diagnostics = diagnostic_keys(&rego_comparable);
-        let cel_diagnostics = diagnostic_keys(&cel_comparable);
-        let only_rego = sorted_difference(&rego_diagnostics, &cel_diagnostics);
-        let only_cel = sorted_difference(&cel_diagnostics, &rego_diagnostics);
-        return (Outcome::Parity { only_rego, only_cel }, cli_validation_ms);
+    let mut reports: Vec<(&'static str, Value)> = Vec::with_capacity(ENGINES.len());
+    let mut cli_validation_ms = 0.0_f64;
+    for &engine in ENGINES {
+        match run_cfn_validate(cfn_validate, template, engine) {
+            Ok((report, validation_ms)) => {
+                cli_validation_ms = cli_validation_ms.max(validation_ms);
+                reports.push((engine, report));
+            }
+            Err(message) => return (Outcome::Fatal(message), cli_validation_ms),
+        }
     }
 
-    (Outcome::Persist(strip_output_only_fields(&rego)), cli_validation_ms)
+    let reference = reports
+        .iter()
+        .find_map(|(engine, report)| (*engine == REFERENCE_ENGINE).then_some(report))
+        .unwrap_or_else(|| fail(&format!("reference engine '{REFERENCE_ENGINE}' is not one of ENGINES")));
+    let reference_comparable = strip_fields(reference, PARITY_IGNORED_FIELDS);
+    let reference_diagnostics = diagnostic_keys(&reference_comparable);
+
+    let mut divergences = Vec::new();
+    for (engine, report) in &reports {
+        if *engine == REFERENCE_ENGINE {
+            continue;
+        }
+        let engine_comparable = strip_fields(report, PARITY_IGNORED_FIELDS);
+        if engine_comparable != reference_comparable {
+            let engine_diagnostics = diagnostic_keys(&engine_comparable);
+            divergences.push(EngineDivergence {
+                engine: (*engine).to_string(),
+                only_in_engine: sorted_difference(&engine_diagnostics, &reference_diagnostics),
+                only_in_reference: sorted_difference(&reference_diagnostics, &engine_diagnostics),
+            });
+        }
+    }
+
+    if !divergences.is_empty() {
+        return (Outcome::Parity(divergences), cli_validation_ms);
+    }
+
+    (Outcome::Persist(strip_output_only_fields(reference)), cli_validation_ms)
 }
 
 /// Invoke `cfn-validate <template> --format detailed --level debug --engine <engine>`
@@ -213,7 +307,7 @@ fn run_cfn_validate(cfn_validate: &PathBuf, template: &str, engine: &str) -> Res
 }
 
 /// Set every `durationMs` value (at any depth) to zero, so timing noise never
-/// reaches the golden file or the parity comparison.
+/// reaches the snapshot chunks or the parity comparison.
 fn zero_durations(value: &mut Value) {
     match value {
         Value::Object(map) => {

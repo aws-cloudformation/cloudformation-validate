@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda-role
+      Code:
+        S3Bucket: deployment-artifacts
+        S3Key: function.zip
+      Environment:
+        Variables:
+          APPLICATION_MODE: production
+      Tags:
+        - Key: Purpose
+          Value: validation

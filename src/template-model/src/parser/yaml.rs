@@ -326,6 +326,10 @@ struct CfnYamlLoader {
     merge_key_spans: Vec<SourceSpan>,
     /// Count of plain `<<` merge keys seen, used to mint unique sentinel key ids.
     merge_key_count: usize,
+    /// Set after a structural nesting-depth violation. All later events are
+    /// ignored, so no deeper `Yaml` tree is constructed; `load` returns the
+    /// located parse error before consulting the incomplete document state.
+    suppress_tree_construction: bool,
     /// First structurally-fatal defect found while loading (a null or non-scalar
     /// mapping key). CloudFormation cannot represent such a template as JSON, so
     /// the whole parse fails - mirroring the scanner's own hard errors.
@@ -353,6 +357,7 @@ impl CfnYamlLoader {
             dup_key_diagnostics: Vec::new(),
             merge_key_spans: Vec::new(),
             merge_key_count: 0,
+            suppress_tree_construction: false,
             load_error: None,
             second_doc_mark: None,
         }
@@ -662,10 +667,36 @@ impl CfnYamlLoader {
             _ => unreachable!(),
         }
     }
+    /// Returns whether another container may be opened. On the first overrun,
+    /// records a located parse error and suppresses every subsequent event so
+    /// the loader never constructs a tree deeper than the deterministic bound.
+    fn allow_container(&mut self, mark: Marker) -> bool {
+        if self.doc_stack.len() < crate::consts::MAX_YAML_NESTING_DEPTH {
+            return true;
+        }
+
+        if self.load_error.is_none() {
+            let (line, column) = Self::mark_position(mark);
+            self.load_error = Some(ParseError {
+                message: format!(
+                    "Template exceeds the maximum structural nesting depth of {} at line {}",
+                    crate::consts::MAX_YAML_NESTING_DEPTH,
+                    line
+                ),
+                line: Some(line),
+                column: Some(column),
+            });
+        }
+        self.suppress_tree_construction = true;
+        false
+    }
 }
 
 impl MarkedEventReceiver for CfnYamlLoader {
     fn on_event(&mut self, ev: Event, mark: Marker) {
+        if self.suppress_tree_construction {
+            return;
+        }
         match ev {
             Event::DocumentStart => {
                 // The first document is the template; any further document has no
@@ -681,6 +712,9 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 _ => {}
             },
             Event::SequenceStart(aid, ref tag) => {
+                if !self.allow_container(mark) {
+                    return;
+                }
                 if let Some(tag_name) = Self::cfn_tag_name(tag) {
                     self.pending_tags.push((tag_name, self.doc_stack.len()));
                 }
@@ -699,6 +733,9 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 self.advance_after_value();
             }
             Event::MappingStart(aid, ref tag) => {
+                if !self.allow_container(mark) {
+                    return;
+                }
                 if let Some(tag_name) = Self::cfn_tag_name(tag) {
                     self.pending_tags.push((tag_name, self.doc_stack.len()));
                 }
@@ -1417,6 +1454,35 @@ mod tests {
         assert!(w1103.is_empty(), "got: {:?}", w1103);
     }
 
+    /// Repeated long-form `Fn::AccountIdFromAlias` keys funnel through the same
+    /// per-thread suggestion cache as JSON. A key far from every function stays
+    /// data on every repeat, and a genuine typo still warns once - matching the
+    /// JSON front-end result exactly.
+    #[test]
+    fn repeated_unknown_fn_keys_are_consistent_with_a_single_typo() {
+        let input = r#"Resources:
+  A:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::AccountIdFromAlias: one
+  B:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::AccountIdFromAlias: two
+  C:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::GetAttt: [A, Arn]
+"#;
+        let ir = parse_yaml(input.as_bytes()).unwrap();
+        let w1103: Vec<&str> =
+            ir.diagnostics.iter().filter(|d| d.rule_id == "W1103").map(|d| d.message.as_str()).collect();
+        assert_eq!(w1103, ["'Fn::GetAttt' is not a supported function - did you mean 'Fn::GetAtt'?"]);
+    }
+
     /// A misspelled or unknown `!`-shorthand tag (`!Bogus`) is wrapped into
     /// `{ Fn::Bogus: ... }` exactly like the long form and JSON, so the shared
     /// unsupported-function check fires. Silently dropping the tag (the previous
@@ -1884,5 +1950,44 @@ mod tests {
         let y = ir.arena.map_get(props, "Y").expect("Y merged");
         assert_eq!(ir.arena.node(x), &Node::String("from-a".into()), "the earlier merge source wins");
         assert_eq!(ir.arena.node(y), &Node::String("from-b".into()));
+    }
+
+    /// A YAML template at exactly the nesting-depth boundary must parse cleanly.
+    #[test]
+    fn yaml_nesting_at_boundary_parses() {
+        let limit = crate::consts::MAX_YAML_NESTING_DEPTH;
+        // Build a YAML with exactly `limit` nested mappings.
+        let mut yaml = String::new();
+        for i in 0..limit {
+            let indent = "  ".repeat(i);
+            yaml.push_str(&format!("{}L{}:\n", indent, i));
+        }
+        let indent = "  ".repeat(limit);
+        yaml.push_str(&format!("{}leaf\n", indent));
+
+        let result = parse_yaml(yaml.as_bytes());
+        assert!(result.is_ok(), "template at exactly the nesting-depth boundary must parse: {:?}", result.err());
+    }
+
+    /// A YAML template one level above the boundary must fail with a structural error.
+    #[test]
+    fn yaml_nesting_one_over_boundary_fails() {
+        let limit = crate::consts::MAX_YAML_NESTING_DEPTH;
+        // Build a YAML with limit+1 nested mappings. Each `key:\n` at increased
+        // indent opens a new mapping in the event stream, pushing one MappingStart.
+        let mut yaml = String::new();
+        for i in 0..=limit {
+            let indent = "  ".repeat(i);
+            yaml.push_str(&format!("{}L{}:\n", indent, i));
+        }
+        let indent = "  ".repeat(limit + 1);
+        yaml.push_str(&format!("{}leaf\n", indent));
+
+        let result = parse_yaml(yaml.as_bytes());
+        assert!(result.is_err(), "template exceeding the nesting-depth boundary must be rejected");
+        let error = result.unwrap_err();
+        let msg = error.message.to_lowercase();
+        assert!(msg.contains("nesting depth"), "error must reference nesting depth, got: {}", error.message);
+        assert!(error.line.is_some(), "error must carry a source line");
     }
 }

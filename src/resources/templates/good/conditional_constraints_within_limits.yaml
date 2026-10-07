@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Values at or inside the conditional limits, and configurations where the
+  condition does not hold: a Lambda Timeout above 900 with
+  CapacityProviderConfig, a COGNITO_USER_POOLS authorizer TTL above 3600, an
+  Aurora instance with a long backup retention, and a Stage whose method
+  settings use absolute paths or configure nothing.
+Resources:
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+  TimeoutAtTheLimit:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt FunctionRole.Arn
+      Runtime: python3.12
+      Handler: index.handler
+      Code:
+        S3Bucket: my-deployment-bucket
+        S3Key: function.zip
+      Timeout: 900
+  ManagedInstancesLongTimeout:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt FunctionRole.Arn
+      Runtime: python3.12
+      Handler: index.handler
+      Code:
+        S3Bucket: my-deployment-bucket
+        S3Key: function.zip
+      Timeout: 3600
+      CapacityProviderConfig:
+        LambdaManagedInstancesCapacityProviderConfig:
+          CapacityProviderArn: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:capacity-provider:managed
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      UserPoolName: authorizer-pool
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: conditional-constraints
+  TokenAuthorizerAtTheLimit:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: token-authorizer
+      RestApiId: !Ref RestApi
+      Type: TOKEN
+      IdentitySource: method.request.header.Authorization
+      AuthorizerUri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TimeoutAtTheLimit.Arn}/invocations
+      AuthorizerResultTtlInSeconds: 3600
+  CognitoAuthorizerLongTtl:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: cognito-authorizer
+      RestApiId: !Ref RestApi
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.Authorization
+      ProviderARNs:
+        - !GetAtt UserPool.Arn
+      AuthorizerResultTtlInSeconds: 4000
+  Deployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref RestApi
+  StageWithAbsolutePaths:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref RestApi
+      DeploymentId: !Ref Deployment
+      StageName: prod
+      MethodSettings:
+        - ResourcePath: /orders
+          HttpMethod: GET
+          MetricsEnabled: true
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingBurstLimit: 100
+        - ResourcePath: unconstrained
+          HttpMethod: GET
+  AuroraLongBackupRetention:
+    Type: AWS::RDS::DBInstance
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: aurora-mysql
+      DBInstanceClass: db.r6g.large
+      DBClusterIdentifier: my-aurora-cluster
+      BackupRetentionPeriod: 40
+  MysqlBackupRetentionAtTheLimit:
+    Type: AWS::RDS::DBInstance
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: mysql
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      MasterUsername: admin
+      MasterUserPassword: "{{resolve:secretsmanager:database-secret:SecretString:password}}"
+      StorageEncrypted: true
+      BackupRetentionPeriod: 35

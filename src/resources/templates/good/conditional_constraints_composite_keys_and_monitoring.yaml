@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Counter-examples for the conditional constraints: a table with local
+  secondary indexes and a composite key, a table without indexes and a simple
+  key, 'admin' as a master username on a MySQL-compatible cluster, and Enhanced
+  Monitoring configured with both properties or with neither.
+Resources:
+  TableWithLsiCompositeKey:
+    Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: created
+          AttributeType: N
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      LocalSecondaryIndexes:
+        - IndexName: by-created
+          KeySchema:
+            - AttributeName: pk
+              KeyType: HASH
+            - AttributeName: created
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+  TableWithoutIndexesSimpleKey:
+    Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  GlobalTableWithLsiCompositeKey:
+    Type: AWS::DynamoDB::GlobalTable
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: created
+          AttributeType: N
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      LocalSecondaryIndexes:
+        - IndexName: by-created
+          KeySchema:
+            - AttributeName: pk
+              KeyType: HASH
+            - AttributeName: created
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Replicas:
+        - Region: !Ref AWS::Region
+  MysqlClusterAdminUsername:
+    Type: AWS::RDS::DBCluster
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: admin
+      MasterUserPassword: "{{resolve:secretsmanager:db:SecretString:password}}"
+      BackupRetentionPeriod: 7
+  PostgresClusterOtherUsername:
+    Type: AWS::RDS::DBCluster
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: aurora-postgresql
+      MasterUsername: dbowner
+      MasterUserPassword: "{{resolve:secretsmanager:db:SecretString:password}}"
+      BackupRetentionPeriod: 7
+  ClusterWithEnhancedMonitoring:
+    Type: AWS::RDS::DBCluster
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: dbowner
+      MasterUserPassword: "{{resolve:secretsmanager:db:SecretString:password}}"
+      BackupRetentionPeriod: 7
+      MonitoringRoleArn: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/rds-monitoring-role
+      MonitoringInterval: 60
+  ClusterWithoutMonitoring:
+    Type: AWS::RDS::DBCluster
+    UpdateReplacePolicy: Snapshot
+    DeletionPolicy: Snapshot
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: dbowner
+      MasterUserPassword: "{{resolve:secretsmanager:db:SecretString:password}}"
+      BackupRetentionPeriod: 7
+      MonitoringInterval: 0

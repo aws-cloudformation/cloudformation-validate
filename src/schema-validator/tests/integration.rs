@@ -323,16 +323,44 @@ fn lifecycle_w3697_maintenance_service() {
 fn lifecycle_e2533_eol_runtime() {
     let diags = validate_fixture("bad/schema_lifecycle.yaml");
     let e2533 = diags_for(&diags, "E2533");
-    assert!(!e2533.is_empty(), "expected E2533 for EOL runtime dotnetcore2.1");
-    assert!(e2533.iter().any(|d| d.message.contains("dotnetcore2.1")));
+    assert!(e2533.iter().any(|diagnostic| {
+        diagnostic.message
+            == "Runtime 'dotnetcore2.1' was deprecated on '2022-01-05'. Creation was disabled on '2022-01-05', and updates were disabled on '2022-04-13'. Please consider updating to 'dotnet10'"
+    }));
 }
 
 #[test]
 fn lifecycle_w2531_deprecated_runtime() {
     let diags = validate_fixture("bad/schema_lifecycle.yaml");
     let w2531 = diags_for(&diags, "W2531");
-    assert!(!w2531.is_empty(), "expected W2531 for deprecated runtime nodejs16.x");
-    assert!(w2531.iter().any(|d| d.message.contains("nodejs16.x")));
+    assert!(w2531.iter().any(|diagnostic| {
+        diagnostic.message
+            == "Runtime 'nodejs16.x' was deprecated on '2024-06-12'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'"
+    }));
+}
+
+#[test]
+fn lifecycle_e2531_create_blocked_runtime() {
+    const TEMPLATE: &[u8] = br#"
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs14.x
+      Handler: index.handler
+      Code:
+        ZipFile: test
+      Role: arn:aws:iam::123456789012:role/role
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let diagnostics = SV.validate(&model, Some("us-east-1")).diagnostics;
+    let finding =
+        diagnostics.iter().find(|diagnostic| diagnostic.rule_id == "E2531").expect("create-blocked runtime finding");
+
+    assert_eq!(
+        finding.message,
+        "Runtime 'nodejs14.x' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'"
+    );
 }
 
 #[test]
@@ -359,6 +387,37 @@ fn structural_f3014_required_xor() {
         .filter(|d| d.rule_id == "F3014" && d.resource_logical_id() == Some("ScalingPolicyBothIds"))
         .collect();
     assert!(!f3014.is_empty(), "expected F3014 for ScalingPolicy with both ScalingTargetId and ResourceId");
+}
+
+#[test]
+fn f3014_reports_reachable_duplicate_dynamic_member_world() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  TargetId: {Type: String}
+  Toggle: {Type: String, AllowedValues: ['true', 'false']}
+Conditions:
+  DuplicateTarget: !Equals [!Ref Toggle, 'true']
+Resources:
+  Policy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: example
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref TargetId
+      ResourceId: !If [DuplicateTarget, !Ref TargetId, !Ref AWS::NoValue]
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let diagnostics = SV.validate(&model, Some("us-east-1")).diagnostics;
+    let findings: Vec<_> = diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.rule_id == "F3014" && diagnostic.resource_logical_id() == Some("Policy"))
+        .collect();
+
+    assert_eq!(findings.len(), 1, "only the duplicate-present world violates requiredXor: {diagnostics:?}");
+    assert_eq!(
+        findings[0].condition_scenario.as_ref().and_then(|scenario| scenario.get("DuplicateTarget")),
+        Some(&true)
+    );
 }
 
 #[test]
@@ -414,6 +473,27 @@ fn property_f3031_pattern_violation() {
 }
 
 #[test]
+fn literal_dollar_brace_log_group_name_enforces_pattern_and_format() {
+    let diagnostics = validate_fixture("bad/F3031_log_group_name_dollar_brace.yaml");
+    let relevant: Vec<_> =
+        diagnostics.iter().filter(|diagnostic| matches!(diagnostic.rule_id.as_str(), "F3031" | "E1155")).collect();
+
+    assert_eq!(relevant.len(), 2, "the literal must violate both schema constraints: {diagnostics:?}");
+    assert!(relevant.iter().any(|diagnostic| diagnostic.rule_id == "F3031"));
+    assert!(relevant.iter().any(|diagnostic| diagnostic.rule_id == "E1155"));
+}
+
+#[test]
+fn unresolved_log_group_name_substitution_is_not_schema_validated_as_a_literal() {
+    let diagnostics = validate_fixture("good/some_logs_stream_lambda.yaml");
+
+    assert!(
+        diagnostics.iter().all(|diagnostic| !matches!(diagnostic.rule_id.as_str(), "F3031" | "E1155")),
+        "deployment-time substitutions must remain deferred: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn read_only_property_not_flagged() {
     // The read-only-property check was removed: it never fires on real templates
     // but firing it produced false positives, so it must not be emitted.
@@ -459,7 +539,9 @@ fn region_availability_e3037() {
             "us-east-1": { "AWS::S3::Bucket": true }
         }
     });
-    store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+    store
+        .load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice())
+        .expect("valid region availability fixture");
     let diags = validate_all_resources(&store, &model, Some("us-east-1"));
     let f3006 = diags.iter().filter(|d| d.rule_id == "F3006").count();
     assert!(
@@ -486,7 +568,9 @@ fn region_availability_widens_to_union_when_no_region() {
             "us-west-2": { rtype.clone(): true }
         }
     });
-    store.load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice());
+    store
+        .load_region_data(serde_json::to_vec(&region_json).unwrap().as_slice())
+        .expect("valid region availability fixture");
 
     let at_us_east_1 = validate_all_resources(&store, &model, Some("us-east-1"));
     assert!(
@@ -564,15 +648,55 @@ fn every_valid_kms_key_identifier_form_passes_format_composition() {
 }
 
 #[test]
-fn malformed_literal_kms_key_arn_is_rejected_by_format_composition() {
+fn sns_kms_identifier_format_is_runtime_validated() {
     let diagnostics = validate_fixture("bad/hardcoded_partition.yaml");
+    assert!(
+        diagnostics.iter().all(|diagnostic| {
+            diagnostic.rule_id != "F3017"
+                || diagnostic.resource_logical_id() != Some("Topic")
+                || diagnostic.property_path.as_deref() != Some("Properties.KmsMasterKeyId")
+        }),
+        "SNS accepts the KMS identifier as an opaque runtime value, so its format cannot prove a fatal template failure: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn composition_defers_overridable_parameter_defaults_but_rejects_literals() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  DatabaseUser:
+    Type: String
+    Default: rdsadmin
+Resources:
+  FromParameter:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: !Ref DatabaseUser
+      MasterUserPassword: '{{resolve:secretsmanager:example:SecretString:password}}'
+  FromLiteral:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: rdsadmin
+      MasterUserPassword: '{{resolve:secretsmanager:example:SecretString:password}}'
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let diagnostics = SV.validate(&model, Some("us-east-1")).diagnostics;
+
+    assert!(
+        diagnostics.iter().all(|diagnostic| {
+            diagnostic.rule_id != "F3017" || diagnostic.resource_logical_id() != Some("FromParameter")
+        }),
+        "an overridable parameter default cannot prove a fatal property violation: {diagnostics:?}"
+    );
     assert!(
         diagnostics.iter().any(|diagnostic| {
             diagnostic.rule_id == "F3017"
-                && diagnostic.resource_logical_id() == Some("Topic")
-                && diagnostic.property_path.as_deref() == Some("Properties.KmsMasterKeyId")
+                && diagnostic.resource_logical_id() == Some("FromLiteral")
+                && diagnostic.property_path.as_deref() == Some("Properties.MasterUsername")
         }),
-        "the malformed literal KMS key ARN must remain rejected: {diagnostics:?}"
+        "the prohibited literal control must remain rejected: {diagnostics:?}"
     );
 }
 

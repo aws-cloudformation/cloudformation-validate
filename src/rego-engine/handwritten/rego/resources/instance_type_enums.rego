@@ -12,6 +12,7 @@ import rego.v1
 # E3628: EC2 InstanceType not valid for region
 violation contains make_diag_full("E3628", "ERROR", name,
     "Properties.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3628")
     some name in resources_of_type("AWS::EC2::Instance")
     val := resolve(name, "Properties.InstanceType")
     is_string(val)
@@ -21,6 +22,7 @@ violation contains make_diag_full("E3628", "ERROR", name,
 # E3635: Neptune DBInstanceClass not valid for region
 violation contains make_diag_full("E3635", "ERROR", name,
     "Properties.DBInstanceClass", msg, "", "") if {
+    cfn_rule_active("E3635")
     some name in resources_of_type("AWS::Neptune::DBInstance")
     val := resolve(name, "Properties.DBInstanceClass")
     is_string(val)
@@ -30,6 +32,7 @@ violation contains make_diag_full("E3635", "ERROR", name,
 # E3641: GameLift EC2InstanceType not valid for region
 violation contains make_diag_full("E3641", "ERROR", name,
     "Properties.EC2InstanceType", msg, "", "") if {
+    cfn_rule_active("E3641")
     some name in resources_of_type("AWS::GameLift::Fleet")
     val := resolve(name, "Properties.EC2InstanceType")
     is_string(val)
@@ -39,6 +42,7 @@ violation contains make_diag_full("E3641", "ERROR", name,
 # E3667: Redshift NodeType not valid for region
 violation contains make_diag_full("E3667", "ERROR", name,
     "Properties.NodeType", msg, "", "") if {
+    cfn_rule_active("E3667")
     some name in resources_of_type("AWS::Redshift::Cluster")
     val := resolve(name, "Properties.NodeType")
     is_string(val)
@@ -48,6 +52,7 @@ violation contains make_diag_full("E3667", "ERROR", name,
 # E3670: AmazonMQ HostInstanceType not valid for region
 violation contains make_diag_full("E3670", "ERROR", name,
     "Properties.HostInstanceType", msg, "", "") if {
+    cfn_rule_active("E3670")
     some name in resources_of_type("AWS::AmazonMQ::Broker")
     val := resolve(name, "Properties.HostInstanceType")
     is_string(val)
@@ -58,6 +63,7 @@ violation contains make_diag_full("E3670", "ERROR", name,
 # InstanceFleetConfig carry an InstanceType validated against the same enum.
 violation contains make_diag_full("E3675", "ERROR", name,
     "Properties.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3675")
     some rtype in {"AWS::EMR::InstanceTypeConfig", "AWS::EMR::InstanceFleetConfig"}
     some name in resources_of_type(rtype)
     val := resolve(name, "Properties.InstanceType")
@@ -68,6 +74,7 @@ violation contains make_diag_full("E3675", "ERROR", name,
 # E3617: ManagedBlockchain NodeConfiguration InstanceType not valid for region
 violation contains make_diag_full("E3617", "ERROR", name,
     "Properties.NodeConfiguration.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3617")
     some name in resources_of_type("AWS::ManagedBlockchain::Node")
     val := resolve(name, "Properties.NodeConfiguration.InstanceType")
     is_string(val)
@@ -77,6 +84,7 @@ violation contains make_diag_full("E3617", "ERROR", name,
 # E3620: DocDB DBInstanceClass not valid for region
 violation contains make_diag_full("E3620", "ERROR", name,
     "Properties.DBInstanceClass", msg, "", "") if {
+    cfn_rule_active("E3620")
     some name in resources_of_type("AWS::DocDB::DBInstance")
     val := resolve(name, "Properties.DBInstanceClass")
     is_string(val)
@@ -86,6 +94,7 @@ violation contains make_diag_full("E3620", "ERROR", name,
 # E3621: AppStream Fleet InstanceType not valid for region
 violation contains make_diag_full("E3621", "ERROR", name,
     "Properties.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3621")
     some name in resources_of_type("AWS::AppStream::Fleet")
     val := resolve(name, "Properties.InstanceType")
     is_string(val)
@@ -95,6 +104,7 @@ violation contains make_diag_full("E3621", "ERROR", name,
 # E3647: ElastiCache CacheNodeType not valid for region
 violation contains make_diag_full("E3647", "ERROR", name,
     "Properties.CacheNodeType", msg, "", "") if {
+    cfn_rule_active("E3647")
     some name in resources_of_type("AWS::ElastiCache::CacheCluster")
     val := resolve(name, "Properties.CacheNodeType")
     is_string(val)
@@ -104,6 +114,7 @@ violation contains make_diag_full("E3647", "ERROR", name,
 # E3672: DAX Cluster NodeType not valid for region
 violation contains make_diag_full("E3672", "ERROR", name,
     "Properties.NodeType", msg, "", "") if {
+    cfn_rule_active("E3672")
     some name in resources_of_type("AWS::DAX::Cluster")
     val := resolve(name, "Properties.NodeType")
     is_string(val)
@@ -120,6 +131,7 @@ _e3640_paths := {
 }
 
 violation contains make_diag_full("E3640", "ERROR", name, path, msg, "", "") if {
+    cfn_rule_active("E3640")
     some rtype, path in _e3640_paths
     some name in resources_of_type(rtype)
     val := resolve(name, path)
@@ -130,6 +142,7 @@ violation contains make_diag_full("E3640", "ERROR", name, path, msg, "", "") if 
 # E3642: SageMaker hosting/inference InstanceType not valid for region
 violation contains make_diag_full("E3642", "ERROR", name,
     "Properties.ModelVariants.InfrastructureConfig.RealTimeInferenceConfig.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3642")
     some name in resources_of_type("AWS::SageMaker::InferenceExperiment")
     some val in resolve_all(name, "Properties.ModelVariants.{}.InfrastructureConfig.RealTimeInferenceConfig.InstanceType")
     is_string(val)
@@ -139,6 +152,7 @@ violation contains make_diag_full("E3642", "ERROR", name,
 # E3643: SageMaker transform InstanceType not valid for region.
 violation contains make_diag_full("E3643", "ERROR", name,
     "Properties.ValidationSpecification.ValidationProfiles.TransformJobDefinition.TransformResources.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3643")
     some name in resources_of_type("AWS::SageMaker::ModelPackage")
     some val in resolve_all(name, "Properties.ValidationSpecification.ValidationProfiles.{}.TransformJobDefinition.TransformResources.InstanceType")
     is_string(val)
@@ -152,6 +166,7 @@ _e3644_paths := {
 }
 
 violation contains make_diag_full("E3644", "ERROR", name, report_path, msg, "", "") if {
+    cfn_rule_active("E3644")
     some name in resources_of_type("AWS::SageMaker::Cluster")
     some report_path, wildcard_path in _e3644_paths
     some val in resolve_all(name, wildcard_path)
@@ -162,6 +177,7 @@ violation contains make_diag_full("E3644", "ERROR", name, report_path, msg, "", 
 # E3652: Elasticsearch domain InstanceType not valid for region
 violation contains make_diag_full("E3652", "ERROR", name,
     "Properties.ElasticsearchClusterConfig.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3652")
     some name in resources_of_type("AWS::Elasticsearch::Domain")
     val := resolve(name, "Properties.ElasticsearchClusterConfig.InstanceType")
     is_string(val)
@@ -171,6 +187,7 @@ violation contains make_diag_full("E3652", "ERROR", name,
 # E3653: OpenSearch domain InstanceType not valid for region
 violation contains make_diag_full("E3653", "ERROR", name,
     "Properties.ClusterConfig.InstanceType", msg, "", "") if {
+    cfn_rule_active("E3653")
     some name in resources_of_type("AWS::OpenSearchService::Domain")
     val := resolve(name, "Properties.ClusterConfig.InstanceType")
     is_string(val)

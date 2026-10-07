@@ -1,14 +1,17 @@
 mod common;
 
 use cel_engine::CelEngine;
+use composite_engine::CompositeEngine;
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use validation_engine::{EngineConfig, ValidationEngine, validate_bytes};
+use validation_engine::{CompositeEngineConfig, EngineConfig, ValidationEngine, validate_bytes};
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
+static COMPOSITE: LazyLock<CompositeEngine> =
+    LazyLock::new(|| CompositeEngine::new(CompositeEngineConfig::default()).unwrap());
 static SCHEMA_VALIDATOR: LazyLock<SchemaValidator> = LazyLock::new(SchemaValidator::default);
 
 /// Rule IDs (with severity) emitted for `template`, sorted, for one engine.
@@ -20,11 +23,14 @@ fn diagnostics_for(engine: &dyn ValidationEngine, template: &str) -> Vec<(String
     ids
 }
 
-/// Validate through both engines, assert they agree, and return the shared rule-id set.
-fn diagnostics_both_engines(template: &str) -> Vec<(String, Severity)> {
+/// Validate through all engines, assert they agree, and return the shared rule-id set.
+/// The composite selector evaluates the built-in rules with CEL, so it tracks the CEL engine.
+fn diagnostics_all_engines(template: &str) -> Vec<(String, Severity)> {
     let rego = diagnostics_for(&*REGO as &dyn ValidationEngine, template);
     let cel = diagnostics_for(&*CEL as &dyn ValidationEngine, template);
+    let composite = diagnostics_for(&*COMPOSITE as &dyn ValidationEngine, template);
     assert_eq!(rego, cel, "engines diverged for template:\n{template}\nrego={rego:?}\ncel={cel:?}");
+    assert_eq!(cel, composite, "composite diverged from cel:\n{template}\ncel={cel:?}\ncomposite={composite:?}");
     rego
 }
 
@@ -49,7 +55,7 @@ Resources:
         - Key: "aws:reserved"
           Value: "nope"
 "#;
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(has_rule(&diagnostics, "F3031"), "lookahead tag-key pattern must be enforced: {diagnostics:?}");
 }
 
@@ -69,7 +75,7 @@ Resources:
         - Key: "team"
           Value: "platform"
 "#;
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(!has_rule(&diagnostics, "F3031"), "valid tag key must not fire pattern rule: {diagnostics:?}");
 }
 
@@ -84,7 +90,7 @@ Resources:
       GroupDescription: test
       GroupName: \"invalid\tname\"
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     let e1153_count = diagnostics.iter().filter(|(id, _)| id == "E1153").count();
     assert_eq!(e1153_count, 1, "E1153 must fire exactly once per engine: {diagnostics:?}");
 }
@@ -105,7 +111,7 @@ Resources:
     Properties:
       TopicName: !Ref Hex
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(!has_rule(&diagnostics, "I2003"), "service-valid pattern must not be flagged invalid: {diagnostics:?}");
     assert!(!has_rule(&diagnostics, "F2015"), "matching default must not fire F2015: {diagnostics:?}");
 }
@@ -126,7 +132,7 @@ Resources:
     Properties:
       TopicName: !Ref Name
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(has_rule(&diagnostics, "F2015"), "non-matching default must fire F2015: {diagnostics:?}");
 }
 
@@ -145,7 +151,7 @@ Resources:
     Properties:
       TopicName: !Ref P
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(has_rule(&diagnostics, "I2003"), "malformed pattern must fire I2003: {diagnostics:?}");
 }
 
@@ -161,7 +167,7 @@ Resources:
       ScheduleExpression: 'rate(1 minutes)'
       State: ENABLED
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(has_rule(&diagnostics, "E3027"), "invalid rate unit must fire E3027: {diagnostics:?}");
 }
 
@@ -176,7 +182,7 @@ Resources:
       ScheduleExpression: 'rate(5 minutes)'
       State: ENABLED
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(!has_rule(&diagnostics, "E3027"), "valid rate must not fire E3027: {diagnostics:?}");
 }
 
@@ -196,7 +202,7 @@ Resources:
       ResourceRecords:
         - "010.0.0.1"
 "#;
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(has_rule(&diagnostics, "E3023"), "leading-zero IPv4 octet must fire E3023: {diagnostics:?}");
 }
 
@@ -216,7 +222,7 @@ Resources:
       ResourceRecords:
         - "70000 mail.example.com."
 "#;
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(has_rule(&diagnostics, "E3023"), "out-of-range MX preference must fire E3023: {diagnostics:?}");
 }
 
@@ -237,7 +243,7 @@ Resources:
       PolicyType: TargetTrackingScaling
       ScalingTargetId: my-target
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(!has_rule(&diagnostics, "F3031"), "\\p{{Print}} must accept a Cf character: {diagnostics:?}");
     assert!(!has_rule(&diagnostics, "E3031"), "\\p{{Print}} must accept a Cf character: {diagnostics:?}");
 }
@@ -255,7 +261,7 @@ Resources:
       ScheduleExpression: 'rate(01 minutes)'
       State: ENABLED
 ";
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(
         has_rule(&diagnostics, "E3027"),
         "leading-zero rate amount must fire E3027 in both engines: {diagnostics:?}"
@@ -274,7 +280,7 @@ Resources:
     Properties:
       TaskRoleArn: "arn:aws:iam::123456789012:role/my role"
 "#;
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(!has_rule(&diagnostics, "E1156"), "E1156 format must accept an unrestricted role name: {diagnostics:?}");
 }
 
@@ -289,6 +295,6 @@ Resources:
     Properties:
       TaskRoleArn: "arn::iam::123456789012:role/x"
 "#;
-    let diagnostics = diagnostics_both_engines(template);
+    let diagnostics = diagnostics_all_engines(template);
     assert!(has_rule(&diagnostics, "E1156"), "E1156 format must require the aws partition: {diagnostics:?}");
 }

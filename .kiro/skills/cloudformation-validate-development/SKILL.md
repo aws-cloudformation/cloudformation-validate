@@ -1,6 +1,6 @@
 ---
 name: cloudformation-validate-development
-description: Development workflow, correctness rules, and code-quality standards for the cloudformation-validate repository - a Rust workspace that validates AWS CloudFormation templates with two parity rule engines (Rego and CEL). Use when writing, modifying, reviewing, or debugging any code in this repo; when adding or fixing validation rules; when running builds, tests, or lints; when regenerating the golden file; or when validating a fix against cfn-lint or cloudformation-guard baselines.
+description: Development workflow, correctness rules, and code-quality standards for the cloudformation-validate repository - a Rust workspace that validates AWS CloudFormation templates with two parity rule engines (Rego and CEL). Use when writing, modifying, reviewing, or debugging any code in this repo; when adding or fixing validation rules; when running builds, tests, or lints; when regenerating the snapshot files; or when validating a fix against cfn-lint or cloudformation-guard baselines.
 license: Apache-2.0
 metadata:
   repository: cloudformation-validate
@@ -37,19 +37,19 @@ cargo build                                   # whole workspace (debug)
 cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate (add --release for optimized)
 
 # Core Rust tests - only when they cover the changed behavior
-cargo test -p cel-engine <name>               # single crate / filtered test - preferred while iterating
+cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test - preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
-# CI runs coverage, not plain test: cargo llvm-cov --locked --release --workspace --no-fail-fast
+# CI runs coverage, not plain test: cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
 
 # Required after every Rust source change
 cargo fmt --all
 cargo clippy --locked --all-targets --workspace -- -D warnings
 
 # Run the CLI
-cargo run -p cfn-validate -- <template|dir> --engine rego|cel --format standard|detailed --level fatal|error|warn|info|debug
+cargo run -p cfn-validate -- <template|dir> --engine rego|cel|composite --format standard|detailed --level fatal|error|warn|info|debug
 cargo run -p cfn-validate -- --list-rules
 
-# Regenerate after a change that alters diagnostics; verifies engine parity and rewrites the golden file.
+# Regenerate after a change that alters diagnostics; verifies rego == cel == composite parity and rewrites the snapshot chunk files.
 cargo run --release -p resources --example generate_validation_reports
 ```
 
@@ -65,7 +65,7 @@ Apply these rules when choosing validation:
 - **Non-Rust-only changes** such as documentation, GitHub workflows, scripts, or binding-language code: do not run
   Cargo format, clippy, or tests unless the file is a Cargo/build input and the command actually exercises it. Use the
   relevant syntax checker, build, test runner, or dry-run instead.
-- **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and golden-file checks that
+- **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and snapshot checks that
   exercise the changed diagnostics. Their non-Rust extension does not remove domain-specific validation or justify
   unrelated Cargo tests.
 - **Mixed changes:** use the union of checks relevant to each changed surface.
@@ -74,11 +74,11 @@ Apply these rules when choosing validation:
 
 ```bash
 # Dump the full SemanticModel - ALWAYS start here. If the model is wrong, fix template-model.
-cargo run -p template-model --example inspect -- <template>
+cargo run -p cloudformation-validate-template-model --example inspect -- <template>
 
 # Accuracy vs cfn-lint. Requires a local cfn-lint checkout - first check whether cfn-lint is available on the
 # machine (`cfn-lint --version`), then ask the user for the checkout path; never assume or hardcode a location.
-CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel
+CFN_LINT_ROOT=<path> python3 scripts/compare_cfnlint.py --engine rego|cel|composite
 ```
 
 If deeper investigation is needed, write a small standalone script or Rust example that isolates the behavior.
@@ -87,11 +87,16 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
 
 ## Architecture (the non-obvious rules)
 
-- **The two engines must stay at parity.** `EngineType::Rego` (default) and `EngineType::Cel` must produce identical
-  diagnostics (ID, severity, location, message) for any template - divergence is a bug. Every rule exists in both
-  engines or in neither; add/fix it in both in the same change. Rego rules are hand-written policies in
-  `rego-engine/handwritten/rego/`; CEL rules are native Rust in `cel-engine/src/rules/` (the CEL interpreter is only
-  for user-supplied custom rules).
+- **The two built-in rule engines must stay at parity.** `EngineType::Rego` and `EngineType::Cel` are independent
+  implementations of the built-in rules and must produce identical diagnostics (ID, severity, location, message) for
+  any template - divergence is a bug. Every rule exists in both engines or in neither; add/fix it in both in the same
+  change. Rego rules are hand-written policies in `rego-engine/handwritten/rego/`; CEL rules are native Rust in
+  `cel-engine/src/rules/` (the CEL interpreter is only for user-supplied custom rules).
+- **`EngineType::Composite` is the default selector, not a third implementation.** It evaluates the built-in rules with
+  CEL (plus custom CEL and Guard rules) and layers an optional external-only Rego engine (custom Rego) on top, built
+  only when Rego rules are supplied. With no custom rules `rego`, `cel`, and `composite` produce the same diagnostics;
+  the CLI exposes all three as `--engine rego|cel|composite`. A built-in-rule mismatch is still diagnosed and fixed in
+  the Rego or CEL implementation.
 - **`rules/src/registry.rs` (`RULE_REGISTRY`) is the single source of truth** for every rule's ID, severity, category,
   and description. A rule that evaluates but isn't registered is a bug. IDs match `[FEWID]\d{4}` (F=Fatal, E=Error,
   W=Warn, I=Info, D=Debug; enum variant `Warn`, serialized `WARN`).
@@ -101,8 +106,10 @@ Prefer LSP operations (goto definition, find references, symbol search) over tex
   a rule needs a data table.
 - **Generated binding artifacts are workflow-owned.** The `build-artifacts` workflow commits them. Local generation
   is temporary and permitted only when needed to test a hand-maintained change; revert all generated output afterward.
-- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`, translated to an
-  engine-agnostic IR by `guard-translator`). See `src/CUSTOM_RULES.md`.
+- **Custom rules** load from CLI/library as CEL (`.json`), Rego (`.rego`), or Guard DSL (`.guard`). Guard rules are
+  evaluated by the Guard evaluator itself (`guard-translator` wraps `cloudformation-guard-lang`) against the authored
+  template, through one `GuardRuleSet` in `validation-engine` that every engine calls - never translated into Rego or
+  CEL. See `src/CUSTOM_RULES.md`.
 
 ## Correctness rules - non-negotiable
 
@@ -164,8 +171,9 @@ Apply every relevant step below; do not apply this procedure wholesale to docume
 3. Check the SemanticModel with `inspect`; fix `template-model` if the model is wrong.
 4. Compare against cfn-lint for E/W/I or cfn-guard for Guard. Investigate a cfn-lint mismatch using the independent
    evidence rather than assuming cfn-lint is correct. Check Fatal rules against the compiled schemas.
-5. Run `cfn-validate` with both engines on the repro, then run the corpus. Preserve parity and zero false positives;
-   regenerate the golden file if diagnostics legitimately changed.
+5. Run `cfn-validate` with all three engines (`rego`, `cel`, `composite`) on the repro, then run the corpus. All three
+   outputs must agree and stay free of false positives; diagnose any built-in-rule mismatch in the Rego or CEL
+   implementation. Regenerate the snapshot files if diagnostics legitimately changed.
 6. For core Rust changes, run only Cargo tests that exercise the change; use the workspace suite once only when its
    broad coverage is relevant. For every Rust change, run format and clippy.
 7. For binding changes, build and test the affected packaged consumer artifact instead of using Cargo tests as a

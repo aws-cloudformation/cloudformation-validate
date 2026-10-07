@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  FromPort/ToPort are ignored for the all-protocols wildcard and for any
+  protocol other than tcp/udp/icmp/icmpv6, and are required for tcp/udp/icmp.
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Ports stated for protocols that ignore them
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: esp
+          FromPort: 500
+          ToPort: 500
+          CidrIp: 10.0.0.0/16
+        - IpProtocol: 50
+          FromPort: 500
+          ToPort: 500
+          CidrIp: 10.0.0.0/16
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 10.0.0.0/16
+        - IpProtocol: icmp
+          CidrIp: 10.0.0.0/16
+      SecurityGroupEgress:
+        - IpProtocol: gre
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 10.0.0.0/16
+        - IpProtocol: udp
+          CidrIp: 10.0.0.0/16
+  StandaloneIngressEsp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: esp
+      FromPort: 500
+      ToPort: 500
+      CidrIp: 10.0.0.0/16
+  StandaloneEgressTcpWithoutPorts:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      CidrIp: 10.0.0.0/16

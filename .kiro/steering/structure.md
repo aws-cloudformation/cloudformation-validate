@@ -6,7 +6,8 @@
 src/
 ├── Cargo.toml                  # Workspace root
 ├── rust-toolchain.toml         # Pinned toolchain + wasm32 target
-├── cfn-validate/               # CLI binary (`cfn-validate`) and library facade
+├── bindings-rust/              # Public Rust library facade published as `cloudformation-validate`
+├── cfn-validate/               # CLI binary (`cfn-validate`) and CLI-only helpers
 ├── validation-engine/          # ValidationEngine trait, orchestration pipeline, Step Functions validation
 ├── template-model/             # LEAF crate — parser (JSON/YAML), SemanticModel, intrinsic resolver,
 │                               # condition SAT solver, reference graph, SAM transform, nesting, template
@@ -18,21 +19,29 @@ src/
 │                               # severity, category, descriptions), filter, category/severity enums
 │                               # (depends on template-model)
 ├── schema-validator/           # Compiled JSON Schema validation against provider schemas
-├── rego-engine/                # Rego evaluation via Regorus + custom builtins + Guard→Rego translation
-│   └── handwritten/rego/       # Hand-written Rego policies (structure, intrinsics, references,
-│                               # resources, best_practices)
-├── cel-engine/                 # Native Rust rules + CEL interpreter + Guard→CEL translation
+├── rego-engine/                # Rego evaluation via Regorus + custom builtins;
+│   └── handwritten/rego/       # hand-written policies embedded by rego-engine/build.rs
+├── cel-engine/                 # Native Rust rules + CEL interpreter for custom rules
 │   └── src/rules/              # Native rules: structure, intrinsics, references, conditions,
 │                               # resources, resources_extra, best_practices, patterns
+├── composite-engine/           # CompositeEngine (default --engine selector) — CEL evaluates the built-in rules
+│                               # plus custom CEL and Guard rules; an external-only Rego engine (custom Rego)
+│                               # layers on top, built only when Rego rules are supplied
 ├── data-source/                # BUILD-TIME — downloads schemas, syncs cfn-lint data, generates
-│   ├── src/                    # schema-validator artifacts and CEL rules; build.rs embeds them and
-│   │                           # the hand-written Rego policies into the binary (zstd)
+│   ├── src/                    # schema-validator artifacts and CEL rules; build.rs embeds generated
+│   │                           # and hand-maintained shared data into the binary (zstd)
 │   ├── generated/              # Generated artifacts (committed, NEVER edit manually)
 │   ├── handwritten/            # Hand-maintained JSON reference tables (deprecated resource types,
 │   │                           # sensitive ports, GetAtt return-type overrides, schema-dependent
 │   │                           # exclusion overrides)
+│   ├── scripts/                # Maintainer-run Python generators (AWS CLI operation catalog, cfn-lint data sync)
 │   └── upstream/               # Upstream schema sources (provider schemas, extensions)
-├── guard-translator/           # Guard DSL → engine-agnostic IR
+├── guard-translator/           # Guard DSL evaluation via the Guard evaluator (cloudformation-guard-lang) against the
+│                               # authored template; produces engine-agnostic findings that validation-engine maps to
+│                               # diagnostics through one GuardRuleSet every engine calls
+├── performance-harness/        # Performance regression harness: CI `compare` measures head against the release tag
+│                               # in `drift-anchor.txt` (or, on manual runs, a parent/any revision) built on the same
+│                               # runner; nothing measured is checked in
 ├── bindings-wasm/              # WASM bindings (wasm-bindgen) for Node.js embedding
 │   ├── ts/                     # TypeScript wrapper + type definitions
 │   ├── tests/                  # Node test suite (vitest, run.sh)
@@ -48,12 +57,12 @@ src/
 ├── bindings-go/                # Go bindings (UniFFI via uniffi-bindgen-go) — JSON-over-FFI, cgo static linking
 │   ├── go/                     # The published Go module: hand-maintained API + types, generated
 │   │                           # internal/bindings_go, and per-platform libs/ static libraries (committed)
-│   ├── tests/                  # Go test harness module (smoke, golden, config, security tests; run.sh)
+│   ├── tests/                  # Go test harness module (smoke, snapshot, config, security tests; run.sh)
 │   ├── bench/                  # Go benchmark harness module (main.go — corpus/report benchmark)
 │   └── native/                 # Hand-maintained cgo link directives copied into the generated package
 └── resources/                  # Test-fixture CRATE (workspace member)
-    ├── src/                    # Corpus discovery API (templates_dir, validation_reports_file, GOLDEN_DIRS, …)
-    ├── examples/               # generate_validation_reports.rs — golden-file regeneration
+    ├── src/                    # Corpus discovery API (templates_dir, load_merged_snapshots, discover_snapshot_chunks, …)
+    ├── examples/               # generate_validation_reports.rs — snapshot regeneration
     ├── templates/              # Test corpus
     │   ├── good/               # Valid templates — expect zero diagnostics
     │   ├── bad/                # Invalid templates — named after the rule/behavior they test
@@ -64,14 +73,18 @@ src/
     │   ├── quickstart/         # AWS QuickStart templates (performance corpus)
     │   ├── public/             # Public example templates
     │   └── cdk/                # CDK-synthesized templates
-    ├── expected/               # validation_reports.json — the golden file (both engines must agree)
-    ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard)
+    ├── expected/               # validation_reports*.json — numbered snapshot chunks (rego/cel/composite must agree)
+    ├── rules/                  # Custom rule fixtures for testing (Rego, CEL, Guard); every .guard and .rego file
+    │                           # here is also the benchmark's Guard / custom Rego rule pack (see resources/README.md)
     └── security/               # Security/stress fixtures (pathological conditions, deep nesting)
 ```
 
 ## Top-level directories
 
-- `scripts/` — Python comparison/audit scripts and their `snapshots/` data (see `tech.md` for usage)
+- `.kiro/steering/` — persistent guidance recursively loaded by Kiro; tracked files contain shared project rules
+- `.kiro/steering/private/` — gitignored machine-local confidential agent context and skills; its filenames and
+  contents must never be committed
+- `scripts/` — Python comparison/audit/benchmark scripts and their `snapshots/` data (see `tech.md` for usage)
 - `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM +
   Python + Go test jobs
 - `release-bin/` — prebuilt per-platform `cfn-validate` CLI binaries (committed); written by `cfn-validate/build.sh`
@@ -99,7 +112,7 @@ src/
   go in `rego-engine/handwritten/rego/` or `cel-engine/src/rules/`.
 - **Hand-written Rego policies live in `rego-engine/handwritten/rego/`.** These are hand-authored Rego rules organized
   by category (structure, intrinsics, references, resources, best_practices). They are embedded into the binary by
-  `data-source/build.rs`.
+  `rego-engine/build.rs`.
 - **All rules must be registered in the `rules` crate registry (`rules/src/registry.rs`).** A rule that evaluates but
   is not registered is a bug — the registry is the single source of truth for IDs, severity, category, and description.
 - **Native Rust rules live under `cel-engine/src/rules/`.** Choose the appropriate module (structure, intrinsics,
@@ -119,6 +132,14 @@ src/
 - Never regress an engine that already has the correct behavior, and never remove or suppress a valid finding solely
   because the other engine misses it. A finding may be removed only when first-principles evidence proves that it is a
   false positive, with focused regression coverage for the corrected behavior.
+- `rego-engine` and `cel-engine` are the two independent built-in implementations; `composite-engine` is not a third.
+  The default `--engine composite` selector evaluates the built-in rules with CEL (plus custom CEL and Guard rules) and
+  layers an optional external-only Rego engine (custom Rego) on top, so `rego`, `cel`, and `composite` all agree when
+  no custom rules are supplied. Diagnose and fix a built-in-rule mismatch in the Rego or CEL implementation, never by
+  editing composite.
+- Guard rules are never translated into an engine's language. Every engine evaluates them through the one
+  `GuardRuleSet` in `validation-engine`, which runs the Guard evaluator against the authored template, so Guard findings
+  are identical across engines by construction and match `cfn-guard validate`.
 
 ### Diagnostics
 
@@ -134,7 +155,7 @@ src/
   are reserved for problems in the template under validation — a parse error is the only failure that surfaces as a
   diagnostic instead of an `Err`.
 - **No panics, no hard crashes.** Errors are propagated as `Result`s through the language boundary layers and surface
-  to embedders as catchable errors (Kotlin/Java `ValidationError` exceptions and Python `ValidationError` via UniFFI,
+  to embedders as catchable errors (Kotlin/Java `ValidationException` and Python `ValidationError` via UniFFI,
   returned Go `error` values, thrown JS errors via wasm-bindgen) — never a process abort. Every fallible FFI entry
   point in `bindings-jvm`, `bindings-python`, `bindings-go`, and `bindings-wasm` is wrapped in
   `validation_engine::catch_panics` with a panic-to-error mapper as a last-resort backstop; new entry points must

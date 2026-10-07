@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use data_source::AdditionalSchemaSource;
@@ -58,29 +59,82 @@ fn read_schema_file(path: &Path) -> Result<AdditionalSchemaSource, ValidationErr
     Ok(source)
 }
 
+pub const TEMPLATE_EXTENSIONS: &[&str] = &["yaml", "yml", "json"];
+
+/// The template argument that selects standard input instead of a filesystem path.
+pub const STDIN_TEMPLATE_ARG: &str = "-";
+
+/// Path that labels the report of a template read from standard input.
+pub const STDIN_TEMPLATE_PATH: &str = "<stdin>";
+
+/// One template the CLI validates: a file on disk, or the bytes piped to standard input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TemplateInput {
+    File(PathBuf),
+    Stdin,
+}
+
+impl TemplateInput {
+    /// The path that labels the report and its diagnostics.
+    pub fn display_path(&self) -> String {
+        match self {
+            TemplateInput::File(path) => path.display().to_string(),
+            TemplateInput::Stdin => STDIN_TEMPLATE_PATH.to_string(),
+        }
+    }
+
+    /// Reads the template bytes; standard input is consumed to end of stream.
+    pub fn read(&self) -> io::Result<Vec<u8>> {
+        match self {
+            TemplateInput::File(path) => fs::read(path),
+            TemplateInput::Stdin => {
+                let mut bytes = Vec::new();
+                io::stdin().lock().read_to_end(&mut bytes)?;
+                Ok(bytes)
+            }
+        }
+    }
+}
+
+/// Resolves the CLI template argument: [`STDIN_TEMPLATE_ARG`] selects standard
+/// input, anything else is a file or a directory expanded by [`collect_files`].
+pub fn collect_template_inputs(template_arg: &str) -> Vec<TemplateInput> {
+    if template_arg == STDIN_TEMPLATE_ARG {
+        return vec![TemplateInput::Stdin];
+    }
+    collect_files(Path::new(template_arg)).into_iter().map(TemplateInput::File).collect()
+}
+
 pub fn collect_files(path: &Path) -> Vec<PathBuf> {
+    collect_files_with_extensions(path, TEMPLATE_EXTENSIONS)
+}
+
+/// An explicitly named file is returned regardless of its extension; a directory
+/// is filtered recursively and sorted so fingerprints and reports are
+/// deterministic.
+pub fn collect_files_with_extensions(path: &Path, extensions: &[&str]) -> Vec<PathBuf> {
     if path.is_file() {
         return vec![path.to_path_buf()];
     }
     let mut files = Vec::new();
-    collect_files_recursive(path, &mut files);
+    collect_files_recursive(path, extensions, &mut files);
     files.sort();
     files
 }
 
-fn is_template_file(path: &Path) -> bool {
-    matches!(path.extension().and_then(|s| s.to_str()), Some("yaml" | "yml" | "json"))
+fn has_extension(path: &Path, extensions: &[&str]) -> bool {
+    path.extension().and_then(|s| s.to_str()).is_some_and(|ext| extensions.contains(&ext))
 }
 
-fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) {
+fn collect_files_recursive(dir: &Path, extensions: &[&str], files: &mut Vec<PathBuf>) {
     let Ok(entries) = fs::read_dir(dir) else {
         return;
     };
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
-            collect_files_recursive(&path, files);
-        } else if path.is_file() && is_template_file(&path) {
+            collect_files_recursive(&path, extensions, files);
+        } else if path.is_file() && has_extension(&path, extensions) {
             files.push(path);
         }
     }
@@ -281,5 +335,59 @@ mod tests {
         let result = collect_files(dir.path());
         let names: Vec<_> = result.iter().map(|p| p.file_name().unwrap().to_str().unwrap()).collect();
         assert_eq!(names, vec!["a.yaml", "b.yml", "c.json"], "only .yaml, .yml, .json files should be collected");
+    }
+
+    #[test]
+    fn collect_files_with_extensions_filters_a_directory_by_the_given_extensions() {
+        let dir = tempfile::tempdir().unwrap();
+        let nested = dir.path().join("nested");
+        fs::create_dir(&nested).unwrap();
+        fs::write(dir.path().join("b.rego"), "b").unwrap();
+        fs::write(nested.join("a.rego"), "a").unwrap();
+        fs::write(dir.path().join("policy.guard"), "g").unwrap();
+        fs::write(dir.path().join("template.yaml"), "t").unwrap();
+
+        let result = collect_files_with_extensions(dir.path(), &["rego"]);
+        let names: Vec<_> = result.iter().map(|p| p.file_name().unwrap().to_str().unwrap()).collect();
+        assert_eq!(names, vec!["b.rego", "a.rego"], "sorted by full path: the root file precedes nested/");
+        assert!(result[1].ends_with("nested/a.rego"));
+    }
+
+    #[test]
+    fn collect_files_with_extensions_returns_an_explicit_file_regardless_of_extension() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("rules.txt");
+        fs::write(&file, "content").unwrap();
+
+        assert_eq!(collect_files_with_extensions(&file, &["guard"]), vec![file]);
+    }
+
+    #[test]
+    fn collect_files_with_extensions_returns_empty_for_a_missing_path() {
+        assert!(collect_files_with_extensions(Path::new("/nonexistent/rules"), &["guard"]).is_empty());
+    }
+
+    #[test]
+    fn collect_template_inputs_selects_stdin_for_the_dash_argument() {
+        assert_eq!(collect_template_inputs(STDIN_TEMPLATE_ARG), vec![TemplateInput::Stdin]);
+        assert_eq!(TemplateInput::Stdin.display_path(), STDIN_TEMPLATE_PATH);
+    }
+
+    #[test]
+    fn collect_template_inputs_expands_a_directory_into_file_inputs() {
+        let dir = tempfile::tempdir().unwrap();
+        let template = dir.path().join("template.yaml");
+        fs::write(&template, "Resources: {}").unwrap();
+        fs::write(dir.path().join("notes.txt"), "ignored").unwrap();
+
+        let inputs = collect_template_inputs(dir.path().to_str().unwrap());
+        assert_eq!(inputs, vec![TemplateInput::File(template.clone())]);
+        assert_eq!(inputs[0].display_path(), template.display().to_string());
+        assert_eq!(inputs[0].read().unwrap(), b"Resources: {}");
+    }
+
+    #[test]
+    fn collect_template_inputs_returns_empty_for_a_missing_path() {
+        assert!(collect_template_inputs("/nonexistent/template.yaml").is_empty());
     }
 }

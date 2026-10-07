@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Fleet:
+    Type: AWS::EC2::SpotFleet
+    Properties:
+      SpotFleetRequestConfigData:
+        IamFleetRole: arn:aws:iam::123456789012:role/test
+        TargetCapacity: 1
+        LaunchSpecifications:
+          - ImageId: ami-12345678
+            InstanceType: t3.micro
+            BlockDeviceMappings:
+              - DeviceName: /dev/xvda
+                Ebs:
+                  VolumeType: gp2
+                  Iops: 100

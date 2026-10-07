@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  RecommendedJava:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java25
+      Handler: example.Handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+  ExcludedJava8:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java8
+      Handler: example.Handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+  NotRecommendedDotNet:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: dotnet8
+      Handler: assembly::type::method
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+  UnsupportedPython:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.8
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: PublishedVersions
+  RegionLimitedJava:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java21
+      Handler: example.Handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: PublishedVersions

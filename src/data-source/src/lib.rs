@@ -9,6 +9,8 @@ pub mod additional_schema_source;
 #[cfg(feature = "maintenance")]
 pub mod additional_specs;
 #[cfg(feature = "maintenance")]
+pub mod aws_cli_catalog;
+#[cfg(feature = "maintenance")]
 pub mod cfnlint_tables;
 #[cfg(feature = "maintenance")]
 pub mod codegen_cel;
@@ -21,6 +23,7 @@ pub mod extensions;
 pub mod process;
 #[cfg(feature = "maintenance")]
 pub mod regions;
+pub mod rule_data;
 #[cfg(feature = "maintenance")]
 pub mod schema;
 #[cfg(feature = "maintenance")]
@@ -28,6 +31,11 @@ mod source_versions;
 pub mod types;
 
 pub use additional_schema_source::{AdditionalSchemaSource, SchemaSourceError};
+#[cfg(feature = "maintenance")]
+pub use aws_cli_catalog::{
+    AWS_CLI_OPERATION_CATALOG_FILE, PreservedAwsCliCatalog, generate_aws_cli_catalog, preserve_aws_cli_catalog,
+    restore_aws_cli_catalog,
+};
 
 #[cfg(feature = "maintenance")]
 use log::{error, info};
@@ -84,10 +92,28 @@ impl SyncStats {
     }
 }
 
+/// Manifest writers. They live here rather than in `source_versions.rs` because
+/// the build script compiles that file too and only ever reads the manifest.
 #[cfg(feature = "maintenance")]
-fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
-    let versions = source_versions::SourceVersions::new(versions.cfn_lint_version, versions.resource_schema_version)
-        .map_err(anyhow::Error::msg)?;
+impl source_versions::SourceVersions {
+    pub(crate) fn new(
+        cfn_lint_version: String,
+        resource_schema_version: String,
+        aws_cli_version: Option<String>,
+    ) -> Result<Self, String> {
+        let versions = Self { cfn_lint_version, resource_schema_version, aws_cli_version };
+        versions.validate()?;
+        Ok(versions)
+    }
+
+    /// The manifest with the AWS CLI entry recorded and the `sync`-owned entries kept.
+    pub(crate) fn with_aws_cli_version(self, aws_cli_version: String) -> Result<Self, String> {
+        Self::new(self.cfn_lint_version, self.resource_schema_version, Some(aws_cli_version))
+    }
+}
+
+#[cfg(feature = "maintenance")]
+pub(crate) fn write_source_versions(path: &Path, versions: source_versions::SourceVersions) -> anyhow::Result<()> {
     let mut contents = serde_json::to_string_pretty(&versions)?;
     contents.push('\n');
     fs::write(path, contents)?;
@@ -122,12 +148,17 @@ pub fn sync_upstream(upstream_dir: &Path, rule_source_root: &str) -> anyhow::Res
         .fail_on_errors("AdditionalSpecs")?;
 
     info!("Step 5: Extracting data tables embedded in cfn-lint rule code");
-    let (table_stats, cfn_lint_version) = cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data)?;
+    let (table_stats, cfn_lint_version) =
+        cfnlint_tables::sync_cfnlint_tables(&rule_source_dir, &generated_data, upstream_dir)?;
     table_stats.fail_on_errors("CfnLintTables")?;
 
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, None, "Sync")?;
-    let source_versions =
-        source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version).map_err(anyhow::Error::msg)?;
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, &generated_data, "Sync")?;
+    verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")?;
+    // `generated/data` was cleared ahead of this sync, so the manifest is written
+    // fresh; the AWS CLI entry is recorded by the final `sync` step, which either
+    // regenerates the catalog or restores the preserved one.
+    let source_versions = source_versions::SourceVersions::new(cfn_lint_version, resource_schema_version, None)
+        .map_err(anyhow::Error::msg)?;
     write_source_versions(&source_versions_path, source_versions)?;
     info!("Recorded complete data source provenance in {}", source_versions_path.display());
 
@@ -148,15 +179,13 @@ pub fn generate_all(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: 
     codegen_schema_validator::generate(generated_dir, upstream_dir)?;
 
     info!("Step 4: Verifying all expected output files");
-    verify_outputs(generated_dir, handwritten_dir)?;
+    verify_outputs(upstream_dir, generated_dir, handwritten_dir)?;
 
     Ok(())
 }
 
-/// Expected data files that must exist and contain real data (not empty stubs)
-/// after a successful sync+generate. build.rs creates `{}` stubs for these so
-/// the crate compiles from a clean workspace, but the pipeline must populate
-/// them with real content.
+/// Expected data files that must exist and contain real data after a
+/// successful sync+generate.
 
 /// Files produced by sync_upstream (extensions, regions, additional specs).
 #[cfg(feature = "maintenance")]
@@ -188,24 +217,28 @@ const REQUIRED_SYNC_FILES: &[&str] = &[
     "region_resource_types",
     "stateful_resource_types",
     // Tables extracted from cfn-lint rule code
-    "getatt_additions",
     "retention_period_requirements",
     "codepipeline_action_artifact_counts",
+    "cfnlint_rule_tables",
 ];
 
-/// Files produced by generate_all (schema processing, codegen).
+/// Raw intermediates produced by sync_upstream into the upstream directory. They
+/// are consumed only by generate_all and are never embedded, so they are not
+/// committed with the generated data.
 #[cfg(feature = "maintenance")]
-const REQUIRED_GENERATE_FILES: &[&str] = &[
-    "compiled_schemas",
-    "ref_types",
-    "extensions",
-    "region_enums",
-    "resource_lifecycle",
-    "schema_metadata",
-    "primary_identifiers",
-    "getatt_attributes",
-    "known_resource_types",
-];
+const REQUIRED_UPSTREAM_FILES: &[&str] = &[cfnlint_tables::GETATT_ADDITIONS_NAME];
+
+/// Data files produced by generate_all schema processing.
+#[cfg(feature = "maintenance")]
+const REQUIRED_GENERATE_DATA_FILES: &[&str] =
+    &["resource_lifecycle", "schema_metadata", "primary_identifiers", "getatt_attributes", "known_resource_types"];
+
+/// Schema-validator files produced by generate_all.
+#[cfg(feature = "maintenance")]
+const REQUIRED_SCHEMA_VALIDATOR_FILES: &[&str] = &["compiled_schemas", "ref_types", "extensions", "region_enums"];
+
+#[cfg(feature = "maintenance")]
+const REQUIRED_CEL_RULE_FILES: &[&str] = &["generated_rules"];
 
 #[cfg(feature = "maintenance")]
 const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
@@ -217,54 +250,47 @@ const REQUIRED_HANDWRITTEN_FILES: &[&str] = &[
 ];
 
 #[cfg(feature = "maintenance")]
-fn verify_sync_outputs(data_dir: &Path) -> anyhow::Result<()> {
+fn verify_sync_outputs(upstream_dir: &Path, data_dir: &Path) -> anyhow::Result<()> {
     source_versions::SourceVersions::read(&data_dir.join(source_versions::SOURCE_VERSIONS_FILE))
         .map_err(anyhow::Error::msg)?;
-    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, None, "Sync")
+    verify_files_exist_and_populated(REQUIRED_SYNC_FILES, data_dir, "Sync")?;
+    verify_files_exist_and_populated(REQUIRED_UPSTREAM_FILES, upstream_dir, "Sync")
 }
 
 #[cfg(feature = "maintenance")]
-fn verify_outputs(generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
+fn verify_outputs(upstream_dir: &Path, generated_dir: &Path, handwritten_dir: &Path) -> anyhow::Result<()> {
     let data_dir = generated_dir.join("data");
-    let sv_dir = generated_dir.join("schema-validator");
+    let schema_validator_dir = generated_dir.join("schema-validator");
+    let cel_rules_dir = generated_dir.join("cel-rules");
 
-    verify_sync_outputs(&data_dir)?;
-    // Check generate-produced files
-    verify_files_exist_and_populated(REQUIRED_GENERATE_FILES, &data_dir, Some(&sv_dir), "Generate")?;
-    verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, None, "Handwritten")?;
+    verify_sync_outputs(upstream_dir, &data_dir)?;
+    verify_files_exist_and_populated(REQUIRED_GENERATE_DATA_FILES, &data_dir, "Generate data")?;
+    verify_files_exist_and_populated(REQUIRED_SCHEMA_VALIDATOR_FILES, &schema_validator_dir, "Schema validator")?;
+    verify_files_exist_and_populated(REQUIRED_CEL_RULE_FILES, &cel_rules_dir, "Generated CEL rules")?;
+    verify_files_exist_and_populated(REQUIRED_HANDWRITTEN_FILES, handwritten_dir, "Handwritten")?;
 
-    let total = REQUIRED_SYNC_FILES.len() + REQUIRED_GENERATE_FILES.len() + REQUIRED_HANDWRITTEN_FILES.len() + 1;
+    let total = REQUIRED_SYNC_FILES.len()
+        + REQUIRED_UPSTREAM_FILES.len()
+        + REQUIRED_GENERATE_DATA_FILES.len()
+        + REQUIRED_SCHEMA_VALIDATOR_FILES.len()
+        + REQUIRED_CEL_RULE_FILES.len()
+        + REQUIRED_HANDWRITTEN_FILES.len()
+        + 1;
     info!("Verified {total} required data files");
     Ok(())
 }
 
 #[cfg(feature = "maintenance")]
-fn verify_files_exist_and_populated(
-    names: &[&str],
-    primary_dir: &Path,
-    fallback_dir: Option<&Path>,
-    label: &str,
-) -> anyhow::Result<()> {
+fn verify_files_exist_and_populated(names: &[&str], directory: &Path, label: &str) -> anyhow::Result<()> {
     let mut missing = Vec::new();
     let mut stubs = Vec::new();
 
     for name in names {
-        let primary = primary_dir.join(format!("{name}.json"));
-        let fallback = fallback_dir.map(|d| d.join(format!("{name}.json")));
-
-        let path = if primary.exists() {
-            primary
-        } else if let Some(ref fb) = fallback {
-            if fb.exists() {
-                fb.clone()
-            } else {
-                missing.push(name.to_string());
-                continue;
-            }
-        } else {
+        let path = directory.join(format!("{name}.json"));
+        if !path.is_file() {
             missing.push(name.to_string());
             continue;
-        };
+        }
 
         if is_stub(&path) {
             stubs.push(name.to_string());
@@ -288,7 +314,7 @@ fn verify_files_exist_and_populated(
     Ok(())
 }
 
-/// A file is a stub if it's just `{}` or `[]` (created by build.rs for clean-workspace builds).
+/// A file is an invalid empty stub if it contains only `{}` or `[]`.
 #[cfg(feature = "maintenance")]
 fn is_stub(path: &Path) -> bool {
     match fs::read_to_string(path) {
@@ -297,5 +323,32 @@ fn is_stub(path: &Path) -> bool {
             trimmed == "{}" || trimmed == "[]"
         }
         Err(_) => true,
+    }
+}
+
+#[cfg(all(test, feature = "maintenance"))]
+mod source_version_writer_tests {
+    use crate::source_versions::{AWS_CLI_SOURCE, CFN_LINT_SOURCE, RESOURCE_SCHEMA_SOURCE, SourceVersions};
+
+    const SYNC_ONLY_MANIFEST: &str = r#"{
+        "cfn_lint_version":"https://github.com/aws-cloudformation/cfn-lint@1.54.0",
+        "resource_schema_version":"https://github.com/aws-cloudformation/resource-provider-enhanced-schemas@2026-08-07T18:20:13Z"
+    }"#;
+
+    #[test]
+    fn catalog_generator_records_the_aws_cli_entry_and_keeps_sync_entries() {
+        let recorded = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
+            .expect("manifest should parse")
+            .with_aws_cli_version(format!("{AWS_CLI_SOURCE}@2.36.43"))
+            .expect("catalog update should be valid");
+        assert_eq!(recorded.aws_cli_version.as_deref(), Some("https://github.com/aws/aws-cli@2.36.43"));
+        assert_eq!(recorded.cfn_lint_version, format!("{CFN_LINT_SOURCE}@1.54.0"));
+        assert_eq!(recorded.resource_schema_version, format!("{RESOURCE_SCHEMA_SOURCE}@2026-08-07T18:20:13Z"));
+
+        let error = SourceVersions::from_json(SYNC_ONLY_MANIFEST)
+            .expect("manifest should parse")
+            .with_aws_cli_version("2.36.43".to_string())
+            .expect_err("unqualified version must fail");
+        assert!(error.contains(AWS_CLI_SOURCE));
     }
 }

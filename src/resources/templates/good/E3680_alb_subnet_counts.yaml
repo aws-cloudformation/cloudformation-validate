@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  The two-subnet minimum applies only to application load balancers whose
+  subnet list has a known length. Network and gateway load balancers may use a
+  single subnet, a Type that is a parameter is not assumed to be application,
+  and a subnet list supplied by a parameter has no known length.
+Parameters:
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  LoadBalancerType:
+    Type: String
+    Default: network
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.2.0/24
+  AlbTwoSubnets:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Subnets:
+        - !Ref SubnetA
+        - !Ref SubnetB
+  AlbDefaultTypeTwoSubnetMappings:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      SubnetMappings:
+        - SubnetId: !Ref SubnetA
+        - SubnetId: !Ref SubnetB
+  AlbSubnetsFromParameter:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Subnets: !Ref SubnetIds
+  NlbOneSubnet:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: network
+      Subnets:
+        - !Ref SubnetA
+  GatewayOneSubnet:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: gateway
+      Subnets:
+        - !Ref SubnetA
+  ParameterTypedOneSubnet:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: !Ref LoadBalancerType
+      Subnets:
+        - !Ref SubnetA

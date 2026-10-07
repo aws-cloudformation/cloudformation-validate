@@ -24,23 +24,28 @@ interface WorkerResult {
     ok: boolean;
     structuredError?: string;
     reportStatus?: string;
+    budgetExhaustionCount?: number;
+    budgetDescription?: string;
     diagnosticCount?: number;
 }
 
 function validateInWorker(engineName: string, templatePath: string): Promise<WorkerResult> {
     const source = `
         const { parentPort, workerData } = require('node:worker_threads');
-        const { CelEngine, RegoEngine, TemplateFile } = require(workerData.packagePath);
-        const Engine = workerData.engineName === 'rego' ? RegoEngine : CelEngine;
+        const { CelEngine, RegoEngine, CompositeEngine, TemplateFile } = require(workerData.packagePath);
+        const engines = { rego: RegoEngine, cel: CelEngine, composite: CompositeEngine };
+        const Engine = engines[workerData.engineName];
         const engine = new Engine();
         try {
-            const report = engine.validateDetailed(
+            const report = engine.validateTemplate(
                 new TemplateFile(workerData.templatePath),
-                { severityLevel: 'DEBUG' },
+                { severityLevel: 'DEBUG', detailLevel: 'DETAILED' },
             );
             parentPort.postMessage({
                 ok: true,
                 reportStatus: report.status,
+                budgetExhaustionCount: report.metadata.budgetExhaustions?.length,
+                budgetDescription: report.metadata.budgetExhaustions?.[0]?.description,
                 diagnosticCount: report.diagnostics.length,
             });
         } catch (error) {
@@ -87,7 +92,7 @@ describe('security templates', () => {
         expect(securityTemplates.every((template) => template.startsWith(`${SECURITY_ROOT}${path.sep}`))).toBe(true);
     });
 
-    for (const engineName of ['rego', 'cel']) {
+    for (const engineName of ['rego', 'cel', 'composite']) {
         for (const templatePath of securityTemplates) {
             const templateName = path.relative(SECURITY_ROOT, templatePath).replace(/\\/g, '/');
             it(
@@ -100,6 +105,14 @@ describe('security templates', () => {
                     }
                     expect(outcome.ok, outcome.structuredError).toBe(true);
                     expect(outcome.reportStatus).toBeDefined();
+                    if (templateName === 'scenario_assignment_budget.yaml') {
+                        expect(outcome.reportStatus).toBe('ANALYSIS_INCOMPLETE');
+                        expect(outcome.budgetExhaustionCount).toBeGreaterThan(0);
+                        expect(outcome.budgetDescription).toMatch(/\.$/);
+                    }
+                    if (templateName === 'condition_fusion.yaml') {
+                        expect(outcome.budgetExhaustionCount).toBeUndefined();
+                    }
                     expect(outcome.diagnosticCount).toBeGreaterThanOrEqual(0);
                 },
                 SECURITY_TIMEOUT_MS + 5_000,

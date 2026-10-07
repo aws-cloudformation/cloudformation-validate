@@ -10,6 +10,7 @@ import rego.v1
 # that rather than implying a resource of that name could be added.
 violation contains make_diag("E3005", "ERROR", name,
     sprintf("DependsOn target '%s' does not exist as a resource", [dep])) if {
+    cfn_rule_active("E3005")
     some name in object.keys(input.resources)
     some dep in input.resources[name].dependsOn
     not dep in object.keys(input.resources)
@@ -19,6 +20,7 @@ violation contains make_diag("E3005", "ERROR", name,
 
 violation contains make_diag("E3005", "ERROR", name,
     sprintf("DependsOn must be a resource logical ID, not a dynamic reference: '%s'", [dep])) if {
+    cfn_rule_active("E3005")
     some name in object.keys(input.resources)
     some dep in input.resources[name].dependsOn
     not dep in object.keys(input.resources)
@@ -33,6 +35,7 @@ violation contains make_diag_full("E3005", "ERROR", name, "DependsOn",
     sprintf("'%s' will not exist when condition '%s' is False", [dep, dep_cond]),
     sprintf("Add a Condition to '%s' that implies '%s'", [name, dep_cond]),
     "") if {
+    cfn_rule_active("E3005")
     some name in object.keys(input.resources)
     some dep in input.resources[name].dependsOn
     dep in object.keys(input.resources)

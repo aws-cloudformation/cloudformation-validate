@@ -620,7 +620,7 @@ fn all_templates_parse_without_panic() {
     // duplicate documents in one stream, null and complex mapping keys, and an
     // unhashable-key repro. Raise this cap only for a template that is *supposed*
     // to fail the parse.
-    assert!(err <= 12, "too many parse failures: {}", err);
+    assert!(err <= 13, "too many parse failures: {}", err);
 }
 
 fn walkdir(dir: &str) -> Vec<String> {

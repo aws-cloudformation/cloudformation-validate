@@ -3,13 +3,9 @@
 The command-line front end for the validation engine.
 
 The CLI wires the workspace together: it parses a template with [template-model](../template-model/README.md), selects
-an engine ([rego-engine](../rego-engine/README.md) or [cel-engine](../cel-engine/README.md)), runs the
-[validation-engine](../validation-engine/README.md) pipeline (
-including [schema-validator](../schema-validator/README.md)),
-and renders the resulting report as JSON.
-
-> To embed validation in your own Rust program, depend on `validation-engine`, an engine crate, and `schema-validator`
-> directly - see [validation-engine/API.md](../validation-engine/API.md). This crate is the CLI, not a library facade.
+an engine ([composite-engine](../composite-engine/README.md), [rego-engine](../rego-engine/README.md), or
+[cel-engine](../cel-engine/README.md)), runs the [validation-engine](../validation-engine/README.md) pipeline (
+including [schema-validator](../schema-validator/README.md)), and renders the resulting report as JSON.
 
 ## How it works
 
@@ -17,7 +13,7 @@ and renders the resulting report as JSON.
   template.yaml ──▶ cfn-validate ──▶ JSON report (stdout)
                          │
                          ├── Parse template (template-model)
-                         ├── Select engine (rego-engine or cel-engine)
+                         ├── Select engine (composite, rego, or cel)
                          ├── Run validation pipeline (validation-engine)
                          │   ├── Schema validation (schema-validator)
                          │   ├── Engine rule evaluation
@@ -29,11 +25,15 @@ and renders the resulting report as JSON.
 
 ## `cfn-validate`
 
-Validates a CloudFormation template or all files in a directory. Recursively collects `.yaml`, `.yml`, and `.json` files
-when given a directory path.
+Validates a CloudFormation template, all files in a directory, or a template piped to standard input. Recursively
+collects `.yaml`, `.yml`, and `.json` files when given a directory path. Passing `-` as the template argument reads the
+template from standard input instead of disk; its report is labelled `<stdin>`.
 
 ```
-cfn-validate <TEMPLATE|DIR> [OPTIONS]
+cfn-validate <TEMPLATE|DIR|-> [OPTIONS]
+
+# validate a synthesized template without writing it to disk
+cdk synth MyStack | cfn-validate -
 ```
 
 **Filter options:**
@@ -71,8 +71,8 @@ touching a same-named entity of another type.
 
 | Option                       | Description                                               |
 |------------------------------|-----------------------------------------------------------|
-| `--engine rego\|cel`         | Validation engine (default: rego)                         |
-| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable)             |
+| `--engine rego\|cel\|composite` | Validation engine (default: composite). `composite` layers the external rules over the built-in rules |
+| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable). With `--engine composite`, these are the Rego rules layered on top of the built-ins |
 | `--guard-rule-source <PATH>` | Load Guard (`.guard`) rule file or directory (repeatable) |
 | `--additional-schema <PATH>` | Merge a CloudFormation resource provider schema (`.json`) file, or every `.json` in a directory, on top of the bundled schemas (repeatable) |
 

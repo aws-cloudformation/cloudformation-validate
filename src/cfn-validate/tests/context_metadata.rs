@@ -2,93 +2,161 @@ mod common;
 
 use cel_engine::CelEngine;
 use common::load_template;
+use composite_engine::CompositeEngine;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
 use rules::Severity;
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
-use validation_engine::{EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
+use template_model::EntityType;
+use validation_engine::{CompositeEngineConfig, EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
 
-const RULE_ID: &str = "W9100";
+const CONTEXT_RULE_IDS: [&str; 3] = ["I4010", "W4011", "W4012"];
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
+static COMPOSITE: LazyLock<CompositeEngine> =
+    LazyLock::new(|| CompositeEngine::new(CompositeEngineConfig::default()).unwrap());
 
-fn validate_context(engine: &dyn ValidationEngine, template: &str, config: ValidateConfig) -> Vec<Diagnostic> {
+fn engines() -> [(&'static str, &'static dyn ValidationEngine); 3] {
+    [("rego", &*REGO), ("cel", &*CEL), ("composite", &*COMPOSITE)]
+}
+
+fn context_diagnostics(engine: &dyn ValidationEngine, template: &str, config: ValidateConfig) -> Vec<Diagnostic> {
     let report = validate_bytes(engine, &SchemaValidator::default(), &load_template(template), config)
         .expect("context fixture should validate");
-    report.diagnostics.into_iter().filter(|diagnostic| diagnostic.rule_id == RULE_ID).collect()
+    report.diagnostics.into_iter().filter(|d| CONTEXT_RULE_IDS.contains(&d.rule_id.as_str())).collect()
 }
 
-fn assert_engine_parity(rego: &[Diagnostic], cel: &[Diagnostic], template: &str) {
-    let rego_json = serde_json::to_value(rego).expect("serialize rego context diagnostics");
-    let cel_json = serde_json::to_value(cel).expect("serialize cel context diagnostics");
-    assert_eq!(rego_json, cel_json, "{template}: context diagnostics differ between engines");
+/// Runs every engine selector on `template` and asserts they agree before
+/// returning one engine's diagnostics for behavioral assertions.
+fn context_diagnostics_on_every_engine(template: &str, config: ValidateConfig) -> Vec<Diagnostic> {
+    let mut agreed: Option<(serde_json::Value, Vec<Diagnostic>)> = None;
+    for (name, engine) in engines() {
+        let diagnostics = context_diagnostics(engine, template, config.clone());
+        let json = serde_json::to_value(&diagnostics).expect("serialize context diagnostics");
+        match &agreed {
+            Some((expected, _)) => assert_eq!(expected, &json, "{template}: {name} differs from the other engines"),
+            None => agreed = Some((json, diagnostics)),
+        }
+    }
+    agreed.expect("at least one engine ran").1
 }
 
-#[test]
-fn canonical_context_is_accepted_by_both_engines() {
-    let template = "good/W9100_context_valid.yaml";
-    let rego = validate_context(&*REGO, template, ValidateConfig::default());
-    let cel = validate_context(&*CEL, template, ValidateConfig::default());
-
-    assert_engine_parity(&rego, &cel, template);
-    assert!(rego.is_empty(), "canonical context and incidental resources must not be flagged: {rego:?}");
-}
-
-#[test]
-fn missing_context_is_aggregated_to_two_located_warnings() {
-    let template = "bad/W9100_context_missing.yaml";
-    let rego = validate_context(&*REGO, template, ValidateConfig::default());
-    let cel = validate_context(&*CEL, template, ValidateConfig::default());
-
-    assert_engine_parity(&rego, &cel, template);
-    assert_eq!(rego.len(), 2, "one template and one primary-resource aggregate are expected");
-    assert!(rego.iter().all(|diagnostic| diagnostic.severity == Severity::Warn));
-    assert!(rego.iter().all(|diagnostic| diagnostic.location.is_some()));
-    assert!(rego.iter().all(|diagnostic| diagnostic.suggested_fix.is_some()));
-    let combined = rego.iter().map(|diagnostic| diagnostic.message.as_str()).collect::<Vec<_>>().join(" ");
-    assert!(combined.contains("No top-level Metadata.com.aws.cloudformation.Context block found"));
-    assert!(combined.contains("Bucket"));
-    assert!(combined.contains("Queue"));
-    assert!(!combined.contains("CDKMetadata: No Metadata"), "incidental CDK metadata must be excluded");
+fn summary(diagnostics: &[Diagnostic]) -> Vec<(String, Option<String>, Option<String>, String)> {
+    diagnostics
+        .iter()
+        .map(|d| {
+            (d.rule_id.clone(), d.resource_logical_id().map(str::to_string), d.property_path.clone(), d.message.clone())
+        })
+        .collect()
 }
 
 #[test]
-fn malformed_context_reports_all_schema_failures_within_two_diagnostics() {
-    let template = "bad/W9100_context_malformed.yaml";
-    let rego = validate_context(&*REGO, template, ValidateConfig::default());
-    let cel = validate_context(&*CEL, template, ValidateConfig::default());
+fn complete_context_is_clean_on_every_engine() {
+    let diagnostics =
+        context_diagnostics_on_every_engine("good/metadata_context_complete.yaml", ValidateConfig::default());
 
-    assert_engine_parity(&rego, &cel, template);
-    assert_eq!(rego.len(), 2, "schema findings must remain aggregated by placement");
-    let combined = rego.iter().map(|diagnostic| diagnostic.message.as_str()).collect::<Vec<_>>().join(" ");
-    for expected in [
-        "arch",
-        "why' belongs at resource level",
-        "ref[0].at",
-        "Bucket",
-        "must",
-        "mutable",
-        "mutability.QueueName",
-        "trust.src",
-        "trust.conf",
-        "trust.extra",
-        "ref' belongs at template level",
-        "unknown",
-    ] {
-        assert!(combined.contains(expected), "missing {expected:?} from {combined}");
+    assert!(diagnostics.is_empty(), "complete context and exempt resources must not be flagged: {diagnostics:?}");
+}
+
+#[test]
+fn cdk_template_marked_only_by_construct_paths_suppresses_context_rules() {
+    let diagnostics =
+        context_diagnostics_on_every_engine("good/cdk_synthesized_without_analytics.yaml", ValidateConfig::default());
+
+    assert!(diagnostics.is_empty(), "context rules are not actionable on a synthesized template: {diagnostics:?}");
+}
+
+#[test]
+fn missing_context_yields_a_template_finding_and_one_aggregate_in_yaml_and_json() {
+    let from_yaml = context_diagnostics_on_every_engine("bad/I4010_context_missing.yaml", ValidateConfig::default());
+    let from_json = context_diagnostics_on_every_engine("bad/I4010_context_missing.json", ValidateConfig::default());
+
+    assert_eq!(summary(&from_yaml), summary(&from_json), "JSON and YAML templates must produce the same findings");
+    assert_eq!(from_yaml.len(), 2, "one template finding and one resource aggregate: {from_yaml:?}");
+    assert!(from_yaml.iter().all(|d| d.severity == Severity::Info && d.suggested_fix.is_some()));
+    let template_finding = &from_yaml[0];
+    assert!(template_finding.entity.is_none());
+    assert_eq!(template_finding.property_path.as_deref(), Some("Metadata"));
+    let aggregate = &from_yaml[1];
+    assert_eq!(aggregate.resource_logical_id(), Some("OrderQueue"));
+    assert_eq!(
+        aggregate.message,
+        "Resources without a Metadata.com.aws.cloudformation.Context block: OrderQueue (AWS::SQS::Queue), OrdersTable (AWS::DynamoDB::Table)."
+    );
+    assert!(aggregate.location.is_some());
+    let related = aggregate.related_resources.as_ref().expect("the second resource is attached as related");
+    assert_eq!(related.len(), 1);
+    assert_eq!(related[0].resource.as_ref().and_then(|r| r.id.as_deref()), Some("OrdersTable"));
+    for diagnostics in [&from_yaml, &from_json] {
+        assert!(diagnostics.iter().all(|d| d.rule_id == "I4010"));
+        assert!(diagnostics[1].location.is_some(), "the aggregate is anchored at the first resource");
     }
 }
 
 #[test]
-fn strict_mode_promotes_context_warnings_identically() {
-    let template = "bad/W9100_context_missing.yaml";
-    let config = || ValidateConfig { strict: true, ..Default::default() };
-    let rego = validate_context(&*REGO, template, config());
-    let cel = validate_context(&*CEL, template, config());
+fn missing_why_is_excused_only_by_low_confidence_trust() {
+    let diagnostics =
+        context_diagnostics_on_every_engine("bad/W4011_context_missing_why.yaml", ValidateConfig::default());
 
-    assert_engine_parity(&rego, &cel, template);
-    assert_eq!(rego.len(), 2);
-    assert!(rego.iter().all(|diagnostic| diagnostic.severity == Severity::Error));
+    let flagged: Vec<Option<&str>> = diagnostics.iter().map(Diagnostic::resource_logical_id).collect();
+    assert!(diagnostics.iter().all(|d| d.rule_id == "W4011"), "{diagnostics:?}");
+    assert_eq!(flagged, [Some("OrderQueue"), Some("Notifier"), Some("ServiceLogGroup")]);
+    assert!(diagnostics.iter().all(|d| {
+        d.severity == Severity::Warn
+            && d.property_path.as_deref() == Some("Metadata.com.aws.cloudformation.Context")
+            && d.location.is_some()
+    }));
+}
+
+#[test]
+fn schema_violations_are_reported_once_per_field_at_both_placements() {
+    let diagnostics =
+        context_diagnostics_on_every_engine("bad/W4012_context_schema_violation.yaml", ValidateConfig::default());
+
+    let violations: Vec<&Diagnostic> = diagnostics.iter().filter(|d| d.rule_id == "W4012").collect();
+    assert_eq!(violations.len(), 15, "{diagnostics:?}");
+    assert_eq!(violations.iter().filter(|d| d.resource_logical_id() == Some("Bucket")).count(), 1);
+    assert_eq!(violations.iter().filter(|d| d.resource_logical_id() == Some("Queue")).count(), 9);
+    let template_level: Vec<&&Diagnostic> = violations.iter().filter(|d| d.resource_logical_id().is_none()).collect();
+    assert_eq!(template_level.len(), 5);
+    assert!(
+        template_level.iter().all(|d| {
+            d.entity.as_ref().is_some_and(|entity| {
+                entity.entity_type == EntityType::Metadata && entity.logical_id == "com.aws.cloudformation.Context"
+            })
+        }),
+        "template-level findings identify the Metadata key they validate: {template_level:?}"
+    );
+    assert!(violations.iter().all(|d| d.location.is_some() && d.property_path.is_some()));
+    let paths: Vec<&str> = violations.iter().filter_map(|d| d.property_path.as_deref()).collect();
+    for expected in [
+        "Metadata.com.aws.cloudformation.Context",
+        "Metadata.com.aws.cloudformation.Context.mutability.QueueName",
+        "Metadata.com.aws.cloudformation.Context.trust.extra",
+        "Metadata/com.aws.cloudformation.Context/ref/0",
+        "Metadata/com.aws.cloudformation.Context/gaps",
+    ] {
+        assert!(paths.contains(&expected), "missing {expected} in {paths:?}");
+    }
+    let rationale_findings: Vec<Option<&str>> =
+        diagnostics.iter().filter(|d| d.rule_id == "W4011").map(Diagnostic::resource_logical_id).collect();
+    assert_eq!(
+        rationale_findings,
+        [Some("Queue")],
+        "a numeric 'why' is no rationale; a non-mapping block is shape only"
+    );
+    assert!(diagnostics.iter().all(|d| d.rule_id != "I4010"), "every resource and the template supply a block");
+}
+
+#[test]
+fn strict_mode_promotes_context_warnings_but_not_the_informational_rule() {
+    let strict = ValidateConfig { strict: true, ..Default::default() };
+
+    let missing = context_diagnostics_on_every_engine("bad/I4010_context_missing.yaml", strict.clone());
+    let malformed = context_diagnostics_on_every_engine("bad/W4012_context_schema_violation.yaml", strict);
+
+    assert!(missing.iter().all(|d| d.severity == Severity::Info), "{missing:?}");
+    assert!(!malformed.is_empty() && malformed.iter().all(|d| d.severity == Severity::Error), "{malformed:?}");
 }

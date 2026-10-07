@@ -47,6 +47,7 @@ pub const KEY_DELETION_POLICY: &str = "DeletionPolicy";
 pub const KEY_UPDATE_REPLACE_POLICY: &str = "UpdateReplacePolicy";
 pub const KEY_UPDATE_POLICY: &str = "UpdatePolicy";
 pub const KEY_CREATION_POLICY: &str = "CreationPolicy";
+pub const KEY_METADATA: &str = "Metadata";
 
 pub const KEY_DEFAULT: &str = "Default";
 pub const KEY_ALLOWED_VALUES: &str = "AllowedValues";
@@ -82,6 +83,19 @@ pub const SAM_APPLICATION_TYPE: &str = "AWS::Serverless::Application";
 pub const SAM_STATE_MACHINE_TYPE: &str = "AWS::Serverless::StateMachine";
 pub const SAM_CONNECTOR_TYPE: &str = "AWS::Serverless::Connector";
 pub const SAM_GRAPHQL_API_TYPE: &str = "AWS::Serverless::GraphQLApi";
+
+pub const DYNAMODB_TABLE_TYPE: &str = "AWS::DynamoDB::Table";
+pub const CLOUDFORMATION_STACK_TYPE: &str = "AWS::CloudFormation::Stack";
+
+/// Returns the CloudFormation resource type a transform-backed shorthand
+/// deploys as when that type affects cross-resource semantics.
+pub fn effective_deployed_resource_type(resource_type: &str) -> &str {
+    match resource_type {
+        SAM_SIMPLE_TABLE_TYPE => DYNAMODB_TABLE_TYPE,
+        SAM_APPLICATION_TYPE => CLOUDFORMATION_STACK_TYPE,
+        _ => resource_type,
+    }
+}
 pub const SAM_EVENT_TYPE_API: &str = "Api";
 pub const SAM_EVENT_TYPE_HTTP_API: &str = "HttpApi";
 pub const SAM_EVENT_TYPE_SCHEDULE: &str = "Schedule";
@@ -156,7 +170,12 @@ pub const SAM_API_GLOBALS_KEY: &str = "Api";
 pub const SAM_HTTP_API_GLOBALS_KEY: &str = "HttpApi";
 pub const SAM_SIMPLE_TABLE_GLOBALS_KEY: &str = "SimpleTable";
 
+// Markers that identify a CDK-synthesized template. The analytics resource is
+// absent when a stack is synthesized with analyticsReporting disabled, so the
+// construct-path metadata CDK writes on every resource is checked as well.
 pub const CDK_METADATA_TYPE: &str = "AWS::CDK::Metadata";
+pub const CDK_METADATA_LOGICAL_ID: &str = "CDKMetadata";
+pub const CDK_CONSTRUCT_PATH_METADATA_KEY: &str = "aws:cdk:path";
 
 pub const OUTPUT_PSEUDO_RESOURCE_PREFIX: &str = "__output__";
 pub const OUTPUTS_PSEUDO_RESOURCE: &str = "__outputs__";
@@ -201,12 +220,59 @@ pub const MAX_TOTAL_SCENARIO_COMBINATIONS: u64 = 33_554_432;
 
 pub const MAX_RESOLVE_DEPTH: u32 = 512;
 
+/// Maximum structural nesting depth the YAML loader permits before rejecting
+/// the document with a parse error. Each `MappingStart` or `SequenceStart` event
+/// increments the depth; the corresponding end event decrements it. Once the
+/// ceiling is reached, the loader sets a structural parse error and suppresses
+/// further tree construction without attempting to build or drop a recursively
+/// deep `Yaml` value.
+///
+/// The bound matches the existing intrinsic-resolution ceiling and leaves ample
+/// room for deeply composed templates while preventing a malicious YAML document
+/// from reaching unbounded recursive tree passes. JSON parsing is independently
+/// bounded by `serde_json`'s built-in recursion limit.
+pub const MAX_YAML_NESTING_DEPTH: usize = 512;
+
+/// Cumulative work budget for `Fn::ForEach` transform expansion across all
+/// sections of a single template. Charged for every loop iteration (one unit per
+/// element emitted) and every recursive body-traversal node visited. Once
+/// exhausted, expansion stops immediately and emits a single visible transform
+/// diagnostic - no further materialization occurs, no silent truncation.
+///
+/// The limit provides enough headroom for legitimate templates (CloudFormation
+/// caps a template at 500 resources; a loop producing 500 entries with moderate
+/// body complexity costs well under this budget) while cutting off branch-explosion
+/// attacks where nested loops generate combinatorial output.
+pub const MAX_FOREACH_EXPANSION_WORK: u64 = 100_000;
+
 /// Maximum number of concrete variants a single value may expand to during
 /// intrinsic resolution (e.g. an `Fn::Join` over enumerated elements). Bounds
 /// per-value combinatorial blow-up and the memory a resolved value holds;
 /// beyond it the expansion is truncated. The narrowest analysis bound - it
 /// operates on a single value.
 pub const MAX_ENUM_EXPANSION: usize = 4_096;
+
+/// Maximum nesting depth walked while building an expression fingerprint. A
+/// subtree deeper than this yields no fingerprint at all rather than a truncated
+/// one, because a truncated fingerprint could be shared by two expressions that
+/// differ only below the cut.
+pub const MAX_FINGERPRINT_DEPTH: u32 = 64;
+
+/// Schema scenario-assignment expansion cap per property group. Used in the
+/// schema-validator to bound the per-group satisfiability search.
+pub const MAX_SCHEMA_SCENARIO_ASSIGNMENTS: usize = 256;
+
+/// Schema scenario merge-attempt budget per property group. Used in the
+/// schema-validator to bound the pairwise merge pass.
+pub const MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS: usize = 4_096;
+
+/// Schema recursive match depth. Used in the schema-validator to bound
+/// recursive schema property traversal.
+pub const MAX_SCHEMA_MATCH_DEPTH: usize = 16;
+
+/// Required-property combination expansion cap. Used in the schema-validator
+/// to bound the cross-product of requiredXor/requiredOr groups.
+pub const MAX_REQUIRED_PROPERTY_COMBINATIONS: usize = 256;
 
 /// Per-query budget for a single satisfiability search: the maximum number of
 /// evaluation steps `ConditionModel::is_satisfiable` performs before returning a

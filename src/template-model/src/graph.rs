@@ -73,6 +73,13 @@ impl ReferenceGraph {
             .unwrap_or_default()
     }
 
+    /// Borrowing iterator over the same edges as `outgoing`, in the same order,
+    /// without collecting them into a `Vec`. Hot callers that only scan the
+    /// outgoing edges use this to avoid the per-call allocation.
+    pub fn outgoing_edges(&self, resource_id: &str) -> impl Iterator<Item = &Edge> {
+        self.edges_by_source.get(resource_id).into_iter().flatten().map(move |&index| &self.edges[index])
+    }
+
     pub fn incoming(&self, target_id: &str) -> Vec<&Edge> {
         self.edges_by_target
             .get(target_id)
@@ -112,7 +119,7 @@ impl ReferenceGraph {
     }
 
     pub fn ref_targets(&self, resource_id: &str) -> Vec<&str> {
-        self.outgoing(resource_id).iter().map(|e| e.target.as_str()).collect()
+        self.outgoing_edges(resource_id).map(|e| e.target.as_str()).collect()
     }
 
     pub fn ref_sources(&self, resource_id: &str) -> Vec<&str> {

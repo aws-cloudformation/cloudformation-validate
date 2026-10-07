@@ -87,7 +87,7 @@ let model = result.model;
 | `is_from_intrinsic(resource_id, path)`      | Check if a property originates from an intrinsic function    |
 | `source_location(path)`                     | Source span for a template path                              |
 | `resource_span(resource_id, prop_path)`     | Source span for a resource property                          |
-| `estimate_string_length(resource_id, path)` | Estimate resolved string length for constraint checking      |
+| `estimated_string_length_bounds(resource_id, path)` | Shortest and longest resolved string length for constraint checking, or `None` when the length cannot be pinned for every possibility |
 
 ### Key Fields
 
@@ -122,5 +122,5 @@ Supports AWS SAM templates with automatic handling of SAM transforms and implici
 Prints a detailed human-readable dump of the semantic model for a template or directory of templates.
 
 ```
-cargo run -p template-model --example inspect -- <TEMPLATE|DIR>
+cargo run -p cloudformation-validate-template-model --example inspect -- <TEMPLATE|DIR>
 ```

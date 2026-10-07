@@ -1,17 +1,21 @@
+use crate::eval_context::{EvaluationContext, EvaluationScope, ReferenceRendering, ReferenceRenderingScope};
+use crate::policies;
 use data_source::embedded;
 use data_source::types::KnownResourceTypes;
 use diagnostics::{Diagnostic, PhaseMetric, phase_metric};
-use guard_translator::{ensure_translatable, pack_name_from_path, parse_guard};
-use log::{debug, info, warn};
-use rules::{Category, RuleInfo, RuleMetadataEntry, RuleOrigin, Severity, build_rule_metadata_map};
-use schema_validator::{OverlayCatalog, SchemaValidator};
-use std::collections::HashMap;
+use log::{debug, info};
+use rules::{RuleInfo, RuleMetadataEntry, RuleOrigin, build_rule_metadata_map};
+use schema_validator::{
+    OverlayCatalog, SchemaMetadataCatalog, SchemaValidator, getatt_data_with_overlays,
+    schema_metadata_catalog_with_overlays,
+};
+use std::collections::{HashMap, HashSet};
 use std::str::from_utf8;
 use std::sync::{Arc, LazyLock, Mutex};
 use template_model::SemanticModel;
 use validation_engine::{
-    EngineConfig, ValidateConfig, ValidationEngine, ValidationError, build_rule_list, extract_diagnostics,
-    semantic_model_to_input_json,
+    EngineConfig, GuardRuleSet, ValidateConfig, ValidationEngine, ValidationError, build_rule_list,
+    extract_diagnostics_from_value, semantic_model_to_input_json,
 };
 
 static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
@@ -70,34 +74,20 @@ static REGORUS_DATA: LazyLock<Vec<(&str, &[u8])>> = LazyLock::new(|| {
         ("data/retention_period_requirements", &*embedded::RETENTION_PERIOD_REQUIREMENTS_BYTES),
         ("data/sensitive_ports", &*embedded::SENSITIVE_PORTS_BYTES),
         ("data/secretsmanager_arn_fields", &*embedded::SECRETSMANAGER_ARN_FIELDS_BYTES),
+        ("data/rule_data", &*embedded::RULE_DATA_BYTES),
+        ("data/rule_tables", &*embedded::RULE_TABLES_BYTES),
     ]
 });
 
-const CORE_PACKAGES: &[(Category, &str)] = &[
-    (Category::Structure, "data.structure.violation"),
-    (Category::Intrinsic, "data.intrinsics.violation"),
-    (Category::Reference, "data.references.violation"),
-    (Category::BestPractice, "data.best_practices.violation"),
-    (Category::Resource, "data.resources.violation"),
+/// The built-in rule packages, one query each. A package groups rules by
+/// implementation area; the registry, not the package, decides a rule's category.
+const CORE_PACKAGES: &[&str] = &[
+    "data.structure.violation",
+    "data.intrinsics.violation",
+    "data.references.violation",
+    "data.best_practices.violation",
+    "data.resources.violation",
 ];
-
-pub(crate) type SharedModel = Arc<Mutex<Option<Arc<SemanticModel>>>>;
-pub(crate) type SharedRegion = Arc<Mutex<Option<String>>>;
-
-struct HolderGuard {
-    model: SharedModel,
-    region: SharedRegion,
-}
-
-impl Drop for HolderGuard {
-    fn drop(&mut self) {
-        *self.model.lock().unwrap_or_else(|e| e.into_inner()) = None;
-        *self.region.lock().unwrap_or_else(|e| e.into_inner()) = None;
-    }
-}
-
-/// Pre-allocated capacity for merging all embedded JSON data files into one string.
-const MERGED_DATA_INITIAL_CAPACITY: usize = 8 * 1024 * 1024;
 
 /// The [`REGORUS_DATA`] entry holding the catalog of resource types the rules
 /// treat as existing.
@@ -118,6 +108,7 @@ fn extend_known_resource_types(extra_types: &[String]) -> anyhow::Result<Option<
     }
     let mut catalog: KnownResourceTypes = serde_json::from_slice(&embedded::KNOWN_RESOURCE_TYPES_BYTES)
         .map_err(|e| anyhow::anyhow!("Failed to parse the embedded known_resource_types data: {e}"))?;
+    anyhow::ensure!(!catalog.known_resource_types.is_empty(), "Embedded known_resource_types data must not be empty");
     for type_name in extra_types {
         if !catalog.known_resource_types.contains(type_name) {
             catalog.known_resource_types.push(type_name.clone());
@@ -186,21 +177,73 @@ fn extend_primary_identifiers_data(catalog: &OverlayCatalog) -> anyhow::Result<O
     Ok(Some(serde_json::to_string(&data)?))
 }
 
+/// Whether an engine instance loads and evaluates the handwritten built-in
+/// policies, or serves only caller-supplied external rules.
+///
+/// In [`BuiltinRuleMode::ExternalOnly`] the built-in policies are neither loaded
+/// nor advertised through registry metadata, so the engine evaluates only custom
+/// and Guard rules. Embedded data tables, custom builtins, and external-rule
+/// metadata are retained in both modes.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BuiltinRuleMode {
+    Enabled,
+    ExternalOnly,
+}
+
+/// Who authored a Rego package, which fixes the contract its rules were written
+/// against: how its diagnostics are attributed and how the resolution builtins
+/// render a reference while it evaluates.
+#[derive(Clone, Copy)]
+enum PolicyPackageKind {
+    /// A handwritten built-in policy shipped with the engine.
+    BuiltIn,
+    /// A caller-supplied custom rule.
+    Custom,
+}
+
+impl PolicyPackageKind {
+    fn source_label(self) -> &'static str {
+        match self {
+            Self::BuiltIn => "Core",
+            Self::Custom => "Custom",
+        }
+    }
+
+    /// The origin stamped on the package's diagnostics; a built-in rule keeps the
+    /// origin the registry records for it.
+    fn rule_origin_override(self) -> Option<&'static RuleOrigin> {
+        match self {
+            Self::BuiltIn => None,
+            Self::Custom => Some(&RuleOrigin::Custom),
+        }
+    }
+
+    /// Built-in policies validate literal content and must never see a logical ID
+    /// where a value belongs. Custom rules keep the logical-ID string they were
+    /// written against, so upgrading the engine does not change what they report.
+    fn reference_rendering(self) -> ReferenceRendering {
+        match self {
+            Self::BuiltIn => ReferenceRendering::Marker,
+            Self::Custom => ReferenceRendering::TargetId,
+        }
+    }
+}
+
 pub struct RegoEngine {
     base_rego: regorus::Engine,
-    model_holder: SharedModel,
-    region_holder: SharedRegion,
-    validate_lock: Mutex<()>,
+    /// Whether the handwritten built-in policies are evaluated, or only the
+    /// caller-supplied external rules.
+    builtin_mode: BuiltinRuleMode,
     /// Built-in rule metadata from the rules registry only.
     registry_metadata: HashMap<String, RuleMetadataEntry>,
-    /// Metadata for custom user rules and translated guard rules.
-    external_rule_metadata: HashMap<String, RuleMetadataEntry>,
     /// Custom rego rule metadata discovered from evaluation output.
     /// Rego rules embed metadata in their output objects, so it can only
     /// be extracted after evaluation. May be incomplete if not all rules fired.
     discovered_custom_metadata: Mutex<HashMap<String, RuleMetadataEntry>>,
     custom_packages: Vec<String>,
-    guard_packages: Vec<String>,
+    /// Guard rules are evaluated by the shared Guard evaluator, not by Rego, so
+    /// every engine reports the same Guard findings.
+    guard_rules: Option<GuardRuleSet>,
     init_metric: PhaseMetric,
 }
 
@@ -208,7 +251,9 @@ impl RegoEngine {
     pub fn new(config: EngineConfig) -> anyhow::Result<Self> {
         let overlay_catalog =
             config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
-        Self::new_from_catalog(config, &overlay_catalog)
+        let start = web_time::Instant::now();
+        let schema_metadata = schema_metadata_catalog_with_overlays(&overlay_catalog)?;
+        Self::new_from_parts(config, &overlay_catalog, schema_metadata, BuiltinRuleMode::Enabled, start)
     }
 
     /// Constructs the engine reusing metadata from an already-built
@@ -217,16 +262,54 @@ impl RegoEngine {
     /// re-resolve overlay schemas.
     ///
     /// This entry point is intended for language bindings and the CLI, which
-    /// construct a `SchemaValidator` once and share it with the engine.
+    /// construct a `SchemaValidator` once and share it with the engine. The
+    /// validator's shared schema-metadata catalog is reused rather than rebuilt,
+    /// so every engine built from the same validator shares one catalog rather
+    /// than rebuilding it.
     #[doc(hidden)]
     pub fn new_with_schema_validator(config: EngineConfig, validator: &SchemaValidator) -> anyhow::Result<Self> {
-        Self::new_from_catalog(config, validator.overlay_catalog())
+        let start = web_time::Instant::now();
+        let schema_metadata = validator.schema_metadata_catalog()?;
+        Self::new_from_parts(config, validator.overlay_catalog(), schema_metadata, BuiltinRuleMode::Enabled, start)
     }
 
-    /// Internal constructor that accepts a pre-built overlay catalog.
-    fn new_from_catalog(config: EngineConfig, overlay_catalog: &OverlayCatalog) -> anyhow::Result<Self> {
+    /// Constructs an engine that evaluates only the caller-supplied custom and
+    /// Guard rules, without loading or advertising the handwritten built-in
+    /// policies. Embedded data tables and custom builtins remain available so
+    /// external rules can call them.
+    ///
+    /// This backs the composite engine, whose built-in rules are owned by a
+    /// separate engine; loading them here too would double-evaluate them.
+    pub fn new_external_only(config: EngineConfig) -> anyhow::Result<Self> {
+        let overlay_catalog =
+            config.build_overlay_catalog().map_err(|e| anyhow::anyhow!("Failed to build overlay catalog: {e}"))?;
         let start = web_time::Instant::now();
+        let schema_metadata = schema_metadata_catalog_with_overlays(&overlay_catalog)?;
+        Self::new_from_parts(config, &overlay_catalog, schema_metadata, BuiltinRuleMode::ExternalOnly, start)
+    }
 
+    /// External-only counterpart to [`RegoEngine::new_with_schema_validator`],
+    /// reusing an already-built validator's overlay catalog and shared
+    /// schema-metadata catalog.
+    #[doc(hidden)]
+    pub fn new_external_only_with_schema_validator(
+        config: EngineConfig,
+        validator: &SchemaValidator,
+    ) -> anyhow::Result<Self> {
+        let start = web_time::Instant::now();
+        let schema_metadata = validator.schema_metadata_catalog()?;
+        Self::new_from_parts(config, validator.overlay_catalog(), schema_metadata, BuiltinRuleMode::ExternalOnly, start)
+    }
+
+    /// Internal constructor that accepts a pre-built overlay catalog and the
+    /// shared schema-metadata catalog resolved for it.
+    fn new_from_parts(
+        config: EngineConfig,
+        overlay_catalog: &OverlayCatalog,
+        schema_metadata: Arc<SchemaMetadataCatalog>,
+        builtin_mode: BuiltinRuleMode,
+        start: web_time::Instant,
+    ) -> anyhow::Result<Self> {
         let mut rego = regorus::Engine::new();
         rego.set_strict_builtin_errors(false);
 
@@ -243,7 +326,10 @@ impl RegoEngine {
             // Extend primary_identifiers data with overlay entries
             let extended_primary_ids = extend_primary_identifiers_data(overlay_catalog)?;
 
-            let mut merged = String::with_capacity(MERGED_DATA_INITIAL_CAPACITY);
+            // Embedded lengths closely size the common no-overlay path; extended
+            // overlay documents can grow the buffer normally when they are larger.
+            let merged_capacity: usize = REGORUS_DATA.iter().map(|(_, json_bytes)| json_bytes.len()).sum();
+            let mut merged = String::with_capacity(merged_capacity);
             merged.push('{');
             for (i, (path, json_bytes)) in REGORUS_DATA.iter().enumerate() {
                 let json_str = match (
@@ -255,13 +341,16 @@ impl RegoEngine {
                     (KNOWN_RESOURCE_TYPES_PATH, Some(extended), _, _) => extended,
                     (GETATT_ATTRIBUTES_PATH, _, Some(extended), _) => extended,
                     (PRIMARY_IDENTIFIERS_PATH, _, _, Some(extended)) => extended,
-                    _ => from_utf8(json_bytes).expect("Embedded JSON data is valid UTF-8"),
+                    _ => from_utf8(json_bytes).map_err(|error| {
+                        anyhow::anyhow!("Embedded JSON data '{}' is not valid UTF-8: {}", path, error)
+                    })?,
                 };
                 let inner = json_str
                     .trim()
                     .strip_prefix('{')
-                    .and_then(|s| s.strip_suffix('}'))
-                    .expect("Embedded JSON must be a top-level object");
+                    .and_then(|value| value.strip_suffix('}'))
+                    .ok_or_else(|| anyhow::anyhow!("Embedded JSON data '{}' must be a top-level object", path))?;
+                anyhow::ensure!(!inner.trim().is_empty(), "Embedded JSON data '{}' must not be empty", path);
                 if i > 0 {
                     merged.push(',');
                 }
@@ -271,40 +360,25 @@ impl RegoEngine {
             rego.add_data(regorus::Value::from_json_str(&merged)?)?;
         }
 
-        for (path, source) in embedded::HANDWRITTEN_REGO_POLICIES {
-            rego.add_policy(path.to_string(), source.to_string())?;
-        }
-        debug!(
-            "Loaded {} data files, {} handwritten rules",
-            REGORUS_DATA.len(),
-            embedded::HANDWRITTEN_REGO_POLICIES.len()
-        );
-
-        let mut translated_guard_sources = Vec::new();
-        let mut guard_rule_metadata: Vec<(String, Option<String>, String, Severity, RuleOrigin)> = Vec::new();
-        for entry in &config.guard_rules {
-            let guard_file = parse_guard(&entry.content, &entry.name)
-                .map_err(|e| anyhow::anyhow!("Failed to parse guard file '{}': {}", entry.name, e))?;
-            ensure_translatable(&guard_file)
-                .map_err(|e| anyhow::anyhow!("Unsupported guard rule in '{}': {}", entry.name, e))?;
-            let pack = pack_name_from_path(&entry.name);
-            for tr in crate::guard_to_rego::translate_to_rego(&guard_file, &pack, &[]) {
-                guard_rule_metadata.push((
-                    tr.rule_id.clone(),
-                    tr.category.clone(),
-                    tr.description.clone(),
-                    Severity::Error,
-                    RuleOrigin::Guard,
-                ));
-                translated_guard_sources.push((tr.path, tr.source));
+        // In external-only mode the built-in policies are owned by a separate
+        // engine, so they are neither loaded nor evaluated here. Embedded data,
+        // custom builtins, custom Rego, and Guard rules are still loaded below
+        // regardless of mode.
+        let handwritten_rule_count = match builtin_mode {
+            BuiltinRuleMode::Enabled => {
+                for (path, source) in policies::HANDWRITTEN_REGO_POLICIES {
+                    rego.add_policy(path.to_string(), source.to_string())?;
+                }
+                policies::HANDWRITTEN_REGO_POLICIES.len()
             }
-        }
+            BuiltinRuleMode::ExternalOnly => 0,
+        };
+        debug!("Loaded {} data files, {} handwritten rules", REGORUS_DATA.len(), handwritten_rule_count);
+
+        let guard_rules = GuardRuleSet::compile(&config.guard_rules).map_err(|error| anyhow::anyhow!(error))?;
 
         for entry in &config.custom_rules {
             rego.add_policy(entry.name.clone(), entry.content.clone())?;
-        }
-        for (path, source) in &translated_guard_sources {
-            rego.add_policy(path.clone(), source.clone())?;
         }
         let mut custom_packages = Vec::new();
         for entry in &config.custom_rules {
@@ -318,60 +392,53 @@ impl RegoEngine {
                 }
             }
         }
-        let mut guard_packages = Vec::new();
-        for (_, source) in &translated_guard_sources {
-            for line in source.lines() {
-                let trimmed = line.trim();
-                if let Some(pkg) = trimmed.strip_prefix("package ") {
-                    let eval_path = format!("data.{}.violation", pkg.trim());
-                    if !guard_packages.contains(&eval_path) {
-                        guard_packages.push(eval_path);
-                    }
-                }
-            }
-        }
 
-        let model_holder: SharedModel = Arc::new(Mutex::new(None));
-        let region_holder: SharedRegion = Arc::new(Mutex::new(None));
-        crate::builtins::register_all(&mut rego, model_holder.clone(), region_holder.clone(), overlay_catalog);
+        // The GetAtt return-type table is the process-wide one the schema store
+        // shares, layered with this engine's overlays; resolving it here keeps the
+        // parse off the first template without giving the engine its own copy.
+        let getatt = getatt_data_with_overlays(overlay_catalog)?;
+        crate::builtins::register_all(&mut rego, schema_metadata, getatt)?;
 
-        let registry_metadata = build_rule_metadata_map();
-        let mut external_rule_metadata: HashMap<String, RuleMetadataEntry> = HashMap::new();
-        for (id, cat, desc, severity, origin) in guard_rule_metadata {
-            external_rule_metadata.entry(id).or_insert(RuleMetadataEntry {
-                category: cat,
-                description: desc,
-                severity,
-                origin,
-            });
-        }
+        // External-only construction advertises no built-in rules; their
+        // metadata belongs to the engine that owns the built-in policies.
+        let registry_metadata = match builtin_mode {
+            BuiltinRuleMode::Enabled => build_rule_metadata_map(),
+            BuiltinRuleMode::ExternalOnly => HashMap::new(),
+        };
 
-        rego.set_input(regorus::Value::new_object());
-        let _ = rego.eval_rule("data.all_violations.violation".to_string());
+        // Every evaluation clones `rego`, and a clone inherits the prepared state
+        // (analysis, scheduling, and loop hoisting of every loaded policy). Preparing
+        // once here keeps that cost out of every evaluation; without it an engine
+        // that loads only external rules would re-analyze the whole custom rule set
+        // for each template. A trivial query prepares the engine without evaluating
+        // any rule body, so it applies equally to both built-in modes. A preparation
+        // failure is not swallowed: the first real evaluation reports it.
+        let _ = rego.eval_query("true".to_string(), false);
 
         info!(
-            "RegoEngine initialized: {} handwritten rules, {} data files, {} registry + {} external metadata entries",
-            embedded::HANDWRITTEN_REGO_POLICIES.len(),
+            "RegoEngine initialized: {} handwritten rules, {} data files, {} registry + {} Guard metadata entries",
+            handwritten_rule_count,
             REGORUS_DATA.len(),
             registry_metadata.len(),
-            external_rule_metadata.len()
+            guard_rules.as_ref().map_or(0, |guard| guard.rule_metadata().len())
         );
         let init_metric = phase_metric(start);
         Ok(RegoEngine {
             base_rego: rego,
-            model_holder,
-            region_holder,
-            validate_lock: Mutex::new(()),
+            builtin_mode,
             registry_metadata,
-            external_rule_metadata,
             discovered_custom_metadata: Mutex::new(HashMap::new()),
             custom_packages,
-            guard_packages,
+            guard_rules,
             init_metric,
         })
     }
 
     /// Evaluates a single Rego package and appends its diagnostics to `out`.
+    ///
+    /// The package's [`ReferenceRendering`] is in effect only while its query
+    /// runs: Regorus discards memoized rule and builtin results between queries,
+    /// so a value rendered for one package never reaches the next.
     ///
     /// Any evaluation or serialization failure is returned as a structured
     /// [`ValidationError`] - an exception the caller can handle - and is never
@@ -381,21 +448,45 @@ impl RegoEngine {
         &self,
         rego: &mut regorus::Engine,
         package: &str,
-        source_label: &str,
+        kind: PolicyPackageKind,
         model: &SemanticModel,
-        origin: Option<&RuleOrigin>,
         out: &mut Vec<Diagnostic>,
     ) -> Result<(), ValidationError> {
+        let source_label = kind.source_label();
+        let _rendering = ReferenceRenderingScope::enter(kind.reference_rendering());
         let value = rego.eval_rule(package.to_string()).map_err(|e| {
             ValidationError::Engine(format!("{source_label} rule package '{package}' failed to evaluate: {e}"))
         })?;
-        let json_str = value.to_json_str().map_err(|e| {
+        let diagnostics_json = serde_json::to_value(&value).map_err(|e| {
             ValidationError::Engine(format!(
                 "{source_label} rule package '{package}' produced a result that could not be \
                  serialized to JSON: {e}"
             ))
         })?;
-        extract_diagnostics(&json_str, model, out, origin).map_err(ValidationError::from)
+        extract_diagnostics_from_value(&diagnostics_json, model, out, kind.rule_origin_override())
+            .map_err(ValidationError::from)
+    }
+
+    /// The built-in rule IDs that global filtering proves cannot survive under
+    /// `config`, so their handwritten clauses can stop at the `cfn_rule_active`
+    /// guard before doing any work. Only rules the registry defines are eligible;
+    /// custom and guard rules are never globally suppressed here.
+    fn globally_suppressed_builtin_rules(&self, config: &ValidateConfig) -> Arc<HashSet<String>> {
+        let suppressed: HashSet<String> = self
+            .registry_metadata
+            .iter()
+            .filter(|(rule_id, entry)| {
+                config.filters.globally_suppresses_builtin_rule(
+                    rule_id,
+                    entry.category.as_deref(),
+                    entry.severity,
+                    config.strict,
+                    config.severity_level,
+                )
+            })
+            .map(|(rule_id, _)| rule_id.clone())
+            .collect();
+        Arc::new(suppressed)
     }
 }
 
@@ -409,13 +500,12 @@ impl ValidationEngine for RegoEngine {
         model: &Arc<SemanticModel>,
         config: &ValidateConfig,
     ) -> Result<Vec<Diagnostic>, ValidationError> {
-        let _validate_guard = self.validate_lock.lock().unwrap_or_else(|e| e.into_inner());
-
-        *self.model_holder.lock().unwrap_or_else(|e| e.into_inner()) = Some(model.clone());
-        *self.region_holder.lock().unwrap_or_else(|e| e.into_inner()) =
-            config.pseudo_parameter_overrides.region.clone();
-
-        let _cleanup = HolderGuard { model: self.model_holder.clone(), region: self.region_holder.clone() };
+        let context = EvaluationContext::new(
+            model.clone(),
+            config.pseudo_parameter_overrides.region.clone(),
+            self.globally_suppressed_builtin_rules(config),
+        );
+        let _scope = EvaluationScope::enter(context);
 
         let mut rego = self.base_rego.clone();
 
@@ -425,47 +515,31 @@ impl ValidationEngine for RegoEngine {
 
         let mut diagnostics = Vec::new();
 
-        if !config.disable_builtin_rules {
-            let excluded_cats = config.filters.excluded_categories();
-
-            let needed_core: Vec<&str> = CORE_PACKAGES
-                .iter()
-                .filter(|(cat, _)| !excluded_cats.contains(cat.as_str()))
-                .map(|(_, pkg)| *pkg)
-                .collect();
-
-            if needed_core.len() == CORE_PACKAGES.len() {
-                match rego.eval_rule("data.all_violations.violation".to_string()) {
-                    Ok(val) => {
-                        let json_str = val.to_json_str().map_err(|e| {
-                            ValidationError::Engine(format!(
-                                "Aggregated rule evaluation produced a result that could not be \
-                             serialized to JSON: {e}"
-                            ))
-                        })?;
-                        extract_diagnostics(&json_str, model, &mut diagnostics, None).map_err(ValidationError::from)?;
-                    }
-                    Err(e) => {
-                        warn!("Aggregated eval failed ({}), falling back to individual packages", e);
-                        for pkg in &needed_core {
-                            self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
-                        }
-                    }
-                }
-            } else {
-                debug!("Skipping excluded categories: {:?}", excluded_cats);
-                for pkg in &needed_core {
-                    self.eval_package_into(&mut rego, pkg, "Core", model, None, &mut diagnostics)?;
-                }
+        // Core built-in policies run only when this engine owns them and the
+        // caller has not disabled built-ins. The custom and Guard evaluation
+        // below runs unconditionally so external rules are always evaluated.
+        let evaluate_builtins = matches!(self.builtin_mode, BuiltinRuleMode::Enabled) && !config.disable_builtin_rules;
+        if evaluate_builtins {
+            // Every package is evaluated whatever the category filters say. The
+            // packages group rules by implementation area, not by registry
+            // category - security and parameter rules live in `best_practices`
+            // and `structure` - so skipping a package for one excluded category
+            // would drop its rules of every other category. Each clause instead
+            // stops at its `cfn_rule_active` guard, which the evaluation context
+            // above feeds from the registry category of every rule, so an
+            // excluded rule costs one builtin call. The packages share no rules,
+            // so one query per package costs the same as one aggregated query.
+            for package in CORE_PACKAGES {
+                self.eval_package_into(&mut rego, package, PolicyPackageKind::BuiltIn, model, &mut diagnostics)?;
             }
         }
 
         for pkg in &self.custom_packages {
-            self.eval_package_into(&mut rego, pkg, "Custom", model, Some(&RuleOrigin::Custom), &mut diagnostics)?;
+            self.eval_package_into(&mut rego, pkg, PolicyPackageKind::Custom, model, &mut diagnostics)?;
         }
 
-        for pkg in &self.guard_packages {
-            self.eval_package_into(&mut rego, pkg, "Guard", model, Some(&RuleOrigin::Guard), &mut diagnostics)?;
+        if let Some(guard_rules) = &self.guard_rules {
+            diagnostics.extend(guard_rules.evaluate(model)?);
         }
 
         if !self.custom_packages.is_empty() {
@@ -486,22 +560,19 @@ impl ValidationEngine for RegoEngine {
     }
 
     fn list_rules(&self) -> Vec<RuleInfo> {
-        let mut merged = self.external_rule_metadata.clone();
-        if !self.custom_packages.is_empty() {
-            let discovered = self.discovered_custom_metadata.lock().unwrap_or_else(|e| e.into_inner());
-            merged.extend(discovered.iter().map(|(k, v)| (k.clone(), v.clone())));
-        }
-        build_rule_list(&self.registry_metadata, &merged)
+        build_rule_list(&self.registry_metadata, &self.external_rule_metadata())
     }
 
     fn rule_metadata(&self) -> &HashMap<String, RuleMetadataEntry> {
         &self.registry_metadata
     }
 
-    /// Returns guard metadata merged with any custom Rego rule metadata
-    /// discovered from prior evaluations.
+    /// Returns Guard rule metadata merged with any custom Rego rule metadata
+    /// discovered from prior evaluations. Custom diagnostics already carry their
+    /// current evaluation's rule description, so this accumulated metadata cannot
+    /// overwrite a later report.
     fn external_rule_metadata(&self) -> HashMap<String, RuleMetadataEntry> {
-        let mut merged = self.external_rule_metadata.clone();
+        let mut merged = self.guard_rules.as_ref().map(|guard| guard.rule_metadata().clone()).unwrap_or_default();
         if !self.custom_packages.is_empty() {
             let discovered = self.discovered_custom_metadata.lock().unwrap_or_else(|e| e.into_inner());
             merged.extend(discovered.iter().map(|(k, v)| (k.clone(), v.clone())));
@@ -517,9 +588,12 @@ impl ValidationEngine for RegoEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rules::{FilterConfig, RuleFilterConfig};
+    use diagnostics::DetailLevel;
+    use rules::{Category, FilterConfig, RuleFilterConfig, Severity, lookup_rule};
+    use std::sync::Barrier;
+    use std::thread;
     use template_model::SemanticModel;
-    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine};
+    use validation_engine::{EngineConfig, ExternalRuleSource, ValidateConfig, ValidationEngine, validate_bytes};
 
     fn make_engine() -> RegoEngine {
         RegoEngine::new(EngineConfig::default()).unwrap()
@@ -592,6 +666,10 @@ Resources: {}
         );
     }
 
+    /// Excluding a category must remove exactly the rules the registry files
+    /// under it. The `best_practices` package also hosts security rules, so a
+    /// package-level skip would wrongly drop them along with the best-practice
+    /// rules; the template fires one of each from that package.
     #[test]
     fn evaluate_with_excluded_categories() {
         let engine = make_engine();
@@ -599,27 +677,39 @@ Resources: {}
             r#"
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
-  MyBucket:
-    Type: AWS::S3::Bucket
+  Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: my-function
+      Principal: sns.amazonaws.com
+      SourceArn: arn:aws:sns:us-east-1:123456789012:my-topic
 "#,
         );
+        fn rule_ids(diags: &[Diagnostic]) -> HashSet<&str> {
+            diags.iter().map(|d| d.rule_id.as_str()).collect()
+        }
+        let diags_all = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        let all_ids = rule_ids(&diags_all);
+        assert!(all_ids.contains("W9002"), "sanity: the best-practice hardcoded-ARN rule fires: {all_ids:?}");
+        assert!(all_ids.contains("W9013"), "sanity: the security hardcoded-account-ID rule fires: {all_ids:?}");
+
+        let excluded = Category::BestPractice;
         let config = ValidateConfig {
             filters: FilterConfig::new(
                 RuleFilterConfig::default(),
-                RuleFilterConfig { categories: vec!["best_practices".to_string()], ..Default::default() },
+                RuleFilterConfig { categories: vec![excluded.as_str().to_string()], ..Default::default() },
             ),
             ..Default::default()
         };
         let diags_filtered = engine.evaluate_rules(&model, &config).unwrap();
+        let filtered_ids = rule_ids(&diags_filtered);
 
-        let diags_all = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
-
-        assert!(
-            diags_filtered.len() <= diags_all.len(),
-            "filtered count {} should be <= unfiltered count {}",
-            diags_filtered.len(),
-            diags_all.len()
-        );
+        let expected_ids: HashSet<&str> =
+            all_ids.iter().copied().filter(|id| lookup_rule(id).is_none_or(|rule| rule.category != excluded)).collect();
+        assert_eq!(filtered_ids, expected_ids, "only rules the registry files under {excluded:?} may disappear");
+        assert!(!filtered_ids.contains("W9002"), "the excluded best-practice rule is gone");
+        assert!(filtered_ids.contains("W9013"), "the security rule hosted in the same package survives");
     }
 
     #[test]
@@ -678,16 +768,15 @@ Resources:
 "#,
         );
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
-        let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name");
-        assert!(guard_diag.is_some(), "guard rule should fire when BucketName is missing");
+        let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name").expect("guard rule fires");
+        assert_eq!(guard_diag.source, RuleOrigin::Guard);
+        assert_eq!(guard_diag.category.as_deref(), Some("guard:test"));
+        assert_eq!(guard_diag.message, "BucketName must be specified");
+        assert_eq!(guard_diag.resource_logical_id(), Some("MyBucket"));
     }
 
     #[test]
-    fn guard_rule_exists_check_ignores_properties_prefix() {
-        // BUG: Guard DSL `Properties.BucketName EXISTS` translates to
-        // `has_property(name, "Properties.BucketName")` but has_property looks up
-        // `resource.properties["Properties.BucketName"]` - the actual key is just
-        // "BucketName", so the check always fails and the violation always fires.
+    fn guard_rule_exists_check_does_not_fire_when_property_is_present() {
         let guard_source = r#"
 rule check_bucket_name {
     AWS::S3::Bucket {
@@ -715,13 +804,108 @@ Resources:
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let guard_diag = diags.iter().find(|d| d.rule_id == "check_bucket_name");
         assert!(
-            guard_diag.is_some(),
-            "guard rule fires due to Properties. prefix mismatch in has_property (known bug)"
+            guard_diag.is_none(),
+            "guard EXISTS must be satisfied when BucketName is present, so the rule must not fire; got: {:?}",
+            diags.iter().map(|d| &d.rule_id).collect::<Vec<_>>()
         );
     }
 
     #[test]
-    fn evaluate_rules_is_serialized() {
+    fn external_only_engine_evaluates_external_rules_but_skips_builtins() {
+        let custom_rego = r#"
+package external_only_test
+import rego.v1
+
+violation contains v if {
+    v := {"rule_id": "EXT_ONLY", "severity": "error", "message": "external rule fired", "resource_id": ""}
+}
+"#;
+        let config = EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "external_only_test.rego".into(),
+                content: custom_rego.into(),
+            }],
+            guard_rules: vec![],
+            ..Default::default()
+        };
+        let engine = RegoEngine::new_external_only(config).unwrap();
+        assert!(engine.rule_metadata().is_empty(), "an external-only engine must advertise no built-in registry rules");
+
+        // An empty Resources section makes a normal engine emit a built-in
+        // structural diagnostic, so its absence proves the built-ins were
+        // skipped rather than simply not triggered.
+        let model = make_model_from_yaml(
+            r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources: {}
+"#,
+        );
+        let normal_diags = RegoEngine::new(EngineConfig::default())
+            .unwrap()
+            .evaluate_rules(&model, &ValidateConfig::default())
+            .unwrap();
+        assert!(
+            normal_diags.iter().any(|d| d.rule_id == "F0001"),
+            "a normal engine must emit the built-in F0001 for empty Resources"
+        );
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        let external = diags.iter().find(|d| d.rule_id == "EXT_ONLY").expect("the external rule must still evaluate");
+        assert_eq!(external.severity, Severity::Error);
+        assert_eq!(external.source, RuleOrigin::Custom);
+        assert!(
+            diags.iter().all(|d| d.rule_id == "EXT_ONLY"),
+            "external-only evaluation must produce no built-in diagnostics, got: {:?}",
+            diags.iter().map(|d| &d.rule_id).collect::<Vec<_>>()
+        );
+        assert!(
+            !engine.list_rules().iter().any(|r| r.id == "F0001"),
+            "external-only list_rules must not include built-in rule IDs"
+        );
+    }
+
+    #[test]
+    fn external_only_engine_registers_custom_builtin_helpers() {
+        let custom_rego = r#"
+package external_builtin_test
+import rego.v1
+
+violation contains make_diag("EXT_BUILTINS", "error", name, "custom builtins available") if {
+    some name in resources_of_type("AWS::S3::Bucket")
+    has_property(name, "BucketName")
+    resolve(name, "Properties.BucketName") == "custom-builtins-bucket"
+    "BucketName" in schema_properties("AWS::S3::Bucket")
+}
+"#;
+        let engine = RegoEngine::new_external_only(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "external_builtin_test.rego".into(),
+                content: custom_rego.into(),
+            }],
+            ..Default::default()
+        })
+        .expect("external-only engine must initialize with custom builtins");
+        let model = make_model_from_yaml(
+            r#"
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: custom-builtins-bucket
+"#,
+        );
+
+        let diagnostics = engine.evaluate_rules(&model, &ValidateConfig::default()).expect("custom rule must evaluate");
+        let finding = diagnostics
+            .iter()
+            .find(|diagnostic| diagnostic.rule_id == "EXT_BUILTINS")
+            .expect("custom rule using resource, resolution, schema, and diagnostic helpers must fire");
+        assert_eq!(finding.source, RuleOrigin::Custom);
+        assert_eq!(finding.resource_logical_id(), Some("Bucket"));
+    }
+
+    #[test]
+    fn evaluate_rules_can_be_called_repeatedly() {
         let engine = make_engine();
         let model = make_model_from_yaml(
             r#"
@@ -731,27 +915,14 @@ Resources:
     Type: AWS::S3::Bucket
 "#,
         );
-        // Call twice to verify the mutex + HolderGuard cleanup works without deadlock.
+        // The per-thread evaluation context is installed and torn down each call,
+        // so repeated evaluations on one thread neither deadlock nor leak state.
         let _ = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
         assert!(
             diags.iter().all(|d| d.severity != Severity::Fatal),
             "rego engine should not produce Fatal diagnostics"
         );
-    }
-
-    #[test]
-    fn holder_guard_clears_model_on_drop() {
-        let holder: SharedModel = Arc::new(Mutex::new(Some(Arc::new(
-            SemanticModel::from_bytes(b"AWSTemplateFormatVersion: '2010-09-09'\nResources: {}").unwrap(),
-        ))));
-        let region: SharedRegion = Arc::new(Mutex::new(Some("us-east-1".to_string())));
-        {
-            let _guard = HolderGuard { model: holder.clone(), region: region.clone() };
-            assert!(holder.lock().unwrap().is_some(), "holder should be Some while guard is alive");
-        }
-        assert!(holder.lock().unwrap().is_none(), "holder should be None after guard dropped");
-        assert!(region.lock().unwrap().is_none(), "region should be None after guard dropped");
     }
 
     #[test]
@@ -800,6 +971,21 @@ Resources:
       Code:
         S3Bucket: !Ref MyBucket
         S3Key: code.zip
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-0123456789abcdef0
+        SubnetIds:
+          - !Ref MySubnet
+          - subnet-0123456789abcdef0
+  MyVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  MySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref MyVpc
+      CidrBlock: 10.0.0.0/24
   MyQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -851,6 +1037,162 @@ violation contains v if {
             "B_RESOLVE_ALL",
         );
         assert_eq!(diags.len(), 1, "resolve_all should return at least one value");
+    }
+
+    /// The contract custom rules were written against: `resolve` on a `Ref` or
+    /// `Fn::GetAtt` yields the target's logical ID as a string, so a rule can look
+    /// the target up in `input.resources` or compare it with another logical ID.
+    const LEGACY_REFERENCE_CUSTOM_RULE: &str = r#"
+package legacy_reference_test
+import rego.v1
+
+violation contains make_diag("LEGACY_LOOKUP", "error", name, sprintf("code bucket is %s", [target])) if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    target := resolve(name, "Properties.Code.S3Bucket")
+    is_string(target)
+    input.resources[target].resourceType == "AWS::S3::Bucket"
+}
+
+violation contains make_diag("LEGACY_EQUALS", "error", name, "code lives in MyBucket") if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    resolve(name, "Properties.Code.S3Bucket") == "MyBucket"
+}
+
+violation contains make_diag("LEGACY_MARKER_SEEN", "error", name, "resolve returned the marker object") if {
+    some name in resources_of_type("AWS::Lambda::Function")
+    is_object(resolve(name, "Properties.Code.S3Bucket"))
+}
+"#;
+
+    fn assert_legacy_reference_contract(diags: &[Diagnostic]) {
+        let lookup = diags
+            .iter()
+            .find(|d| d.rule_id == "LEGACY_LOOKUP")
+            .expect("resolve() must hand back a logical ID a rule can look up in input.resources");
+        assert_eq!(lookup.message, "code bucket is MyBucket");
+        assert_eq!(lookup.resource_logical_id(), Some("MyFunc"));
+        assert!(
+            diags.iter().any(|d| d.rule_id == "LEGACY_EQUALS"),
+            "resolve() must compare equal to the target's logical ID"
+        );
+        assert!(
+            !diags.iter().any(|d| d.rule_id == "LEGACY_MARKER_SEEN"),
+            "a custom rule must never see the marker object from resolve()"
+        );
+    }
+
+    #[test]
+    fn custom_rule_resolve_keeps_the_legacy_target_id_string_for_a_reference() {
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "legacy_reference_test.rego".into(),
+                content: LEGACY_REFERENCE_CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+
+        assert_legacy_reference_contract(&diags);
+    }
+
+    #[test]
+    fn external_only_engine_keeps_the_legacy_target_id_string_for_a_reference() {
+        let engine = RegoEngine::new_external_only(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "legacy_reference_test.rego".into(),
+                content: LEGACY_REFERENCE_CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+
+        assert_legacy_reference_contract(&diags);
+    }
+
+    #[test]
+    fn custom_rule_resolve_all_list_items_keep_the_legacy_target_id_string() {
+        let diags = eval_builtin_policy(
+            r#"
+package builtin_test
+import rego.v1
+violation contains make_diag("LEGACY_LIST_ITEM", "error", "MyFunc", sprintf("subnets: %v", [subnets])) if {
+    some subnets in resolve_all("MyFunc", "Properties.VpcConfig.SubnetIds")
+    subnets == ["MySubnet", "subnet-0123456789abcdef0"]
+}
+"#,
+            "LEGACY_LIST_ITEM",
+        );
+        assert_eq!(diags.len(), 1, "a referenced list item must come back as the target's logical ID");
+    }
+
+    /// Both kinds of package evaluate on one Regorus engine instance, so the
+    /// rendering must switch per package: the built-in policies fixed to skip a
+    /// reference they would otherwise judge as a literal must keep doing so while
+    /// the custom package beside them still receives the legacy string.
+    #[test]
+    fn builtin_policies_keep_the_marker_rendering_while_a_custom_rule_gets_the_legacy_string() {
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "legacy_reference_test.rego".into(),
+                content: LEGACY_REFERENCE_CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let model = make_model_from_yaml(
+            r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Store:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: placeholder
+  MyBucket:
+    Type: AWS::S3::Bucket
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Aliases:
+          - !GetAtt Store.Value
+        DefaultCacheBehavior:
+          TargetOriginId: primary
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+        Origins:
+          - Id: primary
+            DomainName: origin.example.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+  MyFunc:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code:
+        S3Bucket: !Ref MyBucket
+        S3Key: code.zip
+"#,
+        );
+
+        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+
+        assert!(
+            !diags.iter().any(|d| d.rule_id == "E3013"),
+            "the built-in alias check must not judge the logical ID 'Store' as a domain name: {:?}",
+            diags.iter().map(|d| (&d.rule_id, &d.message)).collect::<Vec<_>>()
+        );
+        assert_legacy_reference_contract(&diags);
     }
 
     #[test]
@@ -1453,5 +1795,344 @@ violation contains v if {
             "B_ESL_LITERAL",
         );
         assert!(diags.is_empty(), "a literal string must yield no bounds, got {diags:?}");
+    }
+
+    #[test]
+    fn regoengine_is_send_and_sync() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<RegoEngine>();
+    }
+
+    #[test]
+    fn evaluate_rules_isolates_model_and_region_across_threads() {
+        // One engine, many threads, each with a distinct model and region. The
+        // probes echo the region and the resource names the thread should see, so
+        // any leakage between threads' evaluation contexts surfaces as a mismatch.
+        let probe = r#"
+package concurrency_probe
+import rego.v1
+violation contains v if {
+    r := input_region()
+    v := {"rule_id": "REGIONPROBE", "severity": "info", "message": r, "resource_id": ""}
+}
+violation contains v if {
+    some name in resources_of_type("AWS::S3::Bucket")
+    v := {"rule_id": "MODELPROBE", "severity": "info", "message": name, "resource_id": name}
+}
+violation contains v if {
+    some name, _ in input.resources
+    v := {"rule_id": "INPUTPROBE", "severity": "info", "message": name, "resource_id": name}
+}
+"#;
+        let config = EngineConfig {
+            custom_rules: vec![ExternalRuleSource { name: "concurrency_probe.rego".into(), content: probe.into() }],
+            guard_rules: vec![],
+            ..Default::default()
+        };
+        let engine = Arc::new(RegoEngine::new(config).unwrap());
+
+        const THREAD_COUNT: usize = 8;
+        const ITERATIONS_PER_THREAD: usize = 128;
+        let barrier = Arc::new(Barrier::new(THREAD_COUNT));
+        let handles: Vec<_> = (0..THREAD_COUNT)
+            .map(|i| {
+                let engine = Arc::clone(&engine);
+                let barrier = Arc::clone(&barrier);
+                thread::spawn(move || {
+                    let region = format!("region-{i}");
+                    let bucket = format!("Bucket{i}");
+                    let model = make_model_from_yaml(&format!(
+                        "AWSTemplateFormatVersion: \"2010-09-09\"\nResources:\n  {bucket}:\n    Type: AWS::S3::Bucket\n"
+                    ));
+                    let mut config = ValidateConfig::default();
+                    config.pseudo_parameter_overrides.region = Some(region.clone());
+                    // Release every thread at once so their evaluations overlap.
+                    barrier.wait();
+                    let mut diagnostics = Vec::new();
+                    for _ in 0..ITERATIONS_PER_THREAD {
+                        diagnostics = engine.evaluate_rules(&model, &config).unwrap();
+                        let observed_regions: Vec<&str> = diagnostics
+                            .iter()
+                            .filter(|diagnostic| diagnostic.rule_id == "REGIONPROBE")
+                            .map(|diagnostic| diagnostic.message.as_str())
+                            .collect();
+                        assert_eq!(observed_regions, vec![region.as_str()]);
+                        let observed_resources: Vec<&str> = diagnostics
+                            .iter()
+                            .filter(|diagnostic| diagnostic.rule_id == "MODELPROBE")
+                            .map(|diagnostic| diagnostic.message.as_str())
+                            .collect();
+                        assert_eq!(observed_resources, vec![bucket.as_str()]);
+                        let observed_input_resources: Vec<&str> = diagnostics
+                            .iter()
+                            .filter(|diagnostic| diagnostic.rule_id == "INPUTPROBE")
+                            .map(|diagnostic| diagnostic.message.as_str())
+                            .collect();
+                        assert_eq!(observed_input_resources, vec![bucket.as_str()]);
+                    }
+                    (region, bucket, diagnostics)
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            let (region, bucket, diags) = handle.join().unwrap();
+            let regions: Vec<&str> =
+                diags.iter().filter(|d| d.rule_id == "REGIONPROBE").map(|d| d.message.as_str()).collect();
+            assert_eq!(regions, vec![region.as_str()], "a thread must observe only its own region");
+            let resources: Vec<&str> =
+                diags.iter().filter(|d| d.rule_id == "MODELPROBE").map(|d| d.message.as_str()).collect();
+            assert_eq!(resources, vec![bucket.as_str()], "a thread must observe only its own model");
+            let input_resources: Vec<&str> =
+                diags.iter().filter(|d| d.rule_id == "INPUTPROBE").map(|d| d.message.as_str()).collect();
+            assert_eq!(input_resources, vec![bucket.as_str()], "a thread must observe only its own Rego input");
+        }
+    }
+
+    #[test]
+    fn shared_engine_keeps_thousand_sequential_reports_template_local() {
+        const CUSTOM_RULE: &str = r#"
+package sequential_isolation
+import rego.v1
+
+violation contains v if {
+    pattern := input.template.description
+    some name, resource in input.resources
+    regex.match(pattern, resource.properties.Value)
+    region := input_region()
+    message := sprintf("%s/%s", [name, region])
+    v := {
+        "rule_id": "SEQUENTIALPROBE",
+        "severity": "info",
+        "category": "isolation",
+        "message": message,
+        "resource_id": name,
+    }
+}
+"#;
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource {
+                name: "sequential_isolation.rego".into(),
+                content: CUSTOM_RULE.into(),
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let schema_validator = SchemaValidator::default();
+
+        for iteration in 0..1_000 {
+            let (resource_name, region, pattern, value) = if iteration % 2 == 0 {
+                ("AlphaResource", "alpha-region", "^alpha+$", "alpha")
+            } else {
+                ("BetaResource", "beta-region", "^beta+$", "beta")
+            };
+            let template = format!(
+                r#"{{
+                    "AWSTemplateFormatVersion": "2010-09-09",
+                    "Description": "{pattern}",
+                    "Resources": {{
+                        "{resource_name}": {{
+                            "Type": "Custom::Probe",
+                            "Properties": {{"Value": "{value}"}}
+                        }}
+                    }}
+                }}"#
+            );
+            let mut config = ValidateConfig {
+                detail_level: DetailLevel::Detailed,
+                severity_level: Severity::Debug,
+                disable_builtin_rules: true,
+                ..Default::default()
+            };
+            config.pseudo_parameter_overrides.region = Some(region.to_string());
+
+            let report = validate_bytes(&engine, &schema_validator, template.as_bytes(), config).unwrap();
+            let probes: Vec<&Diagnostic> =
+                report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "SEQUENTIALPROBE").collect();
+            assert_eq!(probes.len(), 1, "iteration {iteration} must emit exactly one probe diagnostic");
+            let expected_message = format!("{resource_name}/{region}");
+            assert_eq!(probes[0].message, expected_message, "the current template supplies the diagnostic message");
+            assert_eq!(
+                probes[0].rule_description.as_deref(),
+                Some(expected_message.as_str()),
+                "the current template supplies its own detailed rule description"
+            );
+            assert_eq!(probes[0].category.as_deref(), Some("isolation"));
+        }
+    }
+
+    #[test]
+    fn failed_evaluation_does_not_contaminate_the_next_call() {
+        const CUSTOM_RULE: &str = r#"
+package error_cleanup
+import rego.v1
+
+violation contains v if {
+    input.template.description == "error"
+    ip_overlaps("not-a-cidr", "10.0.0.0/8")
+    v := {"rule_id": "UNREACHABLE", "severity": "error", "message": "unreachable"}
+}
+
+violation contains v if {
+    input.template.description == "ok"
+    some name in resources_of_type("Custom::Probe")
+    region := input_region()
+    v := {
+        "rule_id": "RECOVERYPROBE",
+        "severity": "info",
+        "message": sprintf("%s/%s", [name, region]),
+        "resource_id": name,
+    }
+}
+"#;
+        let engine = RegoEngine::new(EngineConfig {
+            custom_rules: vec![ExternalRuleSource { name: "error_cleanup.rego".into(), content: CUSTOM_RULE.into() }],
+            ..Default::default()
+        })
+        .unwrap();
+        let error_model =
+            make_model_from_yaml("Description: error\nResources:\n  ErrorResource:\n    Type: Custom::Probe\n");
+        let valid_model =
+            make_model_from_yaml("Description: ok\nResources:\n  ValidResource:\n    Type: Custom::Probe\n");
+        let mut error_config = ValidateConfig { disable_builtin_rules: true, ..Default::default() };
+        error_config.pseudo_parameter_overrides.region = Some("error-region".to_string());
+        assert!(engine.evaluate_rules(&error_model, &error_config).is_err(), "the first evaluation must fail");
+
+        let mut valid_config = ValidateConfig { disable_builtin_rules: true, ..Default::default() };
+        valid_config.pseudo_parameter_overrides.region = Some("valid-region".to_string());
+        let diagnostics = engine.evaluate_rules(&valid_model, &valid_config).unwrap();
+        let recovery: Vec<&Diagnostic> =
+            diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "RECOVERYPROBE").collect();
+        assert_eq!(recovery.len(), 1, "the next evaluation must recover after the prior error");
+        assert_eq!(recovery[0].message, "ValidResource/valid-region");
+    }
+
+    const SUPPRESSION_TEMPLATE: &str = r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-12345678
+      InstanceType: !Sub "t3.micro"
+"#;
+
+    fn exclude_ids(ids: &[&str]) -> ValidateConfig {
+        ValidateConfig {
+            filters: FilterConfig::new(
+                RuleFilterConfig::default(),
+                RuleFilterConfig { ids: ids.iter().map(|s| s.to_string()).collect(), ..Default::default() },
+            ),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn exclude_id_suppresses_matching_builtin_and_preserves_other_findings() {
+        let engine = make_engine();
+        let model = make_model_from_yaml(SUPPRESSION_TEMPLATE);
+
+        let unfiltered = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(unfiltered.iter().any(|d| d.rule_id == "W9010"), "hardcoded AMI should trigger W9010");
+        let mut other_findings: Vec<(String, String)> = unfiltered
+            .iter()
+            .filter(|d| d.rule_id != "W9010")
+            .map(|d| (d.rule_id.clone(), d.message.clone()))
+            .collect();
+        assert!(!other_findings.is_empty(), "template must also produce a non-W9010 finding worth preserving");
+        other_findings.sort();
+
+        let filtered = engine.evaluate_rules(&model, &exclude_ids(&["W9010"])).unwrap();
+        assert!(filtered.iter().all(|d| d.rule_id != "W9010"), "the excluded rule must not be emitted");
+        let mut remaining: Vec<(String, String)> =
+            filtered.iter().map(|d| (d.rule_id.clone(), d.message.clone())).collect();
+        remaining.sort();
+        assert_eq!(remaining, other_findings, "excluding one rule must not alter any other diagnostic");
+
+        let unfiltered_again = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(
+            unfiltered_again.iter().any(|diagnostic| diagnostic.rule_id == "W9010"),
+            "a later unfiltered call must not inherit the previous call's suppressed-rule set"
+        );
+    }
+
+    #[test]
+    fn include_id_globally_suppresses_every_other_builtin() {
+        let engine = make_engine();
+        let model = make_model_from_yaml(SUPPRESSION_TEMPLATE);
+
+        let config = ValidateConfig {
+            filters: FilterConfig::new(
+                RuleFilterConfig { ids: vec!["W9010".to_string()], ..Default::default() },
+                RuleFilterConfig::default(),
+            ),
+            ..Default::default()
+        };
+        let filtered = engine.evaluate_rules(&model, &config).unwrap();
+        assert!(filtered.iter().any(|d| d.rule_id == "W9010"), "the included rule must still fire");
+        assert!(
+            filtered.iter().all(|d| d.rule_id == "W9010"),
+            "a non-empty include filter must globally suppress every rule it can never admit"
+        );
+    }
+
+    #[test]
+    fn severity_level_prunes_lower_severity_builtins() {
+        let engine = make_engine();
+        let model = make_model_from_yaml(SUPPRESSION_TEMPLATE);
+
+        let default_run = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(default_run.iter().any(|d| d.rule_id == "W9010"), "W9010 fires at the default Info level");
+
+        let config = ValidateConfig { severity_level: Severity::Error, ..Default::default() };
+        let error_only = engine.evaluate_rules(&model, &config).unwrap();
+        assert!(
+            error_only.iter().all(|d| d.severity >= Severity::Error),
+            "no sub-Error diagnostics should be produced when the level is Error"
+        );
+        assert!(
+            error_only.iter().all(|d| d.rule_id != "W9010"),
+            "the Warn rule W9010 must be pruned at the Error level"
+        );
+    }
+
+    #[test]
+    fn cfn_rule_active_guard_short_circuits_a_suppressed_rule_body() {
+        // Every built-in clause is shaped like this probe: cfn_rule_active guards
+        // the body, so a globally suppressed rule stops before its body runs. The
+        // body here would evaluate regex.match on an invalid pattern if reached;
+        // the probe diagnostic is the observable signal that the body executed.
+        let probe = r#"
+package guard_probe
+import rego.v1
+violation contains v if {
+    cfn_rule_active("W9010")
+    not regex.match("(unterminated", "anything")
+    v := {"rule_id": "GUARDPROBE", "severity": "error", "message": "guarded body ran", "resource_id": ""}
+}
+"#;
+        let config = EngineConfig {
+            custom_rules: vec![ExternalRuleSource { name: "guard_probe.rego".into(), content: probe.into() }],
+            guard_rules: vec![],
+            ..Default::default()
+        };
+        let engine = RegoEngine::new(config).unwrap();
+        let model = make_model_from_yaml(
+            r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+"#,
+        );
+
+        let active = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
+        assert!(active.iter().any(|d| d.rule_id == "GUARDPROBE"), "an active rule's guarded body must run");
+
+        let suppressed = engine.evaluate_rules(&model, &exclude_ids(&["W9010"])).unwrap();
+        assert!(
+            suppressed.iter().all(|d| d.rule_id != "GUARDPROBE"),
+            "a suppressed rule's guarded body - including its invalid regex - must not run"
+        );
     }
 }

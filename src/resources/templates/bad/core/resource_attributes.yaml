@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  StandardVersion:
+    Type: AWS::S3::Bucket
+    Version: "1.0"
+  ScalarCreationPolicy:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy: invalid
+  ScalarUpdatePolicy:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy: 7
+  CustomLifecyclePolicies:
+    Type: Custom::Thing
+    Properties:
+      ServiceToken: arn:aws:lambda:us-east-1:123456789012:function:provider
+    CreationPolicy: {}
+    UpdatePolicy: {}
+  UnsupportedAttributes:
+    Type: AWS::S3::Bucket
+    Connectors: {}
+    IgnoreGlobals: true

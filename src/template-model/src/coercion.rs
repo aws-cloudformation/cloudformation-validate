@@ -49,6 +49,19 @@ pub fn coerce_to_string(val: &Value) -> Option<String> {
     }
 }
 
+/// Returns the text authored for a string or integer scalar. Fractional numbers,
+/// booleans, nulls, and composite values have no string-or-integer form.
+pub fn coerce_string_or_integer_to_string(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) => Some(text.clone()),
+        Value::Number(number) => number
+            .as_i64()
+            .map(|integer| integer.to_string())
+            .or_else(|| number.as_u64().map(|integer| integer.to_string())),
+        _ => None,
+    }
+}
+
 /// Accepts YAML 1.1 boolean strings in addition to native bools.
 ///
 /// CloudFormation uses a YAML 1.1 parser which treats `yes`/`no`/`on`/`off`

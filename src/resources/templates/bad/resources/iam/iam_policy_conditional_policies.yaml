@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Exercises conditional inline-policy lists, single-object statements, and
+  branches with different list lengths.
+
+Parameters:
+  Env:
+    Type: String
+    Default: prod
+
+Conditions:
+  IsProd: !Equals [!Ref Env, prod]
+
+Resources:
+  # The two list branches contain malformed policy resources and have different lengths.
+  RoleConditionalPolicies:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: ProdPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: not-an-arn
+          - PolicyName: ProdPolicy2
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: logs:*
+                  Resource: '*'
+        - - PolicyName: DevPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:*
+                  Resource: also-bad
+
+  # Only one possible policy-list branch grants through NotAction.
+  RoleNotActionConditional:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies: !If
+        - IsProd
+        - - PolicyName: ProdWide
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  NotAction: iam:*
+                  Resource: '*'
+        - - PolicyName: DevNarrow
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: '*'
+
+  # IAM permits Statement to be one object rather than an array.
+  PolicySingleStatement:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          NotAction: iam:*
+          Resource: '*'

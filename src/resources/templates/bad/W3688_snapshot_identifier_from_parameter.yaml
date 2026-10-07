@@ -1,0 +1,26 @@
+# Restoring from a snapshot ignores MasterUsername whatever the snapshot
+# identifier resolves to, so a parameter-supplied identifier still triggers it.
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SnapshotId:
+    Type: String
+  SourceClusterId:
+    Type: String
+Resources:
+  Restored:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: aurora-postgresql
+      SnapshotIdentifier: !Ref SnapshotId
+      MasterUsername: clusteradmin
+  Cloned:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: aurora-postgresql
+      SourceDBClusterIdentifier: !Ref SourceClusterId
+      MasterUsername: clusteradmin
+      StorageEncrypted: true

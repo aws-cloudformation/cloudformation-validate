@@ -5,12 +5,23 @@ import os
 import queue
 import unittest
 
-from cloudformation_validate import CelEngine, RegoEngine, Severity, ValidateConfig, ValidationError
+from cloudformation_validate import (
+    CelEngine,
+    CompositeEngine,
+    DetailLevel,
+    RegoEngine,
+    ReportStatus,
+    Severity,
+    ValidateConfig,
+    ValidationError,
+)
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE = os.path.dirname(os.path.dirname(TESTS_DIR))
 SECURITY_ROOT = os.path.join(WORKSPACE, "resources", "security")
 SECURITY_TIMEOUT_SECONDS = 60
+
+ENGINE_FACTORIES = {"rego": RegoEngine, "cel": CelEngine, "composite": CompositeEngine}
 
 
 def discover_security_templates():
@@ -24,11 +35,25 @@ def discover_security_templates():
 
 def validate_security_template(engine_name, template_path, outcome_queue):
     try:
-        engine = RegoEngine() if engine_name == "rego" else CelEngine()
-        config = ValidateConfig(severity_level=Severity.DEBUG)
-        report = engine.validate_detailed(template_path, config)
+        engine = ENGINE_FACTORIES[engine_name]()
+        config = ValidateConfig(severity_level=Severity.DEBUG, detail_level=DetailLevel.DETAILED)
+        report = engine.validate_template(template_path, config)
         if report.status is None or not isinstance(report.diagnostics, list):
             outcome_queue.put(("error", "detailed validation returned an incomplete report"))
+            return
+        template_name = os.path.basename(template_path)
+        if template_name == "scenario_assignment_budget.yaml":
+            if report.status != ReportStatus.ANALYSIS_INCOMPLETE:
+                outcome_queue.put(("error", f"unexpected report status: {report.status}"))
+                return
+            if not report.metadata.budget_exhaustions:
+                outcome_queue.put(("error", "exhausted budget metadata is absent"))
+                return
+            if not report.metadata.budget_exhaustions[0].description.endswith("."):
+                outcome_queue.put(("error", "budget description is not a sentence"))
+                return
+        if template_name == "condition_fusion.yaml" and report.metadata.budget_exhaustions is not None:
+            outcome_queue.put(("error", "non-exhausted budget metadata must be absent"))
             return
         outcome_queue.put(("ok", ""))
     except ValidationError as error:
@@ -45,8 +70,8 @@ class SecurityTemplateTest(unittest.TestCase):
             raise AssertionError(f"no security templates found under {SECURITY_ROOT}")
         cls.process_context = multiprocessing.get_context("spawn")
 
-    def test_every_security_template_with_both_engines(self):
-        for engine_name in ("rego", "cel"):
+    def test_every_security_template_with_all_engines(self):
+        for engine_name in ("rego", "cel", "composite"):
             for template_path in self.templates:
                 relative_path = os.path.relpath(template_path, SECURITY_ROOT).replace(os.sep, "/")
                 with self.subTest(engine=engine_name, template=relative_path):

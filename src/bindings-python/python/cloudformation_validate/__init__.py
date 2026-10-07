@@ -8,18 +8,22 @@ Example:
     from cloudformation_validate import RegoEngine
 
     engine = RegoEngine()
-    report = engine.validate_standard("template.yaml")
+    report = engine.validate_template("template.yaml")
     for d in report.diagnostics:
         print(f"[{d.severity.name}] {d.rule_id}: {d.message}")
 """
 
 from __future__ import annotations
 
+import datetime
+import math
 import os
 import typing
+from collections.abc import Mapping
 
 from .bindings_python import (
     PyCelEngine as _PyCelEngine,
+    PyCompositeEngine as _PyCompositeEngine,
     PyRegoEngine as _PyRegoEngine,
     PySchemaValidator as _PySchemaValidator,
     PySemanticModel as _PySemanticModel,
@@ -28,9 +32,8 @@ from .bindings_python import (
     version,
 )
 from .diagnostics import (
-    DetailedDiagnostic,
-    DetailedReport,
     DetailLevel,
+    Diagnostic,
     Entity,
     PerformanceMetrics,
     PhaseMetric,
@@ -38,9 +41,8 @@ from .diagnostics import (
     ReportMetadata,
     ReportStatus,
     ResourceRef,
-    StandardDiagnostic,
-    StandardReport,
     Summary,
+    ValidationReport,
     ViolationContext,
 )
 from .rules import (
@@ -90,16 +92,34 @@ from .template_model import (
 )
 from .data_source import AdditionalSchemaSource
 from .schema_validator import SchemaValidatorConfig
-from .validation_engine import EngineConfig, EngineType, ExternalRuleSource
+from .validation_engine import (
+    AwsCliCommandContext as _NativeAwsCliCommand,
+    AwsCliCommandValidation,
+    AwsCliCommandValidationStatus,
+    AwsCliOperationKind,
+    AwsCliTemplateSource,
+    AwsCliValue as _NativeAwsCliValue,
+    CompositeEngineConfig,
+    EngineConfig,
+    EngineType,
+    ExternalRuleSource,
+)
 
 __all__ = [
+    "DEFAULT_TEMPLATE_NAME",
     "AdditionalSchemaSource",
+    "AwsCliCommand",
+    "AwsCliCommandValidation",
+    "AwsCliCommandValidationStatus",
+    "AwsCliOperationKind",
+    "AwsCliTemplateSource",
     "CelEngine",
+    "CompositeEngine",
+    "CompositeEngineConfig",
     "ConditionalNull",
     "ConditionalNullEntry",
     "DetailLevel",
-    "DetailedDiagnostic",
-    "DetailedReport",
+    "Diagnostic",
     "DiagnosticCondition",
     "DiagnosticForEachExpansion",
     "DiagnosticImplication",
@@ -153,28 +173,52 @@ __all__ = [
     "ServiceFilter",
     "Severity",
     "SourceSpan",
-    "StandardDiagnostic",
-    "StandardReport",
     "Summary",
+    "Template",
+    "TemplateContent",
     "TemplateModel",
     "ValidateConfig",
     "ValidationError",
+    "ValidationReport",
     "ViolationContext",
     "file_to_additional_schema_source",
     "file_to_external_rule_source",
     "version",
 ]
 
-Template = typing.Union[str, os.PathLike, bytes]
-"""A template to validate: a file path (read from disk) or raw template bytes."""
+DEFAULT_TEMPLATE_NAME = "template"
+"""Name reported for an in-memory template when the caller does not supply one."""
 
-_DEFAULT_FILE_PATH = "template"
+
+class TemplateContent:
+    """A template already held in memory as UTF-8 text or raw bytes, so nothing is read from disk.
+
+    ``name`` labels the report and its diagnostics exactly like a file path does and
+    defaults to :data:`DEFAULT_TEMPLATE_NAME`.
+    """
+
+    __slots__ = ("content", "name")
+
+    def __init__(self, content: typing.Union[str, bytes], name: str = DEFAULT_TEMPLATE_NAME):
+        if not isinstance(content, (str, bytes)):
+            raise TypeError(f"template content must be str or bytes, got {type(content).__name__}")
+        self.content = content
+        self.name = name
+
+    def read_bytes(self) -> bytes:
+        return self.content.encode("utf-8") if isinstance(self.content, str) else self.content
+
+
+Template = typing.Union[str, os.PathLike, bytes, TemplateContent]
+"""A template to validate: a file path (read from disk), raw template bytes, or a :class:`TemplateContent`."""
 
 
 def _template_bytes(template: Template) -> tuple[bytes, str]:
-    """Resolves a template argument to its byte content and display path."""
+    """Resolves a template argument to its byte content and report name."""
+    if isinstance(template, TemplateContent):
+        return template.read_bytes(), template.name
     if isinstance(template, bytes):
-        return template, _DEFAULT_FILE_PATH
+        return template, DEFAULT_TEMPLATE_NAME
     path = os.fspath(template)
     with open(path, "rb") as f:
         return f.read(), str(path)
@@ -196,18 +240,102 @@ def file_to_external_rule_source(path: typing.Union[str, os.PathLike]) -> Extern
     """Reads a rule file into an :class:`ExternalRuleSource` for an engine's custom or Guard rules.
 
     The file path becomes the rule source name - the file-based counterpart to passing a
-    template path to :meth:`Engine.validate_standard`.
+    template path to :meth:`Engine.validate_template`.
     """
     resolved = os.fspath(path)
     with open(resolved, encoding="utf-8") as f:
         return ExternalRuleSource(name=str(resolved), content=f.read())
 
 
+class AwsCliCommand:
+    """Service, operation, and request values for CloudFormation validation.
+
+    ``service_name`` is the canonical botocore service name (for example ``"s3"``
+    or ``"cloudformation"``) and is the authoritative mapping identity, normalized
+    only for ASCII case - never a signing name, ARN prefix, or endpoint alias. A
+    future AWS SDK adapter, in any language, must translate its native service
+    identity to the canonical botocore ``service_name`` before calling; the core
+    does not guess aliases.
+
+    ``parameters`` accepts the same Python values used by botocore request
+    dictionaries, including nested mappings/sequences, ``bytes``, and
+    ``datetime.datetime``. Values that cannot be represented are carried as an
+    explicit unsupported marker. Synthesis enforces all-or-nothing semantics:
+    if any supplied non-control resource-state field lacks a lossless mapping,
+    the entire synthesis/validation is skipped with a reason naming the
+    offending parameter — no parameter is ever silently omitted.
+    """
+
+    def __init__(
+        self,
+        service_name: str,
+        operation_name: str,
+        parameters: Mapping[str, object],
+        *,
+        service_prefix: typing.Optional[str] = None,
+        http_method: typing.Optional[str] = None,
+        is_read_only: typing.Optional[bool] = None,
+    ):
+        if not isinstance(parameters, Mapping):
+            raise TypeError("parameters must be a mapping")
+        if not all(isinstance(name, str) for name in parameters):
+            raise TypeError("request parameter names must be strings")
+        self.service_name = service_name
+        self.operation_name = operation_name
+        self.parameters = dict(parameters)
+        self.service_prefix = service_prefix
+        self.http_method = http_method
+        self.is_read_only = is_read_only
+
+    def _to_native(self) -> _NativeAwsCliCommand:
+        return _NativeAwsCliCommand(
+            service_name=self.service_name,
+            operation_name=self.operation_name,
+            parameters={name: _to_native_aws_cli_value(value) for name, value in self.parameters.items()},
+            service_prefix=self.service_prefix,
+            http_method=self.http_method,
+            is_read_only=self.is_read_only,
+        )
+
+
+def _to_native_aws_cli_value(value: object) -> _NativeAwsCliValue:
+    if value is None:
+        return _NativeAwsCliValue.NULL()
+    if isinstance(value, bool):
+        return _NativeAwsCliValue.BOOLEAN(value=value)
+    if isinstance(value, int):
+        if -(2**63) <= value < 2**63:
+            return _NativeAwsCliValue.INTEGER(value=value)
+        if 0 <= value < 2**64:
+            return _NativeAwsCliValue.UNSIGNED_INTEGER(value=value)
+        return _NativeAwsCliValue.UNSUPPORTED(type_name="integer outside the 64-bit request range")
+    if isinstance(value, float):
+        if math.isfinite(value):
+            return _NativeAwsCliValue.NUMBER(value=value)
+        return _NativeAwsCliValue.UNSUPPORTED(type_name="non-finite floating-point number")
+    if isinstance(value, str):
+        return _NativeAwsCliValue.STRING(value=value)
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return _NativeAwsCliValue.BYTES(value=bytes(value))
+    if isinstance(value, datetime.datetime):
+        return _NativeAwsCliValue.STRING(value=value.isoformat())
+    if isinstance(value, Mapping):
+        if not all(isinstance(name, str) for name in value):
+            return _NativeAwsCliValue.UNSUPPORTED(type_name="mapping with non-string keys")
+        return _NativeAwsCliValue.OBJECT(
+            entries={name: _to_native_aws_cli_value(item) for name, item in value.items()}
+        )
+    if isinstance(value, (list, tuple)):
+        return _NativeAwsCliValue.ARRAY(items=[_to_native_aws_cli_value(item) for item in value])
+    value_type = type(value)
+    return _NativeAwsCliValue.UNSUPPORTED(type_name=f"{value_type.__module__}.{value_type.__qualname__}")
+
+
 class Engine:
     """Validates CloudFormation templates against the built-in rule set.
 
-    Base class for :class:`RegoEngine` and :class:`CelEngine`. Construction is
-    expensive (rules are compiled once); reuse one engine across templates.
+    Base class for :class:`RegoEngine`, :class:`CelEngine`, and
+    :class:`CompositeEngine`. Construction is expensive (rules are compiled once); reuse one engine across templates.
     """
 
     _inner_cls: typing.ClassVar[typing.Optional[type]] = None
@@ -217,27 +345,43 @@ class Engine:
         config: typing.Optional[EngineConfig] = None,
     ):
         if self._inner_cls is None:
-            raise TypeError(f"{type(self).__name__} has no engine; construct RegoEngine or CelEngine instead")
+            raise TypeError(
+                f"{type(self).__name__} has no engine; construct RegoEngine, CelEngine, or CompositeEngine instead"
+            )
         self._inner = self._inner_cls(
             config if config is not None else EngineConfig(),
         )
 
-    def validate_standard(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> StandardReport:
-        """Validates a template and returns a standard-detail report."""
-        content, path = _template_bytes(template)
-        return self._inner.validate_standard(content, config if config is not None else ValidateConfig(), path)
+    def validate_template(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> ValidationReport:
+        """Validates a template and returns a :class:`ValidationReport`.
 
-    def validate_detailed(self, template: Template, config: typing.Optional[ValidateConfig] = None) -> DetailedReport:
-        """Validates a template and returns a detailed report with violation context."""
+        The amount of detail is controlled by ``config.detail_level`` (a
+        :class:`DetailLevel`), which defaults to :attr:`DetailLevel.DETAILED`. At
+        :attr:`DetailLevel.STANDARD` the enrichment fields -
+        violation context, rule description, and documentation URL - are left
+        unset; the report is otherwise identical.
+        """
         content, path = _template_bytes(template)
-        return self._inner.validate_detailed(content, config if config is not None else ValidateConfig(), path)
+        return self._inner.validate_template(content, config if config is not None else ValidateConfig(), path)
+
+    def validate_aws_cli_command(self, request: AwsCliCommand) -> AwsCliCommandValidation:
+        """Classifies, models, and validates an AWS CLI command.
+
+        The validation configuration is fixed by the library. A skipped command
+        has ``report is None`` and an explicit status and reason. The ``template``
+        field carries the exact bytes validated (the caller's original
+        ``TemplateBody`` or the synthesized JSON), or ``None`` when skipped.
+        """
+        if not isinstance(request, AwsCliCommand):
+            raise TypeError("request must be an AwsCliCommand")
+        return self._inner.validate_aws_cli_command(request._to_native())
 
     def list_rules(self) -> typing.List[RuleInfo]:
         """Lists every rule this engine evaluates, sorted by rule ID."""
         return self._inner.list_rules()
 
     def engine_name(self) -> str:
-        """Returns the engine identifier ("rego" or "cel")."""
+        """Returns the engine identifier ("rego", "cel", or "composite")."""
         return self._inner.engine_name()
 
 
@@ -251,6 +395,24 @@ class CelEngine(Engine):
     """CEL-based validation engine."""
 
     _inner_cls = _PyCelEngine
+
+
+class CompositeEngine(Engine):
+    """Composite validation engine.
+
+    Evaluates the built-in rules with one engine and caller-supplied custom Rego
+    and Guard rules with another, reporting their combined diagnostics. With no
+    custom rules it produces exactly the built-in diagnostics.
+
+    Unlike :class:`RegoEngine` and :class:`CelEngine`, it is configured with a
+    :class:`CompositeEngineConfig`, which carries only the external rules layered
+    on top of the built-ins. ``engine_name()`` returns ``"composite"``.
+    """
+
+    _inner_cls = _PyCompositeEngine
+
+    def __init__(self, config: typing.Optional[CompositeEngineConfig] = None):
+        self._inner = self._inner_cls(config if config is not None else CompositeEngineConfig())
 
 
 class TemplateModel:
@@ -303,6 +465,6 @@ class SchemaValidator:
     def schema_count(self) -> int:
         return self._inner.schema_count()
 
-    def validate(self, template: Template, region: typing.Optional[str] = None) -> typing.List[StandardDiagnostic]:
+    def validate(self, template: Template, region: typing.Optional[str] = None) -> typing.List[Diagnostic]:
         model = _PySemanticModel.parse(_template_bytes(template)[0])
         return self._inner.validate(model, region).diagnostics

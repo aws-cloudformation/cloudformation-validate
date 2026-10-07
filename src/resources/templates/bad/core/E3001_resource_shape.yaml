@@ -1,0 +1,34 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  MissingType:
+    Properties:
+      BucketName: my-bucket
+  NonObjectBody: a string value
+  NumericType:
+    Type: 42
+    Properties:
+      BucketName: my-bucket
+  UnknownAttribute:
+    Type: AWS::S3::Bucket
+    Bogus: some-value
+    Properties:
+      BucketName: my-bucket
+  BadConditionType:
+    Type: AWS::S3::Bucket
+    Condition: true
+    Properties:
+      BucketName: my-bucket
+  BadDependsOnType:
+    Type: AWS::S3::Bucket
+    DependsOn: 123
+    Properties:
+      BucketName: my-bucket
+  ValidResource:
+    Type: AWS::S3::Bucket
+    DependsOn:
+      - MissingType
+    Condition: SomeCondition
+    Properties:
+      BucketName: valid-bucket

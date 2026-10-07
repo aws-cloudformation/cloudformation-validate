@@ -1,5 +1,6 @@
 import type {
-    DetailedReport,
+    Diagnostic,
+    ValidationReport,
     DiagnosticModel,
     AdditionalSchemaSource,
     ExternalRuleSource,
@@ -8,8 +9,6 @@ import type {
     ResolvedResource,
     RuleInfo,
     SourceSpan,
-    StandardDiagnostic,
-    StandardReport,
     ValidateConfig,
 } from './bindings_wasm';
 export type {
@@ -29,14 +28,12 @@ export type {
     ResourceRef,
     RelatedResource,
     ViolationContext,
-    StandardDiagnostic,
-    DetailedDiagnostic,
+    Diagnostic,
     PhaseMetric,
     PerformanceMetrics,
     Summary,
     ReportMetadata,
-    StandardReport,
-    DetailedReport,
+    ValidationReport,
     PseudoParameterOverrides,
     ValidateConfig,
     ExternalRuleSource,
@@ -79,18 +76,98 @@ export type JsonValue =
     | {
           [key: string]: JsonValue;
       };
+/** @deprecated Use {@link Diagnostic}; a `STANDARD` report leaves its enrichment fields undefined. */
+export type StandardDiagnostic = Diagnostic;
+/** @deprecated Use {@link Diagnostic}. */
+export type DetailedDiagnostic = Diagnostic;
+/** @deprecated Use {@link ValidationReport} with `detailLevel: 'STANDARD'`. */
+export type StandardReport = ValidationReport;
+/** @deprecated Use {@link ValidationReport}. */
+export type DetailedReport = ValidationReport;
+export type AwsCliOperationKind =
+    | 'READ_ONLY'
+    | 'CLOUD_FORMATION_CREATE'
+    | 'CLOUD_FORMATION_UPDATE'
+    | 'CLOUD_FORMATION_DELETE'
+    | 'DATA_PLANE_MUTATION'
+    | 'UNMAPPED_MUTATION';
+export type AwsCliCommandValidationStatus = 'VALIDATED' | 'SKIPPED';
+export type AwsCliTemplateSource =
+    'TEMPLATE_BODY' | 'CLOUD_CONTROL_DESIRED_STATE' | 'SYNTHESIZED_CREATE' | 'SYNTHESIZED_UPDATE';
+export interface AwsCliCommandOptions {
+    servicePrefix?: string;
+    httpMethod?: string;
+    isReadOnly?: boolean;
+}
+/**
+ * Service, operation, and input values for one AWS CLI command.
+ *
+ * `serviceName` is the canonical botocore service name and is normalized only
+ * for ASCII case. Callers adapting an SDK request must translate its native
+ * service identity before constructing this request; endpoint and signing-name
+ * aliases are never guessed by the validation core.
+ */
+export declare class AwsCliCommand {
+    readonly serviceName: string;
+    readonly operationName: string;
+    readonly parameters: Record<string, unknown>;
+    readonly servicePrefix?: string;
+    readonly httpMethod?: string;
+    readonly isReadOnly?: boolean;
+    constructor(
+        serviceName: string,
+        operationName: string,
+        parameters: Record<string, unknown>,
+        options?: AwsCliCommandOptions,
+    );
+}
+export interface AwsCliCommandValidation {
+    operationKind: AwsCliOperationKind;
+    status: AwsCliCommandValidationStatus;
+    templateSource: AwsCliTemplateSource | null;
+    resourceTypes: string[];
+    reason: string;
+    report: ValidationReport | null;
+    template: Uint8Array | null;
+}
 export interface Engine {
-    validateStandard(template: TemplateFile, config?: ValidateConfig): StandardReport;
-    validateDetailed(template: TemplateFile, config?: ValidateConfig): DetailedReport;
+    validateTemplate(template: Template, config?: ValidateConfig): ValidationReport;
+    /**
+     * @deprecated Use {@link validateTemplate} with `detailLevel: 'STANDARD'`. Any `detailLevel`
+     * in `config` is overridden by `'STANDARD'`.
+     */
+    validateStandard(template: Template, config?: ValidateConfig): StandardReport;
+    /**
+     * @deprecated Use {@link validateTemplate}; `DETAILED` is already its default. Any `detailLevel`
+     * in `config` is overridden by `'DETAILED'`.
+     */
+    validateDetailed(template: Template, config?: ValidateConfig): DetailedReport;
+    validateAwsCliCommand(request: AwsCliCommand): AwsCliCommandValidation;
     listRules(): RuleInfo[];
     engineName(): string;
     free(): void;
 }
+/** Name reported for an in-memory template when the caller does not supply one. */
+export declare const DEFAULT_TEMPLATE_NAME = 'template';
+/** A template read from disk; the path labels the report and its diagnostics. */
 export declare class TemplateFile {
     readonly path: string;
     constructor(path: string);
     readBytes(): Uint8Array;
 }
+/**
+ * A template already held in memory as UTF-8 text or raw bytes, so nothing is
+ * read from disk. `name` labels the report and its diagnostics exactly like a
+ * {@link TemplateFile} path does and defaults to {@link DEFAULT_TEMPLATE_NAME}.
+ */
+export declare class TemplateContent {
+    readonly content: string | Uint8Array;
+    readonly name: string;
+    constructor(content: string | Uint8Array, name?: string);
+    readBytes(): Uint8Array;
+}
+/** A template source accepted by every template-consuming API: on disk or in memory. */
+export type Template = TemplateFile | TemplateContent;
 export declare class RuleFile {
     readonly path: string;
     constructor(path: string);
@@ -120,6 +197,24 @@ export interface EngineConfig {
     schemaValidatorConfig?: SchemaValidatorConfig;
 }
 /**
+ * Configuration for the {@link CompositeEngine}. The built-in rules are always
+ * evaluated by the engine's fixed built-in evaluator, so these fields only layer
+ * external rules on top - there is no engine-native custom-rule field.
+ */
+export interface CompositeEngineConfig {
+    /** Custom Rego rules layered on top of the built-in rules. */
+    regoRules?: RuleSource[];
+    /** Custom CEL rules layered on top of the built-in rules. */
+    celRules?: RuleSource[];
+    /** CloudFormation Guard DSL rules layered on top of the built-in rules. */
+    guardRules?: RuleSource[];
+    /**
+     * Optional schema validator configuration, observed by both the built-in and
+     * external rule evaluation.
+     */
+    schemaValidatorConfig?: SchemaValidatorConfig;
+}
+/**
  * Configuration for the schema validator. Additional schemas are merged on top
  * of the bundled CloudFormation provider schemas before schema validation.
  */
@@ -133,7 +228,7 @@ export interface SchemaValidatorConfig {
 }
 export declare class TemplateModel {
     private readonly inner;
-    constructor(template: TemplateFile);
+    constructor(template: Template);
     resources(): Record<string, ResolvedResource>;
     parameters(): Record<string, ParameterInfo>;
     outputs(): Record<string, ResolvedOutput>;
@@ -150,9 +245,10 @@ export declare class SchemaValidator {
     constructor(config?: SchemaValidatorConfig);
     listRules(): RuleInfo[];
     schemaCount(): number;
-    validate(template: TemplateFile, region?: string): StandardDiagnostic[];
+    validate(template: Template, region?: string): Diagnostic[];
     free(): void;
 }
 export declare const RegoEngine: new (config?: EngineConfig) => Engine;
 export declare const CelEngine: new (config?: EngineConfig) => Engine;
+export declare const CompositeEngine: new (config?: CompositeEngineConfig) => Engine;
 export declare function version(): string;

@@ -12,7 +12,7 @@ const templatePath = process.argv[2] ?? path.join(__dirname, 'template.yaml');
 // RegoEngine and CelEngine are interchangeable - both produce identical diagnostics.
 const engine = new RegoEngine();
 try {
-    const report = engine.validateStandard(new TemplateFile(templatePath));
+    const report = engine.validateTemplate(new TemplateFile(templatePath));
 
     console.log(`${report.filePath}: ${report.status}`);
     for (const d of report.diagnostics) {

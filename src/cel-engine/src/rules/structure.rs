@@ -1,19 +1,21 @@
+use super::intrinsics::getatt_attr_is_map_member;
 use super::{EvalContext, NativeRuleRegistry};
 use diagnostics::Diagnostic;
-use rules::Category;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 use template_model::consts::{
-    EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_DELETION_POLICY, FIELD_EDGES, FIELD_KIND,
-    FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE, FIELD_RESOURCES,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FIELD_UPDATE_REPLACE_POLICY, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX,
-    PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, POLICY_DELETE, POLICY_RETAIN,
-    POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS, SECTION_DESCRIPTION, SECTION_FORMAT_VERSION,
-    SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS, SECTION_PARAMETERS, SECTION_RESOURCES,
-    SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS, TRANSFORM_SERVERLESS,
+    EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SUB, FIELD_ATTR, FIELD_CONDITION, FIELD_CONDITIONS, FIELD_EDGES,
+    FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS, FIELD_OUTPUTS, FIELD_PARAMETERS, FIELD_RESOURCE_TYPE,
+    FIELD_RESOURCES, FIELD_SOURCE, FIELD_SOURCE_PATH, FIELD_TARGET, FN_FOR_EACH, FN_FOR_EACH_KEY_PREFIX, FN_IF,
+    FN_TRANSFORM, KEY_DELETION_POLICY, KEY_UPDATE_REPLACE_POLICY, MARKER_CONDITIONAL, MARKER_DYNAMIC, MARKER_ENUM,
+    MARKER_REF, OUTPUT_PSEUDO_RESOURCE_PREFIX, PARAM_TYPE_COMMA_DELIMITED_LIST, PARAM_TYPE_NUMBER, PARAM_TYPE_STRING,
+    POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE, POLICY_SNAPSHOT, SECTION_CONDITIONS,
+    SECTION_DESCRIPTION, SECTION_FORMAT_VERSION, SECTION_GLOBALS, SECTION_MAPPINGS, SECTION_METADATA, SECTION_OUTPUTS,
+    SECTION_PARAMETERS, SECTION_RESOURCES, SECTION_RULES, SECTION_TRANSFORM, TRANSFORM_LANGUAGE_EXTENSIONS,
+    TRANSFORM_SERVERLESS,
 };
 use template_model::message::render_str_list;
-use template_model::{FORMAT_VERSION, is_service_valid};
+use template_model::{FORMAT_VERSION, PSEUDO_PARAMETERS, is_custom_resource_type, is_service_valid};
 use validation_engine::make_resource_diagnostic;
 
 /// Alphanumeric-only string: CloudFormation logical IDs, output names, and
@@ -29,8 +31,8 @@ static MAPPING_TOP_KEY_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^[a-zA-Z0-9.\-]+$").expect("Invalid MAPPING_TOP_KEY_RE pattern"));
 
 pub fn register(reg: &mut NativeRuleRegistry) {
-    reg.add(Category::Structure, eval_structure);
-    reg.add(Category::Structure, eval_template_size_and_transforms);
+    reg.add(eval_structure);
+    reg.add(eval_template_size_and_transforms);
 }
 
 fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -137,7 +139,7 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &format!("'{}' is not a valid top-level template section", key),
                     m,
                     "",
-                    "",
+                    key,
                     None,
                 ));
             }
@@ -210,7 +212,21 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
 
-        if !is_valid_parameter_type(&param.param_type) {
+        let is_documented =
+            is_valid_parameter_type(&param.param_type, &ctx.cached_data.rule_tables.valid_parameter_types);
+        if !is_documented && is_accepted_undocumented_parameter_type(&param.param_type) {
+            out.push(make_resource_diagnostic(
+                "W2002",
+                &format!(
+                    "Parameter '{}' Type '{}' is accepted by CloudFormation but is not officially documented; CloudFormation will not validate its values",
+                    pname, param.param_type
+                ),
+                m,
+                "",
+                &format!("{}/Type", param_path),
+                None,
+            ));
+        } else if !is_documented {
             out.push(make_resource_diagnostic(
                 "F2002",
                 &format!("Parameter '{}' has invalid Type '{}'", pname, param.param_type),
@@ -285,12 +301,12 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
-        && desc.len() > 921
-        && desc.len() <= 1024
+        && desc.chars().count() > 921
+        && desc.chars().count() <= 1024
     {
         out.push(make_resource_diagnostic(
             "I1003",
-            &format!("Description length {} is approaching maximum of 1024", desc.len()),
+            &format!("Description length {} is approaching maximum of 1024", desc.chars().count()),
             m,
             "",
             "",
@@ -312,11 +328,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     if let Some(desc) = input.get("template").and_then(|t| t.get("description")).and_then(|v| v.as_str())
-        && desc.len() > 1024
+        && desc.chars().count() > 1024
     {
         out.push(make_resource_diagnostic(
             "F0011",
-            &format!("Description length {} exceeds maximum 1024", desc.len()),
+            &format!("Description length {} exceeds maximum 1024", desc.chars().count()),
             m,
             "",
             "",
@@ -326,7 +342,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     let has_lang_ext = m.transforms.iter().any(|t| t == TRANSFORM_LANGUAGE_EXTENSIONS);
     for name in m.resources.keys() {
-        if !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with(FN_FOR_EACH_KEY_PREFIX))) {
+        if name != FN_TRANSFORM
+            && !(ALPHANUM_RE.is_match(name) || (has_lang_ext && name.starts_with(FN_FOR_EACH_KEY_PREFIX)))
+        {
             out.push(make_resource_diagnostic(
                 "F0006",
                 &format!("Logical ID '{}' must be alphanumeric (A-Za-z0-9)", name),
@@ -379,6 +397,16 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for (map_name, level1) in &m.mappings {
+        if !ALPHANUM_RE.is_match(map_name) {
+            out.push(make_resource_diagnostic(
+                "E7001",
+                &format!("Mapping name '{}' does not match format '^[a-zA-Z0-9]+$'", map_name),
+                m,
+                "",
+                &format!("{}/{}", SECTION_MAPPINGS, map_name),
+                None,
+            ));
+        }
         for (k1, level2) in level1 {
             if !MAPPING_TOP_KEY_RE.is_match(k1) {
                 out.push(make_resource_diagnostic(
@@ -405,50 +433,65 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    const SNAPSHOT_CAPABLE_TYPES: &[&str] = &[
-        "AWS::DocDB::DBCluster",
-        "AWS::EC2::Volume",
-        "AWS::ElastiCache::CacheCluster",
-        "AWS::ElastiCache::ReplicationGroup",
-        "AWS::Neptune::DBCluster",
-        "AWS::RDS::DBCluster",
-        "AWS::RDS::DBInstance",
-        "AWS::Redshift::Cluster",
-    ];
+    let snapshot_capable_types = &ctx.cached_data.rule_tables.snapshot_capable_resource_types;
     let base_deletion = [POLICY_DELETE, POLICY_RETAIN, POLICY_RETAIN_EXCEPT_ON_CREATE];
     let base_update = [POLICY_DELETE, POLICY_RETAIN];
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        for (name, res) in resources {
-            let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
-            let snapshot_ok = SNAPSHOT_CAPABLE_TYPES.contains(&rtype);
-            if let Some(dp) = res.get(FIELD_DELETION_POLICY).and_then(|v| v.as_str()) {
-                let valid = base_deletion.contains(&dp) || (snapshot_ok && dp == POLICY_SNAPSHOT);
-                if !valid {
-                    let allowed = if snapshot_ok {
-                        "Delete, Retain, RetainExceptOnCreate, Snapshot"
-                    } else {
-                        "Delete, Retain, RetainExceptOnCreate"
-                    };
+        for (name, _res) in resources {
+            let rtype = m.resources.get(name.as_str()).map(|r| r.resource_type.as_str()).unwrap_or("");
+            let snapshot_ok = snapshot_capable_types.iter().any(|t| t == rtype);
+
+            for scenario_val in m.lifecycle_policy_scenarios(name, KEY_DELETION_POLICY) {
+                let allowed = if snapshot_ok {
+                    "Delete, Retain, RetainExceptOnCreate, Snapshot"
+                } else {
+                    "Delete, Retain, RetainExceptOnCreate"
+                };
+                if let Some(policy) = scenario_val.0.as_str() {
+                    let valid = base_deletion.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
+                    if !valid {
+                        out.push(make_resource_diagnostic(
+                            "F3016",
+                            &format!("DeletionPolicy must be one of {}, got '{}'", allowed, policy),
+                            m,
+                            name,
+                            KEY_DELETION_POLICY,
+                            None,
+                        ));
+                    }
+                } else if let Some(shape) = non_string_policy_shape(&scenario_val.0) {
                     out.push(make_resource_diagnostic(
                         "F3016",
-                        &format!("DeletionPolicy must be one of {}, got '{}'", allowed, dp),
+                        &format!("DeletionPolicy must be one of {}, got {}", allowed, shape),
                         m,
                         name,
-                        "",
+                        KEY_DELETION_POLICY,
                         None,
                     ));
                 }
             }
-            if let Some(urp) = res.get(FIELD_UPDATE_REPLACE_POLICY).and_then(|v| v.as_str()) {
-                let valid = base_update.contains(&urp) || (snapshot_ok && urp == POLICY_SNAPSHOT);
-                if !valid {
-                    let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
+
+            for scenario_val in m.lifecycle_policy_scenarios(name, KEY_UPDATE_REPLACE_POLICY) {
+                let allowed = if snapshot_ok { "Delete, Retain, Snapshot" } else { "Delete, Retain" };
+                if let Some(policy) = scenario_val.0.as_str() {
+                    let valid = base_update.contains(&policy) || (snapshot_ok && policy == POLICY_SNAPSHOT);
+                    if !valid {
+                        out.push(make_resource_diagnostic(
+                            "F0018",
+                            &format!("UpdateReplacePolicy must be one of {}, got '{}'", allowed, policy),
+                            m,
+                            name,
+                            KEY_UPDATE_REPLACE_POLICY,
+                            None,
+                        ));
+                    }
+                } else if let Some(shape) = non_string_policy_shape(&scenario_val.0) {
                     out.push(make_resource_diagnostic(
                         "F0018",
-                        &format!("UpdateReplacePolicy must be one of {}, got '{}'", allowed, urp),
+                        &format!("UpdateReplacePolicy must be one of {}, got {}", allowed, shape),
                         m,
                         name,
-                        "",
+                        KEY_UPDATE_REPLACE_POLICY,
                         None,
                     ));
                 }
@@ -658,56 +701,144 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     for (name, param) in &m.parameters {
         if let (Some(default), Some(allowed)) = (&param.default, &param.allowed_values)
             && !allowed.is_empty()
-            && !allowed.iter().any(|a| a == default)
         {
-            out.push(make_resource_diagnostic(
-                "F2012",
-                &format!(
-                    "Parameter '{}' Default '{}' is not in AllowedValues {}",
-                    name,
-                    default,
-                    render_str_list(allowed)
-                ),
-                m,
-                "",
-                &format!("{}/{}/Default", SECTION_PARAMETERS, name),
-                None,
-            ));
-        }
-    }
-
-    if let Some(outputs) = input.get(FIELD_OUTPUTS).and_then(|o| o.as_object()) {
-        for (name, out_val) in outputs {
-            if let Some(refs) = out_val.get("getattRefs").and_then(|r| r.as_array()) {
-                for ga_ref in refs {
-                    let resource = ga_ref.get("resource").and_then(|r| r.as_str()).unwrap_or("");
-                    let attribute = ga_ref.get("attribute").and_then(|a| a.as_str()).unwrap_or("");
-                    if let Some(res) = m.resources.get(resource)
-                        && let Some(ret_type) =
-                            ctx.cached_data.getatt_attr_types.get(&res.resource_type).and_then(|t| t.get(attribute))
-                        && ret_type != "string"
-                    {
-                        // An array-returning GetAtt in an output is consumed by
-                        // Fn::Select to extract a string element - the array
-                        // itself is never the output value, so it is not a
-                        // string-type violation. Only scalar non-string returns
-                        // (integer, boolean) are reported.
-                        if ret_type == "array" {
-                            continue;
-                        }
+            let is_cdl = param.param_type == PARAM_TYPE_COMMA_DELIMITED_LIST || param.param_type.starts_with("List<");
+            if is_cdl {
+                for element in default.split(',').map(|s| s.trim()) {
+                    if !allowed.iter().any(|a| a == element) {
                         out.push(make_resource_diagnostic(
-                            "F6101",
+                            "F2012",
                             &format!(
-                                "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
-                                name, resource, attribute, ret_type
+                                "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                                name,
+                                element,
+                                render_str_list(allowed)
                             ),
                             m,
                             "",
-                            &format!("{}/{}/Value", SECTION_OUTPUTS, name),
+                            &format!("{}/{}/Default", SECTION_PARAMETERS, name),
                             None,
                         ));
                     }
                 }
+            } else if !allowed.iter().any(|a| a == default) {
+                out.push(make_resource_diagnostic(
+                    "F2012",
+                    &format!(
+                        "Parameter '{}' Default '{}' is not in AllowedValues {}",
+                        name,
+                        default,
+                        render_str_list(allowed)
+                    ),
+                    m,
+                    "",
+                    &format!("{}/{}/Default", SECTION_PARAMETERS, name),
+                    None,
+                ));
+            }
+        }
+    }
+
+    // Output references use top-level edges with a synthetic output source so
+    // every diagnostic can retain the precise intrinsic path.
+    if let Some(edges) = input.get(FIELD_EDGES).and_then(|value| value.as_array()) {
+        let sam_implicit: HashSet<&str> = input
+            .get("samImplicitResources")
+            .and_then(|value| value.as_array())
+            .map(|values| values.iter().filter_map(|value| value.as_str()).collect())
+            .unwrap_or_default();
+        let has_module_or_foreach = m.resources.values().any(|r| r.resource_type.ends_with("::MODULE"))
+            || m.resources.keys().any(|k| k.contains("Fn::ForEach"));
+        for edge in edges {
+            let source = edge.get(FIELD_SOURCE).and_then(|value| value.as_str()).unwrap_or("");
+            let Some(output_name) = source.strip_prefix(OUTPUT_PSEUDO_RESOURCE_PREFIX) else {
+                continue;
+            };
+            let kind = edge.get(FIELD_KIND).and_then(|value| value.as_str()).unwrap_or("");
+            let source_path = edge.get(FIELD_SOURCE_PATH).and_then(|value| value.as_str()).unwrap_or("");
+            let target = edge.get(FIELD_TARGET).and_then(|value| value.as_str()).unwrap_or("");
+
+            if kind == EDGE_KIND_SUB {
+                if !m.resources.contains_key(target)
+                    && !m.parameters.contains_key(target)
+                    && !PSEUDO_PARAMETERS.contains(&target)
+                    && !sam_implicit.contains(target)
+                {
+                    out.push(make_resource_diagnostic(
+                        "F6101",
+                        &format!(
+                            "Fn::Sub variable '${{{}}}' does not reference a valid resource, parameter, or pseudo-parameter",
+                            target
+                        ),
+                        m,
+                        "",
+                        source_path,
+                        None,
+                    ));
+                }
+                continue;
+            }
+            if kind != EDGE_KIND_GET_ATT {
+                continue;
+            }
+
+            let attribute = edge.get(FIELD_ATTR).and_then(|value| value.as_str()).unwrap_or("");
+            let Some(resource) = m.resources.get(target) else {
+                if !sam_implicit.contains(target) && !has_module_or_foreach {
+                    out.push(make_resource_diagnostic(
+                        "F6101",
+                        &format!("GetAtt '{}.{}' references a resource that does not exist", target, attribute),
+                        m,
+                        "",
+                        &format!("{}.0", source_path),
+                        None,
+                    ));
+                }
+                continue;
+            };
+            if let Some(valid_attributes) = ctx.cached_data.getatt.getatt_attributes.get(&resource.resource_type)
+                && !valid_attributes.iter().any(|valid| valid == attribute)
+                && !getatt_attr_is_map_member(attribute, &resource.resource_type)
+                && !is_custom_resource_type(&resource.resource_type)
+                && resource.resource_type != "AWS::CloudFormation::Stack"
+                && resource.resource_type != "AWS::CloudFormation::Macro"
+            {
+                out.push(make_resource_diagnostic(
+                    "F6101",
+                    &format!("'{}' is not one of {}", attribute, render_str_list(valid_attributes)),
+                    m,
+                    "",
+                    &format!("{}.1", source_path),
+                    None,
+                ));
+                continue;
+            }
+
+            // A GetAtt inside a literal container is already covered by the
+            // output-value shape check. Fn::Select consumes an array attribute.
+            if !output_edge_is_in_string_position(source_path) {
+                continue;
+            }
+            if let Some(return_type) = ctx
+                .cached_data
+                .getatt
+                .getatt_attribute_types
+                .get(&resource.resource_type)
+                .and_then(|types| types.get(attribute))
+                && return_type != "string"
+                && return_type != "array"
+            {
+                out.push(make_resource_diagnostic(
+                    "F6101",
+                    &format!(
+                        "Output '{}': GetAtt '{}.{}' returns type '{}', not 'string'",
+                        output_name, target, attribute, return_type
+                    ),
+                    m,
+                    "",
+                    source_path,
+                    None,
+                ));
             }
         }
     }
@@ -765,6 +896,8 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     let mut flagged_image_params = HashSet::new();
+    let image_id_paths = &ctx.cached_data.rule_tables.image_id_property_paths;
+    let image_id_param_types = &ctx.cached_data.rule_tables.image_id_parameter_types;
     if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
         for (_name, res) in resources {
             let rtype = res.get(FIELD_RESOURCE_TYPE).and_then(|t| t.as_str()).unwrap_or("");
@@ -774,9 +907,9 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
                     let sp = edge.get(FIELD_SOURCE_PATH).and_then(|p| p.as_str()).unwrap_or("");
                     let target = edge.get(FIELD_TARGET).and_then(|t| t.as_str()).unwrap_or("");
                     if kind == EDGE_KIND_REF
-                        && is_image_id_slot(rtype, sp)
+                        && is_image_id_slot(rtype, sp, image_id_paths)
                         && let Some(param) = m.parameters.get(target)
-                        && !APPROPRIATE_IMAGE_ID_PARAM_TYPES.contains(&param.param_type.as_str())
+                        && !image_id_param_types.iter().any(|t| t == &param.param_type)
                         && flagged_image_params.insert(target)
                     {
                         out.push(make_resource_diagnostic("W2506", &format!("Parameter '{}' is used as an ImageId but has Type '{}' - consider using 'AWS::EC2::Image::Id'", target, param.param_type), m, "", &format!("{}/{}", SECTION_PARAMETERS, target),
@@ -829,11 +962,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
         // MinLength / MaxLength
         if let Some(min) = info.min_length
-            && (def.len() as u64) < min
+            && (def.chars().count() as u64) < min
         {
             out.push(make_resource_diagnostic(
                 "F2015",
-                &format!("Parameter '{}' Default length {} is less than MinLength {}", pname, def.len(), min),
+                &format!("Parameter '{}' Default length {} is less than MinLength {}", pname, def.chars().count(), min),
                 m,
                 "",
                 &path_str,
@@ -841,11 +974,11 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
         if let Some(max) = info.max_length
-            && (def.len() as u64) > max
+            && (def.chars().count() as u64) > max
         {
             out.push(make_resource_diagnostic(
                 "F2015",
-                &format!("Parameter '{}' Default length {} exceeds MaxLength {}", pname, def.len(), max),
+                &format!("Parameter '{}' Default length {} exceeds MaxLength {}", pname, def.chars().count(), max),
                 m,
                 "",
                 &path_str,
@@ -986,111 +1119,257 @@ fn condition_is_referenced(
     false
 }
 
-fn is_valid_parameter_type(ptype: &str) -> bool {
-    matches!(
-        ptype,
-        "String"
-            | "Number"
-            | "CommaDelimitedList"
-            | "AWS::SSM::Parameter::Name"
-            | "AWS::EC2::AvailabilityZone::Name"
-            | "AWS::EC2::Image::Id"
-            | "AWS::EC2::Instance::Id"
-            | "AWS::EC2::KeyPair::KeyName"
-            | "AWS::EC2::SecurityGroup::GroupName"
-            | "AWS::EC2::SecurityGroup::Id"
-            | "AWS::EC2::Subnet::Id"
-            | "AWS::EC2::Volume::Id"
-            | "AWS::EC2::VPC::Id"
-            | "AWS::Route53::HostedZone::Id"
-            | "List<Number>"
-            | "List<String>"
-            | "List<AWS::EC2::AvailabilityZone::Name>"
-            | "List<AWS::EC2::Image::Id>"
-            | "List<AWS::EC2::Instance::Id>"
-            | "List<AWS::EC2::SecurityGroup::GroupName>"
-            | "List<AWS::EC2::SecurityGroup::Id>"
-            | "List<AWS::EC2::Subnet::Id>"
-            | "List<AWS::EC2::Volume::Id>"
-            | "List<AWS::EC2::VPC::Id>"
-            | "List<AWS::Route53::HostedZone::Id>"
-    ) || ptype.starts_with("AWS::SSM::Parameter::Value<")
+/// Describes a non-string resource policy value, or returns `None` when the
+/// resolved shape may represent an intrinsic CloudFormation accepts here.
+fn non_string_policy_shape(value: &serde_json::Value) -> Option<&'static str> {
+    match value {
+        serde_json::Value::Array(_) => Some("a list"),
+        serde_json::Value::Object(map) => {
+            let is_intrinsic_marker = map.contains_key(MARKER_DYNAMIC)
+                || map.contains_key(MARKER_REF)
+                || map.contains_key(MARKER_ENUM)
+                || map.contains_key(MARKER_CONDITIONAL);
+            if is_intrinsic_marker { None } else { Some("an object") }
+        }
+        serde_json::Value::Number(_) => Some("a number"),
+        serde_json::Value::Bool(_) => Some("a boolean"),
+        serde_json::Value::Null => Some("null"),
+        _ => None,
+    }
 }
 
-/// The exact `AWS::EC2::Image::Id`-typed property slots the ImageId-parameter-type
-/// check (W2506) applies to: a fixed set of `(resource type, property path)` pairs.
-/// The path is relative to the resource (it always starts with `Properties.`); the
-/// `*` in the SpotFleet path matches a single array-index segment.
-fn is_image_id_slot(resource_type: &str, source_path: &str) -> bool {
-    const IMAGE_ID_SLOTS: &[(&str, &str)] = &[
-        ("AWS::AutoScaling::LaunchConfiguration", "Properties.ImageId"),
-        ("AWS::Batch::ComputeEnvironment", "Properties.ComputeResources.ImageId"),
-        ("AWS::Cloud9::EnvironmentEC2", "Properties.ImageId"),
-        ("AWS::EC2::Instance", "Properties.ImageId"),
-        ("AWS::EC2::LaunchTemplate", "Properties.LaunchTemplateData.ImageId"),
-        ("AWS::EC2::SpotFleet", "Properties.SpotFleetRequestConfigData.LaunchSpecifications.*.ImageId"),
-        ("AWS::ImageBuilder::Image", "Properties.ImageId"),
-    ];
-    IMAGE_ID_SLOTS
+const SSM_PARAMETER_VALUE_TYPE_PREFIX: &str = "AWS::SSM::Parameter::Value<";
+const LIST_PARAMETER_TYPE_PREFIX: &str = "List<";
+
+fn is_valid_parameter_type(ptype: &str, valid_types: &[String]) -> bool {
+    valid_types.iter().any(|t| t == ptype)
+}
+
+fn wrapped_type<'a>(parameter_type: &'a str, prefix: &str) -> Option<&'a str> {
+    parameter_type.strip_prefix(prefix)?.strip_suffix('>').filter(|inner| !inner.is_empty())
+}
+
+fn is_aws_specific_parameter_type(parameter_type: &str) -> bool {
+    let mut segments = parameter_type.split("::");
+    segments.next() == Some("AWS")
+        && segments.next().is_some_and(|segment| !segment.is_empty())
+        && segments.next().is_some_and(|segment| !segment.is_empty())
+        && segments.all(|segment| !segment.is_empty())
+}
+
+fn is_accepted_undocumented_parameter_type(parameter_type: &str) -> bool {
+    let Some(inner) = wrapped_type(parameter_type, SSM_PARAMETER_VALUE_TYPE_PREFIX)
+        .or_else(|| wrapped_type(parameter_type, LIST_PARAMETER_TYPE_PREFIX))
+    else {
+        return false;
+    };
+    let base_type = wrapped_type(inner, LIST_PARAMETER_TYPE_PREFIX).unwrap_or(inner);
+    is_aws_specific_parameter_type(base_type)
+}
+
+/// Checks whether a given `(resource type, source path)` pair matches one of
+/// the generated ImageId property slots from rule tables. The source path uses
+/// dotted segments (e.g. `Properties.ImageId`) while the rule table paths use
+/// slash-separated segments with `*` wildcards.
+fn is_image_id_slot(
+    resource_type: &str,
+    source_path: &str,
+    image_id_paths: &[data_source::rule_data::ResourcePropertyPath],
+) -> bool {
+    image_id_paths
         .iter()
-        .filter(|(rtype, _)| *rtype == resource_type)
-        .any(|(_, slot)| path_matches_slot(source_path, slot))
+        .filter(|p| p.resource_type == resource_type)
+        .any(|p| path_matches_resource_property_path(source_path, &p.segments))
 }
 
-/// Match a concrete source path against a slot pattern whose only wildcard is a
-/// `*` segment standing for a single array index.
-fn path_matches_slot(path: &str, slot: &str) -> bool {
-    let (path_segs, slot_segs): (Vec<&str>, Vec<&str>) = (path.split('.').collect(), slot.split('.').collect());
-    path_segs.len() == slot_segs.len() && slot_segs.iter().zip(&path_segs).all(|(s, p)| *s == "*" || s == p)
+/// Match a dotted source path against parsed property path segments that may
+/// contain wildcards. The source path uses dots as separators (e.g.
+/// `Properties.LaunchSpecifications.0.ImageId`) while `segments` starts from
+/// `Properties` onward and uses `PathSegment::Wildcard` for `*`.
+fn path_matches_resource_property_path(source_path: &str, segments: &[data_source::rule_data::PathSegment]) -> bool {
+    let path_segs: Vec<&str> = source_path.split('.').collect();
+    if path_segs.len() != segments.len() {
+        return false;
+    }
+    segments.iter().zip(&path_segs).all(|(seg, part)| match seg {
+        data_source::rule_data::PathSegment::Wildcard => true,
+        data_source::rule_data::PathSegment::Literal(expected) => expected == *part,
+    })
 }
 
-/// The two parameter types that are appropriate for an ImageId property; any
-/// other type used for an ImageId Ref triggers W2506.
-const APPROPRIATE_IMAGE_ID_PARAM_TYPES: &[&str] =
-    &["AWS::EC2::Image::Id", "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"];
+/// Determines whether a GetAtt edge from an output is in "string position" -
+/// that is, the GetAtt result feeds into a context where a string is expected.
+/// A GetAtt inside a literal list/map (bare index or key after the Value node)
+/// is NOT in string position because the enclosing container is already a
+/// non-string output value caught by the parse-time type check.
+fn output_edge_is_in_string_position(source_path: &str) -> bool {
+    // Use last-occurrence splitting so an output name containing "Value"
+    // (e.g. `ValueFoo`) does not consume the output-name segment as part of
+    // the tail.
+    let after_value = source_path
+        .rsplit_once("/Value")
+        .map(|(_, tail)| tail)
+        .or_else(|| source_path.strip_prefix("Value"))
+        .unwrap_or("");
+    let mut segments = after_value.split('.').filter(|s| !s.is_empty());
+    while let Some(segment) = segments.next() {
+        if segment == FN_IF {
+            // Skip the branch selector (1/2) and keep walking transparently.
+            segments.next();
+            continue;
+        }
+        // A remaining Fn::* segment is a string-building function consuming the
+        // GetAtt (Join/Sub/…): the GetAtt is in string position.
+        if segment.starts_with("Fn::") {
+            return true;
+        }
+        // A bare index or key means the GetAtt is inside a literal container.
+        return false;
+    }
+    true
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// A representative subset of valid parameter types for unit tests.
+    fn test_valid_types() -> Vec<String> {
+        vec![
+            "String",
+            "Number",
+            "CommaDelimitedList",
+            "AWS::EC2::VPC::Id",
+            "AWS::EC2::Subnet::Id",
+            "AWS::EC2::SecurityGroup::Id",
+            "AWS::EC2::Image::Id",
+            "AWS::Route53::HostedZone::Id",
+            "AWS::SSM::Parameter::Name",
+            "List<Number>",
+            "List<String>",
+            "List<AWS::EC2::Subnet::Id>",
+            "List<AWS::EC2::VPC::Id>",
+            "AWS::SSM::Parameter::Value<String>",
+            "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect()
+    }
+
     #[test]
     fn valid_basic_types() {
-        assert!(is_valid_parameter_type("String"));
-        assert!(is_valid_parameter_type("Number"));
-        assert!(is_valid_parameter_type("CommaDelimitedList"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("String", &types));
+        assert!(is_valid_parameter_type("Number", &types));
+        assert!(is_valid_parameter_type("CommaDelimitedList", &types));
     }
 
     #[test]
     fn valid_aws_specific_types() {
-        assert!(is_valid_parameter_type("AWS::EC2::VPC::Id"));
-        assert!(is_valid_parameter_type("AWS::EC2::Subnet::Id"));
-        assert!(is_valid_parameter_type("AWS::EC2::SecurityGroup::Id"));
-        assert!(is_valid_parameter_type("AWS::Route53::HostedZone::Id"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("AWS::EC2::VPC::Id", &types));
+        assert!(is_valid_parameter_type("AWS::EC2::Subnet::Id", &types));
+        assert!(is_valid_parameter_type("AWS::EC2::SecurityGroup::Id", &types));
+        assert!(is_valid_parameter_type("AWS::Route53::HostedZone::Id", &types));
     }
 
     #[test]
     fn valid_list_types() {
-        assert!(is_valid_parameter_type("List<Number>"));
-        assert!(is_valid_parameter_type("List<AWS::EC2::Subnet::Id>"));
-        assert!(is_valid_parameter_type("List<AWS::EC2::VPC::Id>"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("List<Number>", &types));
+        assert!(is_valid_parameter_type("List<AWS::EC2::Subnet::Id>", &types));
+        assert!(is_valid_parameter_type("List<AWS::EC2::VPC::Id>", &types));
     }
 
     #[test]
     fn valid_ssm_parameter_type() {
-        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<String>"));
-        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<String>", &types));
+        assert!(is_valid_parameter_type("AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>", &types));
     }
 
     #[test]
     fn invalid_types() {
-        assert!(!is_valid_parameter_type("Integer"));
-        assert!(!is_valid_parameter_type("Boolean"));
-        assert!(!is_valid_parameter_type(""));
-        assert!(!is_valid_parameter_type("NotString"));
+        let types = test_valid_types();
+        assert!(!is_valid_parameter_type("Integer", &types));
+        assert!(!is_valid_parameter_type("Boolean", &types));
+        assert!(!is_valid_parameter_type("", &types));
+        assert!(!is_valid_parameter_type("NotString", &types));
     }
 
     #[test]
     fn list_of_string_is_valid() {
-        assert!(is_valid_parameter_type("List<String>"));
+        let types = test_valid_types();
+        assert!(is_valid_parameter_type("List<String>", &types));
+    }
+
+    #[test]
+    fn undocumented_aws_shaped_wrappers_are_accepted() {
+        for parameter_type in [
+            "AWS::SSM::Parameter::Value<AWS::FakeService::FakeResource>",
+            "AWS::SSM::Parameter::Value<List<AWS::FakeService::FakeResource>>",
+            "List<AWS::FakeService::FakeResource>",
+        ] {
+            assert!(is_accepted_undocumented_parameter_type(parameter_type));
+        }
+    }
+
+    #[test]
+    fn simple_unknown_wrapped_types_are_rejected() {
+        for parameter_type in [
+            "AWS::SSM::Parameter::Value<Test>",
+            "AWS::SSM::Parameter::Value<Boolean>",
+            "AWS::SSM::Parameter::Value<List<Test>>",
+            "List<Test>",
+        ] {
+            assert!(!is_accepted_undocumented_parameter_type(parameter_type));
+        }
+    }
+
+    #[test]
+    fn string_position_direct_value() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value"));
+    }
+
+    #[test]
+    fn string_position_fn_if_branch() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::If.1"));
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::If.2"));
+    }
+
+    #[test]
+    fn string_position_fn_join_element() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::Join.1.0"));
+    }
+
+    #[test]
+    fn string_position_fn_sub() {
+        assert!(output_edge_is_in_string_position("Outputs/O/Value.Fn::Sub.0"));
+    }
+
+    #[test]
+    fn string_position_value_prefixed_output_names() {
+        // Output names starting with "Value" must not confuse the last-occurrence
+        // split. The terminal `/Value` node is always the property key, never
+        // part of the output name.
+        assert!(output_edge_is_in_string_position("Outputs/ValueFoo/Value"));
+        assert!(output_edge_is_in_string_position("Outputs/ValueFoo/Value.Fn::Join.1.0"));
+        assert!(output_edge_is_in_string_position("Outputs/ValueFoo/Value.Fn::If.1"));
+        assert!(!output_edge_is_in_string_position("Outputs/ValueFoo/Value.0"));
+        assert!(!output_edge_is_in_string_position("Outputs/ValueFoo/Value.k"));
+        assert!(output_edge_is_in_string_position("Outputs/Value/Value"));
+        assert!(output_edge_is_in_string_position("Outputs/Value/Value.Fn::Join.1.0"));
+        assert!(!output_edge_is_in_string_position("Outputs/Value/Value.0"));
+    }
+
+    #[test]
+    fn not_string_position_bare_index() {
+        assert!(!output_edge_is_in_string_position("Outputs/O/Value.0"));
+    }
+
+    #[test]
+    fn not_string_position_bare_key() {
+        assert!(!output_edge_is_in_string_position("Outputs/O/Value.someKey"));
     }
 }

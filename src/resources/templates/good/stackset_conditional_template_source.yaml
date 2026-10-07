@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  UseInlineTemplate: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ConditionalTemplateSource:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: conditional-template-source
+      PermissionModel: SELF_MANAGED
+      TemplateBody: !If
+        - UseInlineTemplate
+        - '{"AWSTemplateFormatVersion":"2010-09-09","Resources":{}}'
+        - !Ref AWS::NoValue
+      TemplateURL: !If
+        - UseInlineTemplate
+        - !Ref AWS::NoValue
+        - https://s3.amazonaws.com/example-bucket/template.yaml
+      Tags:
+        - Key: Purpose
+          Value: validation

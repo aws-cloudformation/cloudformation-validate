@@ -49,17 +49,11 @@ class WasmCelEngine {
         return this;
     }
     /**
-     * @param {Uint8Array} template
-     * @param {ValidateConfig} options
-     * @param {string} file_path
+     * @param {any} request
      * @returns {any}
      */
-    validateDetailed(template, options, file_path) {
-        const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmcelengine_validateDetailed(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+    validateAwsCliCommand(request) {
+        const ret = wasm.wasmcelengine_validateAwsCliCommand(this.__wbg_ptr, request);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -71,12 +65,12 @@ class WasmCelEngine {
      * @param {string} file_path
      * @returns {any}
      */
-    validateStandard(template, options, file_path) {
+    validateTemplate(template, options, file_path) {
         const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmcelengine_validateStandard(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+        const ret = wasm.wasmcelengine_validateTemplate(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -85,6 +79,86 @@ class WasmCelEngine {
 }
 if (Symbol.dispose) WasmCelEngine.prototype[Symbol.dispose] = WasmCelEngine.prototype.free;
 exports.WasmCelEngine = WasmCelEngine;
+
+class WasmCompositeEngine {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmCompositeEngineFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmcompositeengine_free(ptr, 0);
+    }
+    /**
+     * @returns {string}
+     */
+    engineName() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.wasmcompositeengine_engineName(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @returns {any}
+     */
+    listRules() {
+        const ret = wasm.wasmcompositeengine_listRules(this.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * @param {CompositeEngineConfig} config
+     */
+    constructor(config) {
+        const ret = wasm.wasmcompositeengine_new(config);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        WasmCompositeEngineFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {any} request
+     * @returns {any}
+     */
+    validateAwsCliCommand(request) {
+        const ret = wasm.wasmcompositeengine_validateAwsCliCommand(this.__wbg_ptr, request);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+    /**
+     * @param {Uint8Array} template
+     * @param {ValidateConfig} options
+     * @param {string} file_path
+     * @returns {any}
+     */
+    validateTemplate(template, options, file_path) {
+        const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasmcompositeengine_validateTemplate(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return takeFromExternrefTable0(ret[0]);
+    }
+}
+if (Symbol.dispose) WasmCompositeEngine.prototype[Symbol.dispose] = WasmCompositeEngine.prototype.free;
+exports.WasmCompositeEngine = WasmCompositeEngine;
 
 class WasmRegoEngine {
     __destroy_into_raw() {
@@ -135,17 +209,11 @@ class WasmRegoEngine {
         return this;
     }
     /**
-     * @param {Uint8Array} template
-     * @param {ValidateConfig} options
-     * @param {string} file_path
+     * @param {any} request
      * @returns {any}
      */
-    validateDetailed(template, options, file_path) {
-        const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmregoengine_validateDetailed(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+    validateAwsCliCommand(request) {
+        const ret = wasm.wasmregoengine_validateAwsCliCommand(this.__wbg_ptr, request);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -157,12 +225,12 @@ class WasmRegoEngine {
      * @param {string} file_path
      * @returns {any}
      */
-    validateStandard(template, options, file_path) {
+    validateTemplate(template, options, file_path) {
         const ptr0 = passArray8ToWasm0(template, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(file_path, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.wasmregoengine_validateStandard(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
+        const ret = wasm.wasmregoengine_validateTemplate(this.__wbg_ptr, ptr0, len0, options, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -401,6 +469,12 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
             getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
         },
+        __wbg___wbindgen_bigint_get_as_i64_d968e41184ae354f: function (arg0, arg1) {
+            const v = arg1;
+            const ret = typeof v === 'bigint' ? v : undefined;
+            getDataViewMemory0().setBigInt64(arg0 + 8 * 1, isLikeNone(ret) ? BigInt(0) : ret, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, !isLikeNone(ret), true);
+        },
         __wbg___wbindgen_boolean_get_fa956cfa2d1bd751: function (arg0) {
             const v = arg0;
             const ret = typeof v === 'boolean' ? v : undefined;
@@ -415,6 +489,10 @@ function __wbg_get_imports() {
         },
         __wbg___wbindgen_in_aca499c5de7ff5e5: function (arg0, arg1) {
             const ret = arg0 in arg1;
+            return ret;
+        },
+        __wbg___wbindgen_is_bigint_2f76dc55065b4273: function (arg0) {
+            const ret = typeof arg0 === 'bigint';
             return ret;
         },
         __wbg___wbindgen_is_function_1ff95bcc5517c252: function (arg0) {
@@ -432,6 +510,10 @@ function __wbg_get_imports() {
         },
         __wbg___wbindgen_is_undefined_c05833b95a3cf397: function (arg0) {
             const ret = arg0 === undefined;
+            return ret;
+        },
+        __wbg___wbindgen_jsval_eq_e659fcf7b0e32763: function (arg0, arg1) {
+            const ret = arg0 === arg1;
             return ret;
         },
         __wbg___wbindgen_jsval_loose_eq_db4c3b15f63fc170: function (arg0, arg1) {
@@ -485,6 +567,10 @@ function __wbg_get_imports() {
                 globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
             }, arguments);
         },
+        __wbg_getTime_d6f070c088c9b5ed: function (arg0) {
+            const ret = arg0.getTime();
+            return ret;
+        },
         __wbg_get_507a50627bffa49b: function (arg0, arg1) {
             const ret = arg0[arg1 >>> 0];
             return ret;
@@ -507,6 +593,16 @@ function __wbg_get_imports() {
             let result;
             try {
                 result = arg0 instanceof ArrayBuffer;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_instanceof_Map_e5b5e3db98422fcc: function (arg0) {
+            let result;
+            try {
+                result = arg0 instanceof Map;
             } catch (_) {
                 result = false;
             }
@@ -541,6 +637,10 @@ function __wbg_get_imports() {
         },
         __wbg_length_370319915dc99107: function (arg0) {
             const ret = arg0.length;
+            return ret;
+        },
+        __wbg_new_0_3da9e97f24fc69be: function () {
+            const ret = new Date();
             return ret;
         },
         __wbg_new_227d7c05414eb861: function () {
@@ -661,6 +761,10 @@ const WasmCelEngineFinalization =
     typeof FinalizationRegistry === 'undefined'
         ? { register: () => {}, unregister: () => {} }
         : new FinalizationRegistry((ptr) => wasm.__wbg_wasmcelengine_free(ptr, 1));
+const WasmCompositeEngineFinalization =
+    typeof FinalizationRegistry === 'undefined'
+        ? { register: () => {}, unregister: () => {} }
+        : new FinalizationRegistry((ptr) => wasm.__wbg_wasmcompositeengine_free(ptr, 1));
 const WasmRegoEngineFinalization =
     typeof FinalizationRegistry === 'undefined'
         ? { register: () => {}, unregister: () => {} }

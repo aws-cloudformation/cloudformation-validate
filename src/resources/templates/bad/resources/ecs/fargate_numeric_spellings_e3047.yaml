@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  ScientificCpuNotation:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2e0 vCPU"
+      Memory: "4 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  ScientificMemoryNotation:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2 vCPU"
+      Memory: "4e0 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  LeadingCpuWhitespace:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: " 2 vCPU"
+      Memory: "4 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  TrailingCpuWhitespace:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2 vCPU "
+      Memory: "4 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  LeadingMemoryWhitespace:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2 vCPU"
+      Memory: " 4 GB"
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+
+  TrailingMemoryWhitespace:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "2 vCPU"
+      Memory: "4 GB "
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true

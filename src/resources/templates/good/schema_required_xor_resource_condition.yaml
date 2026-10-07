@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  TargetId:
+    Type: String
+  Toggle:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  DuplicateTarget: !Equals [!Ref Toggle, 'true']
+  CreateWithoutDuplicate: !Not [!Condition DuplicateTarget]
+Resources:
+  Policy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: CreateWithoutDuplicate
+    Properties:
+      PolicyName: condition-correlated
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref TargetId
+      ResourceId: !If [DuplicateTarget, !Ref TargetId, !Ref AWS::NoValue]
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs

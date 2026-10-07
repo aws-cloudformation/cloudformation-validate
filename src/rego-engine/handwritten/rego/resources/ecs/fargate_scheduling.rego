@@ -8,6 +8,7 @@ violation contains make_diag_full("E3044", "ERROR", name,
     "Fargate launch type does not support DAEMON scheduling strategy",
     "Use REPLICA scheduling strategy with Fargate",
     "") if {
+    cfn_rule_active("E3044")
     some name in resources_of_type("AWS::ECS::Service")
     launch := resolve(name, "Properties.LaunchType")
     launch == "FARGATE"

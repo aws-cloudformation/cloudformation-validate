@@ -17,7 +17,9 @@ use diagnostics::DetailLevel;
 use rules::{FilterConfig, RuleFilterConfig, Severity};
 use schema_validator::SchemaValidatorConfig;
 use template_model::PseudoParameterOverrides;
-use validation_engine::{EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path};
+use validation_engine::{
+    CompositeEngineConfig, EngineConfig, ExternalRuleSource, ValidationEngine, catch_panics, validate_bytes_with_path,
+};
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum ValidationError {
@@ -50,6 +52,7 @@ fn panic_to_error(message: String) -> ValidationError {
 struct ValidateOptions {
     include: RuleFilterConfig,
     exclude: RuleFilterConfig,
+    detail_level: Option<DetailLevel>,
     severity_level: Option<Severity>,
     parameter_overrides: HashMap<String, String>,
     pseudo_parameter_overrides: PseudoParameterOverrides,
@@ -62,11 +65,11 @@ impl ValidateOptions {
         serde_json::from_str(options_json).map_err(|e| ValidationError::new(format!("invalid options JSON: {e}")))
     }
 
-    fn to_core(&self, detail_level: DetailLevel) -> validation_engine::ValidateConfig {
+    fn to_core(&self) -> validation_engine::ValidateConfig {
         let defaults = validation_engine::ValidateConfig::default();
         validation_engine::ValidateConfig {
             filters: FilterConfig::new(self.include.clone(), self.exclude.clone()),
-            detail_level,
+            detail_level: self.detail_level.clone().unwrap_or(defaults.detail_level),
             severity_level: self.severity_level.unwrap_or(defaults.severity_level),
             parameter_overrides: self.parameter_overrides.clone(),
             pseudo_parameter_overrides: self.pseudo_parameter_overrides.clone(),
@@ -78,7 +81,7 @@ impl ValidateOptions {
 
 #[cfg(test)]
 fn parse_engine_config(config_json: &str) -> Result<EngineConfig, ValidationError> {
-    EngineOptions::parse(config_json).map(EngineOptions::into_core)
+    EngineOptions::parse(config_json).map(|options| options.into_engine_build().1)
 }
 
 /// Engine construction options, deserialized from the JSON produced by the Go
@@ -117,20 +120,71 @@ struct SchemaValidatorOptionsInline {
     additional_schemas: Vec<SchemaSourceOptions>,
 }
 
+impl SchemaValidatorOptionsInline {
+    fn into_core(self) -> SchemaValidatorConfig {
+        SchemaValidatorConfig {
+            additional_schemas: self.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
+        }
+    }
+}
+
 impl EngineOptions {
     fn parse(config_json: &str) -> Result<Self, ValidationError> {
         serde_json::from_str(config_json).map_err(|e| ValidationError::new(format!("invalid engine config JSON: {e}")))
     }
 
-    #[cfg(test)]
-    fn into_core(self) -> EngineConfig {
-        EngineConfig {
+    /// Splits parsed options into the schema validator config used to build the
+    /// shared validator, and the engine config. The engine config's own schema
+    /// config is left unset because the validator is constructed once and shared
+    /// with the engine rather than rebuilt from this field.
+    fn into_engine_build(self) -> (SchemaValidatorConfig, EngineConfig) {
+        let schema_config =
+            self.schema_validator_config.map(SchemaValidatorOptionsInline::into_core).unwrap_or_default();
+        let engine_config = EngineConfig {
             custom_rules: self.custom_rules.into_iter().map(ExternalRuleSource::from).collect(),
             guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-            schema_validator_config: self.schema_validator_config.map(|sv| SchemaValidatorConfig {
-                additional_schemas: sv.additional_schemas.into_iter().map(AdditionalSchemaSource::from).collect(),
-            }),
-        }
+            schema_validator_config: None,
+        };
+        (schema_config, engine_config)
+    }
+}
+
+/// Composite engine construction options, deserialized from the JSON produced by
+/// the Go wrapper. A strict mirror of the core `CompositeEngineConfig`: the
+/// composite fixes which engine owns the built-in rules, so it carries only the
+/// external Rego rules, custom CEL rules, Guard rules, and shared schema config
+/// layered on top - there is no field for engine-native built-in custom rules.
+/// Rejecting unknown keys turns a drifted field name into an error rather than
+/// an engine that silently loads none of the caller's rules.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+struct CompositeEngineOptions {
+    rego_rules: Vec<RuleSourceOptions>,
+    cel_rules: Vec<RuleSourceOptions>,
+    guard_rules: Vec<RuleSourceOptions>,
+    schema_validator_config: Option<SchemaValidatorOptionsInline>,
+}
+
+impl CompositeEngineOptions {
+    fn parse(config_json: &str) -> Result<Self, ValidationError> {
+        serde_json::from_str(config_json)
+            .map_err(|e| ValidationError::new(format!("invalid composite engine config JSON: {e}")))
+    }
+
+    /// Splits parsed options into the schema validator config used to build the
+    /// shared validator, and the composite config. The composite config's own
+    /// schema config is left unset because the validator is constructed once and
+    /// shared with both inner engines rather than rebuilt from this field.
+    fn into_engine_build(self) -> (SchemaValidatorConfig, CompositeEngineConfig) {
+        let schema_config =
+            self.schema_validator_config.map(SchemaValidatorOptionsInline::into_core).unwrap_or_default();
+        let composite_config = CompositeEngineConfig {
+            rego_rules: self.rego_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            cel_rules: self.cel_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            guard_rules: self.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
+            schema_validator_config: None,
+        };
+        (schema_config, composite_config)
     }
 }
 
@@ -177,6 +231,42 @@ fn to_json<T: serde::Serialize>(value: &T) -> Result<String, ValidationError> {
     serde_json::to_string(value).map_err(|e| ValidationError::new(format!("failed to serialize result: {e}")))
 }
 
+/// Wire struct for an AWS CLI command received from Go as JSON.
+///
+/// Field names match the Go `AWSCLICommand` struct's `json` tags exactly.
+/// Unknown fields are rejected so a drifted field name surfaces as an error
+/// instead of silently ignoring the caller's intent.
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AwsCliCommandWire {
+    service_name: String,
+    operation_name: String,
+    parameters: HashMap<String, validation_engine::AwsCliValue>,
+    #[serde(default)]
+    service_prefix: Option<String>,
+    #[serde(default)]
+    http_method: Option<String>,
+    #[serde(default)]
+    is_read_only: Option<bool>,
+}
+
+impl AwsCliCommandWire {
+    fn parse(json: &str) -> Result<Self, ValidationError> {
+        serde_json::from_str(json).map_err(|e| ValidationError::new(format!("invalid AWS CLI command JSON: {e}")))
+    }
+
+    fn into_context(self) -> validation_engine::AwsCliCommand {
+        validation_engine::AwsCliCommand {
+            service_name: self.service_name,
+            operation_name: self.operation_name,
+            parameters: self.parameters,
+            service_prefix: self.service_prefix,
+            http_method: self.http_method,
+            is_read_only: self.is_read_only,
+        }
+    }
+}
+
 #[derive(uniffi::Object)]
 pub struct GoSchemaValidator {
     inner: schema_validator::SchemaValidator,
@@ -206,12 +296,14 @@ impl GoSchemaValidator {
     }
 
     /// Validates a parsed model against the provider schemas and returns the
-    /// diagnostics as a JSON array of standard diagnostics.
+    /// diagnostics as a JSON array, projected at the standard detail level so
+    /// enrichment fields are omitted.
     pub fn validate_json(&self, model: &GoSemanticModel, region: Option<String>) -> Result<String, ValidationError> {
         catch_panics(
             || {
                 let result = self.inner.validate(&model.model, region.as_deref());
-                let diagnostics: Vec<_> = result.diagnostics.iter().map(|d| d.to_standard()).collect();
+                let diagnostics: Vec<_> =
+                    result.diagnostics.iter().map(|d| d.to_report(DetailLevel::Standard)).collect();
                 to_json(&diagnostics)
             },
             panic_to_error,
@@ -220,7 +312,7 @@ impl GoSchemaValidator {
 }
 
 macro_rules! impl_go_engine {
-    ($GoType:ident, $InnerEngine:ty, $constructor:path) => {
+    ($GoType:ident, $InnerEngine:ty, $Options:ty, $constructor:path) => {
         #[derive(uniffi::Object)]
         pub struct $GoType {
             engine: $InnerEngine,
@@ -229,32 +321,15 @@ macro_rules! impl_go_engine {
 
         #[uniffi::export]
         impl $GoType {
-            /// Builds an engine from a JSON engine config (`{}` for defaults;
-            /// `customRules` / `guardRules` load external rule sources).
+            /// Builds an engine from a JSON config string. `{}` selects the
+            /// built-in defaults; the JSON may carry external rule sources and an
+            /// optional nested schema validator config, following this engine's
+            /// option schema.
             #[uniffi::constructor]
             pub fn new(config_json: String) -> Result<Arc<Self>, ValidationError> {
                 catch_panics(
                     || {
-                        let engine_options = EngineOptions::parse(&config_json)?;
-                        let schema_config = engine_options
-                            .schema_validator_config
-                            .map(|sv| SchemaValidatorConfig {
-                                additional_schemas: sv
-                                    .additional_schemas
-                                    .into_iter()
-                                    .map(AdditionalSchemaSource::from)
-                                    .collect(),
-                            })
-                            .unwrap_or_default();
-                        let config = EngineConfig {
-                            custom_rules: engine_options
-                                .custom_rules
-                                .into_iter()
-                                .map(ExternalRuleSource::from)
-                                .collect(),
-                            guard_rules: engine_options.guard_rules.into_iter().map(ExternalRuleSource::from).collect(),
-                            schema_validator_config: None,
-                        };
+                        let (schema_config, config) = <$Options>::parse(&config_json)?.into_engine_build();
                         let schema_validator =
                             schema_validator::SchemaValidator::new(schema_config).map_err(ValidationError::new)?;
                         let engine = $constructor(config, &schema_validator).map_err(ValidationError::new)?;
@@ -264,8 +339,12 @@ macro_rules! impl_go_engine {
                 )
             }
 
-            /// Validates a template and returns the standard report as JSON.
-            pub fn validate_standard_json(
+            /// Validates a template and returns the report as JSON.
+            ///
+            /// The detail level carried by `options_json` controls enrichment:
+            /// `STANDARD` leaves enrichment fields absent, while `DETAILED`
+            /// populates them. Either value produces a Go `ValidationReport`.
+            pub fn validate_template_json(
                 &self,
                 template: Vec<u8>,
                 options_json: String,
@@ -273,7 +352,8 @@ macro_rules! impl_go_engine {
             ) -> Result<String, ValidationError> {
                 catch_panics(
                     || {
-                        let config = ValidateOptions::parse(&options_json)?.to_core(DetailLevel::Standard);
+                        let config = ValidateOptions::parse(&options_json)?.to_core();
+                        let detail_level = config.detail_level.clone();
                         let report = validate_bytes_with_path(
                             &self.engine,
                             &self.schema_validator,
@@ -282,31 +362,21 @@ macro_rules! impl_go_engine {
                             file_path,
                         )
                         .map_err(ValidationError::new)?;
-                        to_json(&report.to_standard())
+                        to_json(&report.to_report(detail_level))
                     },
                     panic_to_error,
                 )
             }
 
-            /// Validates a template and returns the detailed report as JSON.
-            pub fn validate_detailed_json(
-                &self,
-                template: Vec<u8>,
-                options_json: String,
-                file_path: String,
-            ) -> Result<String, ValidationError> {
+            /// Validates an AWS CLI command and returns the canonical result as JSON.
+            pub fn validate_aws_cli_command_json(&self, request_json: String) -> Result<String, ValidationError> {
                 catch_panics(
                     || {
-                        let config = ValidateOptions::parse(&options_json)?.to_core(DetailLevel::Detailed);
-                        let report = validate_bytes_with_path(
-                            &self.engine,
-                            &self.schema_validator,
-                            &template,
-                            config,
-                            file_path,
-                        )
-                        .map_err(ValidationError::new)?;
-                        to_json(&report.to_detailed())
+                        let request = AwsCliCommandWire::parse(&request_json)?.into_context();
+                        let result =
+                            validation_engine::validate_aws_cli_command(&self.engine, &self.schema_validator, &request)
+                                .map_err(ValidationError::new)?;
+                        to_json(&result)
                     },
                     panic_to_error,
                 )
@@ -324,8 +394,19 @@ macro_rules! impl_go_engine {
     };
 }
 
-impl_go_engine!(GoRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new_with_schema_validator);
-impl_go_engine!(GoCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new_with_schema_validator);
+impl_go_engine!(
+    GoRegoEngine,
+    rego_engine::RegoEngine,
+    EngineOptions,
+    rego_engine::RegoEngine::new_with_schema_validator
+);
+impl_go_engine!(GoCelEngine, cel_engine::CelEngine, EngineOptions, cel_engine::CelEngine::new_with_schema_validator);
+impl_go_engine!(
+    GoCompositeEngine,
+    composite_engine::CompositeEngine,
+    CompositeEngineOptions,
+    composite_engine::CompositeEngine::new_with_schema_validator
+);
 
 #[derive(uniffi::Object)]
 pub struct GoSemanticModel {
@@ -421,6 +502,13 @@ mod tests {
         }
     }
 
+    fn expect_composite_config_error(config_json: &str) -> ValidationError {
+        match CompositeEngineOptions::parse(config_json) {
+            Err(error) => error,
+            Ok(_) => panic!("expected {config_json} to be rejected"),
+        }
+    }
+
     /// The JSON a fully populated Go `ValidateConfig` marshals to. Kept in sync
     /// with `FULL_VALIDATE_CONFIG_JSON` in `tests/config_test.go`, which asserts
     /// the Go structs produce exactly this document - together the two tests pin
@@ -446,6 +534,7 @@ mod tests {
             "resourceTypes": [{"resourceType": "AWS::SQS::Queue"}],
             "services": [{"service": "AWS::SQS"}]
         },
+        "detailLevel": "STANDARD",
         "severityLevel": "WARN",
         "parameterOverrides": {"Environment": "prod"},
         "pseudoParameterOverrides": {
@@ -484,6 +573,7 @@ mod tests {
         assert_eq!("AWS::SQS::Queue", options.exclude.resource_types[0].resource_type);
         assert_eq!("AWS::SQS", options.exclude.services[0].service);
 
+        assert_eq!(Some(DetailLevel::Standard), options.detail_level);
         assert_eq!(Some(Severity::Warn), options.severity_level);
         assert_eq!(Some(&"prod".to_string()), options.parameter_overrides.get("Environment"));
         assert_eq!(Some("us-west-2"), options.pseudo_parameter_overrides.region.as_deref());
@@ -496,7 +586,7 @@ mod tests {
     #[test]
     fn empty_object_yields_core_defaults() {
         let defaults = validation_engine::ValidateConfig::default();
-        let config = ValidateOptions::parse("{}").expect("an empty object must parse").to_core(DetailLevel::Detailed);
+        let config = ValidateOptions::parse("{}").expect("an empty object must parse").to_core();
 
         assert_eq!(defaults.severity_level, config.severity_level);
         assert_eq!(defaults.strict, config.strict);
@@ -560,6 +650,73 @@ mod tests {
         );
     }
 
+    /// The JSON a fully populated Go `CompositeEngineConfig` marshals to. Kept in
+    /// sync with `fullCompositeEngineConfigJSON` in `tests/config_test.go`, which
+    /// asserts the Go struct produces exactly this document - together the two
+    /// tests pin the composite wire contract from both sides.
+    const FULL_COMPOSITE_OPTIONS_JSON: &str = r#"{
+        "regoRules": [{"name": "custom.rego", "content": "package x"}],
+        "celRules": [{"name": "custom.json", "content": "{\"rules\":[]}"}],
+        "guardRules": [{"name": "compliance.guard", "content": "let x = 1"}],
+        "schemaValidatorConfig": {
+            "additionalSchemas": [{
+                "schema": "{\"typeName\":\"AWS::Test::OverlayOnly\",\"properties\":{\"Name\":{\"type\":\"string\"}}}"
+            }]
+        }
+    }"#;
+
+    #[test]
+    fn composite_options_parse_every_field_the_go_wrapper_sends() {
+        let options =
+            CompositeEngineOptions::parse(FULL_COMPOSITE_OPTIONS_JSON).expect("full composite config must parse");
+
+        assert_eq!(1, options.rego_rules.len());
+        assert_eq!("custom.rego", options.rego_rules[0].name);
+        assert_eq!("package x", options.rego_rules[0].content);
+        assert_eq!(1, options.cel_rules.len());
+        assert_eq!("custom.json", options.cel_rules[0].name);
+        assert_eq!(1, options.guard_rules.len());
+        assert_eq!("compliance.guard", options.guard_rules[0].name);
+        assert_eq!("let x = 1", options.guard_rules[0].content);
+
+        let schema = options.schema_validator_config.expect("schemaValidatorConfig must parse");
+        assert_eq!(1, schema.additional_schemas.len());
+    }
+
+    #[test]
+    fn empty_composite_config_loads_no_external_rules() {
+        let (schema_config, composite_config) =
+            CompositeEngineOptions::parse("{}").expect("an empty object must parse").into_engine_build();
+
+        assert!(composite_config.rego_rules.is_empty());
+        assert!(composite_config.cel_rules.is_empty());
+        assert!(composite_config.guard_rules.is_empty());
+        assert!(schema_config.additional_schemas.is_empty());
+        assert!(
+            composite_config.schema_validator_config.is_none(),
+            "the shared validator is built separately, so the composite config's own schema field stays unset"
+        );
+    }
+
+    #[test]
+    fn unknown_composite_option_is_rejected() {
+        // The composite carries `regoRules`, not the engine config's `customRules`,
+        // so an engine-config field name must be rejected rather than dropped.
+        let error = expect_composite_config_error(r#"{"customRules": []}"#);
+
+        assert!(error.to_string().contains("customRules"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn malformed_composite_config_json_reports_an_engine_error() {
+        let error = expect_composite_config_error("not json");
+
+        assert!(
+            error.to_string().contains("invalid composite engine config JSON"),
+            "error must identify the failing input: {error}"
+        );
+    }
+
     #[test]
     fn schema_validator_options_parse_additional_schemas() {
         let config = parse_schema_config(
@@ -615,5 +772,133 @@ mod tests {
             error.to_string().contains("invalid schema validator config JSON"),
             "error must identify the failing input: {error}"
         );
+    }
+
+    #[test]
+    fn aws_cli_command_parses_valid_minimal_request() {
+        let wire = AwsCliCommandWire::parse(
+            r#"{"serviceName":"s3","operationName":"CreateBucket","parameters":{"Bucket":{"type":"STRING","value":"test"}}}"#,
+        )
+        .expect("valid minimal request must parse");
+
+        assert_eq!(wire.service_name, "s3");
+        assert_eq!(wire.operation_name, "CreateBucket");
+        assert!(wire.parameters.contains_key("Bucket"));
+        assert_eq!(wire.service_prefix, None);
+        assert_eq!(wire.http_method, None);
+        assert_eq!(wire.is_read_only, None);
+    }
+
+    #[test]
+    fn aws_cli_command_parses_nested_values_and_bytes() {
+        let wire = AwsCliCommandWire::parse(
+            r#"{
+                "serviceName": "cloudformation",
+                "operationName": "CreateStack",
+                "parameters": {
+                    "TemplateBody": {"type": "BYTES", "value": [123, 125]},
+                    "Tags": {"type": "ARRAY", "items": [
+                        {"type": "OBJECT", "entries": {"Key": {"type": "STRING", "value": "env"}}}
+                    ]},
+                    "Count": {"type": "INTEGER", "value": 42}
+                },
+                "servicePrefix": "cloudformation",
+                "httpMethod": "POST",
+                "isReadOnly": false
+            }"#,
+        )
+        .expect("nested request must parse");
+
+        assert_eq!(wire.service_name, "cloudformation");
+        assert_eq!(wire.service_prefix, Some("cloudformation".to_string()));
+        assert_eq!(wire.http_method, Some("POST".to_string()));
+        assert_eq!(wire.is_read_only, Some(false));
+
+        let context = wire.into_context();
+        match context.parameters.get("TemplateBody") {
+            Some(validation_engine::AwsCliValue::Bytes { value }) => assert_eq!(value, &[123, 125]),
+            other => panic!("expected Bytes, got {other:?}"),
+        }
+        match context.parameters.get("Count") {
+            Some(validation_engine::AwsCliValue::Integer { value }) => assert_eq!(*value, 42),
+            other => panic!("expected Integer, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_cli_command_rejects_malformed_json() {
+        let error = AwsCliCommandWire::parse("not json").expect_err("malformed JSON must fail");
+        assert!(
+            error.to_string().contains("invalid AWS CLI command JSON"),
+            "error must identify the failing input: {error}"
+        );
+    }
+
+    #[test]
+    fn aws_cli_command_rejects_unknown_fields() {
+        let error = AwsCliCommandWire::parse(
+            r#"{"serviceName":"s3","operationName":"CreateBucket","parameters":{},"unknownField":"x"}"#,
+        )
+        .expect_err("unknown field must fail");
+        assert!(error.to_string().contains("unknownField"), "error must name the offending key: {error}");
+    }
+
+    #[test]
+    fn aws_cli_command_rejects_missing_required_fields() {
+        let error =
+            AwsCliCommandWire::parse(r#"{"serviceName":"s3"}"#).expect_err("missing required operationName must fail");
+        assert!(error.to_string().contains("operationName"), "error must name the missing field: {error}");
+    }
+
+    #[test]
+    fn aws_cli_value_unsupported_uses_type_name_field() {
+        let json = r#"{"type":"UNSUPPORTED","type_name":"non-finite floating-point number"}"#;
+        let value: validation_engine::AwsCliValue =
+            serde_json::from_str(json).expect("UNSUPPORTED with type_name must parse");
+        match value {
+            validation_engine::AwsCliValue::Unsupported { type_name } => {
+                assert_eq!(type_name, "non-finite floating-point number");
+            }
+            other => panic!("expected Unsupported, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_cli_value_bytes_parses_integer_array() {
+        let json = r#"{"type":"BYTES","value":[72,101,108,108,111]}"#;
+        let value: validation_engine::AwsCliValue =
+            serde_json::from_str(json).expect("BYTES with integer array must parse");
+        match value {
+            validation_engine::AwsCliValue::Bytes { value } => {
+                assert_eq!(value, vec![72, 101, 108, 108, 111]);
+            }
+            other => panic!("expected Bytes, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_cli_value_empty_array_has_items_field() {
+        let json = r#"{"type":"ARRAY","items":[]}"#;
+        let value: validation_engine::AwsCliValue =
+            serde_json::from_str(json).expect("ARRAY with empty items must parse");
+        match value {
+            validation_engine::AwsCliValue::Array { items } => {
+                assert!(items.is_empty());
+            }
+            other => panic!("expected Array, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn aws_cli_value_empty_object_has_entries_field() {
+        let json = r#"{"type":"OBJECT","entries":{}}"#;
+        let value: validation_engine::AwsCliValue =
+            serde_json::from_str(json).expect("OBJECT with empty entries must parse");
+        match value {
+            validation_engine::AwsCliValue::Object { entries } => {
+                assert!(entries.is_empty());
+            }
+            other => panic!("expected Object, got {other:?}"),
+        }
     }
 }

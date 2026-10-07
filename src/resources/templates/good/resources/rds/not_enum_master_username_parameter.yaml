@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  DatabaseUser:
+    Type: String
+    Default: rdsadmin
+Resources:
+  ParameterUsername:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Engine: aurora-mysql
+      MasterUsername: !Ref DatabaseUser
+      MasterUserPassword: '{{resolve:secretsmanager:example:SecretString:password}}'
+      BackupRetentionPeriod: 7
+      Tags:
+        - Key: Name
+          Value: parameter-username

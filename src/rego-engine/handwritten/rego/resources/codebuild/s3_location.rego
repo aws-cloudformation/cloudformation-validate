@@ -8,6 +8,7 @@ violation contains make_diag_full("E3636", "ERROR", name,
     sprintf("CodeBuild S3 source location '%s' must be in 'bucket/key' format", [loc]),
     "Use format: my-bucket/path/to/source.zip",
     "") if {
+    cfn_rule_active("E3636")
     some name in resources_of_type("AWS::CodeBuild::Project")
     src_type := resolve(name, "Properties.Source.Type")
     src_type == "S3"

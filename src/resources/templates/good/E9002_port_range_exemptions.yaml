@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  FromPort/ToPort are an ordered range only for TCP and UDP. For ICMP and
+  ICMPv6 they carry a type/code pair (128/0 is not an inverted range), and an
+  ascending TCP/UDP range is valid wherever the rule is declared.
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Type/code pairs and ascending ranges
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: 0
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 443
+          CidrIp: 10.0.0.0/8
+  StandaloneIngressIcmpTypeCode:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: icmp
+      FromPort: 8
+      ToPort: 0
+      CidrIp: 10.0.0.0/8
+  StandaloneIngressIcmpv6TypeCode:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: icmpv6
+      FromPort: 128
+      ToPort: 0
+      CidrIpv6: ::/0
+  StandaloneEgressAscendingRange:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: udp
+      FromPort: 53
+      ToPort: 53
+      CidrIp: 10.0.0.0/8

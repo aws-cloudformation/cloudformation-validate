@@ -5,9 +5,10 @@ use std::sync::Arc;
 use validation_engine::ValidationEngine;
 
 pub use data_source::AdditionalSchemaSource;
+pub use diagnostics::output::{Diagnostic, ValidationReport};
 pub use diagnostics::{
-    DetailLevel, DetailedDiagnostic, DetailedReport, PerformanceMetrics, PhaseMetric, RelatedResource, ReportMetadata,
-    ReportStatus, ResourceRef, StandardDiagnostic, StandardReport, Summary, ViolationContext,
+    DetailLevel, PerformanceMetrics, PhaseMetric, RelatedResource, ReportMetadata, ReportStatus, ResourceRef, Summary,
+    ViolationContext,
 };
 pub use rules::{
     IdRange, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleInfo, RuleOrigin, ServiceFilter, Severity,
@@ -22,7 +23,10 @@ pub use template_model::model::{
 };
 pub use template_model::resolver::{MapEntry, ParameterInfo, RefKind, ResolvedValue};
 pub use template_model::{JsonValue, PseudoParameterOverrides, SourceSpan};
-pub use validation_engine::{EngineConfig, EngineType, ExternalRuleSource};
+pub use validation_engine::{
+    AwsCliCommand, AwsCliCommandValidation, AwsCliCommandValidationStatus, AwsCliOperationKind, AwsCliTemplateSource,
+    AwsCliValue, CompositeEngineConfig, EngineConfig, EngineType, ExternalRuleSource,
+};
 
 pub use schema_validator::SchemaValidatorConfig;
 
@@ -32,6 +36,8 @@ pub struct ValidateConfig {
     pub include: RuleFilterConfig,
     #[uniffi(default)]
     pub exclude: RuleFilterConfig,
+    #[uniffi(default)]
+    pub detail_level: Option<DetailLevel>,
     #[uniffi(default)]
     pub severity_level: Option<Severity>,
     #[uniffi(default)]
@@ -45,11 +51,11 @@ pub struct ValidateConfig {
 }
 
 impl ValidateConfig {
-    fn to_core(&self, detail_level: DetailLevel) -> validation_engine::ValidateConfig {
+    fn to_core(&self) -> validation_engine::ValidateConfig {
         let defaults = validation_engine::ValidateConfig::default();
         validation_engine::ValidateConfig {
             filters: rules::FilterConfig::new(self.include.clone(), self.exclude.clone()),
-            detail_level,
+            detail_level: self.detail_level.clone().unwrap_or(defaults.detail_level),
             severity_level: self.severity_level.unwrap_or(defaults.severity_level),
             parameter_overrides: self.parameter_overrides.clone(),
             pseudo_parameter_overrides: self.pseudo_parameter_overrides.clone(),
@@ -77,7 +83,7 @@ fn panic_to_error(message: String) -> ValidationError {
 
 #[derive(uniffi::Record)]
 pub struct JvmSchemaValidationResult {
-    pub diagnostics: Vec<StandardDiagnostic>,
+    pub diagnostics: Vec<Diagnostic>,
     pub metric: PhaseMetric,
 }
 
@@ -117,7 +123,7 @@ impl JvmSchemaValidator {
             || {
                 let result = self.inner.validate(&model.model, region.as_deref());
                 Ok(JvmSchemaValidationResult {
-                    diagnostics: result.diagnostics.iter().map(|d| d.to_standard()).collect(),
+                    diagnostics: result.diagnostics.iter().map(|d| d.to_report(DetailLevel::Standard)).collect(),
                     metric: result.metric,
                 })
             },
@@ -127,7 +133,7 @@ impl JvmSchemaValidator {
 }
 
 macro_rules! impl_jvm_engine {
-    ($JvmType:ident, $InnerEngine:ty, $constructor:path) => {
+    ($JvmType:ident, $InnerEngine:ty, $Config:ty, $constructor:path) => {
         #[derive(uniffi::Object)]
         pub struct $JvmType {
             engine: $InnerEngine,
@@ -137,7 +143,7 @@ macro_rules! impl_jvm_engine {
         #[uniffi::export]
         impl $JvmType {
             #[uniffi::constructor]
-            pub fn new(config: EngineConfig) -> Result<Arc<Self>, ValidationError> {
+            pub fn new(config: $Config) -> Result<Arc<Self>, ValidationError> {
                 validation_engine::catch_panics(
                     || {
                         let schema_config = config.schema_validator_config.clone().unwrap_or_default();
@@ -151,15 +157,16 @@ macro_rules! impl_jvm_engine {
                 )
             }
 
-            pub fn validate_standard(
+            pub fn validate_template(
                 &self,
                 template: Vec<u8>,
                 config: ValidateConfig,
                 file_path: String,
-            ) -> Result<StandardReport, ValidationError> {
+            ) -> Result<ValidationReport, ValidationError> {
                 validation_engine::catch_panics(
                     || {
-                        let core_config = config.to_core(DetailLevel::Standard);
+                        let core_config = config.to_core();
+                        let detail_level = core_config.detail_level.clone();
                         let report = validation_engine::validate_bytes_with_path(
                             &self.engine,
                             &self.schema_validator,
@@ -168,30 +175,22 @@ macro_rules! impl_jvm_engine {
                             file_path,
                         )
                         .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(report.to_standard())
+                        Ok(report.to_report(detail_level))
                     },
                     panic_to_error,
                 )
             }
 
-            pub fn validate_detailed(
+            pub fn validate_aws_cli_command(
                 &self,
-                template: Vec<u8>,
-                config: ValidateConfig,
-                file_path: String,
-            ) -> Result<DetailedReport, ValidationError> {
+                request: AwsCliCommand,
+            ) -> Result<AwsCliCommandValidation, ValidationError> {
                 validation_engine::catch_panics(
                     || {
-                        let core_config = config.to_core(DetailLevel::Detailed);
-                        let report = validation_engine::validate_bytes_with_path(
-                            &self.engine,
-                            &self.schema_validator,
-                            &template,
-                            core_config,
-                            file_path,
-                        )
-                        .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
-                        Ok(report.to_detailed())
+                        let validation =
+                            validation_engine::validate_aws_cli_command(&self.engine, &self.schema_validator, &request)
+                                .map_err(|e| ValidationError::Engine { msg: e.to_string() })?;
+                        Ok(validation)
                     },
                     panic_to_error,
                 )
@@ -208,8 +207,19 @@ macro_rules! impl_jvm_engine {
     };
 }
 
-impl_jvm_engine!(JvmRegoEngine, rego_engine::RegoEngine, rego_engine::RegoEngine::new_with_schema_validator);
-impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, cel_engine::CelEngine::new_with_schema_validator);
+impl_jvm_engine!(
+    JvmRegoEngine,
+    rego_engine::RegoEngine,
+    EngineConfig,
+    rego_engine::RegoEngine::new_with_schema_validator
+);
+impl_jvm_engine!(JvmCelEngine, cel_engine::CelEngine, EngineConfig, cel_engine::CelEngine::new_with_schema_validator);
+impl_jvm_engine!(
+    JvmCompositeEngine,
+    composite_engine::CompositeEngine,
+    CompositeEngineConfig,
+    composite_engine::CompositeEngine::new_with_schema_validator
+);
 
 #[derive(uniffi::Object)]
 pub struct JvmSemanticModel {

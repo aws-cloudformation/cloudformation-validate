@@ -276,6 +276,33 @@
     "access-analyzer:updatefindings": [
       "arn:${Partition}:access-analyzer:${Region}:${Account}:analyzer/.*"
     ],
+    "account-access:createentitlement": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:deleteapplication": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:deleteentitlement": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:getapplication": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:getentitlement": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:listentitlements": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:listtagsforresource": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:tagresource": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
+    "account-access:untagresource": [
+      "arn:${Partition}:account-access:${Region}:${Account}:application/.*"
+    ],
     "account:acceptprimaryemailupdate": [
       "arn:${Partition}:account::${ManagementAccountId}:account/.*"
     ],
@@ -459,6 +486,9 @@
     "acm:listacmeexternalaccountbindings": [
       "arn:${Partition}:acm:${Region}:${Account}:acme-endpoint/.*"
     ],
+    "acm:listcertificatedomainvalidations": [
+      "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
+    ],
     "acm:listtagsforcertificate": [
       "arn:${Partition}:acm:${Region}:${Account}:certificate/.*"
     ],
@@ -518,6 +548,66 @@
     ],
     "aco-automation:updateautomationrule": [
       "arn:${Partition}:compute-optimizer::${Account}:automation-rule/.*"
+    ],
+    "agent-registry:createregistryrecord": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:deleteregistry": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:deleteregistryrecord": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:deleteresourcepolicy": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:getdiscoverableregistryrecord": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:getregistry": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:getregistryrecord": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:getresourcepolicy": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:invokeregistrymcp": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:listdiscoverableregistryrecords": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:listregistryrecords": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:listtagsforresource": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:putresourcepolicy": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:searchdiscoverableregistryrecords": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:submitregistryrecordforapproval": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:tagresource": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:untagresource": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:updateregistry": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:updateregistryrecord": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
+    ],
+    "agent-registry:updateregistryrecordstatus": [
+      "arn:${Partition}:agent-registry:${Region}:${Account}:registry/.*"
     ],
     "aidevops:associateservice": [
       "arn:${Partition}:aidevops:${Region}:${Account}:agentspace/.*"
@@ -1472,6 +1562,9 @@
     "appconfig:createenvironment": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
+    "appconfig:createexperimentdefinition": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
     "appconfig:createhostedconfigurationversion": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
@@ -1485,6 +1578,9 @@
       "arn:${Partition}:appconfig:${Region}:${Account}:deploymentstrategy/.*"
     ],
     "appconfig:deleteenvironment": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
+    "appconfig:deleteexperimentdefinition": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
     "appconfig:deleteextension": [
@@ -1514,6 +1610,12 @@
     "appconfig:getenvironment": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
+    "appconfig:getexperimentdefinition": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
+    "appconfig:getexperimentrun": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
     "appconfig:getextension": [
       "arn:${Partition}:appconfig:${Region}:${Account}:extension/.*"
     ],
@@ -1535,6 +1637,12 @@
     "appconfig:listenvironments": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
+    "appconfig:listexperimentrunevents": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
+    "appconfig:listexperimentruns": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
     "appconfig:listhostedconfigurationversions": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
@@ -1551,7 +1659,13 @@
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*",
       "arn:${Partition}:appconfig:${Region}:${Account}:deploymentstrategy/.*"
     ],
+    "appconfig:startexperimentrun": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
     "appconfig:stopdeployment": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
+    "appconfig:stopexperimentrun": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
     "appconfig:tagresource": [
@@ -1576,6 +1690,12 @@
       "arn:${Partition}:appconfig:${Region}:${Account}:deploymentstrategy/.*"
     ],
     "appconfig:updateenvironment": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
+    "appconfig:updateexperimentdefinition": [
+      "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
+    ],
+    "appconfig:updateexperimentrun": [
       "arn:${Partition}:appconfig:${Region}:${Account}:application/.*"
     ],
     "appconfig:updateextension": [
@@ -3869,6 +3989,9 @@
     "backup:createtieringconfiguration": [
       "arn:${Partition}:backup:${Region}:${Account}:tiering-configuration:.*"
     ],
+    "backup:deletebackupaccesspoint": [
+      "arn:${Partition}:backup:${Region}:${Account}:accesspoint/.*"
+    ],
     "backup:deletebackupplan": [
       "arn:${Partition}:backup:${Region}:${Account}:backup-plan:.*"
     ],
@@ -3907,6 +4030,9 @@
     ],
     "backup:deletetieringconfiguration": [
       "arn:${Partition}:backup:${Region}:${Account}:tiering-configuration:.*"
+    ],
+    "backup:describebackupaccesspoint": [
+      "arn:${Partition}:backup:${Region}:${Account}:accesspoint/.*"
     ],
     "backup:describebackupvault": [
       "arn:${Partition}:backup:${Region}:${Account}:backup-vault:.*"
@@ -3987,6 +4113,7 @@
       "arn:${Partition}:backup:${Region}:${Account}:restore-testing-plan:.*"
     ],
     "backup:listtags": [
+      "arn:${Partition}:backup:${Region}:${Account}:accesspoint/.*",
       "arn:${Partition}:backup:${Region}:${Account}:backup-plan:.*",
       "arn:${Partition}:backup:${Region}:${Account}:backup-vault:.*",
       "arn:${Partition}:backup:${Region}:${Account}:framework:.*",
@@ -4030,6 +4157,7 @@
       "arn:${Partition}:${Vendor}:${Region}:*:.*"
     ],
     "backup:tagresource": [
+      "arn:${Partition}:backup:${Region}:${Account}:accesspoint/.*",
       "arn:${Partition}:backup:${Region}:${Account}:backup-plan:.*",
       "arn:${Partition}:backup:${Region}:${Account}:backup-vault:.*",
       "arn:${Partition}:backup:${Region}:${Account}:framework:.*",
@@ -4040,6 +4168,7 @@
       "arn:${Partition}:backup:${Region}:${Account}:tiering-configuration:.*"
     ],
     "backup:untagresource": [
+      "arn:${Partition}:backup:${Region}:${Account}:accesspoint/.*",
       "arn:${Partition}:backup:${Region}:${Account}:backup-plan:.*",
       "arn:${Partition}:backup:${Region}:${Account}:backup-vault:.*",
       "arn:${Partition}:backup:${Region}:${Account}:framework:.*",
@@ -4146,6 +4275,9 @@
     "batch:registerjobdefinition": [
       "arn:${Partition}:batch:${Region}:${Account}:consumable-resource/.*",
       "arn:${Partition}:batch:${Region}:${Account}:job-definition/.*"
+    ],
+    "batch:setcapacitytags": [
+      "arn:${Partition}:batch:${Region}:${Account}:compute-environment/.*"
     ],
     "batch:submitjob": [
       "arn:${Partition}:batch:${Region}:${Account}:consumable-resource/.*",
@@ -4343,6 +4475,9 @@
     "bedrock-agentcore:batchdeletememoryrecords": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
     ],
+    "bedrock-agentcore:batchputgatewayratelimits": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
+    ],
     "bedrock-agentcore:batchupdatememoryrecords": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
     ],
@@ -4356,11 +4491,17 @@
     "bedrock-agentcore:createapikeycredentialprovider": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:token-vault/.*"
     ],
+    "bedrock-agentcore:createconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
+    ],
     "bedrock-agentcore:createdatasetversion": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
     "bedrock-agentcore:createevent": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
+    ],
+    "bedrock-agentcore:creategatewayratelimit": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
     ],
     "bedrock-agentcore:creategatewayrule": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
@@ -4416,11 +4557,20 @@
     "bedrock-agentcore:deletebrowserprofile": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-profile/.*"
     ],
+    "bedrock-agentcore:deletecapacityprovider": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*"
+    ],
+    "bedrock-agentcore:deletecapacityprovidersession": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*"
+    ],
     "bedrock-agentcore:deletecodeinterpreter": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:code-interpreter-custom/.*"
     ],
     "bedrock-agentcore:deleteconfigurationbundle": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:deleteconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
     ],
     "bedrock-agentcore:deletedataset": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
@@ -4435,6 +4585,9 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
     ],
     "bedrock-agentcore:deletegateway": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
+    ],
+    "bedrock-agentcore:deletegatewayratelimit": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
     ],
     "bedrock-agentcore:deletegatewayrule": [
@@ -4538,6 +4691,9 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:aws:browser/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-custom/.*"
     ],
+    "bedrock-agentcore:getcapacityprovider": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*"
+    ],
     "bedrock-agentcore:getcodeinterpreter": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:code-interpreter-custom/.*"
     ],
@@ -4551,6 +4707,9 @@
     "bedrock-agentcore:getconfigurationbundleversion": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
     ],
+    "bedrock-agentcore:getconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
+    ],
     "bedrock-agentcore:getdataset": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
     ],
@@ -4561,6 +4720,9 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
     ],
     "bedrock-agentcore:getgateway": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
+    ],
+    "bedrock-agentcore:getgatewayratelimit": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
     ],
     "bedrock-agentcore:getgatewayrule": [
@@ -4719,6 +4881,9 @@
     "bedrock-agentcore:listevents": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
     ],
+    "bedrock-agentcore:listgatewayratelimits": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
+    ],
     "bedrock-agentcore:listgatewayrules": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
     ],
@@ -4771,6 +4936,7 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:token-vault/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-custom/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-profile/.*",
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:code-interpreter-custom/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:evaluator/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
@@ -4792,12 +4958,18 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:policy-engine/.*"
     ],
+    "bedrock-agentcore:passcapacityprovider": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*"
+    ],
     "bedrock-agentcore:processpayment": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:payment-manager/.*"
     ],
     "bedrock-agentcore:putresourcepolicy": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:runtime/.*"
+    ],
+    "bedrock-agentcore:putsystemlogevents": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*"
     ],
     "bedrock-agentcore:retrievememoryrecords": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:memory/.*"
@@ -4852,6 +5024,7 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:token-vault/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-custom/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-profile/.*",
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:code-interpreter-custom/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:evaluator/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
@@ -4867,6 +5040,7 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:token-vault/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-custom/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-profile/.*",
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:code-interpreter-custom/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:evaluator/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*",
@@ -4894,8 +5068,14 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:aws:browser/.*",
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:browser-custom/.*"
     ],
+    "bedrock-agentcore:updatecapacityprovider": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:capacity-provider/.*"
+    ],
     "bedrock-agentcore:updateconfigurationbundle": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:configuration-bundle/.*"
+    ],
+    "bedrock-agentcore:updateconsentportal": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:consent-portal/.*"
     ],
     "bedrock-agentcore:updatedataset": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:dataset/.*"
@@ -4907,6 +5087,9 @@
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:evaluator/.*"
     ],
     "bedrock-agentcore:updategateway": [
+      "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
+    ],
+    "bedrock-agentcore:updategatewayratelimit": [
       "arn:${Partition}:bedrock-agentcore:${Region}:${Account}:gateway/.*"
     ],
     "bedrock-agentcore:updategatewayrule": [
@@ -4968,6 +5151,9 @@
       "arn:${Partition}:bedrock-mantle:${Region}:${Account}:project/.*"
     ],
     "bedrock-mantle:cancelinference": [
+      "arn:${Partition}:bedrock-mantle:${Region}:${Account}:project/.*"
+    ],
+    "bedrock-mantle:counttokens": [
       "arn:${Partition}:bedrock-mantle:${Region}:${Account}:project/.*"
     ],
     "bedrock-mantle:createcustomizedmodel": [
@@ -5098,6 +5284,9 @@
     ],
     "bedrock:cancelautomatedreasoningpolicybuildworkflow": [
       "arn:${Partition}:bedrock:${Region}:${Account}:automated-reasoning-policy/.*"
+    ],
+    "bedrock:cancelinvoke": [
+      "arn:${Partition}:bedrock:${Region}:${Account}:project/.*"
     ],
     "bedrock:copyblueprintstage": [
       "arn:${Partition}:bedrock:${Region}:${Account}:blueprint/.*"
@@ -5251,6 +5440,9 @@
     ],
     "bedrock:deleteinferenceprofile": [
       "arn:${Partition}:bedrock:${Region}:${Account}:application-inference-profile/.*"
+    ],
+    "bedrock:deleteinvoke": [
+      "arn:${Partition}:bedrock:${Region}:${Account}:project/.*"
     ],
     "bedrock:deleteknowledgebase": [
       "arn:${Partition}:bedrock:${Region}:${Account}:knowledge-base/.*"
@@ -5418,6 +5610,9 @@
     "bedrock:getinvocationstep": [
       "arn:${Partition}:bedrock:${Region}:${Account}:session/.*"
     ],
+    "bedrock:getinvoke": [
+      "arn:${Partition}:bedrock:${Region}:${Account}:project/.*"
+    ],
     "bedrock:getknowledgebase": [
       "arn:${Partition}:bedrock:${Region}:${Account}:knowledge-base/.*"
     ],
@@ -5504,6 +5699,7 @@
       "arn:${Partition}:bedrock:${Region}::foundation-model/.*",
       "arn:${Partition}:bedrock:${Region}:${Account}:imported-model/.*",
       "arn:${Partition}:bedrock:${Region}:${Account}:inference-profile/.*",
+      "arn:${Partition}:bedrock:${Region}:${Account}:project/.*",
       "arn:${Partition}:bedrock:${Region}:${Account}:prompt-router/.*",
       "arn:${Partition}:bedrock:${Region}:${Account}:provisioned-model/.*",
       "arn:${Partition}:bedrock::${Account}:system-tool/.*"
@@ -7149,6 +7345,9 @@
     "cleanrooms:disallowintermediatetable": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
+    "cleanrooms:getanalysislogexport": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
     "cleanrooms:getanalysistemplate": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
@@ -7219,6 +7418,9 @@
     ],
     "cleanrooms:getschemaanalysisrule": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:collaboration/.*",
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:listanalysislogexports": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:listanalysistemplates": [
@@ -7296,6 +7498,9 @@
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:previewprivacyimpact": [
+      "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
+    ],
+    "cleanrooms:startanalysislogexport": [
       "arn:${Partition}:cleanrooms:${Region}:${Account}:membership/.*"
     ],
     "cleanrooms:startprotectedjob": [
@@ -8501,26 +8706,59 @@
     "cloudwatch:batchgetservicelevelobjectivebudgetreport": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:slo/.*"
     ],
+    "cloudwatch:deleteaccessgrant": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:access-grant/.*"
+    ],
+    "cloudwatch:deleteaccessprofile": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:access-profile/.*"
+    ],
     "cloudwatch:deletealarmmuterule": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:alarm-mute-rule:.*"
     ],
     "cloudwatch:deletealarms": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:alarm:.*"
     ],
+    "cloudwatch:deletealert": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:alert/.*"
+    ],
     "cloudwatch:deletedashboards": [
       "arn:${Partition}:cloudwatch::${Account}:dashboard/.*"
+    ],
+    "cloudwatch:deletedomain": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:domain/.*"
+    ],
+    "cloudwatch:deletedomainaccessgrantfororganization": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:organization-access-grant/.*"
+    ],
+    "cloudwatch:deletedomainfororganization": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:organization-domain/.*"
+    ],
+    "cloudwatch:deleteingestionendpoint": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:ingestion-endpoint/.*"
     ],
     "cloudwatch:deleteinsightrules": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:insight-rule/.*"
     ],
+    "cloudwatch:deleteintegration": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:integration/.*"
+    ],
     "cloudwatch:deletemetricstream": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:metric-stream/.*"
+    ],
+    "cloudwatch:deleteomnidashboard": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:omni-dashboard/.*"
     ],
     "cloudwatch:deletepipelinerule": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:dataset/.*"
     ],
     "cloudwatch:deleteservicelevelobjective": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:slo/.*"
+    ],
+    "cloudwatch:deletespace": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:space/.*"
+    ],
+    "cloudwatch:deleteview": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:view/.*"
     ],
     "cloudwatch:describealarmhistory": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:alarm:.*"
@@ -8540,8 +8778,17 @@
     "cloudwatch:enableinsightrules": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:insight-rule/.*"
     ],
+    "cloudwatch:getaccessgrant": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:access-grant/.*"
+    ],
+    "cloudwatch:getaccessprofile": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:access-profile/.*"
+    ],
     "cloudwatch:getalarmmuterule": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:alarm-mute-rule:.*"
+    ],
+    "cloudwatch:getalert": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:alert/.*"
     ],
     "cloudwatch:getdashboard": [
       "arn:${Partition}:cloudwatch::${Account}:dashboard/.*"
@@ -8549,14 +8796,32 @@
     "cloudwatch:getdataset": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:dataset/.*"
     ],
+    "cloudwatch:getdomain": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:domain/.*"
+    ],
+    "cloudwatch:getdomainaccessgrantfororganization": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:organization-access-grant/.*"
+    ],
+    "cloudwatch:getdomainfororganization": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:organization-domain/.*"
+    ],
+    "cloudwatch:getingestionendpoint": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:ingestion-endpoint/.*"
+    ],
     "cloudwatch:getinsightrulereport": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:insight-rule/.*"
+    ],
+    "cloudwatch:getintegration": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:integration/.*"
     ],
     "cloudwatch:getmetricdata": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:dataset/.*"
     ],
     "cloudwatch:getmetricstream": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:metric-stream/.*"
+    ],
+    "cloudwatch:getomnidashboard": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:omni-dashboard/.*"
     ],
     "cloudwatch:getservice": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:service/.*"
@@ -8566,6 +8831,12 @@
     ],
     "cloudwatch:getservicelevelobjective": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:slo/.*"
+    ],
+    "cloudwatch:getspace": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:space/.*"
+    ],
+    "cloudwatch:getview": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:view/.*"
     ],
     "cloudwatch:listalarmmuterules": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:alarm-mute-rule:.*"
@@ -8641,8 +8912,35 @@
       "arn:${Partition}:cloudwatch:${Region}:${Account}:service/.*",
       "arn:${Partition}:cloudwatch:${Region}:${Account}:slo/.*"
     ],
+    "cloudwatch:updateaccessprofile": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:access-profile/.*"
+    ],
+    "cloudwatch:updatealert": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:alert/.*"
+    ],
+    "cloudwatch:updatedomain": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:domain/.*"
+    ],
+    "cloudwatch:updatedomainfororganization": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:organization-domain/.*"
+    ],
+    "cloudwatch:updateingestionendpoint": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:ingestion-endpoint/.*"
+    ],
+    "cloudwatch:updateintegration": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:integration/.*"
+    ],
+    "cloudwatch:updateomnidashboard": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:omni-dashboard/.*"
+    ],
     "cloudwatch:updateservicelevelobjective": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:slo/.*"
+    ],
+    "cloudwatch:updatespace": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:space/.*"
+    ],
+    "cloudwatch:updateview": [
+      "arn:${Partition}:cloudwatch:${Region}:${Account}:view/.*"
     ],
     "codeartifact:associateexternalconnection": [
       "arn:${Partition}:codeartifact:${Region}:${Account}:repository/.*"
@@ -9081,6 +9379,9 @@
       "arn:${Partition}:codecommit:${Region}:${Account}:.*"
     ],
     "codecommit:getblob": [
+      "arn:${Partition}:codecommit:${Region}:${Account}:.*"
+    ],
+    "codecommit:getblobdifferences": [
       "arn:${Partition}:codecommit:${Region}:${Account}:.*"
     ],
     "codecommit:getbranch": [
@@ -9898,6 +10199,9 @@
       "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
     ],
     "cognito-idp:admincreateuser": [
+      "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
+    ],
+    "cognito-idp:admindeletesoftwaretoken": [
       "arn:${Partition}:cognito-idp:${Region}:${Account}:userpool/.*"
     ],
     "cognito-idp:admindeleteuser": [
@@ -10884,6 +11188,9 @@
     "connect:createevaluationform": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:createextractiondefinition": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:createhoursofoperation": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -10891,6 +11198,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:createintegrationassociation": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:createmetric": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:createnotification": [
@@ -10925,6 +11235,7 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:createsecurityprofile": [
+      "arn:${Partition}:app-integrations:${Region}:${Account}:application/.*",
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:createtasktemplate": [
@@ -10995,6 +11306,9 @@
     "connect:deleteevaluationform": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:deleteextractiondefinition": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:deletehoursofoperation": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11005,6 +11319,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:deleteintegrationassociation": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:deletemetric": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:deletenotification": [
@@ -11103,6 +11420,9 @@
     "connect:describeevaluationform": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:describeextractiondefinition": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:describeforecastingplanningschedulingintegration": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11120,6 +11440,10 @@
     ],
     "connect:describeinstancestorageconfig": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:describemetric": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*",
+      "arn:${Partition}:connect:${Region}:${Account}:.*"
     ],
     "connect:describenotification": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
@@ -11243,6 +11567,9 @@
     "connect:getcontactmetrics": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:getcrossregionrouting": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:getcurrentmetricdata": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11347,10 +11674,16 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:.*",
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:listevaluationformaiversions": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:listevaluationforms": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listevaluationformversions": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:listextractiondefinitions": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listflowassociations": [
@@ -11375,6 +11708,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listlexbots": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:listmetrics": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listnotifications": [
@@ -11423,6 +11759,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listsecuritykeys": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:listsecurityprofileaiagents": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:listsecurityprofileapplications": [
@@ -11535,6 +11874,9 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:searchhoursofoperations": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:searchmetrics": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:searchnotifications": [
@@ -11722,6 +12064,9 @@
     "connect:updatecontactschedule": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:updatecrossregionrouting": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:updatedatatableattribute": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11737,6 +12082,9 @@
     "connect:updateevaluationform": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
+    "connect:updateextractiondefinition": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
     "connect:updatehoursofoperation": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
@@ -11748,6 +12096,14 @@
     ],
     "connect:updateinstancestorageconfig": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
+    ],
+    "connect:updatemetriccontent": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*",
+      "arn:${Partition}:connect:${Region}:${Account}:.*"
+    ],
+    "connect:updatemetricmetadata": [
+      "arn:${Partition}:connect:${Region}:${Account}:instance/.*",
+      "arn:${Partition}:connect:${Region}:${Account}:.*"
     ],
     "connect:updatenotificationcontent": [
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
@@ -11816,6 +12172,7 @@
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:updatesecurityprofile": [
+      "arn:${Partition}:app-integrations:${Region}:${Account}:application/.*",
       "arn:${Partition}:connect:${Region}:${Account}:instance/.*"
     ],
     "connect:updatetasktemplate": [
@@ -13160,6 +13517,10 @@
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
     ],
+    "directconnect:associateconnectionstoresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
+      "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
+    ],
     "directconnect:associateconnectionwithlag": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
@@ -13237,6 +13598,9 @@
     "directconnect:deletelag": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
     ],
+    "directconnect:deleteresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
+    ],
     "directconnect:deletevirtualinterface": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
     ],
@@ -13283,6 +13647,7 @@
     ],
     "directconnect:describetags": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*",
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -13296,9 +13661,19 @@
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
     ],
+    "directconnect:disassociateconnectionsfromresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
+      "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
+    ],
     "directconnect:disassociatemacseckey": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
+    ],
+    "directconnect:getresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
+    ],
+    "directconnect:listresiliencygroupassociations": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
     ],
     "directconnect:listvirtualinterfaceroutes": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -13314,12 +13689,14 @@
     ],
     "directconnect:tagresource": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*",
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
     ],
     "directconnect:untagresource": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*",
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*",
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -13327,11 +13704,17 @@
     "directconnect:updateconnection": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
     ],
+    "directconnect:updateconnectionsbillingmode": [
+      "arn:${Partition}:directconnect:${Region}:${Account}:dxcon/.*"
+    ],
     "directconnect:updatedirectconnectgateway": [
       "arn:${Partition}:directconnect::${Account}:dx-gateway/.*"
     ],
     "directconnect:updatelag": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxlag/.*"
+    ],
+    "directconnect:updateresiliencygroup": [
+      "arn:${Partition}:directconnect::${Account}:dx-resiliency-group/.*"
     ],
     "directconnect:updatevirtualinterfaceattributes": [
       "arn:${Partition}:directconnect:${Region}:${Account}:dxvif/.*"
@@ -13387,12 +13770,26 @@
     "dms:createdatamigration": [
       "arn:${Partition}:dms:${Region}:${Account}:migration-project:*"
     ],
+    "dms:createendpoint": [
+      "arn:${Partition}:dms:${Region}:${Account}:cert:*",
+      "arn:${Partition}:dms:${Region}:${Account}:endpoint:*"
+    ],
+    "dms:createeventsubscription": [
+      "arn:${Partition}:dms:${Region}:${Account}:es:*"
+    ],
     "dms:createmigrationproject": [
       "arn:${Partition}:dms:${Region}:${Account}:data-provider:*",
       "arn:${Partition}:dms:${Region}:${Account}:instance-profile:*"
     ],
     "dms:createreplicationconfig": [
       "arn:${Partition}:dms:${Region}:${Account}:endpoint:*"
+    ],
+    "dms:createreplicationinstance": [
+      "arn:${Partition}:dms:${Region}:${Account}:rep:*",
+      "arn:${Partition}:dms:${Region}:${Account}:subgrp:*"
+    ],
+    "dms:createreplicationsubnetgroup": [
+      "arn:${Partition}:dms:${Region}:${Account}:subgrp:*"
     ],
     "dms:createreplicationtask": [
       "arn:${Partition}:dms:${Region}:${Account}:endpoint:*",
@@ -13487,8 +13884,14 @@
     "dms:exportmetadatamodelassessment": [
       "arn:${Partition}:dms:${Region}:${Account}:migration-project:*"
     ],
+    "dms:getmetadatamodel": [
+      "arn:${Partition}:dms:${Region}:${Account}:migration-project:*"
+    ],
     "dms:gettargetselectionrules": [
       "arn:${Partition}:dms:${Region}:${Account}:migration-project:*"
+    ],
+    "dms:importcertificate": [
+      "arn:${Partition}:dms:${Region}:${Account}:cert:*"
     ],
     "dms:listextensionpacks": [
       "arn:${Partition}:dms:${Region}:${Account}:migration-project:*"
@@ -13535,11 +13938,17 @@
       "arn:${Partition}:dms:${Region}:${Account}:cert:*",
       "arn:${Partition}:dms:${Region}:${Account}:endpoint:*"
     ],
+    "dms:modifyeventsubscription": [
+      "arn:${Partition}:dms:${Region}:${Account}:es:*"
+    ],
     "dms:modifyreplicationconfig": [
       "arn:${Partition}:dms:${Region}:${Account}:replication-config:*"
     ],
     "dms:modifyreplicationinstance": [
       "arn:${Partition}:dms:${Region}:${Account}:rep:*"
+    ],
+    "dms:modifyreplicationsubnetgroup": [
+      "arn:${Partition}:dms:${Region}:${Account}:subgrp:*"
     ],
     "dms:modifyreplicationtask": [
       "arn:${Partition}:dms:${Region}:${Account}:task:*"
@@ -13694,11 +14103,17 @@
       "arn:${Partition}:drs:${Region}:${Account}:recovery-instance/.*",
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
     ],
+    "drs:cancelrecoveryplanexecution": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*"
+    ],
     "drs:createconvertedsnapshotfordrs": [
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
     ],
     "drs:createrecoveryinstancefordrs": [
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
+    ],
+    "drs:createrecoveryplanstep": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
     ],
     "drs:deletejob": [
       "arn:${Partition}:drs:${Region}:${Account}:job/.*"
@@ -13712,6 +14127,15 @@
     ],
     "drs:deleterecoveryinstance": [
       "arn:${Partition}:drs:${Region}:${Account}:recovery-instance/.*"
+    ],
+    "drs:deleterecoveryplan": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
+    ],
+    "drs:deleterecoveryplanexecution": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*"
+    ],
+    "drs:deleterecoveryplanstep": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
     ],
     "drs:deletereplicationconfigurationtemplate": [
       "arn:${Partition}:drs:${Region}:${Account}:replication-configuration-template/.*"
@@ -13769,6 +14193,18 @@
     "drs:getlaunchconfiguration": [
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
     ],
+    "drs:getrecoveryplan": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
+    ],
+    "drs:getrecoveryplanexecution": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*"
+    ],
+    "drs:getrecoveryplanexecutionstep": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*"
+    ],
+    "drs:getrecoveryplanstep": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
+    ],
     "drs:getreplicationconfiguration": [
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
     ],
@@ -13782,6 +14218,15 @@
     "drs:listlaunchactions": [
       "arn:${Partition}:drs:${Region}:${Account}:launch-configuration-template/.*",
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
+    ],
+    "drs:listrecoveryplanexecutions": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
+    ],
+    "drs:listrecoveryplanexecutionsteps": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*"
+    ],
+    "drs:listrecoveryplansteps": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
     ],
     "drs:notifyagentauthenticationfordrs": [
       "arn:${Partition}:drs:${Region}:${Account}:recovery-instance/.*",
@@ -13812,8 +14257,14 @@
       "arn:${Partition}:drs:${Region}:${Account}:launch-configuration-template/.*",
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
     ],
+    "drs:reorderrecoveryplansteps": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
+    ],
     "drs:retrydatareplication": [
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
+    ],
+    "drs:retryrecoveryplanexecutionstep": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*"
     ],
     "drs:reversereplication": [
       "arn:${Partition}:drs:${Region}:${Account}:recovery-instance/.*"
@@ -13834,6 +14285,9 @@
     ],
     "drs:startrecovery": [
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
+    ],
+    "drs:startrecoveryplanexecution": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
     ],
     "drs:startreplication": [
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
@@ -13857,6 +14311,8 @@
       "arn:${Partition}:drs:${Region}:${Account}:job/.*",
       "arn:${Partition}:drs:${Region}:${Account}:launch-configuration-template/.*",
       "arn:${Partition}:drs:${Region}:${Account}:recovery-instance/.*",
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*",
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*",
       "arn:${Partition}:drs:${Region}:${Account}:replication-configuration-template/.*",
       "arn:${Partition}:drs:${Region}:${Account}:source-network/.*",
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
@@ -13868,6 +14324,8 @@
       "arn:${Partition}:drs:${Region}:${Account}:job/.*",
       "arn:${Partition}:drs:${Region}:${Account}:launch-configuration-template/.*",
       "arn:${Partition}:drs:${Region}:${Account}:recovery-instance/.*",
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*",
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*",
       "arn:${Partition}:drs:${Region}:${Account}:replication-configuration-template/.*",
       "arn:${Partition}:drs:${Region}:${Account}:source-network/.*",
       "arn:${Partition}:drs:${Region}:${Account}:source-server/.*"
@@ -13906,6 +14364,15 @@
     ],
     "drs:updatelaunchconfigurationtemplate": [
       "arn:${Partition}:drs:${Region}:${Account}:launch-configuration-template/.*"
+    ],
+    "drs:updaterecoveryplan": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
+    ],
+    "drs:updaterecoveryplanexecutionstep": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan-execution/.*"
+    ],
+    "drs:updaterecoveryplanstep": [
+      "arn:${Partition}:drs:${Region}:${Account}:recovery-plan/.*"
     ],
     "drs:updatereplicationcertificatefordrs": [
       "arn:${Partition}:drs:${Region}:${Account}:recovery-instance/.*"
@@ -14433,6 +14900,9 @@
     "dynamodb:scan": [
       "arn:${Partition}:dynamodb:${Region}:${Account}:table/.*"
     ],
+    "dynamodb:searchvectors": [
+      "arn:${Partition}:dynamodb:${Region}:${Account}:table/.*"
+    ],
     "dynamodb:startawsbackupjob": [
       "arn:${Partition}:dynamodb:${Region}:${Account}:table/.*"
     ],
@@ -14565,6 +15035,10 @@
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:network-interface/.*"
     ],
+    "ec2:associateapplicationstatuscheck": [
+      "arn:${Partition}:ec2:${Region}:${Account}:application-status-check/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
+    ],
     "ec2:associatecapacityreservationbillingowner": [
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*"
     ],
@@ -14680,6 +15154,9 @@
       "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:security-group-rule/.*"
     ],
+    "ec2:batchmodifyipamroutingpolicyregistrations": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:cancelcapacityreservation": [
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation-cancellation-quote/.*"
@@ -14719,6 +15196,11 @@
     ],
     "ec2:copyvolumes": [
       "arn:${Partition}:ec2:${Region}:${Account}:volume/.*"
+    ],
+    "ec2:createapplicationstatuscheck": [
+      "arn:${Partition}:ec2:${Region}:${Account}:application-status-check/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:subnet/.*"
     ],
     "ec2:createcapacitymanagerdataexport": [
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-manager-data-export/.*"
@@ -14775,6 +15257,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:vpc/.*"
     ],
     "ec2:createfleet": [
+      "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:fleet/.*",
       "arn:${Partition}:ec2:${Region}::image/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
@@ -14829,6 +15312,10 @@
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*"
     ],
+    "ec2:createipaminternetregistryassociation": [
+      "arn:${Partition}:ec2::${Account}:ipam/.*",
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:createipampolicy": [
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
@@ -14848,6 +15335,9 @@
     ],
     "ec2:createipamresourcediscovery": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
+    ],
+    "ec2:createipamroutingpolicyregistration": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:createipamscope": [
       "arn:${Partition}:ec2::${Account}:ipam/.*",
@@ -15006,6 +15496,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:subnet/.*"
     ],
     "ec2:createtags": [
+      "arn:${Partition}:ec2:${Region}:${Account}:application-status-check/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-block/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-manager-data-export/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*",
@@ -15036,6 +15527,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:internet-gateway/.*",
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*",
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*",
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*",
       "arn:${Partition}:ec2::${Account}:ipam-pool/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:ipam-pool-allocation/.*",
@@ -15160,6 +15652,10 @@
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-policy-table/.*"
     ],
+    "ec2:createtransitgatewaypolicytableentry": [
+      "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-policy-table/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-route-table/.*"
+    ],
     "ec2:createtransitgatewayprefixlistreference": [
       "arn:${Partition}:ec2:${Region}:${Account}:prefix-list/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-attachment/.*",
@@ -15255,6 +15751,9 @@
     "ec2:createvpngateway": [
       "arn:${Partition}:ec2:${Region}:${Account}:vpn-gateway/.*"
     ],
+    "ec2:deleteapplicationstatuscheck": [
+      "arn:${Partition}:ec2:${Region}:${Account}:application-status-check/.*"
+    ],
     "ec2:deletecapacitymanagerdataexport": [
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-manager-data-export/.*"
     ],
@@ -15313,6 +15812,9 @@
     "ec2:deleteipamexternalresourceverificationtoken": [
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*"
     ],
+    "ec2:deleteipaminternetregistryassociation": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:deleteipampolicy": [
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
     ],
@@ -15327,6 +15829,9 @@
     ],
     "ec2:deleteipamresourcediscovery": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
+    ],
+    "ec2:deleteipamroutingpolicyregistration": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:deleteipamscope": [
       "arn:${Partition}:ec2::${Account}:ipam-scope/.*"
@@ -15440,6 +15945,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:subnet/.*"
     ],
     "ec2:deletetags": [
+      "arn:${Partition}:ec2:${Region}:${Account}:application-status-check/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-block/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-manager-data-export/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*",
@@ -15470,6 +15976,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:internet-gateway/.*",
       "arn:${Partition}:ec2::${Account}:ipam/.*",
       "arn:${Partition}:ec2::${Account}:ipam-external-resource-verification-token/.*",
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*",
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*",
       "arn:${Partition}:ec2::${Account}:ipam-pool/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:ipam-pool-allocation/.*",
@@ -15583,6 +16090,9 @@
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-attachment/.*"
     ],
     "ec2:deletetransitgatewaypolicytable": [
+      "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-policy-table/.*"
+    ],
+    "ec2:deletetransitgatewaypolicytableentry": [
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-policy-table/.*"
     ],
     "ec2:deletetransitgatewayprefixlistreference": [
@@ -15757,6 +16267,9 @@
     "ec2:disableaddresstransfer": [
       "arn:${Partition}:ec2:${Region}:${Account}:elastic-ip/.*"
     ],
+    "ec2:disableapplicationstatuschecksuppression": [
+      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
+    ],
     "ec2:disablefastlaunch": [
       "arn:${Partition}:ec2:${Region}::image/.*"
     ],
@@ -15800,6 +16313,10 @@
     "ec2:disassociateaddress": [
       "arn:${Partition}:ec2:${Region}:${Account}:elastic-ip/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:network-interface/.*"
+    ],
+    "ec2:disassociateapplicationstatuscheck": [
+      "arn:${Partition}:ec2:${Region}:${Account}:application-status-check/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
     ],
     "ec2:disassociatecapacityreservationbillingowner": [
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*"
@@ -15866,6 +16383,9 @@
     "ec2:enableaddresstransfer": [
       "arn:${Partition}:ec2:${Region}:${Account}:elastic-ip/.*"
     ],
+    "ec2:enableapplicationstatuschecksuppression": [
+      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
+    ],
     "ec2:enablefastlaunch": [
       "arn:${Partition}:ec2:${Region}::image/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:launch-template/.*"
@@ -15884,6 +16404,9 @@
     ],
     "ec2:enableinstancesqlhastandbydetections": [
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
+    ],
+    "ec2:enableipaminternetregistryassociation": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:enableipampolicy": [
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
@@ -15974,6 +16497,15 @@
     "ec2:getipamdiscoveredresourcecidrs": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
     ],
+    "ec2:getipamdiscoveredroutes": [
+      "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
+    ],
+    "ec2:getipaminternetregistryassociationasns": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
+    "ec2:getipaminternetregistryassociationcidrs": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:getipampolicyallocationrules": [
       "arn:${Partition}:ec2::${Account}:ipam-policy/.*"
     ],
@@ -15998,6 +16530,18 @@
     "ec2:getipamresourcecidrs": [
       "arn:${Partition}:ec2::${Account}:ipam-pool/.*",
       "arn:${Partition}:ec2::${Account}:ipam-scope/.*"
+    ],
+    "ec2:getipamrouteoriginauthorizations": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
+    "ec2:getipamrouteprotectionfindings": [
+      "arn:${Partition}:ec2::${Account}:ipam/.*"
+    ],
+    "ec2:getipamroutingpolicyregistrationdeltas": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
+    "ec2:getipamroutingpolicyregistrations": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
     ],
     "ec2:getlaunchtemplatedata": [
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
@@ -16108,6 +16652,11 @@
     "ec2:modifyaddressattribute": [
       "arn:${Partition}:ec2:${Region}:${Account}:elastic-ip/.*"
     ],
+    "ec2:modifyapplicationstatuscheck": [
+      "arn:${Partition}:ec2:${Region}:${Account}:application-status-check/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:subnet/.*"
+    ],
     "ec2:modifycapacityreservation": [
       "arn:${Partition}:ec2:${Region}:${Account}:capacity-reservation/.*"
     ],
@@ -16200,6 +16749,9 @@
     "ec2:modifyipamresourcediscovery": [
       "arn:${Partition}:ec2::${Account}:ipam-resource-discovery/.*"
     ],
+    "ec2:modifyipamroutingpolicyregistration": [
+      "arn:${Partition}:ec2::${Account}:ipam-internet-registry-association/.*"
+    ],
     "ec2:modifyipamscope": [
       "arn:${Partition}:ec2::${Account}:ipam-scope/.*"
     ],
@@ -16275,6 +16827,10 @@
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-attachment/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-metering-policy/.*"
     ],
+    "ec2:modifytransitgatewaypolicytableentry": [
+      "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-policy-table/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-route-table/.*"
+    ],
     "ec2:modifytransitgatewayprefixlistreference": [
       "arn:${Partition}:ec2:${Region}:${Account}:prefix-list/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:transit-gateway-attachment/.*",
@@ -16331,6 +16887,9 @@
     ],
     "ec2:modifyvpcendpointconnectionnotification": [
       "arn:${Partition}:ec2:${Region}:${Account}:vpc-endpoint/.*",
+      "arn:${Partition}:ec2:${Region}:${Account}:vpc-endpoint-service/.*"
+    ],
+    "ec2:modifyvpcendpointpayerresponsibility": [
       "arn:${Partition}:ec2:${Region}:${Account}:vpc-endpoint-service/.*"
     ],
     "ec2:modifyvpcendpointserviceconfiguration": [
@@ -16446,6 +17005,9 @@
     ],
     "ec2:replaceiaminstanceprofileassociation": [
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
+    ],
+    "ec2:replaceimageinstancetypespecification": [
+      "arn:${Partition}:ec2:${Region}::image/.*"
     ],
     "ec2:replacenetworkaclassociation": [
       "arn:${Partition}:ec2:${Region}:${Account}:network-acl/.*",
@@ -16573,6 +17135,7 @@
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*"
     ],
     "ec2:startinstances": [
+      "arn:${Partition}:resource-groups:${Region}:${Account}:group/.*",
       "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
       "arn:${Partition}:license-manager:${Region}:${Account}:license-configuration:.*"
     ],
@@ -16618,6 +17181,9 @@
       "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*"
     ],
     "ec2:updatesecuritygroupruledescriptionsingress": [
+      "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*"
+    ],
+    "ec2:validatesecuritygroupquotasforinterface": [
       "arn:${Partition}:ec2:${Region}:${Account}:security-group/.*"
     ],
     "ecr-public:batchchecklayeravailability": [
@@ -17026,6 +17592,9 @@
     "eks:accesskubernetesapi": [
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
+    "eks:activatecertificateauthority": [
+      "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
+    ],
     "eks:associateaccesspolicy": [
       "arn:${Partition}:eks:${Region}:${Account}:access-entry/.*"
     ],
@@ -17048,6 +17617,9 @@
     "eks:createcapability": [
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
+    "eks:createcertificateauthority": [
+      "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
+    ],
     "eks:createfargateprofile": [
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
@@ -17066,6 +17638,9 @@
     ],
     "eks:deletecapability": [
       "arn:${Partition}:eks:${Region}:${Account}:capability/.*"
+    ],
+    "eks:deletecertificateauthority": [
+      "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
     "eks:deletecluster": [
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
@@ -17093,6 +17668,9 @@
     ],
     "eks:describecapability": [
       "arn:${Partition}:eks:${Region}:${Account}:capability/.*"
+    ],
+    "eks:describecertificateauthority": [
+      "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
     "eks:describecluster": [
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
@@ -17140,6 +17718,9 @@
       "arn:${Partition}:eks:${Region}:${Account}:access-entry/.*"
     ],
     "eks:listcapabilities": [
+      "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
+    ],
+    "eks:listcertificateauthorities": [
       "arn:${Partition}:eks:${Region}:${Account}:cluster/.*"
     ],
     "eks:listdashboarddata": [
@@ -17239,6 +17820,7 @@
     ],
     "elasticache:addtagstoresource": [
       "arn:${Partition}:elasticache:${Region}:${Account}:cluster:.*",
+      "arn:${Partition}:elasticache::${Account}:globalreplicationgroup:.*",
       "arn:${Partition}:elasticache:${Region}:${Account}:parametergroup:.*",
       "arn:${Partition}:elasticache:${Region}:${Account}:replicationgroup:.*",
       "arn:${Partition}:elasticache:${Region}:${Account}:reserved-instance:.*",
@@ -17495,6 +18077,7 @@
     ],
     "elasticache:removetagsfromresource": [
       "arn:${Partition}:elasticache:${Region}:${Account}:cluster:.*",
+      "arn:${Partition}:elasticache::${Account}:globalreplicationgroup:.*",
       "arn:${Partition}:elasticache:${Region}:${Account}:parametergroup:.*",
       "arn:${Partition}:elasticache:${Region}:${Account}:replicationgroup:.*",
       "arn:${Partition}:elasticache:${Region}:${Account}:reserved-instance:.*",
@@ -18097,6 +18680,12 @@
     "elasticmapreduce:getpersistentappuipresignedurl": [
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
     ],
+    "elasticmapreduce:getsession": [
+      "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
+    ],
+    "elasticmapreduce:getsessionendpoint": [
+      "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
+    ],
     "elasticmapreduce:getstudiosessionmapping": [
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:studio/.*"
     ],
@@ -18110,6 +18699,9 @@
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
     ],
     "elasticmapreduce:listinstances": [
+      "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
+    ],
+    "elasticmapreduce:listsessions": [
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
     ],
     "elasticmapreduce:liststeps": [
@@ -18178,6 +18770,9 @@
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*",
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:editor/.*"
     ],
+    "elasticmapreduce:startsession": [
+      "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
+    ],
     "elasticmapreduce:stopeditor": [
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:editor/.*"
     ],
@@ -18185,6 +18780,9 @@
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:notebook-execution/.*"
     ],
     "elasticmapreduce:terminatejobflows": [
+      "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
+    ],
+    "elasticmapreduce:terminatesession": [
       "arn:${Partition}:elasticmapreduce:${Region}:${Account}:cluster/.*"
     ],
     "elasticmapreduce:updateeditor": [
@@ -18248,6 +18846,9 @@
     "elemental-inference:deletefeed": [
       "arn:${Partition}:elemental-inference:${Region}:${Account}:feed/.*"
     ],
+    "elemental-inference:deletefeedpolicy": [
+      "arn:${Partition}:elemental-inference:${Region}:${Account}:feed/.*"
+    ],
     "elemental-inference:disassociatefeed": [
       "arn:${Partition}:elemental-inference:${Region}:${Account}:feed/.*"
     ],
@@ -18260,7 +18861,13 @@
     "elemental-inference:getfeed": [
       "arn:${Partition}:elemental-inference:${Region}:${Account}:feed/.*"
     ],
+    "elemental-inference:getfeedpolicy": [
+      "arn:${Partition}:elemental-inference:${Region}:${Account}:feed/.*"
+    ],
     "elemental-inference:getmetadata": [
+      "arn:${Partition}:elemental-inference:${Region}:${Account}:feed/.*"
+    ],
+    "elemental-inference:putfeedpolicy": [
       "arn:${Partition}:elemental-inference:${Region}:${Account}:feed/.*"
     ],
     "elemental-inference:putmedia": [
@@ -18790,7 +19397,8 @@
       "arn:${Partition}:events:${Region}::event-source/.*"
     ],
     "events:allowvendedlogdeliveryforresource": [
-      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
     ],
     "events:cancelreplay": [
       "arn:${Partition}:events:${Region}:${Account}:replay/.*"
@@ -18812,10 +19420,19 @@
       "arn:${Partition}:events:${Region}:${Account}:endpoint/.*"
     ],
     "events:createeventbus": [
-      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
+    "events:createeventsource": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-sourcev2/.*"
     ],
     "events:createpartnereventsource": [
       "arn:${Partition}:events:${Region}::event-source/.*"
+    ],
+    "events:createsubscriber": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
     ],
     "events:deactivateeventsource": [
       "arn:${Partition}:events:${Region}::event-source/.*"
@@ -18836,13 +19453,23 @@
       "arn:${Partition}:events:${Region}:${Account}:endpoint/.*"
     ],
     "events:deleteeventbus": [
-      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
+    "events:deleteeventsource": [
+      "arn:${Partition}:events:${Region}:${Account}:event-sourcev2/.*"
     ],
     "events:deletepartnereventsource": [
       "arn:${Partition}:events:${Region}::event-source/.*"
     ],
+    "events:deleteresourcepolicy": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
     "events:deleterule": [
       "arn:${Partition}:events:${Region}:${Account}:rule/.*"
+    ],
+    "events:deletesubscriber": [
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
     ],
     "events:describeapidestination": [
       "arn:${Partition}:events:${Region}:${Account}:api-destination/.*",
@@ -18858,10 +19485,12 @@
       "arn:${Partition}:events:${Region}:${Account}:endpoint/.*"
     ],
     "events:describeeventbus": [
-      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
     ],
     "events:describeeventsource": [
-      "arn:${Partition}:events:${Region}::event-source/.*"
+      "arn:${Partition}:events:${Region}::event-source/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-sourcev2/.*"
     ],
     "events:describepartnereventsource": [
       "arn:${Partition}:events:${Region}::event-source/.*"
@@ -18872,11 +19501,17 @@
     "events:describerule": [
       "arn:${Partition}:events:${Region}:${Account}:rule/.*"
     ],
+    "events:describesubscriber": [
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
+    ],
     "events:disablerule": [
       "arn:${Partition}:events:${Region}:${Account}:rule/.*"
     ],
     "events:enablerule": [
       "arn:${Partition}:events:${Region}:${Account}:rule/.*"
+    ],
+    "events:getresourcepolicy": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
     ],
     "events:invokeapidestination": [
       "arn:${Partition}:events:${Region}:${Account}:api-destination/.*"
@@ -18884,15 +19519,28 @@
     "events:listpartnereventsourceaccounts": [
       "arn:${Partition}:events:${Region}::event-source/.*"
     ],
+    "events:listresourcepolicies": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
     "events:listtagsforresource": [
       "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
-      "arn:${Partition}:events:${Region}:${Account}:rule/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-sourcev2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:rule/.*",
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
     ],
     "events:listtargetsbyrule": [
       "arn:${Partition}:events:${Region}:${Account}:rule/.*"
     ],
     "events:putevents": [
-      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
+    "events:putrawevents": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
+    "events:putresourcepolicy": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
     ],
     "events:putrule": [
       "arn:${Partition}:events:${Region}:${Account}:rule/.*"
@@ -18906,6 +19554,9 @@
     "events:retrieveconnectioncredentials": [
       "arn:${Partition}:events:${Region}:${Account}:connection/.*"
     ],
+    "events:revokeresource": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
     "events:startreplay": [
       "arn:${Partition}:events:${Region}:${Account}:archive/.*",
       "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
@@ -18913,11 +19564,17 @@
     ],
     "events:tagresource": [
       "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
-      "arn:${Partition}:events:${Region}:${Account}:rule/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-sourcev2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:rule/.*",
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
     ],
     "events:untagresource": [
       "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
-      "arn:${Partition}:events:${Region}:${Account}:rule/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-sourcev2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:rule/.*",
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
     ],
     "events:updateapidestination": [
       "arn:${Partition}:events:${Region}:${Account}:api-destination/.*"
@@ -18934,7 +19591,16 @@
       "arn:${Partition}:events:${Region}:${Account}:endpoint/.*"
     ],
     "events:updateeventbus": [
-      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*"
+      "arn:${Partition}:events:${Region}:${Account}:event-bus/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*"
+    ],
+    "events:updateeventsource": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:event-sourcev2/.*"
+    ],
+    "events:updatesubscriber": [
+      "arn:${Partition}:events:${Region}:${Account}:event-busv2/.*",
+      "arn:${Partition}:events:${Region}:${Account}:subscriber/.*"
     ],
     "evidently:batchevaluatefeature": [
       "arn:${Partition}:evidently:${Region}:${Account}:project/.*"
@@ -22300,6 +22966,9 @@
     "guardduty:createfilter": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
+    "guardduty:deletecustomdetectionruleassociation": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*"
+    ],
     "guardduty:deletedetector": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
@@ -22330,6 +22999,9 @@
     "guardduty:getcoveragestatistics": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
+    "guardduty:getcustomdetectionruleassociation": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*"
+    ],
     "guardduty:getdetector": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
@@ -22355,16 +23027,22 @@
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
     ],
     "guardduty:listtagsforresource": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:malware-protection-plan/.*"
     ],
     "guardduty:tagresource": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:malware-protection-plan/.*"
     ],
     "guardduty:untagresource": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*",
       "arn:${Partition}:guardduty:${Region}:${Account}:malware-protection-plan/.*"
+    ],
+    "guardduty:updatecustomdetectionruleassociation": [
+      "arn:${Partition}:guardduty:${Region}:${Account}:detection-rule/custom/.*"
     ],
     "guardduty:updatedetector": [
       "arn:${Partition}:guardduty:${Region}:${Account}:detector/.*"
@@ -22555,6 +23233,9 @@
     "healthlake:describefhirbulkmembermatchjob": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
+    "healthlake:describefhirbulkpatchjob": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
     "healthlake:describefhirdatastore": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
@@ -22637,6 +23318,9 @@
     "healthlake:readresource": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
+    "healthlake:restorefhirdatastore": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
     "healthlake:retrieveattributionstatus": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
@@ -22656,6 +23340,9 @@
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:startfhirbulkmembermatchjob": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
+    "healthlake:startfhirbulkpatchjob": [
       "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:startfhirexportjob": [
@@ -22679,6 +23366,12 @@
     ],
     "healthlake:transformdata": [
       "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*"
+    ],
+    "healthlake:translateconceptmapwithget": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
+    ],
+    "healthlake:translateconceptmapwithpost": [
+      "arn:${Partition}:healthlake:${Region}:${Account}:datastore/fhir/.*"
     ],
     "healthlake:untagresource": [
       "arn:${Partition}:healthlake:${Region}:${Account}:dataTransformationProfile/.*",
@@ -22938,6 +23631,9 @@
     ],
     "iam:getrolepolicy": [
       "arn:${Partition}:iam::${Account}:role/.*"
+    ],
+    "iam:getroletemplateversion": [
+      "arn:${Partition}:iam::aws:.*"
     ],
     "iam:getsamlprovider": [
       "arn:${Partition}:iam::${Account}:saml-provider/.*"
@@ -23213,6 +23909,9 @@
       "arn:${Partition}:identity-sync:${Region}:${Account}:profile/.*",
       "arn:${Partition}:identity-sync:${Region}:${Account}:target/.*"
     ],
+    "identitystore:addregion": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
     "identitystore:creategroup": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
@@ -23234,6 +23933,9 @@
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
       "arn:${Partition}:identitystore:::user/.*"
     ],
+    "identitystore:deleteidentitystore": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
     "identitystore:deleteuser": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
       "arn:${Partition}:identitystore:::user/.*"
@@ -23247,6 +23949,12 @@
       "arn:${Partition}:identitystore:::membership/.*",
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
       "arn:${Partition}:identitystore:::user/.*"
+    ],
+    "identitystore:describeidentitystore": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
+    "identitystore:describeregion": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
     "identitystore:describeuser": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*",
@@ -23286,8 +23994,14 @@
       "arn:${Partition}:identitystore:::group/*",
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
+    "identitystore:listregions": [
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
     "identitystore:listusers": [
       "arn:${Partition}:identitystore:::user/*",
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
+    "identitystore:removeregion": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
     "identitystore:reserveuser": [
@@ -23295,6 +24009,9 @@
     ],
     "identitystore:updategroup": [
       "arn:${Partition}:identitystore:::group/.*",
+      "arn:${Partition}:identitystore::${Account}:identitystore/.*"
+    ],
+    "identitystore:updateidentitystore": [
       "arn:${Partition}:identitystore::${Account}:identitystore/.*"
     ],
     "identitystore:updateuser": [
@@ -26716,11 +27433,21 @@
     "kinesis:addtagstostream": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
+    "kinesis:associatestreamswithchannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
+      "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
+    ],
+    "kinesis:createchannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
+    ],
     "kinesis:createstream": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
     "kinesis:decreasestreamretentionperiod": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
+    ],
+    "kinesis:deletechannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
     ],
     "kinesis:deleteresourcepolicy": [
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
@@ -26731,6 +27458,9 @@
     ],
     "kinesis:deregisterstreamconsumer": [
       "arn:${Partition}:kinesis:${Region}:${Account}:.*"
+    ],
+    "kinesis:describechannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
     ],
     "kinesis:describestream": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
@@ -26761,6 +27491,7 @@
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
     "kinesis:listtagsforresource": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
@@ -26801,14 +27532,22 @@
       "arn:${Partition}:kinesis:${Region}:${Account}:.*"
     ],
     "kinesis:tagresource": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
     "kinesis:untagresource": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:.*",
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
+    "kinesis:updatechannel": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:channel/.*"
+    ],
     "kinesis:updatemaxrecordsize": [
+      "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
+    ],
+    "kinesis:updatestreamrecorddistributionstrategy": [
       "arn:${Partition}:kinesis:${Region}:${Account}:stream/.*"
     ],
     "kinesis:updatestreamwarmthroughput": [
@@ -27249,6 +27988,9 @@
     "lambda:deleteprovisionedconcurrencyconfig": [
       "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
     ],
+    "lambda:deleteresourcepolicy": [
+      "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
+    ],
     "lambda:disablereplication": [
       "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
     ],
@@ -27325,6 +28067,9 @@
       "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
     ],
     "lambda:getprovisionedconcurrencyconfig": [
+      "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
+    ],
+    "lambda:getresourcepolicy": [
       "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
     ],
     "lambda:getruntimemanagementconfig": [
@@ -27406,6 +28151,9 @@
       "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
     ],
     "lambda:putprovisionedconcurrencyconfig": [
+      "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
+    ],
+    "lambda:putresourcepolicy": [
       "arn:${Partition}:lambda:${Region}:${Account}:function:.*"
     ],
     "lambda:putruntimemanagementconfig": [
@@ -28510,6 +29258,9 @@
       "arn:${Partition}:logs:${Region}:${Account}:scheduled-query:.*"
     ],
     "logs:gettransformer": [
+      "arn:${Partition}:logs:${Region}:${Account}:log-group:.*"
+    ],
+    "logs:integratewithdataset": [
       "arn:${Partition}:logs:${Region}:${Account}:log-group:.*"
     ],
     "logs:integratewiths3table": [
@@ -30686,6 +31437,9 @@
     "mgn:listnetworkmigrationdeployments": [
       "arn:${Partition}:mgn:${Region}:${Account}:network-migration-definition/.*"
     ],
+    "mgn:listnetworkmigrationexecutionartifacts": [
+      "arn:${Partition}:mgn:${Region}:${Account}:network-migration-definition/.*"
+    ],
     "mgn:listnetworkmigrationexecutions": [
       "arn:${Partition}:mgn:${Region}:${Account}:network-migration-definition/.*"
     ],
@@ -32001,6 +32755,128 @@
     "network-firewall:updatetlsinspectionconfiguration": [
       "arn:${Partition}:network-firewall:${Region}:${Account}:tls-configuration/.*"
     ],
+    "network-security-manager:createdeployment": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*"
+    ],
+    "network-security-manager:createdeploymentsnapshot": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*"
+    ],
+    "network-security-manager:createpolicy": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:createpolicysnapshot": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*"
+    ],
+    "network-security-manager:createrulesnapshot": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*"
+    ],
+    "network-security-manager:createscopesnapshot": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*"
+    ],
+    "network-security-manager:createtemplate": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*"
+    ],
+    "network-security-manager:createtemplatesnapshot": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:deletedeployment": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*"
+    ],
+    "network-security-manager:deletepolicy": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*"
+    ],
+    "network-security-manager:deleterule": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*"
+    ],
+    "network-security-manager:deletescope": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*"
+    ],
+    "network-security-manager:deletetemplate": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:getdeployment": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*"
+    ],
+    "network-security-manager:getpolicy": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*"
+    ],
+    "network-security-manager:getrule": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*"
+    ],
+    "network-security-manager:getscope": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*"
+    ],
+    "network-security-manager:gettemplate": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:listdeploymentsnapshots": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*"
+    ],
+    "network-security-manager:listpolicysnapshots": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*"
+    ],
+    "network-security-manager:listresourceassociations": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:listresourcesynchronizationstatuses": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*"
+    ],
+    "network-security-manager:listrulesnapshots": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*"
+    ],
+    "network-security-manager:listscopesnapshots": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*"
+    ],
+    "network-security-manager:listtagsforresource": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:listtemplatesnapshots": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:tagresource": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:untagresource": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:updatedeployment": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:deployment:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*"
+    ],
+    "network-security-manager:updatepolicy": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:policy:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
+    "network-security-manager:updaterule": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*"
+    ],
+    "network-security-manager:updatescope": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:scope:.*"
+    ],
+    "network-security-manager:updatetemplate": [
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:rule:.*",
+      "arn:${Partition}:network-security-manager:${Region}:${Account}:template:.*"
+    ],
     "networkflowmonitor:createmonitor": [
       "arn:${Partition}:networkflowmonitor:${Region}:${Account}:monitor/.*"
     ],
@@ -32665,6 +33541,9 @@
     "notifications:listorganizationalunits": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
     ],
+    "notifications:subscribesensitiveevents": [
+      "arn:${Partition}:notifications::${Account}:managed-notification-configuration/category/.*"
+    ],
     "notifications:tagresource": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
     ],
@@ -32673,6 +33552,9 @@
     ],
     "notifications:updateeventrule": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
+    ],
+    "notifications:updatemanagednotificationchannelassociation": [
+      "arn:${Partition}:notifications::${Account}:managed-notification-configuration/category/.*"
     ],
     "notifications:updatenotificationconfiguration": [
       "arn:${Partition}:notifications::${Account}:configuration/.*"
@@ -32761,6 +33643,9 @@
     "observabilityadmin:createcentralizationrulefororganization": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-centralization-rule/.*"
     ],
+    "observabilityadmin:createdatasetintegration": [
+      "arn:${Partition}:observabilityadmin:${Region}:${Account}:dataset-integration/.*"
+    ],
     "observabilityadmin:creates3tableintegration": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:s3tableintegration/.*"
     ],
@@ -32775,6 +33660,9 @@
     ],
     "observabilityadmin:deletecentralizationrulefororganization": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-centralization-rule/.*"
+    ],
+    "observabilityadmin:deletedatasetintegration": [
+      "arn:${Partition}:observabilityadmin:${Region}:${Account}:dataset-integration/.*"
     ],
     "observabilityadmin:deletes3tableintegration": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:s3tableintegration/.*"
@@ -32791,6 +33679,9 @@
     "observabilityadmin:getcentralizationrulefororganization": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-centralization-rule/.*"
     ],
+    "observabilityadmin:getdatasetintegration": [
+      "arn:${Partition}:observabilityadmin:${Region}:${Account}:dataset-integration/.*"
+    ],
     "observabilityadmin:gets3tableintegration": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:s3tableintegration/.*"
     ],
@@ -32804,6 +33695,7 @@
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-telemetry-rule/.*"
     ],
     "observabilityadmin:listtagsforresource": [
+      "arn:${Partition}:observabilityadmin:${Region}:${Account}:dataset-integration/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-centralization-rule/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-telemetry-rule/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:s3tableintegration/.*",
@@ -32811,6 +33703,7 @@
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:telemetry-rule/.*"
     ],
     "observabilityadmin:tagresource": [
+      "arn:${Partition}:observabilityadmin:${Region}:${Account}:dataset-integration/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-centralization-rule/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-telemetry-rule/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:s3tableintegration/.*",
@@ -32818,6 +33711,7 @@
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:telemetry-rule/.*"
     ],
     "observabilityadmin:untagresource": [
+      "arn:${Partition}:observabilityadmin:${Region}:${Account}:dataset-integration/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-centralization-rule/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-telemetry-rule/.*",
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:s3tableintegration/.*",
@@ -32826,6 +33720,9 @@
     ],
     "observabilityadmin:updatecentralizationrulefororganization": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:organization-centralization-rule/.*"
+    ],
+    "observabilityadmin:updatedatasetintegration": [
+      "arn:${Partition}:observabilityadmin:${Region}:${Account}:dataset-integration/.*"
     ],
     "observabilityadmin:updatetelemetrypipeline": [
       "arn:${Partition}:observabilityadmin:${Region}:${Account}:telemetry-pipeline/.*"
@@ -32839,6 +33736,9 @@
     "odb:associateiamroletoresource": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-autonomous-vm-cluster/.*",
       "arn:${Partition}:odb:${Region}:${Account}:cloud-vm-cluster/.*"
+    ],
+    "odb:associatevirtualmachinestoexadbvmcluster": [
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*"
     ],
     "odb:createautonomousdatabase": [
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
@@ -32859,6 +33759,10 @@
     ],
     "odb:createdbnode": [
       "arn:${Partition}:odb:${Region}:${Account}:db-node/.*"
+    ],
+    "odb:createexadbvmcluster": [
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
     ],
     "odb:createodbpeeringconnection": [
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
@@ -32885,6 +33789,12 @@
     "odb:deletedbnode": [
       "arn:${Partition}:odb:${Region}:${Account}:db-node/.*"
     ],
+    "odb:deleteexadbvmcluster": [
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*"
+    ],
+    "odb:deleteexascaledbstoragevault": [
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*"
+    ],
     "odb:deleteodbnetwork": [
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
     ],
@@ -32893,11 +33803,15 @@
     ],
     "odb:deleteresourcepolicy": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
     ],
     "odb:disassociateiamrolefromresource": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-autonomous-vm-cluster/.*",
       "arn:${Partition}:odb:${Region}:${Account}:cloud-vm-cluster/.*"
+    ],
+    "odb:disassociatevirtualmachinesfromexadbvmcluster": [
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*"
     ],
     "odb:failoverautonomousdatabase": [
       "arn:${Partition}:odb:${Region}:${Account}:autonomous-database/.*"
@@ -32930,6 +33844,12 @@
     "odb:getdbserver": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*"
     ],
+    "odb:getexadbvmcluster": [
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*"
+    ],
+    "odb:getexascaledbstoragevault": [
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*"
+    ],
     "odb:getodbnetwork": [
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
     ],
@@ -32938,6 +33858,7 @@
     ],
     "odb:getresourcepolicy": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
     ],
     "odb:listautonomousdatabasebackups": [
@@ -32964,6 +33885,9 @@
     "odb:listdbservers": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*"
     ],
+    "odb:listexadbvmclusters": [
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*"
+    ],
     "odb:listodbpeeringconnections": [
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
     ],
@@ -32974,11 +33898,14 @@
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*",
       "arn:${Partition}:odb:${Region}:${Account}:cloud-vm-cluster/.*",
       "arn:${Partition}:odb:${Region}:${Account}:db-node/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-peering-connection/.*"
     ],
     "odb:putresourcepolicy": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
     ],
     "odb:rebootautonomousdatabase": [
@@ -33018,6 +33945,8 @@
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*",
       "arn:${Partition}:odb:${Region}:${Account}:cloud-vm-cluster/.*",
       "arn:${Partition}:odb:${Region}:${Account}:db-node/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-peering-connection/.*"
     ],
@@ -33028,6 +33957,8 @@
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*",
       "arn:${Partition}:odb:${Region}:${Account}:cloud-vm-cluster/.*",
       "arn:${Partition}:odb:${Region}:${Account}:db-node/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*",
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*",
       "arn:${Partition}:odb:${Region}:${Account}:odb-peering-connection/.*"
     ],
@@ -33039,6 +33970,12 @@
     ],
     "odb:updatecloudexadatainfrastructure": [
       "arn:${Partition}:odb:${Region}:${Account}:cloud-exadata-infrastructure/.*"
+    ],
+    "odb:updateexadbvmcluster": [
+      "arn:${Partition}:odb:${Region}:${Account}:exadb-vm-cluster/.*"
+    ],
+    "odb:updateexascaledbstoragevault": [
+      "arn:${Partition}:odb:${Region}:${Account}:exascale-db-storage-vault/.*"
     ],
     "odb:updateodbnetwork": [
       "arn:${Partition}:odb:${Region}:${Account}:odb-network/.*"
@@ -33853,6 +34790,9 @@
     "outposts:startcapacitytask": [
       "arn:${Partition}:outposts:${Region}:${Account}:outpost/.*"
     ],
+    "outposts:startconnection": [
+      "arn:${Partition}:outposts:${Region}:${Account}:outpost/.*"
+    ],
     "outposts:tagresource": [
       "arn:${Partition}:outposts:${Region}:${Account}:outpost/.*",
       "arn:${Partition}:outposts:${Region}:${Account}:site/.*"
@@ -34247,6 +35187,10 @@
       "arn:${Partition}:payment-cryptography:${Region}:${Account}:key/.*"
     ],
     "payment-cryptography:generateas2805kekvalidation": [
+      "arn:${Partition}:payment-cryptography:${Region}:${Account}:alias/.*",
+      "arn:${Partition}:payment-cryptography:${Region}:${Account}:key/.*"
+    ],
+    "payment-cryptography:generateauthrequestcryptogram": [
       "arn:${Partition}:payment-cryptography:${Region}:${Account}:alias/.*",
       "arn:${Partition}:payment-cryptography:${Region}:${Account}:key/.*"
     ],
@@ -34894,6 +35838,9 @@
     "profile:addprofilekey": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
+    "profile:associatestreamforsegments": [
+      "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
+    ],
     "profile:batchgetcalculatedattributeforprofile": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
@@ -34990,10 +35937,16 @@
     "profile:deletesegmentdefinition": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
+    "profile:deletesegmentsubscription": [
+      "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
+    ],
     "profile:deleteworkflow": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
     "profile:detectprofileobjecttype": [
+      "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
+    ],
+    "profile:disassociatestreamforsegments": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
     "profile:getautomergingpreview": [
@@ -35065,10 +36018,16 @@
     "profile:getsegmentsnapshot": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
+    "profile:getsegmentsubscription": [
+      "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
+    ],
     "profile:getsimilarprofiles": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
     "profile:getsnapshot": [
+      "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
+    ],
+    "profile:getstreamforsegments": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
     "profile:getuploadjob": [
@@ -35143,6 +36102,9 @@
     "profile:listsegmentdefinitions": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
+    "profile:listsegmentsubscriptionevents": [
+      "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
+    ],
     "profile:listtagsforresource": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
@@ -35165,6 +36127,9 @@
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
     "profile:putprofileobjecttype": [
+      "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
+    ],
+    "profile:putsegmentsubscription": [
       "arn:${Partition}:profile:${Region}:${Account}:domains/.*"
     ],
     "profile:searchprofiles": [
@@ -36099,9 +37064,6 @@
     "qldb:updateledgerpermissionsmode": [
       "arn:${Partition}:qldb:${Region}:${Account}:ledger/.*"
     ],
-    "quicksight:batchassignlimitsprofile": [
-      "arn:${Partition}:quicksight:${Region}:${Account}:limits-profile/.*"
-    ],
     "quicksight:batchcreatetopicreviewedanswer": [
       "arn:${Partition}:quicksight:${Region}:${Account}:topic/.*"
     ],
@@ -36111,7 +37073,7 @@
     "quicksight:batchdeletetopicreviewedanswer": [
       "arn:${Partition}:quicksight:${Region}:${Account}:topic/.*"
     ],
-    "quicksight:batchunassignlimitsprofile": [
+    "quicksight:batchdescribeuserlimits": [
       "arn:${Partition}:quicksight:${Region}:${Account}:limits-profile/.*"
     ],
     "quicksight:cancelingestion": [
@@ -36129,6 +37091,9 @@
     "quicksight:createanalysis": [
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*"
     ],
+    "quicksight:createapprovalpolicy": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:approval-policy/.*"
+    ],
     "quicksight:createbrand": [
       "arn:${Partition}:quicksight:${Region}:${Account}:brand/.*"
     ],
@@ -36141,8 +37106,14 @@
     "quicksight:createdataset": [
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*"
     ],
+    "quicksight:createdlpsetting": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
+    ],
     "quicksight:createemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
+    ],
+    "quicksight:createextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
     ],
     "quicksight:createextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
@@ -36229,6 +37200,9 @@
     "quicksight:deleteapp": [
       "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
     ],
+    "quicksight:deleteapprovalpolicy": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:approval-policy/.*"
+    ],
     "quicksight:deletebrand": [
       "arn:${Partition}:quicksight:${Region}:${Account}:brand/.*"
     ],
@@ -36244,8 +37218,14 @@
     "quicksight:deletedatasource": [
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*"
     ],
+    "quicksight:deletedlpsetting": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
+    ],
     "quicksight:deleteemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
+    ],
+    "quicksight:deleteextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
     ],
     "quicksight:deleteextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
@@ -36349,17 +37329,14 @@
     "quicksight:describeapppermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
     ],
+    "quicksight:describeapprovalpolicy": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:approval-policy/.*"
+    ],
     "quicksight:describeassetbundleexportjob": [
       "arn:${Partition}:quicksight:${Region}:${Account}:asset-bundle-export-job/.*"
     ],
     "quicksight:describeassetbundleimportjob": [
       "arn:${Partition}:quicksight:${Region}:${Account}:asset-bundle-import-job/.*"
-    ],
-    "quicksight:describeautomationgroup": [
-      "arn:${Partition}:quicksight:${Region}:${Account}:automation-group/.*"
-    ],
-    "quicksight:describeautomationgrouppermissions": [
-      "arn:${Partition}:quicksight:${Region}:${Account}:automation-group/.*"
     ],
     "quicksight:describeautomationjob": [
       "arn:${Partition}:quicksight:${Region}:${Account}:automation-group/.*"
@@ -36400,11 +37377,23 @@
     "quicksight:describedatasourcepermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*"
     ],
+    "quicksight:describedlpjob": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
+    ],
+    "quicksight:describedlpsetting": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
+    ],
     "quicksight:describeemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
     ],
+    "quicksight:describeextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
+    ],
     "quicksight:describeextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
+    ],
+    "quicksight:describeextensionpermissions": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
     ],
     "quicksight:describeflow": [
       "arn:${Partition}:quicksight:${Region}:${Account}:flow/.*"
@@ -36520,6 +37509,9 @@
     "quicksight:listanalyses": [
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*"
     ],
+    "quicksight:listapprovalpolicies": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:approval-policy/.*"
+    ],
     "quicksight:listapps": [
       "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
     ],
@@ -36529,14 +37521,14 @@
     "quicksight:listassetbundleimportjobs": [
       "arn:${Partition}:quicksight:${Region}:${Account}:asset-bundle-import-job/.*"
     ],
-    "quicksight:listassignmentsforprincipal": [
-      "arn:${Partition}:quicksight:${Region}:${Account}:limits-profile/.*"
-    ],
     "quicksight:listdashboards": [
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*"
     ],
     "quicksight:listdashboardversions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*"
+    ],
+    "quicksight:listdlpsettings": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
     ],
     "quicksight:listfoldermembers": [
       "arn:${Partition}:quicksight:${Region}:${Account}:folder/.*"
@@ -36566,9 +37558,6 @@
     "quicksight:listlimitsprofiles": [
       "arn:${Partition}:quicksight:${Region}:${Account}:limits-profile/.*"
     ],
-    "quicksight:listprofileassignments": [
-      "arn:${Partition}:quicksight:${Region}:${Account}:limits-profile/.*"
-    ],
     "quicksight:listselfupgrades": [
       "arn:${Partition}:quicksight:${Region}:${Account}:user/.*"
     ],
@@ -36585,6 +37574,7 @@
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:dataset/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*",
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:flow/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:folder/.*",
@@ -36690,6 +37680,12 @@
     "quicksight:startdashboardsnapshotjob": [
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*"
     ],
+    "quicksight:startdlpjob": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
+    ],
+    "quicksight:startextensioninstallation": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
+    ],
     "quicksight:tagresource": [
       "arn:${Partition}:quicksight:${Region}:${Account}:action-connector/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:analysis/.*",
@@ -36700,6 +37696,7 @@
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:dataset/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*",
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:flow/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:folder/.*",
@@ -36724,6 +37721,7 @@
       "arn:${Partition}:quicksight:${Region}:${Account}:dashboard/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:dataset/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*",
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:flow/.*",
       "arn:${Partition}:quicksight:${Region}:${Account}:folder/.*",
@@ -36759,8 +37757,8 @@
     "quicksight:updateapppermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:app/.*"
     ],
-    "quicksight:updateautomationgrouppermissions": [
-      "arn:${Partition}:quicksight:${Region}:${Account}:automation-group/.*"
+    "quicksight:updateapprovalpolicy": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:approval-policy/.*"
     ],
     "quicksight:updatebrand": [
       "arn:${Partition}:quicksight:${Region}:${Account}:brand/.*"
@@ -36796,11 +37794,20 @@
     "quicksight:updatedatasourcepermissions": [
       "arn:${Partition}:quicksight:${Region}:${Account}:datasource/.*"
     ],
+    "quicksight:updatedlpsetting": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:dlpsetting/.*"
+    ],
     "quicksight:updateemailcustomizationtemplate": [
       "arn:${Partition}:quicksight:${Region}:${Account}:email-customization-template/.*"
     ],
+    "quicksight:updateextension": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
+    ],
     "quicksight:updateextensionaccess": [
       "arn:${Partition}:quicksight:${Region}:${Account}:extension-access/.*"
+    ],
+    "quicksight:updateextensionpermissions": [
+      "arn:${Partition}:quicksight:${Region}:${Account}:extension/.*"
     ],
     "quicksight:updateflow": [
       "arn:${Partition}:quicksight:${Region}:${Account}:flow/.*"
@@ -38631,10 +39638,16 @@
     "resiliencehub:listtestrecommendations": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:app/.*"
     ],
+    "resiliencehub:listtestrundependencies": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
     "resiliencehub:listtestrunevents": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:listtestruns": [
+      "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
+    ],
+    "resiliencehub:listtestrunsourceevents": [
       "arn:${Partition}:resiliencehub:${Region}:${Account}:service/.*"
     ],
     "resiliencehub:listtestrunsources": [
@@ -41267,6 +42280,9 @@
       "arn:${Partition}:sagemaker:${Region}:${Account}:experiment-trial/.*",
       "arn:${Partition}:sagemaker:${Region}:${Account}:experiment-trial-component/.*"
     ],
+    "sagemaker:attachclusternodenetworkinterface": [
+      "arn:${Partition}:sagemaker:${Region}:${Account}:cluster/.*"
+    ],
     "sagemaker:attachclusternodevolume": [
       "arn:${Partition}:sagemaker:${Region}:${Account}:cluster/.*"
     ],
@@ -41289,6 +42305,12 @@
     "sagemaker:batchputmetrics": [
       "arn:${Partition}:sagemaker:${Region}:${Account}:experiment-trial-component/.*",
       "arn:${Partition}:sagemaker:${Region}:${Account}:training-job/.*"
+    ],
+    "sagemaker:batchrebootclusternodes": [
+      "arn:${Partition}:sagemaker:${Region}:${Account}:cluster/.*"
+    ],
+    "sagemaker:batchreplaceclusternodes": [
+      "arn:${Partition}:sagemaker:${Region}:${Account}:cluster/.*"
     ],
     "sagemaker:batchwriterecord": [
       "arn:${Partition}:sagemaker:${Region}:${Account}:feature-group/.*"
@@ -42009,6 +43031,9 @@
       "arn:${Partition}:sagemaker:${Region}:${Account}:training-job/.*"
     ],
     "sagemaker:describetrainingplan": [
+      "arn:${Partition}:sagemaker:${Region}:${Account}:training-plan/.*"
+    ],
+    "sagemaker:describetrainingplanextensionhistory": [
       "arn:${Partition}:sagemaker:${Region}:${Account}:training-plan/.*"
     ],
     "sagemaker:describetransformjob": [
@@ -42946,6 +43971,9 @@
     "securityagent:batchgetthreats": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
+    "securityagent:batchgetvalidationruns": [
+      "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
+    ],
     "securityagent:batchupdatesecurityrequirements": [
       "arn:${Partition}:securityagent:${Region}:${Account}:security-requirement-pack/.*"
     ],
@@ -43033,6 +44061,9 @@
     "securityagent:importsecurityrequirements": [
       "arn:${Partition}:securityagent:${Region}:${Account}:security-requirement-pack/.*"
     ],
+    "securityagent:listactormessages": [
+      "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
+    ],
     "securityagent:listartifacts": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
@@ -43049,6 +44080,9 @@
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
     "securityagent:listdesignreviews": [
+      "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
+    ],
+    "securityagent:listdiscovereddomains": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
     "securityagent:listdiscoveredendpoints": [
@@ -43113,6 +44147,9 @@
     "securityagent:startthreatmodeljob": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
+    "securityagent:startvalidationrun": [
+      "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
+    ],
     "securityagent:stopcodereviewjob": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
@@ -43150,11 +44187,18 @@
     "securityagent:updatecodereview": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
+    "securityagent:updatediscovereddomains": [
+      "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
+    ],
     "securityagent:updatefinding": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
     ],
     "securityagent:updateintegratedresources": [
-      "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
+      "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*",
+      "arn:${Partition}:securityagent:${Region}:${Account}:integration/.*"
+    ],
+    "securityagent:updateintegration": [
+      "arn:${Partition}:securityagent:${Region}:${Account}:integration/.*"
     ],
     "securityagent:updatepentest": [
       "arn:${Partition}:securityagent:${Region}:${Account}:agent-space/.*"
@@ -43417,6 +44461,9 @@
     ],
     "securityhub:listenabledproductsforimport": [
       "arn:${Partition}:securityhub:${Region}:${Account}:hub/default"
+    ],
+    "securityhub:listfreetrialstatusesv2": [
+      "arn:${Partition}:securityhub:${Region}:${Account}:hubv2/.*"
     ],
     "securityhub:listinvitations": [
       "arn:${Partition}:securityhub:${Region}:${Account}:hub/default"
@@ -43875,6 +44922,9 @@
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-ingress-point/.*",
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-rule-set/.*"
     ],
+    "ses:associateemailidentitycertificate": [
+      "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
+    ],
     "ses:batchgetmetricdata": [
       "arn:${Partition}:ses:${Region}:${Account}:configuration-set/.*",
       "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
@@ -44019,6 +45069,9 @@
     "ses:deregistermemberfromaddresslist": [
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-address-list/.*"
     ],
+    "ses:disassociateemailidentitycertificate": [
+      "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
+    ],
     "ses:getaddoninstance": [
       "arn:${Partition}:ses:${Region}:${Account}:addon-instance/.*"
     ],
@@ -44123,6 +45176,9 @@
     ],
     "ses:listcontacts": [
       "arn:${Partition}:ses:${Region}:${Account}:contact-list/.*"
+    ],
+    "ses:listemailidentitycertificates": [
+      "arn:${Partition}:ses:${Region}:${Account}:identity/.*"
     ],
     "ses:listmembersofaddresslist": [
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-address-list/.*"
@@ -44308,6 +45364,9 @@
     ],
     "ses:updatearchive": [
       "arn:${Partition}:ses:${Region}:${Account}:mailmanager-archive/.*"
+    ],
+    "ses:updateconfigurationset": [
+      "arn:${Partition}:ses:${Region}:${Account}:configuration-set/.*"
     ],
     "ses:updateconfigurationseteventdestination": [
       "arn:${Partition}:ses:${Region}:${Account}:configuration-set/.*"
@@ -44508,6 +45567,7 @@
     "sms-voice:associateoriginationidentity": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*"
     ],
     "sms-voice:associateprotectconfiguration": [
@@ -44523,6 +45583,7 @@
     ],
     "sms-voice:createregistrationassociation": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration/.*"
     ],
     "sms-voice:createregistrationversion": [
@@ -44544,6 +45605,9 @@
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*"
     ],
+    "sms-voice:deletenotifyconfiguration": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*"
+    ],
     "sms-voice:deleteoptedoutnumber": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*"
     ],
@@ -44558,6 +45622,9 @@
     ],
     "sms-voice:deleteprotectconfigurationrulesetnumberoverride": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*"
+    ],
+    "sms-voice:deletercsagent": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*"
     ],
     "sms-voice:deleteregistration": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration/.*"
@@ -44584,6 +45651,9 @@
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*"
     ],
+    "sms-voice:describenotifyconfigurations": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*"
+    ],
     "sms-voice:describeoptedoutnumbers": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*"
     ],
@@ -44598,6 +45668,12 @@
     ],
     "sms-voice:describeprotectconfigurations": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*"
+    ],
+    "sms-voice:describercsagentcountrylaunchstatus": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*"
+    ],
+    "sms-voice:describercsagents": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*"
     ],
     "sms-voice:describeregistrationattachments": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration-attachment/.*"
@@ -44620,6 +45696,7 @@
     "sms-voice:disassociateoriginationidentity": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*"
     ],
     "sms-voice:disassociateprotectconfiguration": [
@@ -44649,10 +45726,12 @@
     ],
     "sms-voice:listtagsforresource": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration-attachment/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*",
@@ -44687,23 +45766,47 @@
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*"
     ],
     "sms-voice:requestphonenumber": [
-      "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*"
+      "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:registration/.*"
     ],
     "sms-voice:senddestinationnumberverificationcode": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*"
     ],
     "sms-voice:sendmediamessage": [
-      "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
-      "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*"
-    ],
-    "sms-voice:sendtextmessage": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*"
+    ],
+    "sms-voice:sendnotifytextmessage": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*"
+    ],
+    "sms-voice:sendnotifyvoicemessage": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*"
+    ],
+    "sms-voice:sendrcsmessage": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*"
+    ],
+    "sms-voice:sendtextmessage": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*"
     ],
     "sms-voice:sendvoicemessage": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*"
     ],
@@ -44724,10 +45827,12 @@
     ],
     "sms-voice:tagresource": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration-attachment/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*",
@@ -44735,10 +45840,12 @@
     ],
     "sms-voice:untagresource": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*",
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:registration-attachment/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*",
@@ -44747,10 +45854,15 @@
     "sms-voice:updateeventdestination": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:configuration-set/.*"
     ],
+    "sms-voice:updatenotifyconfiguration": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:notify-configuration/.*"
+    ],
     "sms-voice:updatephonenumber": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:phone-number/.*"
     ],
     "sms-voice:updatepool": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:opt-out-list/.*",
       "arn:${Partition}:sms-voice:${Region}:${Account}:pool/.*"
     ],
     "sms-voice:updateprotectconfiguration": [
@@ -44758,6 +45870,9 @@
     ],
     "sms-voice:updateprotectconfigurationcountryruleset": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:protect-configuration/.*"
+    ],
+    "sms-voice:updatercsagent": [
+      "arn:${Partition}:sms-voice:${Region}:${Account}:rcs-agent/.*"
     ],
     "sms-voice:updatesenderid": [
       "arn:${Partition}:sms-voice:${Region}:${Account}:sender-id/.*"
@@ -44875,6 +45990,9 @@
     "social-messaging:getlinkedwhatsappbusinessaccountphonenumber": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
     ],
+    "social-messaging:getwhatsappcallpermission": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
+    ],
     "social-messaging:getwhatsappflow": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
@@ -44912,6 +46030,9 @@
     "social-messaging:putwhatsappbusinessaccounteventdestinations": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
     ],
+    "social-messaging:sendwhatsappcallevent": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
+    ],
     "social-messaging:sendwhatsappmessage": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
     ],
@@ -44922,6 +46043,9 @@
     "social-messaging:untagresource": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*",
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
+    ],
+    "social-messaging:updatelinkedwhatsappbusinessaccountphonenumber": [
+      "arn:${Partition}:social-messaging:${Region}:${Account}:phone-number-id/.*"
     ],
     "social-messaging:updatewhatsappflow": [
       "arn:${Partition}:social-messaging:${Region}:${Account}:waba/.*"
@@ -45671,6 +46795,10 @@
       "arn:${Partition}:ssm:${Region}:${Account}:patchbaseline/.*",
       "arn:${Partition}:ecs:${Region}:${Account}:task/.*"
     ],
+    "ssm:requestmanagedinstanceroletoken": [
+      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
+      "arn:${Partition}:ssm:${Region}:${Account}:managed-instance/.*"
+    ],
     "ssm:resetservicesetting": [
       "arn:${Partition}:ssm:${Region}:${Account}:servicesetting/.*"
     ],
@@ -45760,6 +46888,10 @@
     "ssm:updatemaintenancewindowtask": [
       "arn:${Partition}:ssm:${Region}:${Account}:maintenancewindow/.*",
       "arn:${Partition}:ssm:${Region}:${Account}:windowtask/.*"
+    ],
+    "ssm:updatemanagedinstancepublickey": [
+      "arn:${Partition}:ec2:${Region}:${Account}:instance/.*",
+      "arn:${Partition}:ssm:${Region}:${Account}:managed-instance/.*"
     ],
     "ssm:updatemanagedinstancerole": [
       "arn:${Partition}:iam::${Account}:role/.*",
@@ -47308,6 +48440,9 @@
     "transform-custom:getanalysis": [
       "arn:${Partition}:transform-custom:${Region}:${Account}:analysis/.*"
     ],
+    "transform-custom:getanalysisartifactdownloadurl": [
+      "arn:${Partition}:transform-custom:${Region}:${Account}:analysis/.*"
+    ],
     "transform-custom:getcampaign": [
       "arn:${Partition}:transform-custom:${Region}:${Account}:campaign/.*"
     ],
@@ -47328,6 +48463,9 @@
     ],
     "transform-custom:gettransformationpackageurl": [
       "arn:${Partition}:transform-custom:${Region}:${Account}:package/.*"
+    ],
+    "transform-custom:listanalysisartifacts": [
+      "arn:${Partition}:transform-custom:${Region}:${Account}:analysis/.*"
     ],
     "transform-custom:listcampaignrepositories": [
       "arn:${Partition}:transform-custom:${Region}:${Account}:campaign/.*"
@@ -48864,7 +50002,6 @@
       "arn:${Partition}:wickr:${Region}:${Account}:network/.*"
     ],
     "wisdom:activatemessagetemplate": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:allowvendedlogdeliveryforresource": [
@@ -48883,22 +50020,18 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
     ],
     "wisdom:createcontentassociation": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*"
     ],
     "wisdom:createmessagetemplate": [
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
     ],
     "wisdom:createmessagetemplateattachment": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:createmessagetemplateversion": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:deactivatemessagetemplate": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:deleteaiagent": [
@@ -48926,13 +50059,11 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:association/.*"
     ],
     "wisdom:deletecontent": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*"
     ],
     "wisdom:deletecontentassociation": [
       "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:content-association/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content-association/.*"
     ],
     "wisdom:deleteimportjob": [
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
@@ -48941,15 +50072,12 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
     ],
     "wisdom:deletemessagetemplate": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:deletemessagetemplateattachment": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:deletequickresponse": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:quick-response/.*"
     ],
     "wisdom:getaiagent": [
@@ -48968,17 +50096,14 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:association/.*"
     ],
     "wisdom:getcontent": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*"
     ],
     "wisdom:getcontentassociation": [
       "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:content-association/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content-association/.*"
     ],
     "wisdom:getcontentsummary": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*"
     ],
     "wisdom:getimportjob": [
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
@@ -48987,14 +50112,12 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
     ],
     "wisdom:getmessagetemplate": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:getnextmessage": [
       "arn:${Partition}:wisdom:${Region}:${Account}:session/.*"
     ],
     "wisdom:getquickresponse": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:quick-response/.*"
     ],
     "wisdom:getrecommendations": [
@@ -49013,8 +50136,7 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:ai-prompt/.*"
     ],
     "wisdom:listcontentassociations": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*"
     ],
     "wisdom:listcontents": [
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
@@ -49029,7 +50151,6 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
     ],
     "wisdom:listmessagetemplateversions": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:listmodels": [
@@ -49057,7 +50178,6 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
     ],
     "wisdom:rendermessagetemplate": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:retrieve": [
@@ -49114,22 +50234,18 @@
       "arn:${Partition}:wisdom:${Region}:${Account}:assistant/.*"
     ],
     "wisdom:updatecontent": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*",
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
+      "arn:${Partition}:wisdom:${Region}:${Account}:content/.*"
     ],
     "wisdom:updateknowledgebasetemplateuri": [
       "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*"
     ],
     "wisdom:updatemessagetemplate": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:updatemessagetemplatemetadata": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:message-template/.*"
     ],
     "wisdom:updatequickresponse": [
-      "arn:${Partition}:wisdom:${Region}:${Account}:knowledge-base/.*",
       "arn:${Partition}:wisdom:${Region}:${Account}:quick-response/.*"
     ],
     "wisdom:updatesession": [
@@ -49852,24 +50968,29 @@
       "arn:${Partition}:workspaces:${Region}:${Account}:workspacecertificate/.*"
     ],
     "workspaces:createstandbyworkspaces": [
-      "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*"
+      "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*",
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspace/.*"
     ],
     "workspaces:createupdatedworkspaceimage": [
       "arn:${Partition}:workspaces:${Region}:${Account}:workspaceimage/.*"
     ],
     "workspaces:createworkspacebundle": [
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*",
       "arn:${Partition}:workspaces:${Region}:${Account}:workspaceimage/.*"
     ],
     "workspaces:createworkspaceimage": [
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspace/.*"
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspace/.*",
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspaceimage/.*"
     ],
     "workspaces:createworkspaces": [
       "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*",
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*"
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*",
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspace/.*"
     ],
     "workspaces:createworkspacespool": [
       "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*",
-      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*"
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspacebundle/.*",
+      "arn:${Partition}:workspaces:${Region}:${Account}:workspacespool/.*"
     ],
     "workspaces:deleteclientbranding": [
       "arn:${Partition}:workspaces:${Region}:${Account}:directory/.*"
