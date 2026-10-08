@@ -1,4 +1,754 @@
 {
+  "bad/functions/foreach_no_transform.yaml": {
+    "filePath": "bad/functions/foreach_no_transform.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 4,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0006",
+        "severity": "FATAL",
+        "message": "Logical ID 'Fn::ForEach::Buckets' must be alphanumeric (A-Za-z0-9)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::Buckets",
+          "entityType": "Resource",
+          "resourceType": ""
+        },
+        "category": "Structure",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 25,
+        "ruleDescription": "Logical IDs must be alphanumeric",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::Buckets'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::Buckets",
+          "entityType": "Resource",
+          "resourceType": ""
+        },
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 25,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::BucketOutputs'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::BucketOutputs",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/Fn::ForEach::BucketOutputs",
+        "category": "Intrinsic Function",
+        "startLine": 33,
+        "startColumn": 5,
+        "endLine": 33,
+        "endColumn": 31,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::GetAttLoop'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::BucketOutputs",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/Fn::ForEach::BucketOutputs/2/Fn::ForEach::GetAttLoop",
+        "category": "Intrinsic Function",
+        "startLine": 36,
+        "startColumn": 11,
+        "endLine": 36,
+        "endColumn": 34,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/functions/get_stack_output.json": {
+    "filePath": "bad/functions/get_stack_output.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 4,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'OutputName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 8,
+        "startColumn": 11,
+        "endLine": 8,
+        "endColumn": 30,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'StackName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 18,
+        "startColumn": 11,
+        "endLine": 18,
+        "endColumn": 30,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'invalid' is not of type 'object'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 28,
+        "startColumn": 11,
+        "endLine": 28,
+        "endColumn": 30,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "Additional properties are not allowed ('BadKey' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput.BadKey",
+        "category": "Intrinsic Function",
+        "startLine": 39,
+        "startColumn": 13,
+        "endLine": 39,
+        "endColumn": 20,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic1' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic2' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 7,
+        "endLine": 16,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic3' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic4' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/get_stack_output.yaml": {
+    "filePath": "bad/functions/get_stack_output.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 0,
+        "errors": 4,
+        "warnings": 0,
+        "informational": 8,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'OutputName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 8,
+        "startColumn": 9,
+        "endLine": 8,
+        "endColumn": 27,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'StackName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 15,
+        "startColumn": 9,
+        "endLine": 15,
+        "endColumn": 27,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'invalid' is not of type 'object'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 22,
+        "startColumn": 9,
+        "endLine": 22,
+        "endColumn": 27,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "Additional properties are not allowed ('BadKey' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput.BadKey",
+        "category": "Intrinsic Function",
+        "startLine": 31,
+        "startColumn": 11,
+        "endLine": 31,
+        "endColumn": 17,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 3,
+        "endLine": 33,
+        "endColumn": 9,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 3,
+        "endLine": 33,
+        "endColumn": 9,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic1' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic2' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic3' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 5,
+        "endLine": 20,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic4' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic5' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/import_value.yaml": {
+    "filePath": "bad/functions/import_value.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 1,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E8003",
+        "severity": "ERROR",
+        "message": "Fn::Equals: argument 1: {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "primaryRegion",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/primaryRegion/Fn::Equals",
+        "category": "Intrinsic Function",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 13,
+        "ruleDescription": "Fn::Equals must take exactly two scalar operands",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'primaryRegion' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "primaryRegion",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/primaryRegion",
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 16,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (cross-stack import)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (cross-stack import)"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'subnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/length_no_transform.yaml": {
+    "filePath": "bad/functions/length_no_transform.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1030",
+        "severity": "FATAL",
+        "message": "Fn::Length requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.DelaySeconds",
+        "category": "Intrinsic Function",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Length requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/functions/relationship_conditions.yaml": {
     "filePath": "bad/functions/relationship_conditions.yaml",
     "status": "OK",
@@ -88591,1120 +89341,6 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/name.yaml": {
-    "filePath": "bad/resources/name.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 2,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F0006",
-        "severity": "FATAL",
-        "message": "Logical ID 'my.Instance' must be alphanumeric (A-Za-z0-9)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "my.Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "category": "Structure",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Logical IDs must be alphanumeric",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F0006",
-        "severity": "FATAL",
-        "message": "Logical ID 'my_Instance' must be alphanumeric (A-Za-z0-9)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "my_Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "category": "Structure",
-        "startLine": 7,
-        "startColumn": 3,
-        "endLine": 7,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Logical IDs must be alphanumeric",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'my.Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "my.Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'my_Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "my_Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 5,
-        "endLine": 9,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/primary_identifiers.yaml": {
-    "filePath": "bad/resources/primary_identifiers.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 13,
-      "counts": {
-        "fatal": 0,
-        "errors": 11,
-        "warnings": 0,
-        "informational": 25,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'BadType' property 'Type' must be a string",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "BadType",
-          "entityType": "Resource",
-          "resourceType": ""
-        },
-        "category": "Resource",
-        "startLine": 156,
-        "startColumn": 5,
-        "endLine": 156,
-        "endColumn": 9,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'RoleName': 'root'} should have unique values across the resources {'RootRole', 'RootRole2'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RootRole",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Resource",
-        "startLine": 18,
-        "startColumn": 7,
-        "endLine": 18,
-        "endColumn": 15,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'RoleName': 'root'} should have unique values across the resources {'RootRole', 'RootRole2'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RootRole2",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Resource",
-        "startLine": 40,
-        "startColumn": 7,
-        "endLine": 40,
-        "endColumn": 15,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'RoleName': 'useast1'} should have unique values across the resources {'RootRole3', 'RootRole4', 'RootRole5', 'RootRole6'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RootRole3",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Resource",
-        "startLine": 63,
-        "startColumn": 7,
-        "endLine": 63,
-        "endColumn": 15,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'RoleName': 'useast1'} should have unique values across the resources {'RootRole3', 'RootRole4', 'RootRole5', 'RootRole6'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RootRole4",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Resource",
-        "startLine": 86,
-        "startColumn": 7,
-        "endLine": 86,
-        "endColumn": 15,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'RoleName': 'useast1'} should have unique values across the resources {'RootRole3', 'RootRole4', 'RootRole5', 'RootRole6'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RootRole5",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Resource",
-        "startLine": 109,
-        "startColumn": 7,
-        "endLine": 109,
-        "endColumn": 15,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'RoleName': 'useast1'} should have unique values across the resources {'RootRole3', 'RootRole4', 'RootRole5', 'RootRole6'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RootRole6",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Resource",
-        "startLine": 131,
-        "startColumn": 7,
-        "endLine": 131,
-        "endColumn": 15,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'BucketName': 'us-east-1'} should have unique values across the resources {'Bucket1', 'Bucket2'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket1",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Resource",
-        "startLine": 142,
-        "startColumn": 5,
-        "endLine": 142,
-        "endColumn": 15,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'BucketName': 'us-east-1'} should have unique values across the resources {'Bucket1', 'Bucket2'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket2",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Resource",
-        "startLine": 150,
-        "startColumn": 7,
-        "endLine": 150,
-        "endColumn": 17,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'Name': 'myProjectName'} should have unique values across the resources {'Project1', 'Project2'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Project1",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Resource",
-        "startLine": 168,
-        "startColumn": 7,
-        "endLine": 168,
-        "endColumn": 11,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3019",
-        "severity": "ERROR",
-        "message": "Primary identifiers {'Name': 'myProjectName'} should have unique values across the resources {'Project1', 'Project2'}",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Project2",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Resource",
-        "startLine": 188,
-        "startColumn": 7,
-        "endLine": 188,
-        "endColumn": 11,
-        "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 17,
-        "startColumn": 7,
-        "endLine": 17,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 7,
-        "endLine": 18,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole2",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 39,
-        "startColumn": 7,
-        "endLine": 39,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole2",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 40,
-        "startColumn": 7,
-        "endLine": 40,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole3",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 62,
-        "startColumn": 7,
-        "endLine": 62,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole3",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 63,
-        "startColumn": 7,
-        "endLine": 63,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole4",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 85,
-        "startColumn": 7,
-        "endLine": 85,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole4",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 86,
-        "startColumn": 7,
-        "endLine": 86,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole5",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 108,
-        "startColumn": 7,
-        "endLine": 108,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole5",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 109,
-        "startColumn": 7,
-        "endLine": 109,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Fn::If on condition 'IsUsEast1'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole6",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 130,
-        "startColumn": 7,
-        "endLine": 130,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole6",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 131,
-        "startColumn": 7,
-        "endLine": 131,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Fn::If on condition 'IsUsEast1'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket2",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Best Practice",
-        "startLine": 150,
-        "startColumn": 7,
-        "endLine": 150,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Fn::If on condition 'IsUsEast1'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Project1",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 168,
-        "startColumn": 7,
-        "endLine": 168,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Project2",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 188,
-        "startColumn": 7,
-        "endLine": 188,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RootRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RootRole2' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole2",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 29,
-        "startColumn": 5,
-        "endLine": 29,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RootRole3' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole3",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 52,
-        "startColumn": 5,
-        "endLine": 52,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RootRole4' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole4",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 75,
-        "startColumn": 5,
-        "endLine": 75,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RootRole5' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole5",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 98,
-        "startColumn": 5,
-        "endLine": 98,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RootRole6' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RootRole6",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 120,
-        "startColumn": 5,
-        "endLine": 120,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket1",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 142,
-        "startColumn": 5,
-        "endLine": 142,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket2' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket2",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 149,
-        "startColumn": 5,
-        "endLine": 149,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Project1' of type 'AWS::CodeBuild::Project' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Project1",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 167,
-        "startColumn": 5,
-        "endLine": 167,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Project2' of type 'AWS::CodeBuild::Project' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Project2",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 187,
-        "startColumn": 5,
-        "endLine": 187,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/properties/atleastone.yaml": {
-    "filePath": "bad/resources/properties/atleastone.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 2,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "Value is not valid under any of the 3 anyOf schemas for AWS::IAM::Policy (0 branches matched; at least one is required). Required property combinations: ['Groups'] or ['Roles'] or ['Users']. Branch failures: branch 1: 'Users' is a required property; branch 2: 'Groups' is a required property; branch 3: 'Roles' is a required property.",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "myPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Policy"
-        },
-        "propertyPath": "Properties",
-        "category": "Schema",
-        "startLine": 10,
-        "startColumn": 5,
-        "endLine": 10,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA",
-        "context": {
-          "expectedConstraint": "at least one anyOf branch",
-          "extra": {
-            "branchCount": 3,
-            "branchFailures": [
-              {
-                "branch": 1,
-                "reasons": [
-                  {
-                    "message": "'Users' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              },
-              {
-                "branch": 2,
-                "reasons": [
-                  {
-                    "message": "'Groups' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              },
-              {
-                "branch": 3,
-                "reasons": [
-                  {
-                    "message": "'Roles' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              }
-            ],
-            "compositionKind": "anyOf",
-            "matchCount": 0,
-            "matchOutcome": "zeroMatches",
-            "validPropertyCombinations": [
-              [
-                "Groups"
-              ],
-              [
-                "Roles"
-              ],
-              [
-                "Users"
-              ]
-            ]
-          }
-        }
-      },
-      {
-        "ruleId": "F3017",
-        "severity": "FATAL",
-        "message": "Value is not valid under any of the 3 anyOf schemas for AWS::IAM::Policy (0 branches matched; at least one is required). Required property combinations: ['Groups'] or ['Roles'] or ['Users']. Branch failures: branch 1: 'Users' is a required property; branch 2: 'Groups' is a required property; branch 3: 'Roles' is a required property.",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "myPolicy2",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Policy"
-        },
-        "propertyPath": "Properties",
-        "category": "Schema",
-        "startLine": 16,
-        "startColumn": 5,
-        "endLine": 16,
-        "endColumn": 15,
-        "conditionScenario": {
-          "cPrimaryRegion": true
-        },
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Value not valid under anyOf",
-        "phase": "SCHEMA",
-        "context": {
-          "expectedConstraint": "at least one anyOf branch",
-          "extra": {
-            "branchCount": 3,
-            "branchFailures": [
-              {
-                "branch": 1,
-                "reasons": [
-                  {
-                    "message": "'Users' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              },
-              {
-                "branch": 2,
-                "reasons": [
-                  {
-                    "message": "'Groups' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              },
-              {
-                "branch": 3,
-                "reasons": [
-                  {
-                    "message": "'Roles' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              }
-            ],
-            "compositionKind": "anyOf",
-            "matchCount": 0,
-            "matchOutcome": "zeroMatches",
-            "validPropertyCombinations": [
-              [
-                "Groups"
-              ],
-              [
-                "Roles"
-              ],
-              [
-                "Users"
-              ]
-            ]
-          }
-        }
-      },
-      {
-        "ruleId": "E3510",
-        "severity": "ERROR",
-        "message": "'Statement' is a required property",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "myPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Policy"
-        },
-        "propertyPath": "Properties.PolicyDocument",
-        "category": "Resource",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
-        "endColumn": 21,
-        "ruleDescription": "Validate identity based IAM policies",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/properties/custom.yaml": {
-    "filePath": "bad/resources/properties/custom.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
-  },
-  "bad/resources/properties/list_duplicates.yaml": {
-    "filePath": "bad/resources/properties/list_duplicates.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3037",
-        "severity": "FATAL",
-        "message": "Array items are not unique",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "IamGroupWithNestedConditions",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Group"
-        },
-        "propertyPath": "Properties.ManagedPolicyArns",
-        "category": "Schema",
-        "startLine": 33,
-        "startColumn": 7,
-        "endLine": 33,
-        "endColumn": 24,
-        "conditionScenario": {
-          "isPrimaryRegion": true
-        },
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Array items not unique",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": [
-            "arn:aws:iam::aws:policy/AdministratorPolicy",
-            "arn:aws:iam::aws:policy/AdministratorPolicy"
-          ]
-        }
       }
     ]
   }

@@ -2,6 +2,7 @@
 uniffi::setup_scaffolding!();
 
 pub mod aws_cli;
+pub(crate) mod context_check;
 pub mod engine;
 pub mod guard;
 pub(crate) mod step_functions;

@@ -1982,6 +1982,24 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         description: "API Gateway Stage method setting ResourcePath must start with '/' when a setting is configured",
         origin: RuleOrigin::CfnLint,
     },
+    RuleDefinition {
+        id: "I4010",
+        category: Category::BestPractice,
+        description: "Template or architecture-relevant resource has no Metadata Context block",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W4011",
+        category: Category::BestPractice,
+        description: "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W4012",
+        category: Category::BestPractice,
+        description: "Metadata Context block does not match the Metadata Context schema",
+        origin: RuleOrigin::CfnLint,
+    },
 ];
 
 #[cfg(test)]

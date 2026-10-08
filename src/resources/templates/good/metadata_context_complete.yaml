@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Metadata Context at both placements, matching the published schema. The log
+  group, queue policy and CDK framework helpers carry no Context and are not
+  expected to; no Context diagnostic may fire.
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: "SQS buffer to Lambda consumer"
+    must:
+      - "All data remains encrypted"
+    ref:
+      - "context/common.yaml"
+      - at: "s3://example/context.yaml"
+        has: "shared constraints"
+        scope: "shared"
+    owner: "orders-team"
+Resources:
+  OrderQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: "Buffers order events for asynchronous processing"
+        must:
+          - "Visibility timeout remains above function timeout"
+        mutable: "change-with-constraints"
+        mutability:
+          QueueName: "must-never-change"
+        trust:
+          src: "authored"
+          conf: "high"
+          cite: "design.md"
+          note: "Reviewed by service owner"
+        deps:
+          - "orders-events"
+  LegacyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+    Metadata:
+      com.aws.cloudformation.Context:
+        trust:
+          src: "infer"
+          conf: "low"
+          note: "rationale not documented"
+  OrderQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref OrderQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt OrderQueue.Arn
+  ServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+  LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => {};"
+      Handler: index.handler
+      Role: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/log-retention"
+      Runtime: nodejs22.x
+  CustomResourceProviderframeworkonEvent:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: "exports.handler = async () => {};"
+      Handler: index.handler
+      Role: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/provider"
+      Runtime: nodejs22.x

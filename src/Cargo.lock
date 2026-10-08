@@ -1690,6 +1690,8 @@ dependencies = [
 name = "resources"
 version = "1.14.0"
 dependencies = [
+ "cloudformation-validate-diagnostics",
+ "cloudformation-validate-rules",
  "serde_json",
 ]
 

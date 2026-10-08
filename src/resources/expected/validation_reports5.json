@@ -1,4 +1,3639 @@
 {
+  "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json": {
+    "filePath": "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 15,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 4,
+        "informational": 14,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W2531",
+        "severity": "WARN",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "RekFunction9837D13D",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Runtime",
+        "category": "Deprecation",
+        "startLine": 310,
+        "startColumn": 5,
+        "endLine": 310,
+        "endColumn": 13,
+        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "nodejs20.x",
+          "lifecycle": "deprecated"
+        }
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'RekFunctionServiceRole3947AEF4' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "RekFunction9837D13D",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 312,
+        "startColumn": 4,
+        "endLine": 312,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 428,
+        "startColumn": 4,
+        "endLine": 428,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 516,
+        "startColumn": 4,
+        "endLine": 516,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Action' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.Action",
+        "category": "Best Practice",
+        "startLine": 103,
+        "startColumn": 5,
+        "endLine": 103,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 104,
+        "startColumn": 5,
+        "endLine": 104,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt RekFunction9837D13D.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Principal' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.Principal",
+        "category": "Best Practice",
+        "startLine": 110,
+        "startColumn": 5,
+        "endLine": 110,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SourceAccount' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.SourceAccount",
+        "category": "Best Practice",
+        "startLine": 111,
+        "startColumn": 5,
+        "endLine": 111,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.SourceArn",
+        "category": "Best Practice",
+        "startLine": 114,
+        "startColumn": 5,
+        "endLine": 114,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt Bucket83908E77.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Classifications0C921F6C",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 134,
+        "startColumn": 5,
+        "endLine": 134,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket83908E77' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket83908E77",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Classifications0C921F6C' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Classifications0C921F6C",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 127,
+        "startColumn": 4,
+        "endLine": 127,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RekFunctionServiceRole3947AEF4' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RekFunctionServiceRole3947AEF4",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 153,
+        "startColumn": 4,
+        "endLine": 153,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RekFunction9837D13D' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RekFunction9837D13D",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 286,
+        "startColumn": 4,
+        "endLine": 286,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 350,
+        "startColumn": 4,
+        "endLine": 350,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 413,
+        "startColumn": 4,
+        "endLine": 413,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 438,
+        "startColumn": 4,
+        "endLine": 438,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 499,
+        "startColumn": 4,
+        "endLine": 499,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "cdk/resource-overrides--resource-overrides.template.json": {
+    "filePath": "cdk/resource-overrides--resource-overrides.template.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 21,
+      "counts": {
+        "fatal": 2,
+        "errors": 2,
+        "warnings": 4,
+        "informational": 31,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('Foo' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ASGLaunchConfigC00AF12B",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.Foo",
+        "category": "Schema",
+        "startLine": 418,
+        "startColumn": 5,
+        "endLine": 418,
+        "endColumn": 9,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "Foo",
+          "extra": {
+            "allowed_properties": [
+              "AssociatePublicIpAddress",
+              "BlockDeviceMappings",
+              "ClassicLinkVPCId",
+              "ClassicLinkVPCSecurityGroups",
+              "EbsOptimized",
+              "IamInstanceProfile",
+              "ImageId",
+              "InstanceId",
+              "InstanceMonitoring",
+              "InstanceType",
+              "KernelId",
+              "KeyName",
+              "LaunchConfigurationName",
+              "MetadataOptions",
+              "PlacementTenancy",
+              "RamDiskId",
+              "SecurityGroups",
+              "SpotPrice",
+              "UserData"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3006",
+        "severity": "FATAL",
+        "message": "Unknown resource type 'AWS::S3::Bucketeer'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MyBucketF68F3FF0",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucketeer"
+        },
+        "category": "Schema",
+        "startLine": 11,
+        "startColumn": 3,
+        "endLine": 11,
+        "endColumn": 20,
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "resource_type": "AWS::S3::Bucketeer"
+          }
+        }
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'MyBucketF68F3FF0' has invalid property 'Transform'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, CreationPolicy, Fn::Transform, Version",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyBucketF68F3FF0",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucketeer"
+        },
+        "category": "Resource",
+        "startLine": 78,
+        "startColumn": 4,
+        "endLine": 78,
+        "endColumn": 14,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3016",
+        "severity": "ERROR",
+        "message": "UpdatePolicy is not supported on resource type 'AWS::S3::Bucketeer'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyBucketF68F3FF0",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucketeer"
+        },
+        "propertyPath": "UpdatePolicy",
+        "suggestedFix": "Remove UpdatePolicy or change resource type to one of: AWS::AppStream::Fleet, AWS::AutoScaling::AutoScalingGroup, AWS::ElastiCache::ReplicationGroup, AWS::Elasticsearch::Domain, AWS::Lambda::Alias, AWS::OpenSearchService::Domain",
+        "category": "Resource",
+        "startLine": 71,
+        "startColumn": 4,
+        "endLine": 71,
+        "endColumn": 17,
+        "ruleDescription": "Check UpdatePolicy values for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'Other34654A52' dependency already enforced by a 'GetAtt' at 'Properties.AnalyticsConfigurations.0.StorageClassAnalysis.DataExport.Destination.BucketArn'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyBucketF68F3FF0",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucketeer"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 68,
+        "startColumn": 4,
+        "endLine": 68,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'Other34654A52' dependency already enforced by a 'GetAtt' at 'Properties.Token'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyBucketF68F3FF0",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucketeer"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 68,
+        "startColumn": 4,
+        "endLine": 68,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'Other34654A52' dependency already enforced by a 'Ref' at 'Properties.LoggingConfiguration.DestinationBucketName'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyBucketF68F3FF0",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucketeer"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 68,
+        "startColumn": 4,
+        "endLine": 68,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3697",
+        "severity": "WARN",
+        "message": "Resource type 'AWS::AutoScaling::LaunchConfiguration' is from a service in maintenance mode since 2024-10-01. Consider migrating to an alternative",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ASGLaunchConfigC00AF12B",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "category": "Deprecation",
+        "startLine": 397,
+        "startColumn": 3,
+        "endLine": 397,
+        "endColumn": 27,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Resource type is from a service in maintenance mode",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCB9E5F0B4",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPC"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 83,
+        "startColumn": 5,
+        "endLine": 83,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceTenancy' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCB9E5F0B4",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPC"
+        },
+        "propertyPath": "Properties.InstanceTenancy",
+        "category": "Best Practice",
+        "startLine": 86,
+        "startColumn": 5,
+        "endLine": 86,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1SubnetB4246D30",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 101,
+        "startColumn": 5,
+        "endLine": 101,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1SubnetB4246D30",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 109,
+        "startColumn": 5,
+        "endLine": 109,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1SubnetB4246D30",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 125,
+        "startColumn": 5,
+        "endLine": 125,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCB9E5F0B4'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1RouteTableFEE4B781",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::RouteTable"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 142,
+        "startColumn": 5,
+        "endLine": 142,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCB9E5F0B4'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1RouteTableAssociation0B0896DC",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 153,
+        "startColumn": 5,
+        "endLine": 153,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCPublicSubnet1RouteTableFEE4B781'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1RouteTableAssociation0B0896DC",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 156,
+        "startColumn": 5,
+        "endLine": 156,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCPublicSubnet1SubnetB4246D30'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1DefaultRoute91CEF279",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.DestinationCidrBlock",
+        "category": "Best Practice",
+        "startLine": 167,
+        "startColumn": 5,
+        "endLine": 167,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1DefaultRoute91CEF279",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 171,
+        "startColumn": 5,
+        "endLine": 171,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCPublicSubnet1RouteTableFEE4B781'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AllocationId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1NATGatewayE0556630",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NatGateway"
+        },
+        "propertyPath": "Properties.AllocationId",
+        "category": "Best Practice",
+        "startLine": 200,
+        "startColumn": 5,
+        "endLine": 200,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt VPCPublicSubnet1EIP6AD938E8.AllocationId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPublicSubnet1NATGatewayE0556630",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NatGateway"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 206,
+        "startColumn": 5,
+        "endLine": 206,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCPublicSubnet1SubnetB4246D30'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1Subnet8BCA10E0",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 227,
+        "startColumn": 5,
+        "endLine": 227,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1Subnet8BCA10E0",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 235,
+        "startColumn": 5,
+        "endLine": 235,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1Subnet8BCA10E0",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 251,
+        "startColumn": 5,
+        "endLine": 251,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCB9E5F0B4'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1RouteTableBE8A6027",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::RouteTable"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 268,
+        "startColumn": 5,
+        "endLine": 268,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCB9E5F0B4'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1RouteTableAssociation347902D1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 279,
+        "startColumn": 5,
+        "endLine": 279,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCPrivateSubnet1RouteTableBE8A6027'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1RouteTableAssociation347902D1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 282,
+        "startColumn": 5,
+        "endLine": 282,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCPrivateSubnet1Subnet8BCA10E0'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1DefaultRouteAE1D6490",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.DestinationCidrBlock",
+        "category": "Best Practice",
+        "startLine": 293,
+        "startColumn": 5,
+        "endLine": 293,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCPrivateSubnet1DefaultRouteAE1D6490",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 297,
+        "startColumn": 5,
+        "endLine": 297,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCPrivateSubnet1RouteTableBE8A6027'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VPCVPCGW99B986DC",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPCGatewayAttachment"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 325,
+        "startColumn": 5,
+        "endLine": 325,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2-vpc-gateway-attachment.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCB9E5F0B4'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASGInstanceSecurityGroup0525485D",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 336,
+        "startColumn": 5,
+        "endLine": 336,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASGInstanceSecurityGroup0525485D",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 350,
+        "startColumn": 5,
+        "endLine": 350,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VPCB9E5F0B4'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'IamInstanceProfile' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASGLaunchConfigC00AF12B",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.IamInstanceProfile",
+        "category": "Best Practice",
+        "startLine": 400,
+        "startColumn": 5,
+        "endLine": 400,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'ASGInstanceProfile0A2834D7'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASGLaunchConfigC00AF12B",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 403,
+        "startColumn": 5,
+        "endLine": 403,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASGLaunchConfigC00AF12B",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 406,
+        "startColumn": 5,
+        "endLine": 406,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SecurityGroups' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASGLaunchConfigC00AF12B",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.SecurityGroups",
+        "category": "Best Practice",
+        "startLine": 407,
+        "startColumn": 5,
+        "endLine": 407,
+        "endColumn": 20,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASGLaunchConfigC00AF12B",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 415,
+        "startColumn": 5,
+        "endLine": 415,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LaunchConfigurationName' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASG46ED3070",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.LaunchConfigurationName",
+        "category": "Best Practice",
+        "startLine": 432,
+        "startColumn": 5,
+        "endLine": 432,
+        "endColumn": 29,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "Ref to 'ASGLaunchConfigC00AF12B'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VPCZoneIdentifier' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ASG46ED3070",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.VPCZoneIdentifier",
+        "category": "Best Practice",
+        "startLine": 444,
+        "startColumn": 5,
+        "endLine": 444,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Other34654A52' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Other34654A52",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 17,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "cdk/route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template.json": {
+    "filePath": "cdk/route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 31,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 55,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Vpc8378EB38",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPC"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceTenancy' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Vpc8378EB38",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPC"
+        },
+        "propertyPath": "Properties.InstanceTenancy",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 5,
+        "endLine": 9,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1Subnet5C2D37C4",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 5,
+        "endLine": 24,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1Subnet5C2D37C4",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1Subnet5C2D37C4",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 5,
+        "endLine": 48,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1RouteTable6C95E38E",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::RouteTable"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 5,
+        "endLine": 65,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1RouteTableAssociation97140677",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 76,
+        "startColumn": 5,
+        "endLine": 76,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet1RouteTable6C95E38E'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1RouteTableAssociation97140677",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 79,
+        "startColumn": 5,
+        "endLine": 79,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet1Subnet5C2D37C4'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1DefaultRoute3DA9E72A",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.DestinationCidrBlock",
+        "category": "Best Practice",
+        "startLine": 90,
+        "startColumn": 5,
+        "endLine": 90,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1DefaultRoute3DA9E72A",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 94,
+        "startColumn": 5,
+        "endLine": 94,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet1RouteTable6C95E38E'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AllocationId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1NATGateway4D7517AA",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NatGateway"
+        },
+        "propertyPath": "Properties.AllocationId",
+        "category": "Best Practice",
+        "startLine": 123,
+        "startColumn": 5,
+        "endLine": 123,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt VpcPublicSubnet1EIPD7E02669.AllocationId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet1NATGateway4D7517AA",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NatGateway"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 129,
+        "startColumn": 5,
+        "endLine": 129,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet1Subnet5C2D37C4'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2Subnet691E08A3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 150,
+        "startColumn": 5,
+        "endLine": 150,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2Subnet691E08A3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 158,
+        "startColumn": 5,
+        "endLine": 158,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2Subnet691E08A3",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 174,
+        "startColumn": 5,
+        "endLine": 174,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2RouteTable94F7E489",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::RouteTable"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 191,
+        "startColumn": 5,
+        "endLine": 191,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2RouteTableAssociationDD5762D8",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 202,
+        "startColumn": 5,
+        "endLine": 202,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet2RouteTable94F7E489'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2RouteTableAssociationDD5762D8",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 205,
+        "startColumn": 5,
+        "endLine": 205,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet2Subnet691E08A3'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2DefaultRoute97F91067",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.DestinationCidrBlock",
+        "category": "Best Practice",
+        "startLine": 216,
+        "startColumn": 5,
+        "endLine": 216,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2DefaultRoute97F91067",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 220,
+        "startColumn": 5,
+        "endLine": 220,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet2RouteTable94F7E489'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AllocationId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2NATGateway9182C01D",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NatGateway"
+        },
+        "propertyPath": "Properties.AllocationId",
+        "category": "Best Practice",
+        "startLine": 249,
+        "startColumn": 5,
+        "endLine": 249,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt VpcPublicSubnet2EIP3C605A87.AllocationId"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPublicSubnet2NATGateway9182C01D",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::NatGateway"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 255,
+        "startColumn": 5,
+        "endLine": 255,
+        "endColumn": 14,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPublicSubnet2Subnet691E08A3'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1Subnet536B997A",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 276,
+        "startColumn": 5,
+        "endLine": 276,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1Subnet536B997A",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 284,
+        "startColumn": 5,
+        "endLine": 284,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1Subnet536B997A",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 300,
+        "startColumn": 5,
+        "endLine": 300,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1RouteTableB2C5B500",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::RouteTable"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 317,
+        "startColumn": 5,
+        "endLine": 317,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1RouteTableAssociation70C59FA6",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 328,
+        "startColumn": 5,
+        "endLine": 328,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPrivateSubnet1RouteTableB2C5B500'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1RouteTableAssociation70C59FA6",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 331,
+        "startColumn": 5,
+        "endLine": 331,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPrivateSubnet1Subnet536B997A'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1DefaultRouteBE02A9ED",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.DestinationCidrBlock",
+        "category": "Best Practice",
+        "startLine": 342,
+        "startColumn": 5,
+        "endLine": 342,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet1DefaultRouteBE02A9ED",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 346,
+        "startColumn": 5,
+        "endLine": 346,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPrivateSubnet1RouteTableB2C5B500'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2Subnet3788AAA1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 357,
+        "startColumn": 5,
+        "endLine": 357,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2Subnet3788AAA1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 365,
+        "startColumn": 5,
+        "endLine": 365,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2Subnet3788AAA1",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 381,
+        "startColumn": 5,
+        "endLine": 381,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2RouteTableA678073B",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::RouteTable"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 398,
+        "startColumn": 5,
+        "endLine": 398,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2RouteTableAssociationA89CAD56",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 409,
+        "startColumn": 5,
+        "endLine": 409,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPrivateSubnet2RouteTableA678073B'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2RouteTableAssociationA89CAD56",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 412,
+        "startColumn": 5,
+        "endLine": 412,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPrivateSubnet2Subnet3788AAA1'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2DefaultRoute060D2087",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.DestinationCidrBlock",
+        "category": "Best Practice",
+        "startLine": 423,
+        "startColumn": 5,
+        "endLine": 423,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcPrivateSubnet2DefaultRoute060D2087",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 427,
+        "startColumn": 5,
+        "endLine": 427,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VpcPrivateSubnet2RouteTableA678073B'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VpcVPCGWBF912B6E",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPCGatewayAttachment"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 455,
+        "startColumn": 5,
+        "endLine": 455,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2-vpc-gateway-attachment.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LogGroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSFirewallLogGroupF0EEB7D4",
+          "entityType": "Resource",
+          "resourceType": "AWS::Logs::LogGroup"
+        },
+        "propertyPath": "Properties.LogGroupName",
+        "category": "Best Practice",
+        "startLine": 466,
+        "startColumn": 5,
+        "endLine": 466,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSLogsConfig",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::ResolverQueryLoggingConfig"
+        },
+        "propertyPath": "Properties.DestinationArn",
+        "category": "Best Practice",
+        "startLine": 478,
+        "startColumn": 5,
+        "endLine": 478,
+        "endColumn": 20,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt DNSFirewallLogGroupF0EEB7D4.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSLogsConfig",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::ResolverQueryLoggingConfig"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 484,
+        "startColumn": 5,
+        "endLine": 484,
+        "endColumn": 10,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResolverQueryLogConfigId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSLogAssoc",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::ResolverQueryLoggingConfigAssociation"
+        },
+        "propertyPath": "Properties.ResolverQueryLogConfigId",
+        "category": "Best Practice",
+        "startLine": 493,
+        "startColumn": 5,
+        "endLine": 493,
+        "endColumn": 30,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'DNSLogsConfig'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSLogAssoc",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::ResolverQueryLoggingConfigAssociation"
+        },
+        "propertyPath": "Properties.ResourceId",
+        "category": "Best Practice",
+        "startLine": 496,
+        "startColumn": 5,
+        "endLine": 496,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AllowedDomainList",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallDomainList"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 510,
+        "startColumn": 5,
+        "endLine": 510,
+        "endColumn": 10,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BlockedDomainList",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallDomainList"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 523,
+        "startColumn": 5,
+        "endLine": 523,
+        "endColumn": 10,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSRuleGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallRuleGroup"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 549,
+        "startColumn": 5,
+        "endLine": 549,
+        "endColumn": 10,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FirewallRuleGroupId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FirewallRuleGroupAssociation",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallRuleGroupAssociation"
+        },
+        "propertyPath": "Properties.FirewallRuleGroupId",
+        "category": "Best Practice",
+        "startLine": 558,
+        "startColumn": 5,
+        "endLine": 558,
+        "endColumn": 25,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'DNSRuleGroup'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FirewallRuleGroupAssociation",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallRuleGroupAssociation"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 563,
+        "startColumn": 5,
+        "endLine": 563,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Vpc8378EB38'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DNSFirewallLogGroupF0EEB7D4' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSFirewallLogGroupF0EEB7D4",
+          "entityType": "Resource",
+          "resourceType": "AWS::Logs::LogGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 465,
+        "startColumn": 4,
+        "endLine": 465,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DNSLogsConfig' of type 'AWS::Route53Resolver::ResolverQueryLoggingConfig' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSLogsConfig",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::ResolverQueryLoggingConfig"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 477,
+        "startColumn": 4,
+        "endLine": 477,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AllowedDomainList' of type 'AWS::Route53Resolver::FirewallDomainList' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AllowedDomainList",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallDomainList"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 506,
+        "startColumn": 4,
+        "endLine": 506,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BlockedDomainList' of type 'AWS::Route53Resolver::FirewallDomainList' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BlockedDomainList",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallDomainList"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 518,
+        "startColumn": 4,
+        "endLine": 518,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DNSRuleGroup' of type 'AWS::Route53Resolver::FirewallRuleGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DNSRuleGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallRuleGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 531,
+        "startColumn": 4,
+        "endLine": 531,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FirewallRuleGroupAssociation' of type 'AWS::Route53Resolver::FirewallRuleGroupAssociation' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FirewallRuleGroupAssociation",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53Resolver::FirewallRuleGroupAssociation"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 557,
+        "startColumn": 4,
+        "endLine": 557,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "cdk/s3-object-lambda--S3ObjectLambdaStack.template.json": {
+    "filePath": "cdk/s3-object-lambda--S3ObjectLambdaStack.template.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 9,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 3,
+        "informational": 12,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W2531",
+        "severity": "WARN",
+        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdaD5D6532C",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Runtime",
+        "category": "Deprecation",
+        "startLine": 155,
+        "startColumn": 5,
+        "endLine": 155,
+        "endColumn": 13,
+        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "nodejs20.x",
+          "lifecycle": "deprecated"
+        }
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'retrieveTransformedObjectLambdaServiceRole27FF342E' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdaD5D6532C",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 157,
+        "startColumn": 4,
+        "endLine": 157,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3045",
+        "severity": "WARN",
+        "message": "AccessControl property is deprecated. Use bucket policies instead",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "examplebucketC9DFA43E",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.AccessControl",
+        "suggestedFix": "Remove AccessControl and use an AWS::S3::BucketPolicy resource",
+        "category": "Deprecation",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 19,
+        "ruleDescription": "Controlling access to an S3 bucket should be done with bucket policies",
+        "phase": "LINT",
+        "context": {
+          "actualValue": "BucketOwnerFullControl"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Bucket' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "examplebucketPolicyE09B485E",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "propertyPath": "Properties.Bucket",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'examplebucketC9DFA43E'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Action' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdainvocationRestrictionD58B0218",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.Action",
+        "category": "Best Practice",
+        "startLine": 171,
+        "startColumn": 5,
+        "endLine": 171,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdainvocationRestrictionD58B0218",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 172,
+        "startColumn": 5,
+        "endLine": 172,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt retrieveTransformedObjectLambdaD5D6532C.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Principal' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdainvocationRestrictionD58B0218",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.Principal",
+        "category": "Best Practice",
+        "startLine": 178,
+        "startColumn": 5,
+        "endLine": 178,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SourceAccount' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdainvocationRestrictionD58B0218",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.SourceAccount",
+        "category": "Best Practice",
+        "startLine": 181,
+        "startColumn": 5,
+        "endLine": 181,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Bucket' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "exampleBucketAP",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::AccessPoint"
+        },
+        "propertyPath": "Properties.Bucket",
+        "category": "Best Practice",
+        "startLine": 192,
+        "startColumn": 5,
+        "endLine": 192,
+        "endColumn": 12,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'examplebucketC9DFA43E'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "exampleBucketAP",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::AccessPoint"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 195,
+        "startColumn": 5,
+        "endLine": 195,
+        "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "s3ObjectLambdaAP",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3ObjectLambda::AccessPoint"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 238,
+        "startColumn": 5,
+        "endLine": 238,
+        "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'examplebucketC9DFA43E' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "examplebucketC9DFA43E",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 4,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'retrieveTransformedObjectLambdaServiceRole27FF342E' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdaServiceRole27FF342E",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 83,
+        "startColumn": 4,
+        "endLine": 83,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'retrieveTransformedObjectLambdaD5D6532C' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "retrieveTransformedObjectLambdaD5D6532C",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 141,
+        "startColumn": 4,
+        "endLine": 141,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'exampleBucketAP' of type 'AWS::S3::AccessPoint' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "exampleBucketAP",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::AccessPoint"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 191,
+        "startColumn": 4,
+        "endLine": 191,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "cdk/ssm-document-association--SsmDocumentAssociationStack.template.json": {
+    "filePath": "cdk/ssm-document-association--SsmDocumentAssociationStack.template.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 17,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 28,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 316,
+        "startColumn": 4,
+        "endLine": 316,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Content' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TimeWriterDocument",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Document"
+        },
+        "propertyPath": "Properties.Content",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ssm",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DocumentType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TimeWriterDocument",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Document"
+        },
+        "propertyPath": "Properties.DocumentType",
+        "category": "Best Practice",
+        "startLine": 36,
+        "startColumn": 5,
+        "endLine": 36,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ssm",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TimeWriterDocument",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Document"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ssm",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpc2979FA29",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPC"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 5,
+        "endLine": 71,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceTenancy' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpc2979FA29",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPC"
+        },
+        "propertyPath": "Properties.InstanceTenancy",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 5,
+        "endLine": 74,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 89,
+        "startColumn": 5,
+        "endLine": 89,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 97,
+        "startColumn": 5,
+        "endLine": 97,
+        "endColumn": 15,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 113,
+        "startColumn": 5,
+        "endLine": 113,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpc2979FA29'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1RouteTable4C0F352E",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::RouteTable"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 130,
+        "startColumn": 5,
+        "endLine": 130,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpc2979FA29'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1RouteTableAssociation3C51BE77",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 141,
+        "startColumn": 5,
+        "endLine": 141,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpcpublicSubnet1RouteTable4C0F352E'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1RouteTableAssociation3C51BE77",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SubnetRouteTableAssociation"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 144,
+        "startColumn": 5,
+        "endLine": 144,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DestinationCidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1DefaultRouteE60C709F",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.DestinationCidrBlock",
+        "category": "Best Practice",
+        "startLine": 155,
+        "startColumn": 5,
+        "endLine": 155,
+        "endColumn": 26,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RouteTableId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcpublicSubnet1DefaultRouteE60C709F",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Route"
+        },
+        "propertyPath": "Properties.RouteTableId",
+        "category": "Best Practice",
+        "startLine": 159,
+        "startColumn": 5,
+        "endLine": 159,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpcpublicSubnet1RouteTable4C0F352E'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMDocumentTestVpcVPCGW7C58FC59",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::VPCGatewayAttachment"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 190,
+        "startColumn": 5,
+        "endLine": 190,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2-vpc-gateway-attachment.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpc2979FA29'",
+          "extra": {
+            "replacement_strategy": "delete_then_create"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceInstanceSecurityGroup68B5BAFB",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 362,
+        "startColumn": 5,
+        "endLine": 362,
+        "endColumn": 22,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceInstanceSecurityGroup68B5BAFB",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 380,
+        "startColumn": 5,
+        "endLine": 380,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpc2979FA29'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceA55C9969",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 404,
+        "startColumn": 5,
+        "endLine": 404,
+        "endColumn": 22,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceA55C9969",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 415,
+        "startColumn": 5,
+        "endLine": 415,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceA55C9969",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 418,
+        "startColumn": 5,
+        "endLine": 418,
+        "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SecurityGroupIds' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceA55C9969",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.SecurityGroupIds",
+        "category": "Best Practice",
+        "startLine": 419,
+        "startColumn": 5,
+        "endLine": 419,
+        "endColumn": 22,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceA55C9969",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 427,
+        "startColumn": 5,
+        "endLine": 427,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'SSMDocumentTestVpcpublicSubnet1SubnetB0B3C43E'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SSMTestInstanceA55C9969",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 440,
+        "startColumn": 5,
+        "endLine": 440,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TimeWriterDocument' of type 'AWS::SSM::Document' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TimeWriterDocument",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Document"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 4,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DocumentAssociation' of type 'AWS::SSM::Association' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DocumentAssociation",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Association"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 45,
+        "startColumn": 4,
+        "endLine": 45,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomVpcRestrictDefaultSGCustomResourceProviderRole26592FE0",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 225,
+        "startColumn": 4,
+        "endLine": 225,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomVpcRestrictDefaultSGCustomResourceProviderHandlerDC833E5E",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 297,
+        "startColumn": 4,
+        "endLine": 297,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'EC2SSMRole1C0EBD7B' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EC2SSMRole1C0EBD7B",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 327,
+        "startColumn": 4,
+        "endLine": 327,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "cdk/static-site-basic--MyStaticSite.template.json": {
     "filePath": "cdk/static-site-basic--MyStaticSite.template.json",
     "status": "OK",
@@ -22520,1568 +26155,6 @@
         "startLine": 77,
         "startColumn": 5,
         "endLine": 77,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/ecs_fargate_units_and_sizes.yaml": {
-    "filePath": "good/ecs_fargate_units_and_sizes.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 7,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 43,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "QuarterVcpuHalfGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "QuarterVcpuHalfGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "QuarterVcpuHalfGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "QuarterVcpuHalfGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "QuarterVcpuHalfGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "QuarterVcpuHalfGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 7,
-        "endLine": 16,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "EightVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 24,
-        "startColumn": 7,
-        "endLine": 24,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "EightVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 7,
-        "endLine": 25,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "EightVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 7,
-        "endLine": 26,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "EightVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 7,
-        "endLine": 27,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "EightVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 7,
-        "endLine": 28,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "EightVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 32,
-        "startColumn": 7,
-        "endLine": 32,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixteenVcpuFortyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 40,
-        "startColumn": 7,
-        "endLine": 40,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixteenVcpuFortyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 41,
-        "startColumn": 7,
-        "endLine": 41,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixteenVcpuFortyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 42,
-        "startColumn": 7,
-        "endLine": 42,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixteenVcpuFortyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 43,
-        "startColumn": 7,
-        "endLine": 43,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixteenVcpuFortyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 44,
-        "startColumn": 7,
-        "endLine": 44,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixteenVcpuFortyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 48,
-        "startColumn": 7,
-        "endLine": 48,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 56,
-        "startColumn": 7,
-        "endLine": 56,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 57,
-        "startColumn": 7,
-        "endLine": 57,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 58,
-        "startColumn": 7,
-        "endLine": 58,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 59,
-        "startColumn": 7,
-        "endLine": 59,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 60,
-        "startColumn": 7,
-        "endLine": 60,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuSixtyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 64,
-        "startColumn": 7,
-        "endLine": 64,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuOneTwentyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 72,
-        "startColumn": 7,
-        "endLine": 72,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuOneTwentyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 73,
-        "startColumn": 7,
-        "endLine": 73,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuOneTwentyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 74,
-        "startColumn": 7,
-        "endLine": 74,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuOneTwentyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 75,
-        "startColumn": 7,
-        "endLine": 75,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuOneTwentyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 76,
-        "startColumn": 7,
-        "endLine": 76,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuOneTwentyGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 80,
-        "startColumn": 7,
-        "endLine": 80,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuTwoFortyFourGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 88,
-        "startColumn": 7,
-        "endLine": 88,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuTwoFortyFourGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 89,
-        "startColumn": 7,
-        "endLine": 89,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuTwoFortyFourGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 90,
-        "startColumn": 7,
-        "endLine": 90,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuTwoFortyFourGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 91,
-        "startColumn": 7,
-        "endLine": 91,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuTwoFortyFourGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 92,
-        "startColumn": 7,
-        "endLine": 92,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirtyTwoVcpuTwoFortyFourGb",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 96,
-        "startColumn": 7,
-        "endLine": 96,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalRequiredProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 105,
-        "startColumn": 7,
-        "endLine": 105,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalRequiredProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 106,
-        "startColumn": 7,
-        "endLine": 106,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalRequiredProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 107,
-        "startColumn": 7,
-        "endLine": 107,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Fn::If on condition 'UseAlternateSize'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalRequiredProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 108,
-        "startColumn": 7,
-        "endLine": 108,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Fn::If on condition 'UseAlternateSize'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalRequiredProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 109,
-        "startColumn": 7,
-        "endLine": 109,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Fn::If on condition 'UseAlternateSize'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'PlacementConstraints' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalRequiredProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.PlacementConstraints",
-        "category": "Best Practice",
-        "startLine": 110,
-        "startColumn": 7,
-        "endLine": 110,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Fn::If on condition 'UseAlternateSize'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ConditionalRequiredProperties",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 114,
-        "startColumn": 7,
-        "endLine": 114,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      }
-    ]
-  },
-  "good/ecs_fargate_valid.yaml": {
-    "filePath": "good/ecs_fargate_valid.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 7,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/elb_https_empty_sslcertificateid.yaml": {
-    "filePath": "good/elb_https_empty_sslcertificateid.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ELB' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ELB",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/enum_case_insensitive_casing.yaml": {
-    "filePath": "good/enum_case_insensitive_casing.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LowercaseType",
-          "entityType": "Resource",
-          "resourceType": "AWS::Batch::ComputeEnvironment"
-        },
-        "propertyPath": "Properties.Type",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ComputeResources.Subnets' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LowercaseType",
-          "entityType": "Resource",
-          "resourceType": "AWS::Batch::ComputeEnvironment"
-        },
-        "propertyPath": "Properties.ComputeResources.Subnets",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 9,
-        "endLine": 16,
-        "endColumn": 16,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ComputeResources.Type' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LowercaseType",
-          "entityType": "Resource",
-          "resourceType": "AWS::Batch::ComputeEnvironment"
-        },
-        "propertyPath": "Properties.ComputeResources.Type",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 9,
-        "endLine": 18,
-        "endColumn": 13,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LowercaseType",
-          "entityType": "Resource",
-          "resourceType": "AWS::Batch::ComputeEnvironment"
-        },
-        "propertyPath": "Properties.Tags",
-        "category": "Best Practice",
-        "startLine": 20,
-        "startColumn": 7,
-        "endLine": 20,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MixedCaseType",
-          "entityType": "Resource",
-          "resourceType": "AWS::Batch::ComputeEnvironment"
-        },
-        "propertyPath": "Properties.Type",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 7,
-        "endLine": 25,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MixedCaseType",
-          "entityType": "Resource",
-          "resourceType": "AWS::Batch::ComputeEnvironment"
-        },
-        "propertyPath": "Properties.Tags",
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 7,
-        "endLine": 27,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      }
-    ]
-  },
-  "good/functions/dynamic_reference_embedded.yaml": {
-    "filePath": "good/functions/dynamic_reference_embedded.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 4,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 8,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Sg",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroup"
-        },
-        "propertyPath": "Properties.GroupDescription",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 23,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'GroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Sg",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroup"
-        },
-        "propertyPath": "Properties.GroupName",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 16,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (dynamic reference: prefix-{{resolve:ssm:/network/sg-name}})"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Best Practice",
-        "startLine": 19,
-        "startColumn": 7,
-        "endLine": 19,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/config/bucket-name}})"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.ImageId",
-        "category": "Best Practice",
-        "startLine": 34,
-        "startColumn": 7,
-        "endLine": 34,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "dynamic (dynamic reference: prefix-{{resolve:ssm:/ec2/ami-id}})"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.InstanceType",
-        "category": "Best Practice",
-        "startLine": 35,
-        "startColumn": 7,
-        "endLine": 35,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9003",
-        "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
-        "source": "ENGINE",
-        "category": "Best Practice",
-        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ScheduledRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ScheduledRule",
-          "entityType": "Resource",
-          "resourceType": "AWS::Events::Rule"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 5,
-        "endLine": 25,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 33,
-        "startColumn": 5,
-        "endLine": 33,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

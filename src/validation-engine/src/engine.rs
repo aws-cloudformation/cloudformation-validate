@@ -347,6 +347,7 @@ pub(crate) fn validate(
     let t_post = Instant::now();
     if !config.disable_builtin_rules {
         all_diagnostics.extend(crate::step_functions::validate_all_state_machines(&model));
+        all_diagnostics.extend(crate::context_check::check_context(&model)?);
         all_diagnostics.extend(model.diagnostics.iter().map(diagnostic_from_parse_defect));
 
         // The satisfiability budget is consumed almost entirely by the rule
@@ -2212,6 +2213,36 @@ Resources:
         let mut diags = vec![make_diag("E3012", Severity::Error, 5, 1), make_diag("I9040", Severity::Info, 7, 1)];
         gate_sam_transform_errors(&mut diags);
         assert_eq!(diags.len(), 2);
+    }
+
+    /// Context describes the deployed resources whatever produced the template,
+    /// so the CDK gate must drop only the template-authoring rules.
+    #[test]
+    fn cdk_gate_keeps_context_findings_on_synthesized_templates() {
+        let model = SemanticModel::from_bytes(
+            br#"
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      aws:cdk:path: Stack/Queue/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+"#,
+        )
+        .expect("cdk model should parse");
+        assert!(model.is_cdk);
+        let mut diags = vec![
+            make_diag("I1022", Severity::Info, 2, 1),
+            make_diag("I4010", Severity::Info, 2, 1),
+            make_diag("W4011", Severity::Warn, 5, 1),
+            make_diag("W4012", Severity::Warn, 5, 1),
+            make_diag("W3010", Severity::Warn, 3, 1),
+        ];
+
+        gate_cdk_suppressed_rules(&mut diags, &model);
+
+        assert_eq!(diags.iter().map(|d| d.rule_id.as_str()).collect::<Vec<_>>(), ["I4010", "W4011", "W4012"]);
     }
 
     #[test]

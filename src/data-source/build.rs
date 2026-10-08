@@ -66,12 +66,15 @@ const GENERATED_JSON: &[(&str, &str)] = &[
 /// faithful cfn-lint source: deprecated_resource_types and sensitive_ports are
 /// engine-specific, getatt_return_type_overrides corrects CloudFormation's
 /// GetAtt stringification (consumed at generate time, and embedded so runtime
-/// overlay-derived GetAtt/Ref metadata preserves the same corrections).
+/// overlay-derived GetAtt/Ref metadata preserves the same corrections), and
+/// metadata_context_schema is the Metadata Context schema v1 published in the
+/// CloudFormation template reference.
 const HANDWRITTEN_JSON: &[(&str, &str)] = &[
     ("deprecated_resource_types", "DEPRECATED_RESOURCE_TYPES"),
     ("sensitive_ports", "SENSITIVE_PORTS"),
     ("secretsmanager_arn_fields", "SECRETSMANAGER_ARN_FIELDS"),
     ("getatt_return_type_overrides", "GETATT_RETURN_TYPE_OVERRIDES"),
+    ("metadata_context_schema", "METADATA_CONTEXT_SCHEMA"),
 ];
 
 fn main() {
