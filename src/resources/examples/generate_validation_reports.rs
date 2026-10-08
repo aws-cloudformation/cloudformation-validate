@@ -25,7 +25,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 use resources::{
-    TEMPLATES_PER_CHUNK, discover_snapshot_chunks, discover_snapshot_templates, expected_dir,
+    TEMPLATES_PER_CHUNK, discover_snapshot_chunks, discover_snapshot_templates, exclude_snapshot_rules, expected_dir,
     legacy_validation_reports_file, resources_root, snapshot_chunk_filename, templates_dir, workspace_root,
 };
 use serde_json::{Map, Value};
@@ -280,7 +280,13 @@ fn validate_template(cfn_validate: &PathBuf, template: &str) -> (Outcome, f64) {
         return (Outcome::Parity(divergences), cli_validation_ms);
     }
 
-    (Outcome::Persist(strip_output_only_fields(reference)), cli_validation_ms)
+    // Parity above covered every rule; only the persisted report leaves out the
+    // rules that would otherwise appear on nearly every template.
+    let mut persisted = strip_output_only_fields(reference);
+    if let Err(message) = exclude_snapshot_rules(&mut persisted) {
+        return (Outcome::Fatal(format!("{template}: {message}")), cli_validation_ms);
+    }
+    (Outcome::Persist(persisted), cli_validation_ms)
 }
 
 /// Invoke `cfn-validate <template> --format detailed --level debug --engine <engine>`

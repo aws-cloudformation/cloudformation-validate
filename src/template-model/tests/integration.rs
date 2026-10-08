@@ -1697,23 +1697,3 @@ Resources:
         );
     }
 }
-
-/// Each marker CDK leaves in a synthesized template is sufficient on its own:
-/// the analytics resource type, its reserved logical ID, or construct-path
-/// metadata (the only marker left when analytics reporting is disabled).
-#[test]
-fn cdk_template_is_detected_from_each_synthesis_marker() {
-    let marked = [
-        "Resources:\n  Analytics:\n    Type: AWS::CDK::Metadata\n",
-        "Resources:\n  CDKMetadata:\n    Type: AWS::SQS::Queue\n",
-        "Resources:\n  Queue:\n    Type: AWS::SQS::Queue\n    Metadata:\n      aws:cdk:path: Stack/Queue/Resource\n",
-    ];
-    for template in marked {
-        let model = SemanticModel::from_bytes(template.as_bytes()).expect("cdk template parses");
-        assert!(model.is_cdk, "expected CDK detection for:\n{template}");
-    }
-
-    let unmarked = "Resources:\n  Queue:\n    Type: AWS::SQS::Queue\n    Metadata:\n      Comment: hand-written\n";
-    let model = SemanticModel::from_bytes(unmarked.as_bytes()).expect("plain template parses");
-    assert!(!model.is_cdk, "a hand-written template must not be treated as synthesized");
-}

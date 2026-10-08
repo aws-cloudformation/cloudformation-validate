@@ -1188,10 +1188,8 @@ fn gate_sam_transform_errors(diagnostics: &mut Vec<Diagnostic>) {
 
 /// Rules suppressed on CDK-generated templates. CDK synthesizes templates from
 /// higher-level code, so findings about how the template itself is written are
-/// not actionable for the developer and would only add noise. Metadata Context
-/// describes authored resources; on a synthesized template the author chose
-/// constructs, not the emitted resources, so the Context rules are suppressed too.
-const CDK_SUPPRESSED_RULE_IDS: [&str; 5] = ["I1022", "W3010", "I4010", "W4011", "W4012"];
+/// not actionable for the developer and would only add noise.
+const CDK_SUPPRESSED_RULE_IDS: [&str; 2] = ["I1022", "W3010"];
 
 /// Suppresses non-actionable findings on CDK-generated templates (see
 /// [`CDK_SUPPRESSED_RULE_IDS`]).
@@ -2217,8 +2215,10 @@ Resources:
         assert_eq!(diags.len(), 2);
     }
 
+    /// Context describes the deployed resources whatever produced the template,
+    /// so the CDK gate must drop only the template-authoring rules.
     #[test]
-    fn cdk_gate_drops_context_findings_on_a_template_marked_only_by_construct_paths() {
+    fn cdk_gate_keeps_context_findings_on_synthesized_templates() {
         let model = SemanticModel::from_bytes(
             br#"
 Resources:
@@ -2226,33 +2226,23 @@ Resources:
     Type: AWS::SQS::Queue
     Metadata:
       aws:cdk:path: Stack/Queue/Resource
-  Topic:
-    Type: AWS::SNS::Topic
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
 "#,
         )
         .expect("cdk model should parse");
-        assert!(model.is_cdk, "construct-path metadata alone marks a synthesized template");
+        assert!(model.is_cdk);
         let mut diags = vec![
+            make_diag("I1022", Severity::Info, 2, 1),
             make_diag("I4010", Severity::Info, 2, 1),
             make_diag("W4011", Severity::Warn, 5, 1),
             make_diag("W4012", Severity::Warn, 5, 1),
-            make_diag("E3012", Severity::Error, 3, 1),
+            make_diag("W3010", Severity::Warn, 3, 1),
         ];
 
         gate_cdk_suppressed_rules(&mut diags, &model);
 
-        assert_eq!(diags.iter().map(|d| d.rule_id.as_str()).collect::<Vec<_>>(), ["E3012"]);
-    }
-
-    #[test]
-    fn cdk_gate_leaves_hand_written_templates_untouched() {
-        let model = minimal_model();
-        assert!(!model.is_cdk);
-        let mut diags = vec![make_diag("I4010", Severity::Info, 2, 1), make_diag("I1022", Severity::Info, 3, 1)];
-
-        gate_cdk_suppressed_rules(&mut diags, &model);
-
-        assert_eq!(diags.len(), 2);
+        assert_eq!(diags.iter().map(|d| d.rule_id.as_str()).collect::<Vec<_>>(), ["I4010", "W4011", "W4012"]);
     }
 
     #[test]

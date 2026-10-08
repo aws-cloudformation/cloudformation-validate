@@ -6,6 +6,7 @@ use composite_engine::CompositeEngine;
 use data_source::embedded::{CFN_LINT_VERSION, RESOURCE_SCHEMA_VERSION};
 use diagnostics::DetailLevel;
 use rego_engine::RegoEngine;
+use resources::exclude_snapshot_rules;
 use rules::Severity;
 use schema_validator::SchemaValidator;
 use validation_engine::{
@@ -22,7 +23,9 @@ fn validate_to_json(
     let config =
         ValidateConfig { detail_level: detail_level.clone(), severity_level: Severity::Debug, ..Default::default() };
     let report = validate_bytes_with_path(engine, &sv, bytes, config, relative_path.to_string()).expect("validate");
-    serde_json::to_value(report.to_report(detail_level)).expect("serialize")
+    let mut json = serde_json::to_value(report.to_report(detail_level)).expect("serialize");
+    exclude_snapshot_rules(&mut json).expect("exclude snapshot rules");
+    json
 }
 
 fn strip_enrichment_fields(val: &mut serde_json::Value) {

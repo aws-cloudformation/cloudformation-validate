@@ -1,4 +1,101 @@
 {
+  "bad/resources/name.yaml": {
+    "filePath": "bad/resources/name.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 2,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0006",
+        "severity": "FATAL",
+        "message": "Logical ID 'my.Instance' must be alphanumeric (A-Za-z0-9)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "my.Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Logical IDs must be alphanumeric",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F0006",
+        "severity": "FATAL",
+        "message": "Logical ID 'my_Instance' must be alphanumeric (A-Za-z0-9)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "my_Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "category": "Structure",
+        "startLine": 7,
+        "startColumn": 3,
+        "endLine": 7,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Logical IDs must be alphanumeric",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'my.Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "my.Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'my_Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "my_Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 5,
+        "endLine": 9,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/resources/primary_identifiers.yaml": {
     "filePath": "bad/resources/primary_identifiers.yaml",
     "status": "OK",
@@ -8,7 +105,7 @@
         "fatal": 0,
         "errors": 11,
         "warnings": 0,
-        "informational": 27,
+        "informational": 25,
         "debug": 0
       },
       "suppressed": 0,
@@ -222,155 +319,6 @@
         "endLine": 188,
         "endColumn": 11,
         "ruleDescription": "Validate that all resources have unique primary identifiers",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: RootRole (AWS::IAM::Role), RootRole2 (AWS::IAM::Role), RootRole3 (AWS::IAM::Role), RootRole4 (AWS::IAM::Role), RootRole5 (AWS::IAM::Role), RootRole6 (AWS::IAM::Role), Bucket1 (AWS::S3::Bucket), Bucket2 (AWS::S3::Bucket), Project1 (AWS::CodeBuild::Project), Project2 (AWS::CodeBuild::Project).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RootRole",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 11,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "RootRole2",
-              "resourceType": "AWS::IAM::Role"
-            },
-            "location": {
-              "startLine": 27,
-              "startColumn": 3,
-              "endLine": 27,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "RootRole3",
-              "resourceType": "AWS::IAM::Role"
-            },
-            "location": {
-              "startLine": 49,
-              "startColumn": 3,
-              "endLine": 49,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "RootRole4",
-              "resourceType": "AWS::IAM::Role"
-            },
-            "location": {
-              "startLine": 72,
-              "startColumn": 3,
-              "endLine": 72,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "RootRole5",
-              "resourceType": "AWS::IAM::Role"
-            },
-            "location": {
-              "startLine": 96,
-              "startColumn": 3,
-              "endLine": 96,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "RootRole6",
-              "resourceType": "AWS::IAM::Role"
-            },
-            "location": {
-              "startLine": 118,
-              "startColumn": 3,
-              "endLine": 118,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Bucket1",
-              "resourceType": "AWS::S3::Bucket"
-            },
-            "location": {
-              "startLine": 140,
-              "startColumn": 3,
-              "endLine": 140,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Bucket2",
-              "resourceType": "AWS::S3::Bucket"
-            },
-            "location": {
-              "startLine": 147,
-              "startColumn": 3,
-              "endLine": 147,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Project1",
-              "resourceType": "AWS::CodeBuild::Project"
-            },
-            "location": {
-              "startLine": 165,
-              "startColumn": 3,
-              "endLine": 165,
-              "endColumn": 11
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Project2",
-              "resourceType": "AWS::CodeBuild::Project"
-            },
-            "location": {
-              "startLine": 185,
-              "startColumn": 3,
-              "endLine": 185,
-              "endColumn": 11
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -1108,34 +1056,14 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
-    "diagnostics": [
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: CustomResource4 (Custom::SpecifiedCustomResource).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CustomResource4",
-          "entityType": "Resource",
-          "resourceType": "Custom::SpecifiedCustomResource"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 2,
-        "startColumn": 3,
-        "endLine": 2,
-        "endColumn": 18,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      }
-    ]
+    "diagnostics": []
   },
   "bad/resources/properties/list_duplicates.yaml": {
     "filePath": "bad/resources/properties/list_duplicates.yaml",
@@ -1146,7 +1074,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 2,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -1182,64 +1110,6 @@
             "arn:aws:iam::aws:policy/AdministratorPolicy"
           ]
         }
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: IamGroup (AWS::IAM::Group), IamGroupWithConditions (AWS::IAM::Group), IamGroupWithNestedConditions (AWS::IAM::Group).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "IamGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Group"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 3,
-        "endLine": 11,
-        "endColumn": 11,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "IamGroupWithConditions",
-              "resourceType": "AWS::IAM::Group"
-            },
-            "location": {
-              "startLine": 19,
-              "startColumn": 3,
-              "endLine": 19,
-              "endColumn": 25
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "IamGroupWithNestedConditions",
-              "resourceType": "AWS::IAM::Group"
-            },
-            "location": {
-              "startLine": 30,
-              "startColumn": 3,
-              "endLine": 30,
-              "endColumn": 31
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       }
     ]
   },
@@ -1252,7 +1122,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 4,
-        "informational": 4,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -1343,51 +1213,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: ExampleLambda (AWS::Lambda::Function), ExampleLambda1 (AWS::Lambda::Function).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ExampleLambda",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 16,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "ExampleLambda1",
-              "resourceType": "AWS::Lambda::Function"
-            },
-            "location": {
-              "startLine": 22,
-              "startColumn": 3,
-              "endLine": 22,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'ExampleLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured",
@@ -1438,7 +1263,7 @@
         "fatal": 5,
         "errors": 0,
         "warnings": 0,
-        "informational": 5,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -1570,64 +1395,6 @@
         }
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: myRepository (AWS::CodeCommit::Repository), myRepository2 (AWS::CodeCommit::Repository), CloudWatchAlarm (AWS::CloudWatch::Alarm).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "myRepository",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeCommit::Repository"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 15,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "myRepository2",
-              "resourceType": "AWS::CodeCommit::Repository"
-            },
-            "location": {
-              "startLine": 8,
-              "startColumn": 3,
-              "endLine": 8,
-              "endColumn": 16
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "CloudWatchAlarm",
-              "resourceType": "AWS::CloudWatch::Alarm"
-            },
-            "location": {
-              "startLine": 12,
-              "startColumn": 3,
-              "endLine": 12,
-              "endColumn": 18
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'myRepository' of type 'AWS::CodeCommit::Repository' supports Tags but none are configured",
@@ -1698,7 +1465,7 @@
         "fatal": 2,
         "errors": 1,
         "warnings": 1,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -1795,25 +1562,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: SampleLambda (AWS::Lambda::Function).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SampleLambda",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 15,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'SampleLambda' of type 'AWS::Lambda::Function' supports Tags but none are configured",
@@ -1844,7 +1592,7 @@
         "fatal": 0,
         "errors": 4,
         "warnings": 6,
-        "informational": 41,
+        "informational": 39,
         "debug": 0
       },
       "suppressed": 0,
@@ -2452,129 +2200,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: DBInstance1 (AWS::RDS::DBInstance), DBInstance2 (AWS::RDS::DBInstance), DBInstance3 (AWS::RDS::DBInstance), DBInstance4 (AWS::RDS::DBInstance), DBInstance5 (AWS::RDS::DBInstance), DBInstance7 (AWS::RDS::DBInstance), DBInstance8 (AWS::RDS::DBInstance), DBInstance9 (AWS::RDS::DBInstance).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "DBInstance1",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 14,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "DBInstance2",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 16,
-              "startColumn": 3,
-              "endLine": 16,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DBInstance3",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 23,
-              "startColumn": 3,
-              "endLine": 23,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DBInstance4",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 30,
-              "startColumn": 3,
-              "endLine": 30,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DBInstance5",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 36,
-              "startColumn": 3,
-              "endLine": 36,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DBInstance7",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 42,
-              "startColumn": 3,
-              "endLine": 42,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DBInstance8",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 49,
-              "startColumn": 3,
-              "endLine": 49,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DBInstance9",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 56,
-              "startColumn": 3,
-              "endLine": 56,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
@@ -2939,7 +2564,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 1,
-        "informational": 7,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
@@ -3042,25 +2667,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MyDB (AWS::RDS::DBCluster).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 7,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
@@ -3137,7 +2743,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 4,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -3182,25 +2788,6 @@
         "endLine": 9,
         "endColumn": 15,
         "ruleDescription": "Use Sub instead of Join",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: JoinedUsername (AWS::RDS::DBCluster).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "JoinedUsername",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 17,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -3260,7 +2847,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 2,
-        "informational": 4,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -3315,51 +2902,6 @@
         }
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket1 (AWS::S3::Bucket), Bucket2 (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket1",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 10,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "Bucket2",
-              "resourceType": "AWS::S3::Bucket"
-            },
-            "location": {
-              "startLine": 8,
-              "startColumn": 3,
-              "endLine": 8,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Bucket1' of type 'AWS::S3::Bucket' supports Tags but none are configured",
@@ -3410,7 +2952,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -3444,25 +2986,6 @@
             "max_length": 256
           }
         }
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MyTopic (AWS::SNS::Topic).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 10,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -3518,7 +3041,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 1,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -3564,25 +3087,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Name (AWS::SNS::Topic).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Name",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 7,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Name' of type 'AWS::SNS::Topic' supports Tags but none are configured",
@@ -3613,7 +3117,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -3639,25 +3143,6 @@
         "endLine": 5,
         "endColumn": 17,
         "ruleDescription": "Check UpdatePolicy values for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MyBucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 11,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -3713,7 +3198,7 @@
         "fatal": 6,
         "errors": 9,
         "warnings": 9,
-        "informational": 40,
+        "informational": 38,
         "debug": 0
       },
       "suppressed": 0,
@@ -4340,155 +3825,6 @@
         "endLine": 204,
         "endColumn": 22,
         "ruleDescription": "ARNs should use correctly placed Pseudo Parameters",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: mySecurityGroupVpc1 (AWS::EC2::SecurityGroup), mySecurityGroupVpc2 (AWS::EC2::SecurityGroup), mySecurityGroupVpc3 (AWS::EC2::SecurityGroup), myInstance (AWS::EC2::Instance), myBucket (AWS::S3::Bucket), myRoleToWriteToS3 (AWS::IAM::Role), myInstanceProfile (AWS::IAM::InstanceProfile), myKms (AWS::KMS::Key), myInstanceSub (AWS::EC2::Instance), taskdefinition (AWS::ECS::TaskDefinition).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "mySecurityGroupVpc1",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroup"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 23,
-        "startColumn": 3,
-        "endLine": 23,
-        "endColumn": 22,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "mySecurityGroupVpc2",
-              "resourceType": "AWS::EC2::SecurityGroup"
-            },
-            "location": {
-              "startLine": 33,
-              "startColumn": 3,
-              "endLine": 33,
-              "endColumn": 22
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "mySecurityGroupVpc3",
-              "resourceType": "AWS::EC2::SecurityGroup"
-            },
-            "location": {
-              "startLine": 41,
-              "startColumn": 3,
-              "endLine": 41,
-              "endColumn": 22
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "myInstance",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 49,
-              "startColumn": 3,
-              "endLine": 49,
-              "endColumn": 13
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "myBucket",
-              "resourceType": "AWS::S3::Bucket"
-            },
-            "location": {
-              "startLine": 62,
-              "startColumn": 3,
-              "endLine": 62,
-              "endColumn": 11
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "myRoleToWriteToS3",
-              "resourceType": "AWS::IAM::Role"
-            },
-            "location": {
-              "startLine": 96,
-              "startColumn": 3,
-              "endLine": 96,
-              "endColumn": 20
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "myInstanceProfile",
-              "resourceType": "AWS::IAM::InstanceProfile"
-            },
-            "location": {
-              "startLine": 145,
-              "startColumn": 3,
-              "endLine": 145,
-              "endColumn": 20
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "myKms",
-              "resourceType": "AWS::KMS::Key"
-            },
-            "location": {
-              "startLine": 153,
-              "startColumn": 3,
-              "endLine": 153,
-              "endColumn": 8
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "myInstanceSub",
-              "resourceType": "AWS::EC2::Instance"
-            },
-            "location": {
-              "startLine": 213,
-              "startColumn": 3,
-              "endLine": 213,
-              "endColumn": 16
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "taskdefinition",
-              "resourceType": "AWS::ECS::TaskDefinition"
-            },
-            "location": {
-              "startLine": 220,
-              "startColumn": 3,
-              "endLine": 220,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -5147,7 +4483,7 @@
         "fatal": 9,
         "errors": 0,
         "warnings": 0,
-        "informational": 11,
+        "informational": 9,
         "debug": 0
       },
       "suppressed": 0,
@@ -5324,142 +4660,6 @@
         "endLine": 42,
         "endColumn": 12,
         "ruleDescription": "Circular dependency detected",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Resource (AWS::SNS::Topic), Resource2 (AWS::SNS::Topic), Resource3 (AWS::SNS::Topic), Resource4 (AWS::SNS::Topic), Resource5 (AWS::SNS::Topic), Resource6 (AWS::SNS::Topic), Resource7 (AWS::SNS::Topic), Resource8 (AWS::SNS::Topic), Resource9 (AWS::SNS::Topic).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Resource",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 2,
-        "startColumn": 3,
-        "endLine": 2,
-        "endColumn": 11,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "Resource2",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 7,
-              "startColumn": 3,
-              "endLine": 7,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Resource3",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 12,
-              "startColumn": 3,
-              "endLine": 12,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Resource4",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 17,
-              "startColumn": 3,
-              "endLine": 17,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Resource5",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 22,
-              "startColumn": 3,
-              "endLine": 22,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Resource6",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 27,
-              "startColumn": 3,
-              "endLine": 27,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Resource7",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 32,
-              "startColumn": 3,
-              "endLine": 32,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Resource8",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 37,
-              "startColumn": 3,
-              "endLine": 37,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Resource9",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 42,
-              "startColumn": 3,
-              "endLine": 42,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -5653,7 +4853,7 @@
         "fatal": 2,
         "errors": 0,
         "warnings": 0,
-        "informational": 4,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -5697,51 +4897,6 @@
         "endLine": 7,
         "endColumn": 12,
         "ruleDescription": "Circular dependency detected",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Resource (AWS::SNS::Topic), Resource2 (AWS::SNS::Topic).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Resource",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 11,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "Resource2",
-              "resourceType": "AWS::SNS::Topic"
-            },
-            "location": {
-              "startLine": 7,
-              "startColumn": 3,
-              "endLine": 7,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -5795,7 +4950,7 @@
         "fatal": 0,
         "errors": 8,
         "warnings": 0,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -5956,25 +5111,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: CloudFrontDistribution (AWS::CloudFront::Distribution).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CloudFrontDistribution",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFront::Distribution"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 25,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'CloudFrontDistribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured",
@@ -6005,7 +5141,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -6081,25 +5217,6 @@
         "endColumn": 20,
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
         "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MyCognitoUserPool (AWS::Cognito::UserPool).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyCognitoUserPool",
-          "entityType": "Resource",
-          "resourceType": "AWS::Cognito::UserPool"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 20,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       }
     ]
   },
@@ -6112,7 +5229,7 @@
         "fatal": 5,
         "errors": 0,
         "warnings": 8,
-        "informational": 19,
+        "informational": 17,
         "debug": 0
       },
       "suppressed": 0,
@@ -6523,90 +5640,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: PolicyList (AWS::RDS::DBInstance), MadeUpPolicy (AWS::RDS::DBInstance), MyIAMUser (AWS::IAM::User), UnsupportedIntrinsic (AWS::CloudFormation::WaitConditionHandle), InvalidMapping (AWS::RDS::DBInstance).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 13,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "MadeUpPolicy",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 17,
-              "startColumn": 3,
-              "endLine": 17,
-              "endColumn": 15
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyIAMUser",
-              "resourceType": "AWS::IAM::User"
-            },
-            "location": {
-              "startLine": 24,
-              "startColumn": 3,
-              "endLine": 24,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "UnsupportedIntrinsic",
-              "resourceType": "AWS::CloudFormation::WaitConditionHandle"
-            },
-            "location": {
-              "startLine": 30,
-              "startColumn": 3,
-              "endLine": 30,
-              "endColumn": 23
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "InvalidMapping",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 37,
-              "startColumn": 3,
-              "endLine": 37,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
@@ -6798,7 +5831,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -6831,25 +5864,6 @@
             "min_items": 0
           }
         }
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: IamUser (AWS::IAM::InstanceProfile).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "IamUser",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::InstanceProfile"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 10,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       }
     ]
   },
@@ -6862,7 +5876,7 @@
         "fatal": 5,
         "errors": 0,
         "warnings": 9,
-        "informational": 20,
+        "informational": 18,
         "debug": 0
       },
       "suppressed": 0,
@@ -7309,90 +6323,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: PolicyList (AWS::RDS::DBInstance), MadeUpPolicy (AWS::RDS::DBInstance), MyIAMUser (AWS::IAM::User), UnsupportedIntrinsic (AWS::CloudFormation::WaitConditionHandle), InvalidMapping (AWS::RDS::DBInstance).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 13,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "MadeUpPolicy",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 17,
-              "startColumn": 3,
-              "endLine": 17,
-              "endColumn": 15
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyIAMUser",
-              "resourceType": "AWS::IAM::User"
-            },
-            "location": {
-              "startLine": 24,
-              "startColumn": 3,
-              "endLine": 24,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "UnsupportedIntrinsic",
-              "resourceType": "AWS::CloudFormation::WaitConditionHandle"
-            },
-            "location": {
-              "startLine": 30,
-              "startColumn": 3,
-              "endLine": 30,
-              "endColumn": 23
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "InvalidMapping",
-              "resourceType": "AWS::RDS::DBInstance"
-            },
-            "location": {
-              "startLine": 37,
-              "startColumn": 3,
-              "endLine": 37,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
@@ -7584,7 +6514,7 @@
         "fatal": 0,
         "errors": 30,
         "warnings": 1,
-        "informational": 14,
+        "informational": 12,
         "debug": 0
       },
       "suppressed": 0,
@@ -8183,168 +7113,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MyHostedZone (AWS::Route53::HostedZone), MyTXTRecordSet (AWS::Route53::RecordSet), MyARecordSet (AWS::Route53::RecordSet), MyAAAARecordSet (AWS::Route53::RecordSet), MyCAARecordSet (AWS::Route53::RecordSet), MyCNAMERecordSet (AWS::Route53::RecordSet), MyCNAMERecordSetConditions (AWS::Route53::RecordSet), MyMXRecordSet (AWS::Route53::RecordSet), MyAliasRecordSet (AWS::Route53::RecordSet), MyRecordSetGroup (AWS::Route53::RecordSetGroup), PoorlyConfiguredRoute53 (AWS::Route53::RecordSetGroup).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyHostedZone",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::HostedZone"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 3,
-        "endLine": 16,
-        "endColumn": 15,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "MyTXTRecordSet",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 23,
-              "startColumn": 3,
-              "endLine": 23,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyARecordSet",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 36,
-              "startColumn": 3,
-              "endLine": 36,
-              "endColumn": 15
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyAAAARecordSet",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 46,
-              "startColumn": 3,
-              "endLine": 46,
-              "endColumn": 18
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyCAARecordSet",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 60,
-              "startColumn": 3,
-              "endLine": 60,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyCNAMERecordSet",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 71,
-              "startColumn": 3,
-              "endLine": 71,
-              "endColumn": 19
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyCNAMERecordSetConditions",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 82,
-              "startColumn": 3,
-              "endLine": 82,
-              "endColumn": 29
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyMXRecordSet",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 96,
-              "startColumn": 3,
-              "endLine": 96,
-              "endColumn": 16
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyAliasRecordSet",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 106,
-              "startColumn": 3,
-              "endLine": 106,
-              "endColumn": 19
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MyRecordSetGroup",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 118,
-              "startColumn": 3,
-              "endLine": 118,
-              "endColumn": 19
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "PoorlyConfiguredRoute53",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 171,
-              "startColumn": 3,
-              "endLine": 171,
-              "endColumn": 26
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Name' is create-only; updating it will cause resource replacement",
@@ -8636,7 +7404,7 @@
         "fatal": 0,
         "errors": 10,
         "warnings": 0,
-        "informational": 12,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -8832,155 +7600,6 @@
         "endLine": 136,
         "endColumn": 26,
         "ruleDescription": "Validate Route53 RecordSets",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: StandaloneInvalidTrue (AWS::Route53::RecordSet), StandaloneInvalidFalse (AWS::Route53::RecordSet), StandaloneMixedInvalidTrue (AWS::Route53::RecordSet), StandaloneMixedInvalidFalse (AWS::Route53::RecordSet), GroupInvalidTrue (AWS::Route53::RecordSetGroup), GroupInvalidFalse (AWS::Route53::RecordSetGroup), GroupMixedInvalidTrue (AWS::Route53::RecordSetGroup), GroupMixedInvalidFalse (AWS::Route53::RecordSetGroup), StandaloneUnresolvedCnameCardinality (AWS::Route53::RecordSet), GroupUnresolvedCnameCardinality (AWS::Route53::RecordSetGroup).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "StandaloneInvalidTrue",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 3,
-        "endLine": 12,
-        "endColumn": 24,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "StandaloneInvalidFalse",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 23,
-              "startColumn": 3,
-              "endLine": 23,
-              "endColumn": 25
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "StandaloneMixedInvalidTrue",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 34,
-              "startColumn": 3,
-              "endLine": 34,
-              "endColumn": 29
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "StandaloneMixedInvalidFalse",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 46,
-              "startColumn": 3,
-              "endLine": 46,
-              "endColumn": 30
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "GroupInvalidTrue",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 58,
-              "startColumn": 3,
-              "endLine": 58,
-              "endColumn": 19
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "GroupInvalidFalse",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 72,
-              "startColumn": 3,
-              "endLine": 72,
-              "endColumn": 20
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "GroupMixedInvalidTrue",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 86,
-              "startColumn": 3,
-              "endLine": 86,
-              "endColumn": 24
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "GroupMixedInvalidFalse",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 102,
-              "startColumn": 3,
-              "endLine": 102,
-              "endColumn": 25
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "StandaloneUnresolvedCnameCardinality",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 118,
-              "startColumn": 3,
-              "endLine": 118,
-              "endColumn": 39
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "GroupUnresolvedCnameCardinality",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 128,
-              "startColumn": 3,
-              "endLine": 128,
-              "endColumn": 34
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -9219,7 +7838,7 @@
         "fatal": 0,
         "errors": 8,
         "warnings": 0,
-        "informational": 5,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -9380,116 +7999,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: AliasConflictFirst (AWS::Route53::RecordSet), AliasConflictSecond (AWS::Route53::RecordSet), ConditionalInvalidAliasTypes (AWS::Route53::RecordSet), ConditionalRecordSetsInvalidFirst (AWS::Route53::RecordSetGroup), ConditionalRecordSetsInvalidSecond (AWS::Route53::RecordSetGroup), WholePropertiesRecordsInvalidFirst (AWS::Route53::RecordSetGroup), WholePropertiesRecordsInvalidSecond (AWS::Route53::RecordSetGroup).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "AliasConflictFirst",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 21,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "AliasConflictSecond",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 26,
-              "startColumn": 3,
-              "endLine": 26,
-              "endColumn": 22
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "ConditionalInvalidAliasTypes",
-              "resourceType": "AWS::Route53::RecordSet"
-            },
-            "location": {
-              "startLine": 42,
-              "startColumn": 3,
-              "endLine": 42,
-              "endColumn": 31
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "ConditionalRecordSetsInvalidFirst",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 51,
-              "startColumn": 3,
-              "endLine": 51,
-              "endColumn": 36
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "ConditionalRecordSetsInvalidSecond",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 65,
-              "startColumn": 3,
-              "endLine": 65,
-              "endColumn": 37
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "WholePropertiesRecordsInvalidFirst",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 79,
-              "startColumn": 3,
-              "endLine": 79,
-              "endColumn": 37
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "WholePropertiesRecordsInvalidSecond",
-              "resourceType": "AWS::Route53::RecordSetGroup"
-            },
-            "location": {
-              "startLine": 95,
-              "startColumn": 3,
-              "endLine": 95,
-              "endColumn": 38
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
@@ -9567,7 +8076,7 @@
         "fatal": 0,
         "errors": 4,
         "warnings": 0,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -9656,25 +8165,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
@@ -9705,7 +8195,7 @@
         "fatal": 36,
         "errors": 5,
         "warnings": 0,
-        "informational": 10,
+        "informational": 8,
         "debug": 0
       },
       "suppressed": 0,
@@ -10531,90 +9021,6 @@
         "endLine": 47,
         "endColumn": 31,
         "ruleDescription": "Validate SageMaker cluster instance types based on region",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MonitoringSchedule (AWS::SageMaker::MonitoringSchedule), ModelQualityJobDefinition (AWS::SageMaker::ModelQualityJobDefinition), InferenceExperiment (AWS::SageMaker::InferenceExperiment), ModelPackage (AWS::SageMaker::ModelPackage), Cluster (AWS::SageMaker::Cluster).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MonitoringSchedule",
-          "entityType": "Resource",
-          "resourceType": "AWS::SageMaker::MonitoringSchedule"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 21,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "ModelQualityJobDefinition",
-              "resourceType": "AWS::SageMaker::ModelQualityJobDefinition"
-            },
-            "location": {
-              "startLine": 12,
-              "startColumn": 3,
-              "endLine": 12,
-              "endColumn": 28
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "InferenceExperiment",
-              "resourceType": "AWS::SageMaker::InferenceExperiment"
-            },
-            "location": {
-              "startLine": 20,
-              "startColumn": 3,
-              "endLine": 20,
-              "endColumn": 22
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "ModelPackage",
-              "resourceType": "AWS::SageMaker::ModelPackage"
-            },
-            "location": {
-              "startLine": 32,
-              "startColumn": 3,
-              "endLine": 32,
-              "endColumn": 15
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "Cluster",
-              "resourceType": "AWS::SageMaker::Cluster"
-            },
-            "location": {
-              "startLine": 42,
-              "startColumn": 3,
-              "endLine": 42,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -11788,7 +10194,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -11812,25 +10218,6 @@
         "endLine": 3,
         "endColumn": 7,
         "ruleDescription": "Check if Serverless Resources have Serverless Transform",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MyFn (AWS::Serverless::Function).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyFn",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 7,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -11864,7 +10251,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -11888,25 +10275,6 @@
         "endLine": 3,
         "endColumn": 7,
         "ruleDescription": "Check if Serverless Resources have Serverless Transform",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: MyFn (AWS::Serverless::Function).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "MyFn",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 7,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -11940,7 +10308,7 @@
         "fatal": 2,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -12061,25 +10429,6 @@
         }
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
@@ -12132,7 +10481,7 @@
         "fatal": 2,
         "errors": 0,
         "warnings": 0,
-        "informational": 7,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -12346,51 +10695,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: NoImage (AWS::AppStream::ImageBuilder), NoAZ (AWS::EC2::Volume).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "NoImage",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppStream::ImageBuilder"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 10,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "NoAZ",
-              "resourceType": "AWS::EC2::Volume"
-            },
-            "location": {
-              "startLine": 11,
-              "startColumn": 3,
-              "endLine": 11,
-              "endColumn": 7
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'Name' is create-only; updating it will cause resource replacement",
@@ -12463,7 +10767,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -12495,25 +10799,6 @@
         "context": {
           "resolutionSource": "Fn::If on condition 'IsProd'"
         }
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -12569,7 +10854,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 2,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -12655,25 +10940,6 @@
         }
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
@@ -12726,7 +10992,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 1,
-        "informational": 5,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -12774,25 +11040,6 @@
         "endLine": 6,
         "endColumn": 14,
         "ruleDescription": "Hardcoded AMI ID",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Instance (AWS::EC2::Instance).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 11,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -12895,7 +11142,7 @@
         "fatal": 1,
         "errors": 3,
         "warnings": 5,
-        "informational": 10,
+        "informational": 8,
         "debug": 0
       },
       "suppressed": 0,
@@ -13076,90 +11323,6 @@
         "endLine": 34,
         "endColumn": 19,
         "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: ShutdownResource (AWS::CodeStar::GitHubRepository), SunsetResource (AWS::AppMesh::Mesh), MaintenanceResource (AWS::AutoScaling::LaunchConfiguration), EolLambda (AWS::Lambda::Function), DeprecatedLambda (AWS::Lambda::Function).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ShutdownResource",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeStar::GitHubRepository"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 19,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "SunsetResource",
-              "resourceType": "AWS::AppMesh::Mesh"
-            },
-            "location": {
-              "startLine": 10,
-              "startColumn": 3,
-              "endLine": 10,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "MaintenanceResource",
-              "resourceType": "AWS::AutoScaling::LaunchConfiguration"
-            },
-            "location": {
-              "startLine": 16,
-              "startColumn": 3,
-              "endLine": 16,
-              "endColumn": 22
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "EolLambda",
-              "resourceType": "AWS::Lambda::Function"
-            },
-            "location": {
-              "startLine": 23,
-              "startColumn": 3,
-              "endLine": 23,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DeprecatedLambda",
-              "resourceType": "AWS::Lambda::Function"
-            },
-            "location": {
-              "startLine": 34,
-              "startColumn": 3,
-              "endLine": 34,
-              "endColumn": 19
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -13345,7 +11508,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 6,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -13436,25 +11599,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Queue (AWS::SQS::Queue).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 8,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'QueueName' is create-only; updating it will cause resource replacement",
@@ -13508,7 +11652,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 3,
-        "informational": 10,
+        "informational": 8,
         "debug": 0
       },
       "suppressed": 0,
@@ -13597,64 +11741,6 @@
         "endLine": 8,
         "endColumn": 15,
         "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: PatternBucket (AWS::S3::Bucket), ReadOnlyProp (AWS::ACMPCA::Certificate), DeprecatedProp (AWS::Athena::WorkGroup).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "PatternBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 16,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "ReadOnlyProp",
-              "resourceType": "AWS::ACMPCA::Certificate"
-            },
-            "location": {
-              "startLine": 8,
-              "startColumn": 3,
-              "endLine": 8,
-              "endColumn": 15
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "DeprecatedProp",
-              "resourceType": "AWS::Athena::WorkGroup"
-            },
-            "location": {
-              "startLine": 19,
-              "startColumn": 3,
-              "endLine": 19,
-              "endColumn": 17
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -13845,7 +11931,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 6,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -13875,25 +11961,6 @@
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "Exactly one of properties required (requiredXor)",
         "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Policy (AWS::ApplicationAutoScaling::ScalingPolicy).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Policy",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApplicationAutoScaling::ScalingPolicy"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 3,
-        "endLine": 11,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -14023,7 +12090,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -14047,25 +12114,6 @@
         "endLine": 3,
         "endColumn": 9,
         "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Lambda (AWS::Lambda::Function).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Lambda",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -14121,7 +12169,7 @@
         "fatal": 6,
         "errors": 0,
         "warnings": 0,
-        "informational": 12,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -14255,77 +12303,6 @@
         "endColumn": 15,
         "ruleDescription": "One of properties required (requiredOr)",
         "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: AlarmBothStats (AWS::CloudWatch::Alarm), SubnetNoCidr (AWS::EC2::Subnet), ScalingPolicyBothIds (AWS::ApplicationAutoScaling::ScalingPolicy), ScalingPolicyMissingDeps (AWS::ApplicationAutoScaling::ScalingPolicy).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "AlarmBothStats",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudWatch::Alarm"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 17,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "SubnetNoCidr",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 17,
-              "startColumn": 3,
-              "endLine": 17,
-              "endColumn": 15
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "ScalingPolicyBothIds",
-              "resourceType": "AWS::ApplicationAutoScaling::ScalingPolicy"
-            },
-            "location": {
-              "startLine": 23,
-              "startColumn": 3,
-              "endLine": 23,
-              "endColumn": 23
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "ScalingPolicyMissingDeps",
-              "resourceType": "AWS::ApplicationAutoScaling::ScalingPolicy"
-            },
-            "location": {
-              "startLine": 34,
-              "startColumn": 3,
-              "endLine": 34,
-              "endColumn": 27
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -14561,7 +12538,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 3,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -14636,25 +12613,6 @@
         "phase": "SCHEMA"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
@@ -14707,7 +12665,7 @@
         "fatal": 2,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -14765,25 +12723,6 @@
             "arn:aws:iam::012345678901:role/SameRole"
           ]
         }
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Profile (AWS::IAM::InstanceProfile).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Profile",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::InstanceProfile"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 10,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       }
     ]
   },
@@ -14796,7 +12735,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 3,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -14883,25 +12822,6 @@
         }
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: CertAuth (AWS::ACMPCA::CertificateAuthorityActivation).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CertAuth",
-          "entityType": "Resource",
-          "resourceType": "AWS::ACMPCA::CertificateAuthorityActivation"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 11,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'CertificateAuthorityArn' is create-only; updating it will cause resource replacement",
@@ -14935,7 +12855,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 1,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -15033,25 +12953,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: OpenSSH (AWS::EC2::SecurityGroup).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OpenSSH",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroup"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 10,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
@@ -15104,7 +13005,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -15141,25 +13042,6 @@
             }
           ]
         }
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: SG (AWS::EC2::SecurityGroup).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SG",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroup"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 5,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -15214,7 +13096,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -15241,25 +13123,6 @@
         "endColumn": 15,
         "ruleDescription": "Dependent property required",
         "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: OpenSG (AWS::EC2::SecurityGroup).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OpenSG",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroup"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       },
       {
         "ruleId": "I9001",
@@ -15314,7 +13177,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -15322,25 +13185,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -15395,7 +13239,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -15403,25 +13247,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Topic (AWS::SNS::Topic).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Topic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 8,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -15476,7 +13301,7 @@
         "fatal": 0,
         "errors": 4,
         "warnings": 0,
-        "informational": 22,
+        "informational": 20,
         "debug": 0
       },
       "suppressed": 0,
@@ -15718,77 +13543,6 @@
         "endLine": 78,
         "endColumn": 34,
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: FunctionA (AWS::Serverless::Function), FunctionB (AWS::Serverless::Function), FunctionC (AWS::Serverless::Function), LogSubscriptionFunction (AWS::Serverless::Function).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FunctionA",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 3,
-        "endLine": 16,
-        "endColumn": 12,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "FunctionB",
-              "resourceType": "AWS::Serverless::Function"
-            },
-            "location": {
-              "startLine": 28,
-              "startColumn": 3,
-              "endLine": 28,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "FunctionC",
-              "resourceType": "AWS::Serverless::Function"
-            },
-            "location": {
-              "startLine": 39,
-              "startColumn": 3,
-              "endLine": 39,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "LogSubscriptionFunction",
-              "resourceType": "AWS::Serverless::Function"
-            },
-            "location": {
-              "startLine": 51,
-              "startColumn": 3,
-              "endLine": 51,
-              "endColumn": 26
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -16058,7 +13812,7 @@
         "fatal": 0,
         "errors": 2,
         "warnings": 0,
-        "informational": 7,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
@@ -16166,25 +13920,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: FifoQueue (AWS::SQS::Queue).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifoQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 12,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'QueueName' is create-only; updating it will cause resource replacement",
@@ -16261,7 +13996,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 13,
+        "informational": 11,
         "debug": 0
       },
       "suppressed": 0,
@@ -16399,51 +14134,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: DLQ (AWS::SQS::Queue), MainQueue (AWS::SQS::Queue).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "DLQ",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 6,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "MainQueue",
-              "resourceType": "AWS::SQS::Queue"
-            },
-            "location": {
-              "startLine": 7,
-              "startColumn": 3,
-              "endLine": 7,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'QueueName' is create-only; updating it will cause resource replacement",
@@ -16563,7 +14253,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 4,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -16588,25 +14278,6 @@
         "endLine": 7,
         "endColumn": 14,
         "ruleDescription": "Validate the structure of a SSM document",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Doc (AWS::SSM::Document).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Doc",
-          "entityType": "Resource",
-          "resourceType": "AWS::SSM::Document"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 6,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -16686,7 +14357,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 1,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -16733,25 +14404,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: SM (AWS::StepFunctions::StateMachine).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SM",
-          "entityType": "Resource",
-          "resourceType": "AWS::StepFunctions::StateMachine"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 5,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'SM' of type 'AWS::StepFunctions::StateMachine' supports Tags but none are configured",
@@ -16782,7 +14434,7 @@
         "fatal": 0,
         "errors": 2,
         "warnings": 1,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -16848,25 +14500,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: StateMachine (AWS::StepFunctions::StateMachine).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "StateMachine",
-          "entityType": "Resource",
-          "resourceType": "AWS::StepFunctions::StateMachine"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 15,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'StateMachine' of type 'AWS::StepFunctions::StateMachine' supports Tags but none are configured",
@@ -16929,7 +14562,7 @@
         "fatal": 1,
         "errors": 1,
         "warnings": 1,
-        "informational": 3,
+        "informational": 2,
         "debug": 0
       },
       "suppressed": 0,
@@ -16999,25 +14632,6 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
         "ruleId": "I9001",
         "severity": "INFO",
         "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
@@ -17070,7 +14684,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 5,
+        "informational": 3,
         "debug": 0
       },
       "suppressed": 0,
@@ -17078,51 +14692,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket), OtherBucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "OtherBucket",
-              "resourceType": "AWS::S3::Bucket"
-            },
-            "location": {
-              "startLine": 7,
-              "startColumn": 3,
-              "endLine": 7,
-              "endColumn": 14
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
       {
         "ruleId": "I9001",
         "severity": "INFO",
@@ -17196,7 +14765,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 7,
+        "informational": 5,
         "debug": 0
       },
       "suppressed": 0,
@@ -17221,51 +14790,6 @@
         "endLine": 11,
         "endColumn": 16,
         "ruleDescription": "Validate subnet CIDRs are within the CIDRs of the VPC",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: VPC (AWS::EC2::VPC), SubnetOutside (AWS::EC2::Subnet).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "VPC",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::VPC"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 6,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "SubnetOutside",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 7,
-              "startColumn": 3,
-              "endLine": 7,
-              "endColumn": 16
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -17386,7 +14910,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 2,
-        "informational": 12,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -17469,64 +14993,6 @@
         "endLine": 18,
         "endColumn": 23,
         "ruleDescription": "Availability zone properties should not be hardcoded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: VPC (AWS::EC2::VPC), SubnetA (AWS::EC2::Subnet), SubnetB (AWS::EC2::Subnet).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "VPC",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::VPC"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 6,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "SubnetA",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 7,
-              "startColumn": 3,
-              "endLine": 7,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "SubnetB",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 13,
-              "startColumn": 3,
-              "endLine": 13,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -17756,7 +15222,7 @@
         "fatal": 0,
         "errors": 4,
         "warnings": 4,
-        "informational": 20,
+        "informational": 18,
         "debug": 0
       },
       "suppressed": 0,
@@ -17974,90 +15440,6 @@
         "endLine": 35,
         "endColumn": 23,
         "ruleDescription": "Availability zone properties should not be hardcoded",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: VPC (AWS::EC2::VPC), SubnetA (AWS::EC2::Subnet), SubnetB (AWS::EC2::Subnet), SubnetC (AWS::EC2::Subnet), SubnetD (AWS::EC2::Subnet).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "VPC",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::VPC"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 6,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "SubnetA",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 12,
-              "startColumn": 3,
-              "endLine": 12,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "SubnetB",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 18,
-              "startColumn": 3,
-              "endLine": 18,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "SubnetC",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 24,
-              "startColumn": 3,
-              "endLine": 24,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          },
-          {
-            "resource": {
-              "id": "SubnetD",
-              "resourceType": "AWS::EC2::Subnet"
-            },
-            "location": {
-              "startLine": 30,
-              "startColumn": 3,
-              "endLine": 30,
-              "endColumn": 10
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
         "phase": "LINT"
       },
       {
@@ -18673,7 +16055,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -18694,25 +16076,6 @@
         "endColumn": 12,
         "ruleDescription": "Description must be a string",
         "phase": "PARSE"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       }
     ]
   },
@@ -18725,7 +16088,7 @@
         "fatal": 0,
         "errors": 3,
         "warnings": 0,
-        "informational": 1,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -18774,25 +16137,6 @@
         "endColumn": 9,
         "ruleDescription": "Validate Transform configuration",
         "phase": "PARSE"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 9,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       }
     ]
   },
@@ -19014,7 +16358,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 0,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -19039,25 +16383,6 @@
         "endColumn": 4,
         "ruleDescription": "Condition referenced by resource is not defined",
         "phase": "PARSE"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: R (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "R",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 4,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
       },
       {
         "ruleId": "I9040",
@@ -19090,7 +16415,7 @@
         "fatal": 1,
         "errors": 0,
         "warnings": 1,
-        "informational": 1,
+        "informational": 0,
         "debug": 0
       },
       "suppressed": 0,
@@ -19142,210 +16467,6 @@
         "endLine": 6,
         "endColumn": 24,
         "ruleDescription": "Array items must be unique when required",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: R (AWS::CloudFormation::WaitConditionHandle).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "R",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::WaitConditionHandle"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 4,
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/unknown_properties.yaml": {
-    "filePath": "bad/unknown_properties.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 2,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 4,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3002",
-        "severity": "FATAL",
-        "message": "Additional properties are not allowed ('FakeProperty' was unexpected)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "BadBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.FakeProperty",
-        "category": "Schema",
-        "startLine": 11,
-        "startColumn": 7,
-        "endLine": 11,
-        "endColumn": 19,
-        "ruleDescription": "Additional properties are not allowed",
-        "phase": "SCHEMA",
-        "context": {
-          "property": "FakeProperty",
-          "extra": {
-            "allowed_properties": [
-              "AbacStatus",
-              "AccelerateConfiguration",
-              "AccessControl",
-              "AnalyticsConfigurations",
-              "Arn",
-              "BucketEncryption",
-              "BucketName",
-              "BucketNamePrefix",
-              "BucketNamespace",
-              "CorsConfiguration",
-              "DomainName",
-              "DualStackDomainName",
-              "IntelligentTieringConfigurations",
-              "InventoryConfigurations",
-              "LifecycleConfiguration",
-              "LoggingConfiguration",
-              "MetadataConfiguration",
-              "MetadataTableConfiguration",
-              "MetricsConfigurations",
-              "NotificationConfiguration",
-              "ObjectLockConfiguration",
-              "ObjectLockEnabled",
-              "OwnershipControls",
-              "PublicAccessBlockConfiguration",
-              "RegionalDomainName",
-              "ReplicationConfiguration",
-              "Tags",
-              "VersioningConfiguration",
-              "WebsiteConfiguration",
-              "WebsiteURL"
-            ]
-          }
-        }
-      },
-      {
-        "ruleId": "F3006",
-        "severity": "FATAL",
-        "message": "Unknown resource type 'AWS::Fake::NonExistent'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "FakeResource",
-          "entityType": "Resource",
-          "resourceType": "AWS::Fake::NonExistent"
-        },
-        "category": "Schema",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 15,
-        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
-        "phase": "SCHEMA",
-        "context": {
-          "extra": {
-            "resource_type": "AWS::Fake::NonExistent"
-          }
-        }
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.",
-        "source": "CFN_LINT",
-        "propertyPath": "Metadata",
-        "suggestedFix": "Add a top-level Metadata.com.aws.cloudformation.Context block whose 'arch' summarizes the template's resources and data flow; add 'must' only for known cross-cutting constraints.",
-        "category": "Best Practice",
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I4010",
-        "severity": "INFO",
-        "message": "Resources without a Metadata.com.aws.cloudformation.Context block: FakeResource (AWS::Fake::NonExistent), BadBucket (AWS::S3::Bucket).",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FakeResource",
-          "entityType": "Resource",
-          "resourceType": "AWS::Fake::NonExistent"
-        },
-        "suggestedFix": "Add Metadata.com.aws.cloudformation.Context to each listed resource with 'why' stating its purpose and design rationale; when the rationale is not documented, set trust to {src: infer, conf: low, note: \"rationale not documented\"} rather than guessing. Add 'must' only for known constraints whose violation would break the system.",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 15,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "BadBucket",
-              "resourceType": "AWS::S3::Bucket"
-            },
-            "location": {
-              "startLine": 7,
-              "startColumn": 3,
-              "endLine": 7,
-              "endColumn": 12
-            },
-            "message": "No Metadata.com.aws.cloudformation.Context block."
-          }
-        ],
-        "ruleDescription": "Template or architecture-relevant resource has no Metadata Context block",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BadBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'BadBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BadBucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 5,
-        "endLine": 9,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
     ]

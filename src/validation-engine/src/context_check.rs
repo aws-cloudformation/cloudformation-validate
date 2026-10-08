@@ -8,7 +8,7 @@ use diagnostics::{Diagnostic, RegisteredDiagnostic, RelatedResource, ResourceRef
 use serde_json::{Map, Value};
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
-use template_model::consts::{KEY_METADATA, SECTION_METADATA, SECTION_RESOURCES};
+use template_model::consts::{CDK_METADATA_TYPE, KEY_METADATA, SECTION_METADATA, SECTION_RESOURCES};
 use template_model::model::ResolvedResource;
 use template_model::{SemanticModel, SourceSpan, UNKNOWN_SPAN, span_to_option};
 
@@ -109,9 +109,13 @@ fn is_incidental(logical_id: &str) -> bool {
 }
 
 /// Whether a resource is expected to carry Context. Subordinate types describe
-/// another resource, and a module's type says nothing about its significance.
+/// another resource, the CDK analytics record describes no component, and a
+/// module's type says nothing about its significance.
 fn requires_context(resource: &ResolvedResource) -> bool {
-    !LOW_VALUE_TYPES.contains(&resource.resource_type.as_str()) && !resource.resource_type.ends_with(MODULE_TYPE_SUFFIX)
+    let resource_type = resource.resource_type.as_str();
+    !LOW_VALUE_TYPES.contains(&resource_type)
+        && resource_type != CDK_METADATA_TYPE
+        && !resource_type.ends_with(MODULE_TYPE_SUFFIX)
 }
 
 fn resource_context(resource: &ResolvedResource) -> Option<&Value> {
@@ -901,6 +905,10 @@ Resources:
     Type: AWS::Lambda::Function
   AWS679f53fac002430cb0da5b7982bd2287:
     Type: AWS::Lambda::Function
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA
 "#;
 
         let diagnostics = check(template);

@@ -170,12 +170,7 @@ pub const SAM_API_GLOBALS_KEY: &str = "Api";
 pub const SAM_HTTP_API_GLOBALS_KEY: &str = "HttpApi";
 pub const SAM_SIMPLE_TABLE_GLOBALS_KEY: &str = "SimpleTable";
 
-// Markers that identify a CDK-synthesized template. The analytics resource is
-// absent when a stack is synthesized with analyticsReporting disabled, so the
-// construct-path metadata CDK writes on every resource is checked as well.
 pub const CDK_METADATA_TYPE: &str = "AWS::CDK::Metadata";
-pub const CDK_METADATA_LOGICAL_ID: &str = "CDKMetadata";
-pub const CDK_CONSTRUCT_PATH_METADATA_KEY: &str = "aws:cdk:path";
 
 pub const OUTPUT_PSEUDO_RESOURCE_PREFIX: &str = "__output__";
 pub const OUTPUTS_PSEUDO_RESOURCE: &str = "__outputs__";

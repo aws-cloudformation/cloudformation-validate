@@ -1046,7 +1046,7 @@ impl SemanticModel {
                 &ir.span_index,
             ));
         }
-        let is_cdk = is_cdk_template(&resources, &resources_by_type);
+        let is_cdk = resources_by_type.contains_key(CDK_METADATA_TYPE);
 
         if resolver_depth_exceeded {
             budget_tracker.record(BudgetKind::ResolverDepth);
@@ -2123,23 +2123,6 @@ impl SpanProvider for SemanticModel {
     fn source_location(&self, path: &str) -> Option<SourceSpan> {
         self.span_index.get(path).copied()
     }
-}
-
-/// A template is CDK-synthesized when it carries the analytics resource, the
-/// logical ID CDK reserves for it, or construct-path metadata on any resource.
-fn is_cdk_template(
-    resources: &HashMap<String, ResolvedResource>,
-    resources_by_type: &HashMap<String, Vec<String>>,
-) -> bool {
-    resources_by_type.contains_key(CDK_METADATA_TYPE)
-        || resources.contains_key(CDK_METADATA_LOGICAL_ID)
-        || resources.values().any(|resource| {
-            resource
-                .metadata
-                .as_ref()
-                .and_then(|metadata| metadata.as_object())
-                .is_some_and(|metadata| metadata.contains_key(CDK_CONSTRUCT_PATH_METADATA_KEY))
-        })
 }
 
 fn parse_rules(rules_json: &Option<serde_json::Value>, arena: &Arena, rules_node: NodeRef) -> Vec<TemplateRule> {

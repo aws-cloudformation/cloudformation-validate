@@ -1,4 +1,144 @@
 {
+  "bad/unknown_properties.yaml": {
+    "filePath": "bad/unknown_properties.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 2,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3002",
+        "severity": "FATAL",
+        "message": "Additional properties are not allowed ('FakeProperty' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "BadBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.FakeProperty",
+        "category": "Schema",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 19,
+        "ruleDescription": "Additional properties are not allowed",
+        "phase": "SCHEMA",
+        "context": {
+          "property": "FakeProperty",
+          "extra": {
+            "allowed_properties": [
+              "AbacStatus",
+              "AccelerateConfiguration",
+              "AccessControl",
+              "AnalyticsConfigurations",
+              "Arn",
+              "BucketEncryption",
+              "BucketName",
+              "BucketNamePrefix",
+              "BucketNamespace",
+              "CorsConfiguration",
+              "DomainName",
+              "DualStackDomainName",
+              "IntelligentTieringConfigurations",
+              "InventoryConfigurations",
+              "LifecycleConfiguration",
+              "LoggingConfiguration",
+              "MetadataConfiguration",
+              "MetadataTableConfiguration",
+              "MetricsConfigurations",
+              "NotificationConfiguration",
+              "ObjectLockConfiguration",
+              "ObjectLockEnabled",
+              "OwnershipControls",
+              "PublicAccessBlockConfiguration",
+              "RegionalDomainName",
+              "ReplicationConfiguration",
+              "Tags",
+              "VersioningConfiguration",
+              "WebsiteConfiguration",
+              "WebsiteURL"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3006",
+        "severity": "FATAL",
+        "message": "Unknown resource type 'AWS::Fake::NonExistent'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "FakeResource",
+          "entityType": "Resource",
+          "resourceType": "AWS::Fake::NonExistent"
+        },
+        "category": "Schema",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 15,
+        "ruleDescription": "AWS resource type must be recognized and available in the configured region",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "resource_type": "AWS::Fake::NonExistent"
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BadBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 17,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BadBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BadBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 5,
+        "endLine": 9,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "cdk/DemoStack.template.json": {
     "filePath": "cdk/DemoStack.template.json",
     "status": "OK",
@@ -72866,402 +73006,6 @@
         "startLine": 470,
         "startColumn": 4,
         "endLine": 470,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json": {
-    "filePath": "cdk/rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 15,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 4,
-        "informational": 14,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W2531",
-        "severity": "WARN",
-        "message": "Runtime 'nodejs20.x' was deprecated on '2026-04-30'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RekFunction9837D13D",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Runtime",
-        "category": "Deprecation",
-        "startLine": 310,
-        "startColumn": 5,
-        "endLine": 310,
-        "endColumn": 13,
-        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "nodejs20.x",
-          "lifecycle": "deprecated"
-        }
-      },
-      {
-        "ruleId": "W3005",
-        "severity": "WARN",
-        "message": "'RekFunctionServiceRole3947AEF4' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "RekFunction9837D13D",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "DependsOn",
-        "suggestedFix": "Remove the DependsOn entry",
-        "category": "Best Practice",
-        "startLine": 312,
-        "startColumn": 4,
-        "endLine": 312,
-        "endColumn": 14,
-        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W3005",
-        "severity": "WARN",
-        "message": "'BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "DependsOn",
-        "suggestedFix": "Remove the DependsOn entry",
-        "category": "Best Practice",
-        "startLine": 428,
-        "startColumn": 4,
-        "endLine": 428,
-        "endColumn": 14,
-        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W3005",
-        "severity": "WARN",
-        "message": "'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB' dependency already enforced by a 'GetAtt' at 'Properties.Role'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "DependsOn",
-        "suggestedFix": "Remove the DependsOn entry",
-        "category": "Best Practice",
-        "startLine": 516,
-        "startColumn": 4,
-        "endLine": 516,
-        "endColumn": 14,
-        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Action' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Permission"
-        },
-        "propertyPath": "Properties.Action",
-        "category": "Best Practice",
-        "startLine": 103,
-        "startColumn": 5,
-        "endLine": 103,
-        "endColumn": 12,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Permission"
-        },
-        "propertyPath": "Properties.FunctionName",
-        "category": "Best Practice",
-        "startLine": 104,
-        "startColumn": 5,
-        "endLine": 104,
-        "endColumn": 18,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt RekFunction9837D13D.Arn"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Principal' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Permission"
-        },
-        "propertyPath": "Properties.Principal",
-        "category": "Best Practice",
-        "startLine": 110,
-        "startColumn": 5,
-        "endLine": 110,
-        "endColumn": 15,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'SourceAccount' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Permission"
-        },
-        "propertyPath": "Properties.SourceAccount",
-        "category": "Best Practice",
-        "startLine": 111,
-        "startColumn": 5,
-        "endLine": 111,
-        "endColumn": 19,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'SourceArn' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketAllowBucketNotificationsToRekognitionLambdaS3TriggerStackRekFunction8330C87915B3782A",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Permission"
-        },
-        "propertyPath": "Properties.SourceArn",
-        "category": "Best Practice",
-        "startLine": 114,
-        "startColumn": 5,
-        "endLine": 114,
-        "endColumn": 15,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt Bucket83908E77.Arn"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Classifications0C921F6C",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.KeySchema",
-        "category": "Best Practice",
-        "startLine": 134,
-        "startColumn": 5,
-        "endLine": 134,
-        "endColumn": 15,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket83908E77' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket83908E77",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Classifications0C921F6C' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Classifications0C921F6C",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 127,
-        "startColumn": 4,
-        "endLine": 127,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RekFunctionServiceRole3947AEF4' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RekFunctionServiceRole3947AEF4",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 153,
-        "startColumn": 4,
-        "endLine": 153,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'RekFunction9837D13D' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "RekFunction9837D13D",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 286,
-        "startColumn": 4,
-        "endLine": 286,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 350,
-        "startColumn": 4,
-        "endLine": 350,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 413,
-        "startColumn": 4,
-        "endLine": 413,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 438,
-        "startColumn": 4,
-        "endLine": 438,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 499,
-        "startColumn": 4,
-        "endLine": 499,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

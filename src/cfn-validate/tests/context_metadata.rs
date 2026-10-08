@@ -60,12 +60,24 @@ fn complete_context_is_clean_on_every_engine() {
     assert!(diagnostics.is_empty(), "complete context and exempt resources must not be flagged: {diagnostics:?}");
 }
 
+/// Context describes the deployed resources whatever produced the template, so a
+/// synthesized template is checked like any other; only the CDK analytics
+/// record is exempt from the requirement.
 #[test]
-fn cdk_template_marked_only_by_construct_paths_suppresses_context_rules() {
-    let diagnostics =
-        context_diagnostics_on_every_engine("good/cdk_synthesized_without_analytics.yaml", ValidateConfig::default());
+fn cdk_synthesized_template_is_checked_except_for_its_analytics_record() {
+    let diagnostics = context_diagnostics_on_every_engine(
+        "bad/I4010_cdk_synthesized_missing_context.json",
+        ValidateConfig::default(),
+    );
 
-    assert!(diagnostics.is_empty(), "context rules are not actionable on a synthesized template: {diagnostics:?}");
+    let rule_ids: Vec<&str> = diagnostics.iter().map(|d| d.rule_id.as_str()).collect();
+    assert_eq!(rule_ids, ["W4011", "I4010", "I4010"], "{diagnostics:?}");
+    assert_eq!(diagnostics[0].resource_logical_id(), Some("OrderTopic"));
+    assert_eq!(
+        diagnostics[2].message,
+        "Resources without a Metadata.com.aws.cloudformation.Context block: OrderQueue (AWS::SQS::Queue), OrderHandler (AWS::Lambda::Function)."
+    );
+    assert!(diagnostics.iter().all(|d| !d.message.contains("CDKMetadata")));
 }
 
 #[test]
