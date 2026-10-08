@@ -212,6 +212,21 @@ pub const MAX_SCENARIO_COMBINATIONS: usize = 262_144;
 /// (here 128x the per-value cap).
 pub const MAX_TOTAL_SCENARIO_COMBINATIONS: u64 = 33_554_432;
 
+/// Largest joint product of a container's member scenarios that is enumerated in
+/// full. A list or map whose members are gated by N independent conditions has
+/// 2^N joint assignments; past this many, the product is replaced by a pairwise
+/// covering set (see `resolved_value::cover_cartesian_scenarios`), which keeps
+/// every member alternative and every pair of condition states observable while
+/// growing linearly in the number of conditions. Matches `MAX_ENUM_EXPANSION` so a
+/// single value never materializes more joint copies than enumerated variants.
+pub const MAX_COMPLETE_SCENARIO_PRODUCT: usize = 4_096;
+
+/// Largest number of `ResolvedValue` nodes a fully enumerated joint product may
+/// materialize (scenario count times nodes per scenario). Bounds the memory of
+/// one expansion by size rather than count: a product of large member values
+/// switches to the covering set before `MAX_COMPLETE_SCENARIO_PRODUCT` would.
+pub const MAX_SCENARIO_PRODUCT_NODES: usize = 1 << 20;
+
 pub const MAX_RESOLVE_DEPTH: u32 = 512;
 
 /// Maximum structural nesting depth the YAML loader permits before rejecting
@@ -226,6 +241,16 @@ pub const MAX_RESOLVE_DEPTH: u32 = 512;
 /// from reaching unbounded recursive tree passes. JSON parsing is independently
 /// bounded by `serde_json`'s built-in recursion limit.
 pub const MAX_YAML_NESTING_DEPTH: usize = 512;
+
+/// Maximum number of YAML nodes that alias resolution may copy into one
+/// document. An alias is resolved by copying its anchored value, so nested
+/// aliases multiply: eight levels of nine aliases over a nine-element list
+/// expand a few hundred bytes into 9^8 scalars. The bound counts copied nodes
+/// across the whole document and rejects the template with a located parse
+/// error once exceeded. It is far above any template that uses anchors to share
+/// configuration (a 10 MiB template cannot author this many nodes directly) and
+/// well below the point where the copies exhaust memory.
+pub const MAX_YAML_ALIAS_EXPANSION_NODES: usize = 1 << 20;
 
 /// Cumulative work budget for `Fn::ForEach` transform expansion across all
 /// sections of a single template. Charged for every loop iteration (one unit per

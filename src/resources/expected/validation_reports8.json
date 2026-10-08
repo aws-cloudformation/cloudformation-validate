@@ -47236,6 +47236,319 @@
       }
     ]
   },
+  "security/independent_conditions_list_items.yaml": {
+    "filePath": "security/independent_conditions_list_items.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
+  "security/independent_conditions_object_keys.yaml": {
+    "filePath": "security/independent_conditions_object_keys.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FunctionRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FunctionRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 5,
+        "endLine": 74,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Function' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 83,
+        "startColumn": 5,
+        "endLine": 83,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "security/independent_conditions_properties.yaml": {
+    "filePath": "security/independent_conditions_properties.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 2,
+        "errors": 0,
+        "warnings": 2,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3031",
+        "severity": "FATAL",
+        "message": "'' does not match pattern '^([a-zA-Z0-9_-]{1,64}|arn:[a-zA-Z0-9-]+:lambda:[a-zA-Z0-9-]+:\\d{12}:function:[a-zA-Z0-9_-]{1,64})$'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Schema",
+        "startLine": 100,
+        "startColumn": 7,
+        "endLine": 100,
+        "endColumn": 19,
+        "conditionScenario": {
+          "Enabled12": true
+        },
+        "ruleDescription": "Value does not match pattern",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "",
+          "expectedConstraint": "^([a-zA-Z0-9_-]{1,64}|arn:[a-zA-Z0-9-]+:lambda:[a-zA-Z0-9-]+:\\d{12}:function:[a-zA-Z0-9_-]{1,64})$",
+          "resolutionSource": "Fn::If on condition 'Enabled12'"
+        }
+      },
+      {
+        "ruleId": "F3033",
+        "severity": "FATAL",
+        "message": "length 0 is below minimum 1",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Schema",
+        "startLine": 100,
+        "startColumn": 7,
+        "endLine": 100,
+        "endColumn": 19,
+        "conditionScenario": {
+          "Enabled12": true
+        },
+        "ruleDescription": "String length out of bounds",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "",
+          "resolutionSource": "Fn::If on condition 'Enabled12'",
+          "extra": {
+            "actual_length": 0,
+            "min_length": 1
+          }
+        }
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 102,
+        "startColumn": 7,
+        "endLine": 102,
+        "endColumn": 16,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'KmsKeyArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.KmsKeyArn",
+        "category": "Best Practice",
+        "startLine": 92,
+        "startColumn": 7,
+        "endLine": 92,
+        "endColumn": 16,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 100,
+        "startColumn": 7,
+        "endLine": 100,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'Enabled12'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FunctionRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FunctionRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 5,
+        "endLine": 74,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Function' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 103,
+        "startColumn": 7,
+        "endLine": 103,
+        "endColumn": 11,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "security/independent_conditions_statements.yaml": {
+    "filePath": "security/independent_conditions_statements.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3510",
+        "severity": "ERROR",
+        "message": "[] is too short (minimum 1 item)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Role",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Policies.0.PolicyDocument.Statement",
+        "category": "Resource",
+        "startLine": 85,
+        "startColumn": 13,
+        "endLine": 85,
+        "endColumn": 22,
+        "ruleDescription": "Validate identity based IAM policies",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Role' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Role",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 5,
+        "endLine": 74,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "security/many_conditions.yaml": {
     "filePath": "security/many_conditions.yaml",
     "status": "OK",
@@ -132398,6 +132711,38 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
+      }
+    ]
+  },
+  "security/yaml_alias_expansion.yaml": {
+    "filePath": "security/yaml_alias_expansion.yaml",
+    "status": "ERROR",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1101",
+        "severity": "FATAL",
+        "message": "Template exceeds the maximum YAML alias expansion of 1048576 nodes at line 12",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 12,
+        "startColumn": 20,
+        "endLine": 12,
+        "endColumn": 20,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
       }
     ]
   }

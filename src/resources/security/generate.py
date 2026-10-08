@@ -37,6 +37,21 @@ Fixtures produced:
                                shared-input fusion, wide parameter closures,
                                opaque values, De Morgan nesting, Rules constraints,
                                and nested Fn::If resources
+    independent_conditions_list_items.yaml
+                               one S3 bucket whose Tags list has 18 items, each
+                               gated by its own Fn::If over AWS::NoValue (2^18
+                               joint presence assignments)
+    independent_conditions_properties.yaml
+                               one Lambda function with 16 optional top-level
+                               properties, each gated by its own condition
+    independent_conditions_object_keys.yaml
+                               one Lambda function whose Environment.Variables
+                               object has 16 optional keys
+    independent_conditions_statements.yaml
+                               one IAM role whose inline policy has 16 optional
+                               statements (a joint consumer of the whole document)
+    yaml_alias_expansion.yaml  eight levels of nine YAML aliases that resolve to
+                               9^8 scalars when aliases are copied (billion laughs)
 
 All content is synthetic and generic: no account IDs, ARNs, secrets, or any
 sensitive or private data. Names are sequential placeholders.
@@ -877,6 +892,177 @@ def gen_deep_intrinsic_resolution() -> None:
 
     write("deep_intrinsic_resolution.yaml", "\n".join(lines) + "\n")
 
+# Independent conditions on the members of one value. CloudFormation allows 200
+# parameters and does not cap conditions, so a resource exposing this many
+# optional members through parameters is a valid template; validation must stay
+# polynomial in the member count rather than enumerate the 2^N joint assignments.
+INDEPENDENT_LIST_ITEMS = 18
+INDEPENDENT_PROPERTIES = 16
+INDEPENDENT_OBJECT_KEYS = 16
+INDEPENDENT_STATEMENTS = 16
+
+# Lambda function properties that are optional in the resource schema, each with
+# a value accepted by that property.
+OPTIONAL_LAMBDA_PROPERTIES = [
+    ("Description", "!Ref Toggle00"),
+    ("MemorySize", "256"),
+    ("Timeout", "30"),
+    ("ReservedConcurrentExecutions", "5"),
+    ("KmsKeyArn", "!Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/fixture'"),
+    ("Environment", "{Variables: {STAGE: !Ref Toggle00}}"),
+    ("TracingConfig", "{Mode: Active}"),
+    ("DeadLetterConfig", "{TargetArn: !Sub 'arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:fixture'}"),
+    ("VpcConfig", "{SubnetIds: [subnet-00000000], SecurityGroupIds: [sg-00000000]}"),
+    ("Layers", "[!Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:layer:fixture:1']"),
+    ("Architectures", "[arm64]"),
+    ("EphemeralStorage", "{Size: 1024}"),
+    ("FunctionName", "!Ref Toggle00"),
+    ("LoggingConfig", "{LogFormat: JSON}"),
+    ("SnapStart", "{ApplyOn: PublishedVersions}"),
+    ("Tags", "[{Key: team, Value: !Ref Toggle00}]"),
+]
+
+# Alias fan-out of the YAML alias fixture: LEVELS nested anchors, each a sequence
+# of WIDTH aliases to the previous level, so a copying alias resolver builds
+# WIDTH^LEVELS scalars from a few hundred bytes.
+YAML_ALIAS_WIDTH = 9
+YAML_ALIAS_LEVELS = 8
+
+
+def independent_condition_header(description: str, count: int) -> list[str]:
+    lines = [
+        HEADER,
+        "AWSTemplateFormatVersion: '2010-09-09'",
+        f"Description: 'Fixture: {description}. Generated; no sensitive data.'",
+        "Parameters:",
+    ]
+    for index in range(count):
+        lines += [f"  Toggle{index:02d}:", "    Type: String", "    Default: ''"]
+    lines.append("Conditions:")
+    for index in range(count):
+        lines.append(f"  Enabled{index:02d}: !Not [!Equals [!Ref Toggle{index:02d}, '']]")
+    return lines
+
+
+def lambda_function_lines(resource_name: str) -> list[str]:
+    return [
+        f"  {resource_name}Role:",
+        "    Type: AWS::IAM::Role",
+        "    Properties:",
+        "      AssumeRolePolicyDocument:",
+        "        Version: '2012-10-17'",
+        "        Statement:",
+        "          - Effect: Allow",
+        "            Principal: {Service: lambda.amazonaws.com}",
+        "            Action: 'sts:AssumeRole'",
+        f"  {resource_name}:",
+        "    Type: AWS::Lambda::Function",
+        "    Properties:",
+        "      Runtime: python3.12",
+        "      Handler: index.handler",
+        f"      Role: !GetAtt {resource_name}Role.Arn",
+        "      Code: {ZipFile: 'def handler(event, context): return None'}",
+    ]
+
+
+def gen_independent_conditions_list_items() -> None:
+    """One list whose items are each gated by an independent condition.
+
+    The bucket's Tags list carries both a maximum item count and a uniqueness
+    constraint in the resource schema, so every container-level check must be
+    answered from member presence rather than from the 2^18 joint assignments.
+    """
+    lines = independent_condition_header("independent conditions on list items", INDEPENDENT_LIST_ITEMS)
+    lines += ["Resources:", "  Bucket:", "    Type: AWS::S3::Bucket", "    Properties:", "      Tags:"]
+    for index in range(INDEPENDENT_LIST_ITEMS):
+        lines.append(
+            f"        - !If [Enabled{index:02d}, {{Key: tag-{index:02d}, Value: !Ref Toggle{index:02d}}}, "
+            "!Ref AWS::NoValue]"
+        )
+    write("independent_conditions_list_items.yaml", "\n".join(lines) + "\n")
+
+
+def gen_independent_conditions_properties() -> None:
+    """One resource whose optional top-level properties are each independently gated.
+
+    Rules that read the whole Properties block must expand only the properties they
+    inspect; otherwise 2^16 joint scenarios are materialized per rule.
+    """
+    if len(OPTIONAL_LAMBDA_PROPERTIES) != INDEPENDENT_PROPERTIES:
+        raise RuntimeError("the optional Lambda property list must match INDEPENDENT_PROPERTIES")
+    lines = independent_condition_header("independent conditions on optional properties", INDEPENDENT_PROPERTIES)
+    lines += ["Resources:"] + lambda_function_lines("Function")
+    for index, (name, value) in enumerate(OPTIONAL_LAMBDA_PROPERTIES):
+        lines.append(f"      {name}: !If [Enabled{index:02d}, {value}, !Ref AWS::NoValue]")
+    write("independent_conditions_properties.yaml", "\n".join(lines) + "\n")
+
+
+def gen_independent_conditions_object_keys() -> None:
+    """One nested object whose keys are each independently gated."""
+    lines = independent_condition_header("independent conditions on object keys", INDEPENDENT_OBJECT_KEYS)
+    lines += ["Resources:"] + lambda_function_lines("Function") + ["      Environment:", "        Variables:"]
+    for index in range(INDEPENDENT_OBJECT_KEYS):
+        lines.append(
+            f"          VARIABLE_{index:02d}: !If [Enabled{index:02d}, !Ref Toggle{index:02d}, !Ref AWS::NoValue]"
+        )
+    write("independent_conditions_object_keys.yaml", "\n".join(lines) + "\n")
+
+
+def gen_independent_conditions_statements() -> None:
+    """One IAM policy document whose statements are each independently gated.
+
+    Policy analysis evaluates the document as a whole, so it exercises the joint
+    scenario product directly; the covering strategy must keep it linear.
+    """
+    lines = independent_condition_header("independent conditions on policy statements", INDEPENDENT_STATEMENTS)
+    lines += [
+        "Resources:",
+        "  Role:",
+        "    Type: AWS::IAM::Role",
+        "    Properties:",
+        "      AssumeRolePolicyDocument:",
+        "        Version: '2012-10-17'",
+        "        Statement:",
+        "          - Effect: Allow",
+        "            Principal: {Service: lambda.amazonaws.com}",
+        "            Action: 'sts:AssumeRole'",
+        "      Policies:",
+        "        - PolicyName: inline",
+        "          PolicyDocument:",
+        "            Version: '2012-10-17'",
+        "            Statement:",
+    ]
+    for index in range(INDEPENDENT_STATEMENTS):
+        lines.append(
+            f"              - !If [Enabled{index:02d}, {{Effect: Allow, Action: 's3:GetObject', "
+            f"Resource: !Sub 'arn:${{AWS::Partition}}:s3:::fixture-{index:02d}/*'}}, !Ref AWS::NoValue]"
+        )
+    write("independent_conditions_statements.yaml", "\n".join(lines) + "\n")
+
+
+def gen_yaml_alias_expansion() -> None:
+    """Nested YAML aliases whose copied expansion is exponential in the nesting depth."""
+    lines = [
+        HEADER,
+        "AWSTemplateFormatVersion: '2010-09-09'",
+        f"Description: 'Fixture: {YAML_ALIAS_LEVELS} levels of {YAML_ALIAS_WIDTH} YAML aliases. "
+        "Generated; no sensitive data.'",
+        "Metadata:",
+        f"  Level0: &level0 [{', '.join(['x'] * YAML_ALIAS_WIDTH)}]",
+    ]
+    for level in range(1, YAML_ALIAS_LEVELS):
+        aliases = ", ".join([f"*level{level - 1}"] * YAML_ALIAS_WIDTH)
+        lines.append(f"  Level{level}: &level{level} [{aliases}]")
+    lines += [
+        "Resources:",
+        "  Topic:",
+        "    Type: AWS::SNS::Topic",
+        "    Metadata:",
+        f"      Expanded: *level{YAML_ALIAS_LEVELS - 1}",
+    ]
+    write("yaml_alias_expansion.yaml", "\n".join(lines) + "\n")
+
+
 def main() -> None:
     gen_deep_nesting()
     gen_many_conditions()
@@ -892,6 +1078,11 @@ def main() -> None:
     gen_foreach_branch_explosion()
     gen_deep_yaml_nesting()
     gen_deep_intrinsic_resolution()
+    gen_independent_conditions_list_items()
+    gen_independent_conditions_properties()
+    gen_independent_conditions_object_keys()
+    gen_independent_conditions_statements()
+    gen_yaml_alias_expansion()
 
 
 if __name__ == "__main__":

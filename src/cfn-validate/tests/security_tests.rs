@@ -655,3 +655,64 @@ fn deep_intrinsic_resolution_completes_within_budget() {
         finished.unwrap().unwrap_or_else(|e| panic!("{engine_name}: deep intrinsic resolution must not error: {e}"));
     }
 }
+
+/// Fixtures whose members are each gated by an independent condition. The joint
+/// assignment count is 2^16 to 2^18, which is far beyond what may be enumerated
+/// per value, yet every member is independently optional, so analysis must stay
+/// complete and polynomial.
+const INDEPENDENT_CONDITION_FIXTURES: [&str; 4] = [
+    "independent_conditions_list_items.yaml",
+    "independent_conditions_properties.yaml",
+    "independent_conditions_object_keys.yaml",
+    "independent_conditions_statements.yaml",
+];
+
+/// Independent conditions on one value must not be enumerated jointly. The
+/// fixtures are valid templates, so they must validate quickly with a complete
+/// analysis and no curtailment, identically on every engine.
+#[test]
+fn independent_conditions_are_analyzed_completely_without_joint_expansion() {
+    const CURTAILED_ANALYSIS_ADVISORY: &str = "W9052";
+    const PER_TEMPLATE_BUDGET: Duration = Duration::from_secs(10);
+    for fixture in INDEPENDENT_CONDITION_FIXTURES {
+        let bytes = common::load_security(fixture);
+        let mut engine_reports = Vec::new();
+        for engine_name in ["rego", "cel", "composite"] {
+            let report = validate_report_within(PER_TEMPLATE_BUDGET, engine_name, bytes.clone())
+                .unwrap_or_else(|| panic!("{engine_name}: {fixture} must validate within {PER_TEMPLATE_BUDGET:?}"))
+                .expect("validation must return a structured report");
+            assert_eq!(report.status, ReportStatus::Ok, "{engine_name}: {fixture} analysis must be complete");
+            assert!(
+                report.diagnostics.iter().all(|diagnostic| diagnostic.rule_id != CURTAILED_ANALYSIS_ADVISORY),
+                "{engine_name}: {fixture} must not report curtailment"
+            );
+            assert!(
+                report.metadata.budget_exhaustions.is_none(),
+                "{engine_name}: {fixture} must not exhaust any budget"
+            );
+            engine_reports.push(report);
+        }
+        let rule_ids = |report: &ValidationReport| -> Vec<String> {
+            let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
+            ids.sort();
+            ids
+        };
+        assert_eq!(rule_ids(&engine_reports[0]), rule_ids(&engine_reports[1]), "{fixture}: rego and cel must agree");
+        assert_eq!(
+            rule_ids(&engine_reports[1]),
+            rule_ids(&engine_reports[2]),
+            "{fixture}: cel and composite must agree"
+        );
+    }
+}
+
+#[test]
+fn exponential_yaml_alias_expansion_is_rejected_with_structured_error() {
+    let bytes = common::load_security("yaml_alias_expansion.yaml");
+    let error = match SemanticModel::from_bytes(&bytes) {
+        Err(e) => e,
+        Ok(_) => panic!("a document whose aliases expand exponentially must fail with a parse error"),
+    };
+    let msg = error.to_string().to_lowercase();
+    assert!(msg.contains("alias expansion"), "error must reference alias expansion, got: {}", error);
+}

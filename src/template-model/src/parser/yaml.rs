@@ -291,6 +291,12 @@ struct CfnYamlLoader {
     doc_stack: Vec<(Yaml, usize)>,
     key_stack: Vec<Yaml>,
     anchor_map: BTreeMap<usize, Yaml>,
+    /// Node count of each anchored value, so an alias is charged without
+    /// re-walking the value it copies.
+    anchor_sizes: BTreeMap<usize, usize>,
+    /// Nodes copied by alias resolution so far, charged against
+    /// `MAX_YAML_ALIAS_EXPANSION_NODES`.
+    alias_expanded_nodes: usize,
     /// Stack of tags to apply when sequences/mappings complete.
     /// Each entry is (tag_name, stack_depth_when_set).
     /// A stack is needed because nested tags (e.g. `!Or [!Equals [...]]`)
@@ -347,6 +353,8 @@ impl CfnYamlLoader {
             doc_stack: Vec::new(),
             key_stack: Vec::new(),
             anchor_map: BTreeMap::new(),
+            anchor_sizes: BTreeMap::new(),
+            alias_expanded_nodes: 0,
             pending_tags: Vec::new(),
             path_frames: Vec::new(),
             span_map: HashMap::new(),
@@ -554,6 +562,7 @@ impl CfnYamlLoader {
         }
 
         if aid > 0 {
+            self.anchor_sizes.insert(aid, yaml_node_count(&node_val));
             self.anchor_map.insert(aid, node_val.clone());
         }
 
@@ -689,6 +698,45 @@ impl CfnYamlLoader {
         }
         self.suppress_tree_construction = true;
         false
+    }
+
+    /// Returns whether resolving the alias `anchor_id` stays within the
+    /// document-wide alias expansion budget. On the first overrun, records a
+    /// located parse error and suppresses every subsequent event, so the loader
+    /// never materializes the copies a nested-alias document would demand.
+    fn allow_alias_expansion(&mut self, anchor_id: usize, mark: Marker) -> bool {
+        let copied_nodes = self.anchor_sizes.get(&anchor_id).copied().unwrap_or(1);
+        self.alias_expanded_nodes = self.alias_expanded_nodes.saturating_add(copied_nodes);
+        if self.alias_expanded_nodes <= crate::consts::MAX_YAML_ALIAS_EXPANSION_NODES {
+            return true;
+        }
+
+        if self.load_error.is_none() {
+            let (line, column) = Self::mark_position(mark);
+            self.load_error = Some(ParseError {
+                message: format!(
+                    "Template exceeds the maximum YAML alias expansion of {} nodes at line {}",
+                    crate::consts::MAX_YAML_ALIAS_EXPANSION_NODES,
+                    line
+                ),
+                line: Some(line),
+                column: Some(column),
+            });
+        }
+        self.suppress_tree_construction = true;
+        false
+    }
+}
+
+/// Number of nodes in a loaded YAML value: every scalar, sequence and mapping
+/// counts once, so it measures what an alias copy allocates.
+fn yaml_node_count(value: &Yaml) -> usize {
+    match value {
+        Yaml::Array(items) => 1 + items.iter().map(yaml_node_count).sum::<usize>(),
+        Yaml::Hash(entries) => {
+            1 + entries.iter().map(|(key, value)| yaml_node_count(key) + yaml_node_count(value)).sum::<usize>()
+        }
+        _ => 1,
     }
 }
 
@@ -840,6 +888,9 @@ impl MarkedEventReceiver for CfnYamlLoader {
                 }
             }
             Event::Alias(id) => {
+                if !self.allow_alias_expansion(id, mark) {
+                    return;
+                }
                 let n = self.anchor_map.get(&id).cloned().unwrap_or(Yaml::BadValue);
                 // An alias resolves to an anchored value, so it is always a value or
                 // sequence element (never a key); anchor a sequence element at itself.
@@ -1988,6 +2039,42 @@ mod tests {
         let error = result.unwrap_err();
         let msg = error.message.to_lowercase();
         assert!(msg.contains("nesting depth"), "error must reference nesting depth, got: {}", error.message);
+        assert!(error.line.is_some(), "error must carry a source line");
+    }
+
+    /// `levels` nested anchors, each a sequence of `width` aliases to the level
+    /// below, so resolving the final alias copies `width^levels` scalars.
+    fn nested_alias_yaml(width: usize, levels: usize) -> String {
+        let mut yaml = String::from("Metadata:\n");
+        yaml.push_str(&format!("  Level0: &level0 [{}]\n", vec!["x"; width].join(", ")));
+        for level in 1..levels {
+            let aliases = vec![format!("*level{}", level - 1); width].join(", ");
+            yaml.push_str(&format!("  Level{level}: &level{level} [{aliases}]\n"));
+        }
+        yaml.push_str(&format!(
+            "Resources:\n  Topic:\n    Type: AWS::SNS::Topic\n    Metadata:\n      Expanded: *level{}\n",
+            levels - 1
+        ));
+        yaml
+    }
+
+    #[test]
+    fn yaml_aliases_within_the_expansion_budget_parse() {
+        // 4^5 = 1,024 scalars at the deepest alias, well inside the budget.
+        let result = parse_yaml(nested_alias_yaml(4, 6).as_bytes());
+        assert!(result.is_ok(), "moderate alias reuse must parse: {:?}", result.err());
+    }
+
+    #[test]
+    fn yaml_aliases_beyond_the_expansion_budget_fail_with_a_located_error() {
+        // 9^7 scalars copied by the deepest level alone exceed the budget.
+        let result = parse_yaml(nested_alias_yaml(9, 8).as_bytes());
+        let error = result.expect_err("exponential alias expansion must be rejected");
+        assert!(
+            error.message.contains("alias expansion"),
+            "error must reference alias expansion, got: {}",
+            error.message
+        );
         assert!(error.line.is_some(), "error must carry a source line");
     }
 }

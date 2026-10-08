@@ -19,6 +19,7 @@ pub mod ir;
 pub mod json_value;
 pub(crate) mod lang_ext_shapes;
 pub(crate) mod language_extensions;
+pub mod member_presence;
 pub mod message;
 pub mod model;
 pub(crate) mod nesting;
