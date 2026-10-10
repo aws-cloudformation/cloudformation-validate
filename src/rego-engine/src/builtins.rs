@@ -80,6 +80,7 @@ pub(crate) fn register_all(
     register_has_unresolved_scenario(rego);
     register_scenario_source_path(rego);
     register_properties_scenarios(rego);
+    register_property_absence_scenarios(rego);
     register_dynamodb_scenario_analysis(rego);
     register_is_satisfiable(rego);
     register_get_resource(rego);
@@ -729,6 +730,26 @@ fn project_selected_properties(
     projected
 }
 
+fn register_property_absence_scenarios(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "property_absence_scenarios".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let property_name = params[1].as_string()?;
+            let results: Vec<Value> = model
+                .property_absence_scenarios(rid.as_ref(), property_name.as_ref())
+                .iter()
+                .map(|conditions| json_to_value(&serde_json::json!(conditions)))
+                .collect();
+            Ok(Value::from(results))
+        }),
+    );
+}
+
 fn register_properties_scenarios(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "properties_scenarios".into(),
@@ -744,8 +765,9 @@ fn register_properties_scenarios(rego: &mut regorus::Engine) {
                 selected_fields.insert(field.as_string()?.to_string());
             }
 
+            let requested_names: Vec<&str> = selected_fields.iter().map(String::as_str).collect();
             let results: Vec<Value> = model
-                .resolve_properties_scenarios_shared(rid.as_ref())
+                .resolve_properties_scenarios_projected(rid.as_ref(), &requested_names)
                 .iter()
                 .map(|(properties, conditions)| {
                     let properties = project_selected_properties(properties, &selected_fields);

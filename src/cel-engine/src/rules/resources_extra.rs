@@ -1951,9 +1951,12 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
-        if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")
-            && snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions")
-        {
+        // SnapStart gated by a condition is enabled in the deployments where that
+        // condition holds, so every branch value counts, not only a fixed one.
+        let snapstart_publishes_versions = resolve_all_json(m, name, "Properties.SnapStart")
+            .iter()
+            .any(|snap| snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions"));
+        if snapstart_publishes_versions {
             let version_refs = m.graph.ref_sources(name);
             let has_ver = version_refs
                 .iter()
@@ -3452,20 +3455,22 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        for (properties, conditions) in m.resolve_properties_scenarios(name) {
-            if !scenario_is_reachable(m, name, &conditions) {
+        let scenarios =
+            m.resolve_properties_scenarios_projected(name, &["HostedZoneName", "Name", "ResourceRecords", "Type"]);
+        for (properties, conditions) in scenarios.iter() {
+            if !scenario_is_reachable(m, name, conditions) {
                 continue;
             }
-            let Some(serde_json::Value::String(record_type)) = scenario_property_json(&properties, "Type") else {
+            let Some(serde_json::Value::String(record_type)) = scenario_property_json(properties, "Type") else {
                 continue;
             };
             if record_type == "CNAME"
                 && let (Some(serde_json::Value::String(record_name)), Some(serde_json::Value::String(hosted_zone_name))) =
-                    (scenario_property_json(&properties, "Name"), scenario_property_json(&properties, "HostedZoneName"))
+                    (scenario_property_json(properties, "Name"), scenario_property_json(properties, "HostedZoneName"))
                 && record_name.trim_end_matches('.') == hosted_zone_name.trim_end_matches('.')
             {
                 let property_path = "Properties.Name";
-                let source_path = route53_scenario_source_path(m, name, property_path, &conditions);
+                let source_path = route53_scenario_source_path(m, name, property_path, conditions);
                 out.push(make_resource_diagnostic_at_source(
                     "E3023",
                     &format!(
@@ -3479,7 +3484,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-            if let Some(serde_json::Value::Array(records)) = scenario_property_json(&properties, "ResourceRecords") {
+            if let Some(serde_json::Value::Array(records)) = scenario_property_json(properties, "ResourceRecords") {
                 push_route53_record_value_diagnostics(
                     &mut out,
                     m,
@@ -3487,7 +3492,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &record_type,
                     &records,
                     "Properties.ResourceRecords",
-                    |property_path| route53_scenario_source_path(m, name, property_path, &conditions),
+                    |property_path| route53_scenario_source_path(m, name, property_path, conditions),
                 );
             }
         }
@@ -3495,11 +3500,11 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // RecordSetGroup - validate records within RecordSets[]
     for name in m.resources_of_type("AWS::Route53::RecordSetGroup") {
-        for (properties, conditions) in m.resolve_properties_scenarios(name) {
-            if !scenario_is_reachable(m, name, &conditions) {
+        for (properties, conditions) in m.resolve_properties_scenarios_projected(name, &["RecordSets"]).iter() {
+            if !scenario_is_reachable(m, name, conditions) {
                 continue;
             }
-            let Some(serde_json::Value::Array(record_sets)) = scenario_property_json(&properties, "RecordSets") else {
+            let Some(serde_json::Value::Array(record_sets)) = scenario_property_json(properties, "RecordSets") else {
                 continue;
             };
             for (set_index, record_set) in record_sets.iter().enumerate() {
@@ -3514,7 +3519,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         record_type,
                         records,
                         &format!("Properties.RecordSets.{}.ResourceRecords", set_index),
-                        |property_path| route53_scenario_source_path(m, name, property_path, &conditions),
+                        |property_path| route53_scenario_source_path(m, name, property_path, conditions),
                     );
                 }
             }
@@ -3571,7 +3576,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet Alias validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        let property_scenarios = m.resolve_properties_scenarios(name);
+        let property_scenarios = m.resolve_properties_scenarios_projected(name, &["AliasTarget", "TTL", "Type"]);
         let has_alias_ttl_conflict = property_scenarios.iter().any(|(properties, conditions)| {
             scenario_is_reachable(m, name, conditions)
                 && scenario_has_effective_property(properties, "AliasTarget")
@@ -4031,7 +4036,10 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 continue;
             }
 
-            let properties_scenarios = m.resolve_properties_scenarios(name);
+            let properties_scenarios = m.resolve_properties_scenarios_projected(
+                name,
+                &["Cpu", "Memory", "NetworkMode", "PlacementConstraints"],
+            );
             let property_can_be_missing = |property_name: &str| {
                 properties_scenarios.iter().any(|(properties, conditions)| {
                     !scenario_has_effective_property(properties, property_name)

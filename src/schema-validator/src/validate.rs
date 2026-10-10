@@ -9,14 +9,16 @@ use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string,
 use template_model::conditions::Satisfiability;
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
-    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH,
+    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCENARIO_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH,
     MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
     MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS as MAX_GROUP_SCENARIO_MERGE_ATTEMPTS, PARAM_TYPE_COMMA_DELIMITED_LIST,
     PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
 };
+use template_model::member_presence::{ContainerMember, MemberPresence, classify_members, extend_assignment};
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
+use template_model::resolved_value::{collect_scenarios, contains_dynamic_resolved, is_resolved_null};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
     BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
@@ -945,16 +947,16 @@ fn property_presence_alternatives(
     }
     let mut alternatives = Vec::new();
     let mut seen = HashSet::new();
-    for (value, conditions) in scenarios {
+    for (value, conditions) in scenarios.iter() {
         let present = !matches!(value, ResolvedValue::Concrete { value } if value.is_null());
         if present != want_present {
             continue;
         }
-        let Some(merged) = try_merge_assignments(filter, &conditions) else {
+        let Some(merged) = try_merge_assignments(filter, conditions) else {
             continue;
         };
-        if assignment_is_proven_satisfiable(m, &merged) && seen.insert(canonical_assignment(&conditions)) {
-            alternatives.push(conditions);
+        if assignment_is_proven_satisfiable(m, &merged) && seen.insert(canonical_assignment(conditions)) {
+            alternatives.push(conditions.clone());
         }
     }
     alternatives
@@ -1107,7 +1109,7 @@ fn property_scenario_assignments(
 
         let mut property_assignments = Vec::new();
         let mut seen_property_assignments = HashSet::new();
-        for (_, conditions) in &scenarios {
+        for (_, conditions) in scenarios.iter() {
             if !is_satisfiable(m, conditions) || !scenario_consistent_with_filter(m, conditions) {
                 continue;
             }
@@ -1198,7 +1200,10 @@ fn property_present_under(
     prop: &str,
     assignment: &HashMap<String, bool>,
 ) -> bool {
-    let scenarios = m.resolve_scenarios(rid, &format!("{}.{}", base, prop));
+    // Presence depends only on whether the property value itself resolves to
+    // `AWS::NoValue`, so only the conditions wrapping the whole value are split;
+    // conditions nested inside a present list or object cannot change the answer.
+    let scenarios = outer_resolved_scenarios(m, rid, &format!("{}.{}", base, prop));
     if scenarios.is_empty() {
         return true;
     }
@@ -3159,7 +3164,7 @@ fn outer_resolved_scenarios(
     let Some(value) =
         model.resolve_deep(resource_id, property_path).or_else(|| model.resolve(resource_id, property_path).cloned())
     else {
-        return model.resolve_scenarios(resource_id, property_path);
+        return model.resolve_scenarios(resource_id, property_path).as_ref().clone();
     };
     let mut scenarios = Vec::new();
     collect_outer_resolved_scenarios(&value, &HashMap::new(), &mut scenarios);
@@ -3196,12 +3201,13 @@ fn collect_outer_value_scenarios(
     }
 }
 
+/// Whether a property's checks compare the whole composite value, so every
+/// joint assignment of the conditions nested inside it must be materialized.
+/// Item cardinality and uniqueness are not among them: `validate_item_cardinality`
+/// reasons about member presence instead.
 fn schema_requires_nested_value_scenarios(schema: &PropSchema) -> bool {
     let has_composite_value = |value: &serde_json::Value| value.is_array() || value.is_object();
-    schema.min_items.is_some()
-        || schema.max_items.is_some()
-        || schema.unique_items == Some(true)
-        || schema.min_properties.is_some()
+    schema.min_properties.is_some()
         || schema.max_properties.is_some()
         || schema.enum_values.iter().any(has_composite_value)
         || schema.enum_case_insensitive.iter().any(has_composite_value)
@@ -3594,72 +3600,8 @@ fn validate_prop(
         }
     }
 
-    for (val, conds) in &scenarios {
-        if !is_satisfiable(m, conds) || val.is_null() {
-            continue;
-        }
-        if let Some(arr) = val.as_array() {
-            let len = arr.iter().filter(|item| !item.is_null()).count() as u64;
-            if let Some(max) = schema.max_items
-                && len > max
-            {
-                out.push(build_diagnostic_conditional(
-                    "F3032",
-                    &format!("expected maximum item count: {}, found: {}", max, len),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
-            if let Some(min) = schema.min_items
-                && len < min
-            {
-                out.push(build_diagnostic_conditional(
-                    "F3032",
-                    &format!("expected minimum item count: {}, found: {}", min, len),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
-        }
-    }
-
-    if schema.unique_items == Some(true) {
-        for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
-                continue;
-            }
-            if let Some(arr) = val.as_array() {
-                let mut seen = Vec::new();
-                for item in arr {
-                    // A null element is an `AWS::NoValue` that CloudFormation
-                    // removes from the list at deploy time, so it is not a real
-                    // member and two such elements are not a duplicate. Only the
-                    // surviving concrete items are checked for uniqueness.
-                    if item.is_null() {
-                        continue;
-                    }
-                    if seen.contains(item) {
-                        out.push(build_diagnostic_conditional(
-                            "F3037",
-                            "Array items are not unique",
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
-                        break;
-                    }
-                    seen.push(item.clone());
-                }
-            }
-        }
+    if schema.min_items.is_some() || schema.max_items.is_some() || schema.unique_items == Some(true) {
+        validate_item_cardinality(out, m, rid, prop_path, schema);
     }
 
     let has_nested_constraints = !schema.properties.is_empty()
@@ -3720,7 +3662,7 @@ fn validate_prop(
             // anchors the diagnostic at the branch path (`<prop>.Fn::If.<idx>`),
             // so reporting here too would duplicate that finding at the
             // un-qualified property path.
-            for (val, _conds) in m.resolve_scenarios(rid, prop_path) {
+            for (val, _conds) in m.resolve_scenarios(rid, prop_path).iter() {
                 if let ResolvedValue::Concrete { value } = &val
                     && let Some(obj) = value.as_object()
                 {
@@ -3774,8 +3716,10 @@ fn validate_prop(
         for (pn, ps) in &schema.properties {
             let resolved = ps.resolve(defs);
             let sub_path = format!("{}.{}", prop_path, pn);
-            let sub_scenarios = m.resolve_scenarios_json(rid, &sub_path);
-            if !sub_scenarios.is_empty() || m.resolve_deep(rid, &sub_path).is_some() {
+            // A directly resolvable sub-property is authored; only when it is not
+            // (a `Properties` block wrapped in `Fn::If`) do the scenarios decide,
+            // so the expansion is not paid merely to learn that a value exists.
+            if m.resolve_deep(rid, &sub_path).is_some() || !m.resolve_scenarios_json(rid, &sub_path).is_empty() {
                 validate_prop(out, store, m, rid, rtype, &sub_path, &resolved, defs, region);
             }
         }
@@ -3803,6 +3747,252 @@ fn validate_prop(
         }
         if !did_per_index && (!resolved.dependent_excluded.is_empty() || !resolved.dependent_required.is_empty()) {
             validate_array_item_constraints(out, m, rid, prop_path, &resolved);
+        }
+    }
+}
+
+/// Checks `minItems`, `maxItems` and `uniqueItems` from member presence.
+///
+/// Members gated by `Fn::If` over `AWS::NoValue` are counted through their
+/// presence literals instead of enumerating every joint assignment, so a list
+/// of N independently optional items costs O(N) (O(N^2) for uniqueness) rather
+/// than 2^N. Deployments whose surviving members carry an unresolved reference
+/// are not counted, matching the value-scenario checks that skip dynamic values.
+/// Members whose presence has no single literal conjunction fall back to the
+/// joint value scenarios.
+fn validate_item_cardinality(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+) {
+    for (container, outer_conditions) in outer_resolved_scenarios(m, rid, prop_path) {
+        if !is_satisfiable(m, &outer_conditions) {
+            continue;
+        }
+        match &container {
+            ResolvedValue::List { items } => {
+                let members = classify_members(items);
+                if members.iter().any(|member| member.presence == MemberPresence::Complex) {
+                    validate_item_cardinality_from_scenarios(out, m, rid, prop_path, schema);
+                    return;
+                }
+                validate_member_cardinality(out, m, rid, prop_path, schema, &members, &outer_conditions);
+            }
+            ResolvedValue::Concrete { value } if value.is_array() => {
+                let value = value.0.clone();
+                validate_item_cardinality_of_value(out, m, rid, prop_path, schema, &value, &outer_conditions);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn validate_member_cardinality(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+    members: &[ContainerMember<'_>],
+    outer_conditions: &HashMap<String, bool>,
+) {
+    if members.iter().any(|member| member.is_dynamic && member.presence == MemberPresence::Always) {
+        return;
+    }
+    let always_present = members.iter().filter(|member| member.presence == MemberPresence::Always).count() as u64;
+    let optional = |member: &&ContainerMember<'_>| matches!(member.presence, MemberPresence::When(_));
+
+    if let Some(max) = schema.max_items {
+        let mut witness = outer_conditions.clone();
+        let mut count = always_present;
+        let mut skipped_unsatisfiable = false;
+        for member in members.iter().filter(optional).filter(|member| !member.is_dynamic) {
+            let mut candidate = witness.clone();
+            if extend_assignment(&mut candidate, presence_literals(member)) && is_satisfiable(m, &candidate) {
+                witness = candidate;
+                count += 1;
+            } else {
+                skipped_unsatisfiable = true;
+            }
+        }
+        if skipped_unsatisfiable {
+            validate_item_cardinality_from_scenarios(out, m, rid, prop_path, schema);
+            return;
+        }
+        if count > max {
+            out.push(build_diagnostic_conditional(
+                "F3032",
+                &format!("expected maximum item count: {}, found: {}", max, count),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(&witness),
+            ));
+        }
+    }
+
+    if let Some(min) = schema.min_items {
+        let mut witness = outer_conditions.clone();
+        let mut count = always_present;
+        let mut skipped_unsatisfiable = false;
+        for member in members.iter().filter(optional) {
+            let Some((condition, value)) = presence_literals(member).first() else {
+                continue;
+            };
+            let mut candidate = witness.clone();
+            if extend_assignment(&mut candidate, &[(condition.clone(), !value)]) && is_satisfiable(m, &candidate) {
+                witness = candidate;
+            } else if member.is_dynamic {
+                skipped_unsatisfiable = true;
+            } else {
+                count += 1;
+            }
+        }
+        if skipped_unsatisfiable {
+            validate_item_cardinality_from_scenarios(out, m, rid, prop_path, schema);
+            return;
+        }
+        if count < min {
+            out.push(build_diagnostic_conditional(
+                "F3032",
+                &format!("expected minimum item count: {}, found: {}", min, count),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(&witness),
+            ));
+        }
+    }
+
+    if schema.unique_items == Some(true) {
+        let member_alternatives: Vec<Vec<(HashMap<String, bool>, serde_json::Value)>> = members
+            .iter()
+            .map(|member| {
+                let mut alternatives = Vec::new();
+                collect_scenarios(member.value, &HashMap::new(), MAX_SCENARIO_COMBINATIONS, &mut alternatives);
+                alternatives
+                    .into_iter()
+                    .filter(|(value, _)| !is_resolved_null(value) && !contains_dynamic_resolved(value))
+                    .map(|(value, conditions)| (conditions, resolved_value_to_json(&value)))
+                    .collect()
+            })
+            .collect();
+        'pairs: for (left_index, left_alternatives) in member_alternatives.iter().enumerate() {
+            for right_alternatives in &member_alternatives[left_index + 1..] {
+                for (left_conditions, left_json) in left_alternatives {
+                    for (right_conditions, right_json) in right_alternatives {
+                        if left_json != right_json {
+                            continue;
+                        }
+                        let Some(witness) = try_merge_assignments(outer_conditions, left_conditions)
+                            .and_then(|merged| try_merge_assignments(&merged, right_conditions))
+                        else {
+                            continue;
+                        };
+                        if is_satisfiable(m, &witness) {
+                            out.push(build_diagnostic_conditional(
+                                "F3037",
+                                "Array items are not unique",
+                                m,
+                                rid,
+                                prop_path,
+                                None,
+                                condition_map(&witness),
+                            ));
+                            break 'pairs;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn presence_literals<'m>(member: &'m ContainerMember<'_>) -> &'m [(String, bool)] {
+    match &member.presence {
+        MemberPresence::When(literals) => literals.as_slice(),
+        _ => &[],
+    }
+}
+
+/// Joint-scenario fallback for containers whose member presence cannot be
+/// expressed as literal conjunctions.
+fn validate_item_cardinality_from_scenarios(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+) {
+    for (value, conditions) in m.resolve_scenarios_json_shared(rid, prop_path).iter() {
+        if is_satisfiable(m, conditions) {
+            validate_item_cardinality_of_value(out, m, rid, prop_path, schema, value, conditions);
+        }
+    }
+}
+
+fn validate_item_cardinality_of_value(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+    value: &serde_json::Value,
+    conditions: &HashMap<String, bool>,
+) {
+    let Some(items) = value.as_array() else {
+        return;
+    };
+    // A null element is an `AWS::NoValue` that CloudFormation removes from the
+    // list at deploy time, so it is not a real member.
+    let surviving: Vec<&serde_json::Value> = items.iter().filter(|item| !item.is_null()).collect();
+    let count = surviving.len() as u64;
+    if let Some(max) = schema.max_items
+        && count > max
+    {
+        out.push(build_diagnostic_conditional(
+            "F3032",
+            &format!("expected maximum item count: {}, found: {}", max, count),
+            m,
+            rid,
+            prop_path,
+            None,
+            condition_map(conditions),
+        ));
+    }
+    if let Some(min) = schema.min_items
+        && count < min
+    {
+        out.push(build_diagnostic_conditional(
+            "F3032",
+            &format!("expected minimum item count: {}, found: {}", min, count),
+            m,
+            rid,
+            prop_path,
+            None,
+            condition_map(conditions),
+        ));
+    }
+    if schema.unique_items == Some(true) {
+        let mut seen: Vec<&serde_json::Value> = Vec::new();
+        for item in surviving {
+            if seen.contains(&item) {
+                out.push(build_diagnostic_conditional(
+                    "F3037",
+                    "Array items are not unique",
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conditions),
+                ));
+                break;
+            }
+            seen.push(item);
         }
     }
 }

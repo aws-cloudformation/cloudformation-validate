@@ -7,6 +7,7 @@ use crate::graph::ReferenceGraph;
 use crate::ir::*;
 use crate::is_custom_resource_type;
 use crate::json_value::JsonValue;
+use crate::member_presence::absent_alternatives;
 use crate::regions::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
@@ -323,8 +324,10 @@ pub struct SemanticModel {
     /// available for best-effort value resolution but cannot prove reachability.
     invalid_inline_conditions: HashSet<String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
-    raw_scenario_memo: Mutex<HashMap<(String, String), Vec<(ResolvedValue, HashMap<String, bool>)>>>,
-    properties_scenario_cache: Mutex<HashMap<String, Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>>>,
+    raw_scenario_memo:
+        Mutex<HashMap<(String, String, usize), (Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>, bool)>>,
+    properties_scenario_cache:
+        Mutex<HashMap<(String, Option<BTreeSet<String>>), Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>>>,
     scenario_memo: Mutex<HashMap<(String, String), Arc<Vec<(serde_json::Value, HashMap<String, bool>)>>>>,
     lifecycle_policy_scenario_cache: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -1759,7 +1762,13 @@ impl SemanticModel {
         let remaining_limit = usize::try_from(remaining).unwrap_or(usize::MAX);
         let effective_limit = per_value_limit.min(remaining_limit);
         let mut scenarios = Vec::new();
-        let was_curtailed = collect_scenarios(value, assumptions, effective_limit, &mut scenarios);
+        let is_reachable = |scenario_assumptions: &HashMap<String, bool>| {
+            let assumptions: Vec<(String, bool)> =
+                scenario_assumptions.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
+            self.conditions.is_satisfiable(&assumptions)
+        };
+        let was_curtailed =
+            collect_scenarios_reachable(value, assumptions, effective_limit, &mut scenarios, &is_reachable);
         if was_curtailed {
             self.scenario_expansion_curtailed.store(true, Ordering::Relaxed);
             if per_value_limit == MAX_SCENARIO_COMBINATIONS && per_value_limit <= remaining_limit {
@@ -1825,11 +1834,54 @@ impl SemanticModel {
         &self,
         resource_id: &str,
     ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        self.resolve_properties_scenarios_selected(resource_id, None)
+    }
+
+    /// Like [`Self::resolve_properties_scenarios_shared`] but expands only the
+    /// named top-level properties. Conditions that gate other properties never
+    /// enter the expansion, so the scenario count grows with the conditions on
+    /// the requested properties alone, and a scenario's assumptions carry only
+    /// the conditions its values depend on.
+    pub fn resolve_properties_scenarios_projected(
+        &self,
+        resource_id: &str,
+        property_names: &[&str],
+    ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        let selection: BTreeSet<String> = property_names.iter().map(|name| (*name).to_string()).collect();
+        self.resolve_properties_scenarios_selected(resource_id, Some(selection))
+    }
+
+    /// The condition assignments under which the top-level property
+    /// `property_name` is absent at deployment: undeclared, or resolving to
+    /// `AWS::NoValue`. Only the conditions that decide the property's own
+    /// presence appear, never conditions nested inside a present value, so the
+    /// result stays linear in the property's `Fn::If` depth. Empty when the
+    /// property is always present or the resource's properties are dynamic.
+    #[must_use]
+    pub fn property_absence_scenarios(&self, resource_id: &str, property_name: &str) -> Vec<HashMap<String, bool>> {
+        let Some(properties) = self.resolved_properties_value(resource_id) else {
+            return Vec::new();
+        };
+        let mut absences = Vec::new();
+        collect_property_absences(&properties, property_name, &mut Vec::new(), &mut absences);
+        absences
+    }
+
+    fn resolve_properties_scenarios_selected(
+        &self,
+        resource_id: &str,
+        selection: Option<BTreeSet<String>>,
+    ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        let cache_key = (resource_id.to_string(), selection);
         let mut cache = self.properties_scenario_cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(scenarios) = cache.get(resource_id) {
+        if let Some(scenarios) = cache.get(&cache_key) {
             return Arc::clone(scenarios);
         }
-        let scenarios = match self.resolved_properties_value(resource_id) {
+        let properties = self.resolved_properties_value(resource_id).map(|properties| match &cache_key.1 {
+            Some(selection) => project_properties_value(&properties, selection),
+            None => properties,
+        });
+        let scenarios = match properties {
             Some(properties) => self.collect_scenarios_with_budget(
                 &properties,
                 MAX_SCENARIO_COMBINATIONS,
@@ -1838,12 +1890,8 @@ impl SemanticModel {
             None => Vec::new(),
         };
         let shared = Arc::new(scenarios);
-        cache.insert(resource_id.to_string(), Arc::clone(&shared));
+        cache.insert(cache_key, Arc::clone(&shared));
         shared
-    }
-
-    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-        self.resolve_properties_scenarios_shared(resource_id).as_ref().clone()
     }
 
     /// Returns the authored, branch-qualified source path for an effective path in
@@ -1863,18 +1911,33 @@ impl SemanticModel {
         scenario_source_path_at(&properties, relative_path, conditions, KEY_PROPERTIES)
     }
 
-    pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-        let key = (resource_id.to_string(), path.to_string());
-        let mut memo = self.raw_scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(scenarios) = memo.get(&key) {
-            return scenarios.clone();
-        }
-        let scenarios = self.resolve_scenarios_with_limit(resource_id, path, MAX_SCENARIO_COMBINATIONS).0;
-        memo.insert(key, scenarios.clone());
-        scenarios
+    pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        self.resolve_scenarios_with_limit(resource_id, path, MAX_SCENARIO_COMBINATIONS).0
     }
 
+    /// Expands the value at `path` under a per-value scenario limit, reporting
+    /// whether the expansion was curtailed. Results are memoized per
+    /// `(resource, path, limit)` so repeated queries, including the default-limit
+    /// [`Self::resolve_scenarios`], share one allocation and charge the
+    /// cumulative budget once.
     pub fn resolve_scenarios_with_limit(
+        &self,
+        resource_id: &str,
+        path: &str,
+        per_value_limit: usize,
+    ) -> (Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>, bool) {
+        let key = (resource_id.to_string(), path.to_string(), per_value_limit);
+        let mut memo = self.raw_scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((scenarios, was_curtailed)) = memo.get(&key) {
+            return (Arc::clone(scenarios), *was_curtailed);
+        }
+        let (scenarios, was_curtailed) = self.expand_scenarios_at_path(resource_id, path, per_value_limit);
+        let scenarios = Arc::new(scenarios);
+        memo.insert(key, (Arc::clone(&scenarios), was_curtailed));
+        (scenarios, was_curtailed)
+    }
+
+    fn expand_scenarios_at_path(
         &self,
         resource_id: &str,
         path: &str,
@@ -1913,9 +1976,9 @@ impl SemanticModel {
         path: &str,
     ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
         self.resolve_scenarios(resource_id, path)
-            .into_iter()
+            .iter()
             .filter_map(|(val, conds)| {
-                if contains_dynamic_resolved(&val) {
+                if contains_dynamic_resolved(val) {
                     return None;
                 }
                 if !conds.is_empty() {
@@ -1924,11 +1987,11 @@ impl SemanticModel {
                         return None;
                     }
                 }
-                let json = crate::serialization::resolved_value_to_json_clean(&val)?;
+                let json = crate::serialization::resolved_value_to_json_clean(val)?;
                 if json_contains_markers(&json) {
                     return None;
                 }
-                Some((json, conds))
+                Some((json, conds.clone()))
             })
             .collect()
     }
@@ -2122,6 +2185,73 @@ impl SemanticModel {
 impl SpanProvider for SemanticModel {
     fn source_location(&self, path: &str) -> Option<SourceSpan> {
         self.span_index.get(path).copied()
+    }
+}
+
+fn collect_property_absences(
+    properties: &ResolvedValue,
+    property_name: &str,
+    literals: &mut Vec<(String, bool)>,
+    absences: &mut Vec<HashMap<String, bool>>,
+) {
+    let assignment = |literals: &[(String, bool)]| literals.iter().cloned().collect::<HashMap<String, bool>>();
+    match properties {
+        ResolvedValue::Conditional { condition, if_true, if_false } => {
+            for (branch, holds) in [(if_true, true), (if_false, false)] {
+                match literals.iter().find(|(name, _)| name == condition) {
+                    Some((_, decided)) if *decided == holds => {
+                        collect_property_absences(branch, property_name, literals, absences);
+                    }
+                    Some(_) => {}
+                    None => {
+                        literals.push((condition.clone(), holds));
+                        collect_property_absences(branch, property_name, literals, absences);
+                        literals.pop();
+                    }
+                }
+            }
+        }
+        ResolvedValue::Map { entries } => match entries.iter().find(|entry| entry.key == property_name) {
+            None => absences.push(assignment(literals)),
+            Some(entry) => {
+                for absence_literals in absent_alternatives(&entry.value, literals) {
+                    absences.push(assignment(&absence_literals));
+                }
+            }
+        },
+        ResolvedValue::Concrete { value } if value.get(property_name).is_none_or(serde_json::Value::is_null) => {
+            absences.push(assignment(literals));
+        }
+        _ => {}
+    }
+}
+
+/// Keeps only the selected top-level properties of a resolved `Properties`
+/// value, descending through an `Fn::If` that wraps the whole block.
+fn project_properties_value(properties: &ResolvedValue, selection: &BTreeSet<String>) -> ResolvedValue {
+    match properties {
+        ResolvedValue::Conditional { condition, if_true, if_false } => ResolvedValue::Conditional {
+            condition: condition.clone(),
+            if_true: Box::new(project_properties_value(if_true, selection)),
+            if_false: Box::new(project_properties_value(if_false, selection)),
+        },
+        ResolvedValue::Map { entries } => ResolvedValue::Map {
+            entries: entries.iter().filter(|entry| selection.contains(&entry.key)).cloned().collect(),
+        },
+        ResolvedValue::Concrete { value } => match value.as_object() {
+            Some(object) => ResolvedValue::Concrete {
+                value: serde_json::Value::Object(
+                    object
+                        .iter()
+                        .filter(|(key, _)| selection.contains(*key))
+                        .map(|(k, v)| (k.clone(), v.clone()))
+                        .collect(),
+                )
+                .into(),
+            },
+            None => properties.clone(),
+        },
+        other => other.clone(),
     }
 }
 
@@ -3338,7 +3468,7 @@ Resources:
     }
 
     #[test]
-    fn resolve_properties_scenarios_shared_reuses_allocation_and_matches_owned() {
+    fn resolve_properties_scenarios_shared_reuses_allocation() {
         let input = br#"{
             "Parameters": {"Mode": {"Type": "String"}},
             "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
@@ -3351,15 +3481,9 @@ Resources:
         let first = model.resolve_properties_scenarios_shared("R");
         let combinations_after_first = model.scenario_combinations_used();
         let second = model.resolve_properties_scenarios_shared("R");
-        let owned = model.resolve_properties_scenarios("R");
 
         assert!(Arc::ptr_eq(&first, &second), "repeated shared access must reuse one allocation");
         assert!(first.len() > 1, "the Fn::If value must expand the whole-properties object into multiple scenarios");
-        assert_eq!(
-            serde_json::to_value(first.as_ref()).expect("shared scenarios serialize"),
-            serde_json::to_value(&owned).expect("owned scenarios serialize"),
-            "the owned API must return the same scenarios as the shared accessor"
-        );
         assert_eq!(
             model.scenario_combinations_used(),
             combinations_after_first,

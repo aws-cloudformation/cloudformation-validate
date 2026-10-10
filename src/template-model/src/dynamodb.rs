@@ -29,11 +29,22 @@ pub fn analyze_dynamodb_table_scenarios(model: &SemanticModel, resource_id: &str
     let mut analysis = DynamoDbScenarioAnalysis::default();
     let mut attribute_mismatches = BTreeSet::new();
 
-    for (properties, conditions) in model.resolve_properties_scenarios(resource_id) {
-        if !scenario_is_reachable(model, resource_id, &conditions) {
+    let scenarios = model.resolve_properties_scenarios_projected(
+        resource_id,
+        &[
+            ATTRIBUTE_DEFINITIONS,
+            BILLING_MODE,
+            GLOBAL_SECONDARY_INDEXES,
+            KEY_SCHEMA,
+            LOCAL_SECONDARY_INDEXES,
+            PROVISIONED_THROUGHPUT,
+        ],
+    );
+    for (properties, conditions) in scenarios.iter() {
+        if !scenario_is_reachable(model, resource_id, conditions) {
             continue;
         }
-        let Some(properties) = properties_object(&properties) else {
+        let Some(properties) = properties_object(properties) else {
             continue;
         };
 

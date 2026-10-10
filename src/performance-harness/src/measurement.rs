@@ -225,6 +225,23 @@ fn collect_template_paths(directory: &Path, output: &mut Vec<PathBuf>) -> Result
     Ok(())
 }
 
+/// Security fixtures the anchored release cannot measure, so no base launch exists to pair a head launch with: it
+/// exhausts memory on the alias expansion and the conditional list items, aborts on alias-expanded nesting, and needs
+/// over 20 s per validation of the conditional statements. Releases from `BOUNDED_EXPANSION_RELEASE` on complete them
+/// at the fixed baseline; remove the entries when `drift-anchor.txt` reaches that release
+/// (`uncomparable_fixtures_exist_until_the_anchor_measures_them`).
+const UNCOMPARABLE_SECURITY_FIXTURES: [&str; 4] = [
+    "independent_conditions_list_items.yaml",
+    "independent_conditions_statements.yaml",
+    "yaml_alias_expanded_depth.yaml",
+    "yaml_alias_expansion.yaml",
+];
+
+/// First release that bounds independent-condition and alias expansion, measured against `drift-anchor.txt` by the
+/// unit test that retires `UNCOMPARABLE_SECURITY_FIXTURES`.
+#[cfg(test)]
+const BOUNDED_EXPANSION_RELEASE: (u64, u64, u64) = (1, 14, 0);
+
 fn security_workloads(directory: &Path) -> Result<Vec<Workload>, String> {
     let iteration_counts = BTreeMap::from([
         ("condition_fusion.yaml", 2),
@@ -239,6 +256,12 @@ fn security_workloads(directory: &Path) -> Result<Vec<Workload>, String> {
     ]);
     let mut templates = Vec::new();
     collect_template_paths(directory, &mut templates)?;
+    templates.retain(|template| {
+        !template
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| UNCOMPARABLE_SECURITY_FIXTURES.contains(&name))
+    });
     templates.sort();
     templates
         .into_iter()
@@ -470,10 +493,34 @@ mod tests {
             generate_fixtures(&project_root().join("tmp/performance-harness-unit-test/fixtures")).expect("fixtures");
         let workloads = workload_matrix(&fixtures).expect("workloads");
         let names: Vec<&str> = workloads.iter().map(|workload| workload.name.as_str()).collect();
-        assert_eq!(workloads.len(), 19, "{names:?}");
+        assert_eq!(workloads.len(), 22, "{names:?}");
         assert!(names.contains(&"tiny") && names.contains(&"mixed-real"), "{names:?}");
         assert!(names.contains(&"security-cross-reference-fanout"), "{names:?}");
-        assert_eq!(ENGINES.len() * workloads.len(), 57);
+        assert!(names.contains(&"security-independent-conditions-properties"), "{names:?}");
+        assert!(!names.contains(&"security-yaml-alias-expansion"), "{names:?}");
+        assert!(!names.contains(&"security-yaml-alias-expanded-depth"), "{names:?}");
+        assert!(names.contains(&"security-conditional-scenario-correctness"), "{names:?}");
+        assert_eq!(ENGINES.len() * workloads.len(), 66);
+    }
+
+    #[test]
+    fn uncomparable_fixtures_exist_until_the_anchor_measures_them() {
+        let security = project_root().join("src/resources/security");
+        for fixture in UNCOMPARABLE_SECURITY_FIXTURES {
+            assert!(security.join(fixture).is_file(), "{fixture} is not a security fixture");
+        }
+        let anchor = fs::read_to_string(project_root().join("src/performance-harness/drift-anchor.txt"))
+            .expect("drift anchor file");
+        let release = anchor.trim().trim_end_matches("-beta");
+        let numbers: Vec<u64> = release.split('.').map(|part| part.parse().expect("release number")).collect();
+        let anchored = match numbers.as_slice() {
+            [major, minor, patch] => (*major, *minor, *patch),
+            other => panic!("expected MAJOR.MINOR.PATCH, found {other:?}"),
+        };
+        assert!(
+            anchored < BOUNDED_EXPANSION_RELEASE,
+            "release {release} measures every security fixture: remove UNCOMPARABLE_SECURITY_FIXTURES"
+        );
     }
 
     fn workload(name: &str, gate_process_lifecycle: bool) -> Workload {
