@@ -291,9 +291,9 @@ struct CfnYamlLoader {
     doc_stack: Vec<(Yaml, usize)>,
     key_stack: Vec<Yaml>,
     anchor_map: BTreeMap<usize, Yaml>,
-    /// Node count of each anchored value, so an alias is charged without
-    /// re-walking the value it copies.
-    anchor_sizes: BTreeMap<usize, usize>,
+    /// Size and nesting depth of each anchored value, so an alias is checked
+    /// without recursively walking the value it copies.
+    anchor_shapes: BTreeMap<usize, YamlShape>,
     /// Nodes copied by alias resolution so far, charged against
     /// `MAX_YAML_ALIAS_EXPANSION_NODES`.
     alias_expanded_nodes: usize,
@@ -353,7 +353,7 @@ impl CfnYamlLoader {
             doc_stack: Vec::new(),
             key_stack: Vec::new(),
             anchor_map: BTreeMap::new(),
-            anchor_sizes: BTreeMap::new(),
+            anchor_shapes: BTreeMap::new(),
             alias_expanded_nodes: 0,
             pending_tags: Vec::new(),
             path_frames: Vec::new(),
@@ -562,7 +562,7 @@ impl CfnYamlLoader {
         }
 
         if aid > 0 {
-            self.anchor_sizes.insert(aid, yaml_node_count(&node_val));
+            self.anchor_shapes.insert(aid, yaml_shape(&node_val));
             self.anchor_map.insert(aid, node_val.clone());
         }
 
@@ -676,14 +676,7 @@ impl CfnYamlLoader {
             _ => unreachable!(),
         }
     }
-    /// Returns whether another container may be opened. On the first overrun,
-    /// records a located parse error and suppresses every subsequent event so
-    /// the loader never constructs a tree deeper than the deterministic bound.
-    fn allow_container(&mut self, mark: Marker) -> bool {
-        if self.doc_stack.len() < crate::consts::MAX_YAML_NESTING_DEPTH {
-            return true;
-        }
-
+    fn reject_nesting_depth(&mut self, mark: Marker) {
         if self.load_error.is_none() {
             let (line, column) = Self::mark_position(mark);
             self.load_error = Some(ParseError {
@@ -697,16 +690,31 @@ impl CfnYamlLoader {
             });
         }
         self.suppress_tree_construction = true;
+    }
+
+    /// Returns whether another container may be opened. On the first overrun,
+    /// records a located parse error and suppresses every subsequent event so
+    /// the loader never constructs a tree deeper than the deterministic bound.
+    fn allow_container(&mut self, mark: Marker) -> bool {
+        if self.doc_stack.len() < crate::consts::MAX_YAML_NESTING_DEPTH {
+            return true;
+        }
+
+        self.reject_nesting_depth(mark);
         false
     }
 
-    /// Returns whether resolving the alias `anchor_id` stays within the
-    /// document-wide alias expansion budget. On the first overrun, records a
-    /// located parse error and suppresses every subsequent event, so the loader
-    /// never materializes the copies a nested-alias document would demand.
+    /// Returns whether resolving the alias `anchor_id` stays within both the
+    /// expanded-depth and document-wide node budgets.
     fn allow_alias_expansion(&mut self, anchor_id: usize, mark: Marker) -> bool {
-        let copied_nodes = self.anchor_sizes.get(&anchor_id).copied().unwrap_or(1);
-        self.alias_expanded_nodes = self.alias_expanded_nodes.saturating_add(copied_nodes);
+        let shape = self.anchor_shapes.get(&anchor_id).copied().unwrap_or(YamlShape { nodes: 1, depth: 0 });
+        let expanded_depth = self.doc_stack.len().saturating_add(shape.depth);
+        if expanded_depth > crate::consts::MAX_YAML_NESTING_DEPTH {
+            self.reject_nesting_depth(mark);
+            return false;
+        }
+
+        self.alias_expanded_nodes = self.alias_expanded_nodes.saturating_add(shape.nodes);
         if self.alias_expanded_nodes <= crate::consts::MAX_YAML_ALIAS_EXPANSION_NODES {
             return true;
         }
@@ -728,16 +736,33 @@ impl CfnYamlLoader {
     }
 }
 
-/// Number of nodes in a loaded YAML value: every scalar, sequence and mapping
-/// counts once, so it measures what an alias copy allocates.
-fn yaml_node_count(value: &Yaml) -> usize {
-    match value {
-        Yaml::Array(items) => 1 + items.iter().map(yaml_node_count).sum::<usize>(),
-        Yaml::Hash(entries) => {
-            1 + entries.iter().map(|(key, value)| yaml_node_count(key) + yaml_node_count(value)).sum::<usize>()
+#[derive(Clone, Copy)]
+struct YamlShape {
+    nodes: usize,
+    depth: usize,
+}
+
+fn yaml_shape(value: &Yaml) -> YamlShape {
+    let mut nodes = 0usize;
+    let mut depth = 0usize;
+    let mut pending = vec![(value, 0usize)];
+    while let Some((node, parent_depth)) = pending.pop() {
+        nodes = nodes.saturating_add(1);
+        match node {
+            Yaml::Array(items) => {
+                let node_depth = parent_depth + 1;
+                depth = depth.max(node_depth);
+                pending.extend(items.iter().map(|item| (item, node_depth)));
+            }
+            Yaml::Hash(entries) => {
+                let node_depth = parent_depth + 1;
+                depth = depth.max(node_depth);
+                pending.extend(entries.iter().flat_map(|(key, value)| [(key, node_depth), (value, node_depth)]));
+            }
+            _ => {}
         }
-        _ => 1,
     }
+    YamlShape { nodes, depth }
 }
 
 impl MarkedEventReceiver for CfnYamlLoader {
@@ -2056,6 +2081,31 @@ mod tests {
             levels - 1
         ));
         yaml
+    }
+
+    fn deeply_nested_alias_yaml(depth_per_anchor: usize, levels: usize) -> String {
+        let open = "[".repeat(depth_per_anchor);
+        let close = "]".repeat(depth_per_anchor);
+        let mut yaml = format!("Metadata:\n  Level0: &level0 {open}x{close}\n");
+        for level in 1..levels {
+            yaml.push_str(&format!("  Level{level}: &level{level} {open}*level{}{close}\n", level - 1));
+        }
+        yaml.push_str("Resources:\n  Topic:\n    Type: AWS::SNS::Topic\n");
+        yaml
+    }
+
+    #[test]
+    fn yaml_aliases_within_the_expanded_depth_limit_parse() {
+        let result = parse_yaml(deeply_nested_alias_yaml(64, 4).as_bytes());
+        assert!(result.is_ok(), "moderate expanded alias depth must parse: {:?}", result.err());
+    }
+
+    #[test]
+    fn yaml_aliases_beyond_the_expanded_depth_limit_fail_with_a_located_error() {
+        let result = parse_yaml(deeply_nested_alias_yaml(64, 9).as_bytes());
+        let error = result.expect_err("alias-expanded nesting must be rejected before cloning");
+        assert!(error.message.contains("nesting depth"), "unexpected error: {}", error.message);
+        assert!(error.line.is_some(), "error must carry a source line");
     }
 
     #[test]

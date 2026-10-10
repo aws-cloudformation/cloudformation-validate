@@ -49,20 +49,22 @@ pub fn member_presence(member: &ResolvedValue) -> MemberPresence {
 }
 
 fn conditional_presence(condition: &str, if_true: MemberPresence, if_false: MemberPresence) -> MemberPresence {
-    let literal = |value: bool| (condition.to_string(), value);
+    let conjoin_literal =
+        |mut literals: Vec<(String, bool)>, expected: bool| match literals.iter().find(|(name, _)| name == condition) {
+            Some((_, existing)) if *existing != expected => MemberPresence::Never,
+            Some(_) => MemberPresence::When(literals),
+            None => {
+                literals.insert(0, (condition.to_string(), expected));
+                MemberPresence::When(literals)
+            }
+        };
     match (if_true, if_false) {
         (MemberPresence::Always, MemberPresence::Always) => MemberPresence::Always,
         (MemberPresence::Never, MemberPresence::Never) => MemberPresence::Never,
-        (MemberPresence::Always, MemberPresence::Never) => MemberPresence::When(vec![literal(true)]),
-        (MemberPresence::Never, MemberPresence::Always) => MemberPresence::When(vec![literal(false)]),
-        (MemberPresence::When(mut literals), MemberPresence::Never) => {
-            literals.insert(0, literal(true));
-            MemberPresence::When(literals)
-        }
-        (MemberPresence::Never, MemberPresence::When(mut literals)) => {
-            literals.insert(0, literal(false));
-            MemberPresence::When(literals)
-        }
+        (MemberPresence::Always, MemberPresence::Never) => MemberPresence::When(vec![(condition.to_string(), true)]),
+        (MemberPresence::Never, MemberPresence::Always) => MemberPresence::When(vec![(condition.to_string(), false)]),
+        (MemberPresence::When(literals), MemberPresence::Never) => conjoin_literal(literals, true),
+        (MemberPresence::Never, MemberPresence::When(literals)) => conjoin_literal(literals, false),
         _ => MemberPresence::Complex,
     }
 }
@@ -89,54 +91,15 @@ pub fn classify_members(members: &[ResolvedValue]) -> Vec<ContainerMember<'_>> {
         .collect()
 }
 
-/// Every non-null value a member can take, each with the condition literals
-/// that select it. A member that is a plain value has one alternative with no
-/// literals; an `Fn::If` chain has one per reachable non-null leaf.
-#[must_use]
-pub fn present_alternatives(member: &ResolvedValue) -> Vec<(Vec<(String, bool)>, &ResolvedValue)> {
+/// Every way a member resolves to `AWS::NoValue`, constrained by decisions
+/// already made by an enclosing conditional.
+pub(crate) fn absent_alternatives(
+    member: &ResolvedValue,
+    established_literals: &[(String, bool)],
+) -> Vec<Vec<(String, bool)>> {
     let mut alternatives = Vec::new();
-    collect_present_alternatives(member, &mut Vec::new(), &mut alternatives);
-    alternatives
-}
-
-fn collect_present_alternatives<'a>(
-    value: &'a ResolvedValue,
-    literals: &mut Vec<(String, bool)>,
-    alternatives: &mut Vec<(Vec<(String, bool)>, &'a ResolvedValue)>,
-) {
-    match value {
-        ResolvedValue::Conditional { condition, if_true, if_false } => {
-            for (branch, holds) in [(if_true, true), (if_false, false)] {
-                match literals.iter().find(|(name, _)| name == condition) {
-                    Some((_, decided)) if *decided == holds => {
-                        collect_present_alternatives(branch, literals, alternatives);
-                    }
-                    Some(_) => {}
-                    None => {
-                        literals.push((condition.clone(), holds));
-                        collect_present_alternatives(branch, literals, alternatives);
-                        literals.pop();
-                    }
-                }
-            }
-        }
-        ResolvedValue::Enum { variants } => {
-            for variant in variants {
-                collect_present_alternatives(variant, literals, alternatives);
-            }
-        }
-        other if is_resolved_null(other) => {}
-        other => alternatives.push((literals.clone(), other)),
-    }
-}
-
-/// Every way a member resolves to `AWS::NoValue`, each as the condition
-/// literals that select that null leaf. Empty when the member is always
-/// present; one empty literal set when it is unconditionally null.
-#[must_use]
-pub fn absent_alternatives(member: &ResolvedValue) -> Vec<Vec<(String, bool)>> {
-    let mut alternatives = Vec::new();
-    collect_absent_alternatives(member, &mut Vec::new(), &mut alternatives);
+    let mut literals = established_literals.to_vec();
+    collect_absent_alternatives(member, &mut literals, &mut alternatives);
     alternatives
 }
 
@@ -175,12 +138,15 @@ fn collect_absent_alternatives(
 /// Returns whether the literals were compatible; on `false` the assignment is
 /// left unchanged.
 pub fn extend_assignment(assignment: &mut HashMap<String, bool>, literals: &[(String, bool)]) -> bool {
-    if literals.iter().any(|(condition, value)| assignment.get(condition).is_some_and(|existing| existing != value)) {
-        return false;
-    }
+    let mut additions = HashMap::with_capacity(literals.len());
     for (condition, value) in literals {
-        assignment.insert(condition.clone(), *value);
+        if assignment.get(condition).is_some_and(|existing| existing != value)
+            || additions.insert(condition.as_str(), *value).is_some_and(|existing| existing != *value)
+        {
+            return false;
+        }
     }
+    assignment.extend(additions.into_iter().map(|(condition, value)| (condition.to_string(), value)));
     true
 }
 
@@ -248,36 +214,11 @@ mod tests {
     }
 
     #[test]
-    fn present_alternatives_lists_each_non_null_leaf_with_its_literals() {
-        let member = conditional(
-            "Pick",
-            concrete(serde_json::json!("a")),
-            conditional("Other", no_value(), concrete(serde_json::json!("b"))),
-        );
-        let alternatives = present_alternatives(&member);
-        assert_eq!(alternatives.len(), 2);
-        assert_eq!(alternatives[0].0, vec![("Pick".to_string(), true)]);
-        assert_eq!(alternatives[1].0, vec![("Pick".to_string(), false), ("Other".to_string(), false)]);
-    }
-
-    #[test]
-    fn present_alternatives_skips_branches_contradicting_an_outer_literal() {
-        let member = conditional(
-            "Same",
-            conditional("Same", concrete(serde_json::json!("a")), concrete(serde_json::json!("dead"))),
-            no_value(),
-        );
-        let alternatives = present_alternatives(&member);
-        assert_eq!(alternatives.len(), 1);
-        assert!(matches!(alternatives[0].1, ResolvedValue::Concrete { value } if value.as_str() == Some("a")));
-    }
-
-    #[test]
     fn absent_alternatives_lists_the_null_leaves() {
         let member = conditional("HasTag", concrete(serde_json::json!({"Key": "k"})), no_value());
-        assert_eq!(absent_alternatives(&member), vec![vec![("HasTag".to_string(), false)]]);
-        assert!(absent_alternatives(&concrete(serde_json::json!([]))).is_empty());
-        assert_eq!(absent_alternatives(&no_value()), vec![Vec::new()]);
+        assert_eq!(absent_alternatives(&member, &[]), vec![vec![("HasTag".to_string(), false)]]);
+        assert!(absent_alternatives(&concrete(serde_json::json!([])), &[]).is_empty());
+        assert_eq!(absent_alternatives(&no_value(), &[]), vec![Vec::new()]);
     }
 
     #[test]
@@ -298,5 +239,29 @@ mod tests {
         assert_eq!(assignment.len(), 1);
         assert!(extend_assignment(&mut assignment, &[("B".to_string(), true)]));
         assert_eq!(assignment.get("B"), Some(&true));
+    }
+
+    #[test]
+    fn repeated_condition_that_requires_both_values_is_never_present() {
+        let impossible =
+            conditional("Same", conditional("Same", no_value(), concrete(serde_json::json!("dead"))), no_value());
+        assert_eq!(member_presence(&impossible), MemberPresence::Never);
+    }
+
+    #[test]
+    fn absent_alternatives_honor_established_condition_decisions() {
+        let member = conditional("Same", concrete(serde_json::json!("present")), no_value());
+        assert!(absent_alternatives(&member, &[("Same".to_string(), true)]).is_empty());
+        assert_eq!(
+            absent_alternatives(&member, &[("Same".to_string(), false)]),
+            vec![vec![("Same".to_string(), false)]]
+        );
+    }
+
+    #[test]
+    fn extend_assignment_rejects_contradictions_within_new_literals() {
+        let mut assignment = HashMap::new();
+        assert!(!extend_assignment(&mut assignment, &[("A".to_string(), true), ("A".to_string(), false)]));
+        assert!(assignment.is_empty());
     }
 }

@@ -38,9 +38,10 @@ Fixtures produced:
                                opaque values, De Morgan nesting, Rules constraints,
                                and nested Fn::If resources
     independent_conditions_list_items.yaml
-                               one S3 bucket whose Tags list has 18 items, each
-                               gated by its own Fn::If over AWS::NoValue (2^18
-                               joint presence assignments)
+                               one Access Analyzer whose Tags list has 18 items,
+                               each gated by its own Fn::If over AWS::NoValue
+                               (2^18 joint presence assignments; schema has
+                               maxItems and uniqueItems)
     independent_conditions_properties.yaml
                                one Lambda function with 16 optional top-level
                                properties, each gated by its own condition
@@ -50,8 +51,16 @@ Fixtures produced:
     independent_conditions_statements.yaml
                                one IAM role whose inline policy has 16 optional
                                statements (a joint consumer of the whole document)
+    conditional_scenario_correctness.yaml
+                               reachable alternatives and condition-aware list
+                               cardinality, uniqueness, property presence, and
+                               SnapStart checks
     yaml_alias_expansion.yaml  eight levels of nine YAML aliases that resolve to
                                9^8 scalars when aliases are copied (billion laughs)
+    yaml_alias_expanded_depth.yaml
+                               a small alias chain whose expanded nesting exceeds
+                               the structural depth limit while its node count
+                               remains below the expansion budget
 
 All content is synthetic and generic: no account IDs, ARNs, secrets, or any
 sensitive or private data. Names are sequential placeholders.
@@ -927,6 +936,10 @@ OPTIONAL_LAMBDA_PROPERTIES = [
 # WIDTH^LEVELS scalars from a few hundred bytes.
 YAML_ALIAS_WIDTH = 9
 YAML_ALIAS_LEVELS = 8
+YAML_ALIAS_DEPTH_PER_LEVEL = 64
+YAML_ALIAS_DEPTH_LEVELS = 9
+SCENARIO_COVERAGE_SIBLINGS = 13
+SCENARIO_CORRECTNESS_CONDITIONS = 8 + SCENARIO_COVERAGE_SIBLINGS
 
 
 def independent_condition_header(description: str, count: int) -> list[str]:
@@ -966,14 +979,16 @@ def lambda_function_lines(resource_name: str) -> list[str]:
 
 
 def gen_independent_conditions_list_items() -> None:
-    """One list whose items are each gated by an independent condition.
-
-    The bucket's Tags list carries both a maximum item count and a uniqueness
-    constraint in the resource schema, so every container-level check must be
-    answered from member presence rather than from the 2^18 joint assignments.
-    """
+    """One schema-constrained list whose items are independently gated."""
     lines = independent_condition_header("independent conditions on list items", INDEPENDENT_LIST_ITEMS)
-    lines += ["Resources:", "  Bucket:", "    Type: AWS::S3::Bucket", "    Properties:", "      Tags:"]
+    lines += [
+        "Resources:",
+        "  Analyzer:",
+        "    Type: AWS::AccessAnalyzer::Analyzer",
+        "    Properties:",
+        "      Type: ACCOUNT",
+        "      Tags:",
+    ]
     for index in range(INDEPENDENT_LIST_ITEMS):
         lines.append(
             f"        - !If [Enabled{index:02d}, {{Key: tag-{index:02d}, Value: !Ref Toggle{index:02d}}}, "
@@ -1040,6 +1055,104 @@ def gen_independent_conditions_statements() -> None:
     write("independent_conditions_statements.yaml", "\n".join(lines) + "\n")
 
 
+def gen_conditional_scenario_correctness() -> None:
+    """Condition-sensitive checks that must remain exact beyond the product bound."""
+    lines = independent_condition_header("conditional scenario correctness", SCENARIO_CORRECTNESS_CONDITIONS)
+    lines += [
+        "Resources:",
+        "  SharedRole:",
+        "    Type: AWS::IAM::Role",
+        "    Properties:",
+        "      AssumeRolePolicyDocument:",
+        "        Version: '2012-10-17'",
+        "        Statement:",
+        "          - Effect: Allow",
+        "            Principal: {Service: lambda.amazonaws.com}",
+        "            Action: 'sts:AssumeRole'",
+    ]
+
+    def append_function(name: str, runtime: str = "python3.12") -> None:
+        lines.extend(
+            [
+                f"  {name}:",
+                "    Type: AWS::Lambda::Function",
+                "    Properties:",
+                f"      Runtime: {runtime}",
+                "      Handler: index.handler",
+                "      Role: !GetAtt SharedRole.Arn",
+                "      Code: {S3Bucket: fixture, S3Key: function.zip}",
+            ]
+        )
+
+    append_function("ComplementaryArchitectureFunction")
+    lines += [
+        "      Architectures:",
+        "        - !If [Enabled00, !ImportValue ArchitectureA, !Ref AWS::NoValue]",
+        "        - !If [Enabled00, !Ref AWS::NoValue, !ImportValue ArchitectureB]",
+    ]
+    append_function("RepeatedConditionFunction")
+    lines += [
+        "      Architectures:",
+        "        - x86_64",
+        "        - !If [Enabled01, !If [Enabled01, !Ref AWS::NoValue, arm64], !Ref AWS::NoValue]",
+    ]
+    append_function("NestedUniqueFunction")
+    lines += [
+        "      Tags:",
+        "        - Key: Stage",
+        "          Value: !If [Enabled02, prod, dev]",
+        "        - {Key: Stage, Value: dev}",
+    ]
+    append_function("SnapStartFunction", "java21")
+    lines.append("      SnapStart: !If [Enabled03, !Ref AWS::NoValue, {ApplyOn: PublishedVersions}]")
+    lines += [
+        "  TaggedTopic:",
+        "    Type: AWS::SNS::Topic",
+        "    Properties: !If",
+        "      - Enabled04",
+        "      - TopicName: tagged-a",
+        "        Tags: !If",
+        "          - Enabled04",
+        "          - [{Key: team, Value: a}]",
+        "          - !Ref AWS::NoValue",
+        "      - TopicName: tagged-b",
+        "        Tags: [{Key: team, Value: b}]",
+        "  Record:",
+        "    Type: AWS::Route53::RecordSet",
+        "    Properties:",
+        "      HostedZoneName: example.com.",
+        "      Name: www.example.com.",
+        "      Type: A",
+        "      TTL: '300'",
+        "      ResourceRecords:",
+        "        - !If [Enabled05, 192.0.2.1, !If [Enabled06, 192.0.2.2, !If [Enabled07, not-an-address, 192.0.2.3]]]",
+    ]
+    for index in range(SCENARIO_COVERAGE_SIBLINGS):
+        condition_index = index + 8
+        lines.append(
+            f"        - !If [Enabled{condition_index:02d}, 198.51.100.{index + 1}, !Ref AWS::NoValue]"
+        )
+    write("conditional_scenario_correctness.yaml", "\n".join(lines) + "\n")
+
+
+def gen_yaml_alias_expanded_depth() -> None:
+    """An alias chain whose expanded nesting, but not node count, exceeds the depth limit."""
+    open_containers = "[" * YAML_ALIAS_DEPTH_PER_LEVEL
+    close_containers = "]" * YAML_ALIAS_DEPTH_PER_LEVEL
+    lines = [
+        HEADER,
+        "AWSTemplateFormatVersion: '2010-09-09'",
+        "Metadata:",
+        f"  Level0: &level0 {open_containers}x{close_containers}",
+    ]
+    for level in range(1, YAML_ALIAS_DEPTH_LEVELS):
+        lines.append(
+            f"  Level{level}: &level{level} {open_containers}*level{level - 1}{close_containers}"
+        )
+    lines += ["Resources:", "  Topic:", "    Type: AWS::SNS::Topic"]
+    write("yaml_alias_expanded_depth.yaml", "\n".join(lines) + "\n")
+
+
 def gen_yaml_alias_expansion() -> None:
     """Nested YAML aliases whose copied expansion is exponential in the nesting depth."""
     lines = [
@@ -1082,7 +1195,9 @@ def main() -> None:
     gen_independent_conditions_properties()
     gen_independent_conditions_object_keys()
     gen_independent_conditions_statements()
+    gen_conditional_scenario_correctness()
     gen_yaml_alias_expansion()
+    gen_yaml_alias_expanded_depth()
 
 
 if __name__ == "__main__":

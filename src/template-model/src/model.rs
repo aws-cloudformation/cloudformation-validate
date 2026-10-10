@@ -1762,7 +1762,13 @@ impl SemanticModel {
         let remaining_limit = usize::try_from(remaining).unwrap_or(usize::MAX);
         let effective_limit = per_value_limit.min(remaining_limit);
         let mut scenarios = Vec::new();
-        let was_curtailed = collect_scenarios(value, assumptions, effective_limit, &mut scenarios);
+        let is_reachable = |scenario_assumptions: &HashMap<String, bool>| {
+            let assumptions: Vec<(String, bool)> =
+                scenario_assumptions.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
+            self.conditions.is_satisfiable(&assumptions)
+        };
+        let was_curtailed =
+            collect_scenarios_reachable(value, assumptions, effective_limit, &mut scenarios, &is_reachable);
         if was_curtailed {
             self.scenario_expansion_curtailed.store(true, Ordering::Relaxed);
             if per_value_limit == MAX_SCENARIO_COMBINATIONS && per_value_limit <= remaining_limit {
@@ -2208,10 +2214,8 @@ fn collect_property_absences(
         ResolvedValue::Map { entries } => match entries.iter().find(|entry| entry.key == property_name) {
             None => absences.push(assignment(literals)),
             Some(entry) => {
-                for mut leaf_literals in absent_alternatives(&entry.value) {
-                    let mut combined = literals.clone();
-                    combined.append(&mut leaf_literals);
-                    absences.push(assignment(&combined));
+                for absence_literals in absent_alternatives(&entry.value, literals) {
+                    absences.push(assignment(&absence_literals));
                 }
             }
         },

@@ -214,11 +214,12 @@ pub const MAX_TOTAL_SCENARIO_COMBINATIONS: u64 = 33_554_432;
 
 /// Largest joint product of a container's member scenarios that is enumerated in
 /// full. A list or map whose members are gated by N independent conditions has
-/// 2^N joint assignments; past this many, the product is replaced by a pairwise
-/// covering set (see `resolved_value::cover_cartesian_scenarios`), which keeps
-/// every member alternative and every pair of condition states observable while
-/// growing linearly in the number of conditions. Matches `MAX_ENUM_EXPANSION` so a
-/// single value never materializes more joint copies than enumerated variants.
+/// 2^N joint assignments; past this many, the product is replaced by an
+/// alternative-covering set (see `resolved_value::cover_cartesian_scenarios`).
+/// The covering set includes every member scenario and pair of condition states
+/// while growing linearly in the sum of member alternatives. Matches
+/// `MAX_ENUM_EXPANSION` so a single value never materializes more joint copies
+/// than enumerated variants.
 pub const MAX_COMPLETE_SCENARIO_PRODUCT: usize = 4_096;
 
 /// Largest number of `ResolvedValue` nodes a fully enumerated joint product may

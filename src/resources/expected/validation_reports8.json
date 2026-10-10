@@ -14837,6 +14837,260 @@
       }
     ]
   },
+  "security/conditional_scenario_correctness.yaml": {
+    "filePath": "security/conditional_scenario_correctness.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 1,
+        "errors": 1,
+        "warnings": 3,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3037",
+        "severity": "FATAL",
+        "message": "Array items are not unique",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NestedUniqueFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Schema",
+        "startLine": 128,
+        "startColumn": 7,
+        "endLine": 128,
+        "endColumn": 11,
+        "conditionScenario": {
+          "Enabled02": false
+        },
+        "ruleDescription": "Array items not unique",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": [
+            {
+              "Key": "Stage",
+              "Value": "prod"
+            },
+            {
+              "Key": "Stage",
+              "Value": "dev"
+            }
+          ]
+        }
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'not-an-address' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords.0",
+        "category": "Resource",
+        "startLine": 159,
+        "startColumn": 81,
+        "endLine": 159,
+        "endColumn": 82,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'Enabled01' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "RepeatedConditionFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Architectures.1.Fn::If.1.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 120,
+        "startColumn": 62,
+        "endLine": 120,
+        "endColumn": 63,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1028",
+        "severity": "WARN",
+        "message": "['Fn::If', 2] is not reachable. When setting condition 'Enabled04' to False from current status True",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TaggedTopic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Fn::If.Fn::If.1.Tags.Fn::If.2",
+        "category": "Best Practice",
+        "startLine": 142,
+        "startColumn": 5,
+        "endLine": 142,
+        "endColumn": 11,
+        "ruleDescription": "Check Fn::If has a path that cannot be reached",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SnapStartFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 139,
+        "startColumn": 7,
+        "endLine": 139,
+        "endColumn": 16,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I2530",
+        "severity": "INFO",
+        "message": "Runtime 'java21' should consider using SnapStart for improved performance",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SnapStartFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add SnapStart with ApplyOn set to 'PublishedVersions'",
+        "category": "Best Practice",
+        "startLine": 139,
+        "startColumn": 7,
+        "endLine": 139,
+        "endColumn": 16,
+        "documentationUrl": "https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html",
+        "ruleDescription": "Validate that SnapStart is configured for >= Java11 runtimes",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 154,
+        "startColumn": 7,
+        "endLine": 154,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SharedRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SharedRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 94,
+        "startColumn": 5,
+        "endLine": 94,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ComplementaryArchitectureFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ComplementaryArchitectureFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 103,
+        "startColumn": 5,
+        "endLine": 103,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'RepeatedConditionFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "RepeatedConditionFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 113,
+        "startColumn": 5,
+        "endLine": 113,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SnapStartFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SnapStartFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 134,
+        "startColumn": 5,
+        "endLine": 134,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "security/cross_reference_fanout.yaml": {
     "filePath": "security/cross_reference_fanout.yaml",
     "status": "OK",
@@ -47245,14 +47499,38 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 0,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
-    "diagnostics": []
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Analyzer",
+          "entityType": "Resource",
+          "resourceType": "AWS::AccessAnalyzer::Analyzer"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 83,
+        "startColumn": 7,
+        "endLine": 83,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-accessanalyzer.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
   },
   "security/independent_conditions_object_keys.yaml": {
     "filePath": "security/independent_conditions_object_keys.yaml",
@@ -132711,6 +132989,38 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
+      }
+    ]
+  },
+  "security/yaml_alias_expanded_depth.yaml": {
+    "filePath": "security/yaml_alias_expanded_depth.yaml",
+    "status": "ERROR",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1101",
+        "severity": "FATAL",
+        "message": "Template exceeds the maximum structural nesting depth of 512 at line 12",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 12,
+        "startColumn": 83,
+        "endLine": 12,
+        "endColumn": 83,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
       }
     ]
   },

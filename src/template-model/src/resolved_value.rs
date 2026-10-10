@@ -1,7 +1,7 @@
 use crate::consts::*;
 use crate::resolver::MapEntry;
 use crate::resolver::ResolvedValue;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn resolved_value_at_path(val: &ResolvedValue, path: &str) -> Option<ResolvedValue> {
     let mut segments = path.splitn(2, '.');
@@ -273,31 +273,41 @@ pub fn collect_scenarios(
     limit: usize,
     results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
 ) -> bool {
+    collect_scenarios_reachable(val, assumptions, limit, results, &|_| true)
+}
+
+pub(crate) fn collect_scenarios_reachable(
+    val: &ResolvedValue,
+    assumptions: &HashMap<String, bool>,
+    limit: usize,
+    results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    is_reachable: &dyn Fn(&HashMap<String, bool>) -> bool,
+) -> bool {
     match val {
         ResolvedValue::Conditional { condition: cond, if_true: t, if_false: f } => {
             if assumptions.contains_key(cond.as_str()) {
                 if assumptions[cond.as_str()] {
-                    collect_scenarios(t, assumptions, limit, results)
+                    collect_scenarios_reachable(t, assumptions, limit, results, is_reachable)
                 } else {
-                    collect_scenarios(f, assumptions, limit, results)
+                    collect_scenarios_reachable(f, assumptions, limit, results, is_reachable)
                 }
             } else {
                 let mut true_assumptions = assumptions.clone();
                 true_assumptions.insert(cond.clone(), true);
-                let true_curtailed = collect_scenarios(t, &true_assumptions, limit, results);
+                let true_curtailed = collect_scenarios_reachable(t, &true_assumptions, limit, results, is_reachable);
                 if true_curtailed && results.len() >= limit {
                     return true;
                 }
                 let mut false_assumptions = assumptions.clone();
                 false_assumptions.insert(cond.clone(), false);
-                let false_curtailed = collect_scenarios(f, &false_assumptions, limit, results);
+                let false_curtailed = collect_scenarios_reachable(f, &false_assumptions, limit, results, is_reachable);
                 true_curtailed || false_curtailed
             }
         }
         ResolvedValue::Enum { variants } => {
             let mut curtailed = false;
             for variant in variants {
-                curtailed |= collect_scenarios(variant, assumptions, limit, results);
+                curtailed |= collect_scenarios_reachable(variant, assumptions, limit, results, is_reachable);
                 if curtailed && results.len() >= limit {
                     break;
                 }
@@ -307,7 +317,7 @@ pub fn collect_scenarios(
         ResolvedValue::List { items } => {
             let has_branching = items.iter().any(contains_scenario_branching);
             if has_branching {
-                expand_list_scenarios(items, assumptions, limit, results)
+                expand_list_scenarios(items, assumptions, limit, results, is_reachable)
             } else {
                 push_scenario(val, assumptions, limit, results)
             }
@@ -315,7 +325,7 @@ pub fn collect_scenarios(
         ResolvedValue::Map { entries } => {
             let has_branching = entries.iter().any(|entry| contains_scenario_branching(&entry.value));
             if has_branching {
-                expand_map_scenarios(entries, assumptions, limit, results)
+                expand_map_scenarios(entries, assumptions, limit, results, is_reachable)
             } else {
                 push_scenario(val, assumptions, limit, results)
             }
@@ -531,20 +541,22 @@ fn json_values_matching_wildcard_path(val: &serde_json::Value, path: &str) -> Ve
 /// returned list or map is structurally incomplete.
 ///
 /// A product larger than `MAX_COMPLETE_SCENARIO_PRODUCT` combinations or
-/// `MAX_SCENARIO_PRODUCT_NODES` nodes is not enumerated; it is covered pairwise
-/// instead, which is linear in the number of conditions.
+/// `MAX_SCENARIO_PRODUCT_NODES` nodes is not enumerated; every member
+/// alternative is covered instead, keeping growth linear in the number of
+/// alternatives.
 fn expand_cartesian_scenarios<T: Clone>(
     items: &[(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
     base_assumptions: &HashMap<String, bool>,
     limit: usize,
     build_result: impl Fn(Vec<(T, ResolvedValue)>) -> ResolvedValue,
     results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    is_reachable: &dyn Fn(&HashMap<String, bool>) -> bool,
 ) -> bool {
     if limit == 0 {
         return !items.is_empty();
     }
     if !product_is_enumerable(items) {
-        return cover_cartesian_scenarios(items, base_assumptions, limit, build_result, results);
+        return cover_cartesian_scenarios(items, base_assumptions, limit, build_result, results, is_reachable);
     }
 
     let mut combos: Vec<(Vec<(T, ResolvedValue)>, HashMap<String, bool>)> =
@@ -613,24 +625,37 @@ pub fn node_count(value: &ResolvedValue) -> usize {
     }
 }
 
-/// Pairwise-covering replacement for a joint product too large to enumerate.
+fn merge_scenario_assumptions(
+    assumptions: &HashMap<String, bool>,
+    additions: &HashMap<String, bool>,
+) -> Option<HashMap<String, bool>> {
+    let mut merged = assumptions.clone();
+    for (condition, value) in additions {
+        if merged.get(condition).is_some_and(|existing| existing != value) {
+            return None;
+        }
+        merged.insert(condition.clone(), *value);
+    }
+    Some(merged)
+}
+
+/// Alternative-covering replacement for a joint product too large to enumerate.
 ///
-/// The conditions appearing in any member scenario are assigned globally:
-/// every condition true, every condition false, and every-true with one
-/// condition flipped. Each member then contributes the single scenario
-/// consistent with that assignment. Every member alternative and every pair of
-/// condition states appears in at least one result, so checks that look at one
-/// member, or at how two members relate, see the same evidence the full product
-/// would give; only findings that need three or more independent conditions set
-/// together are not represented. The result count is linear in the number of
-/// conditions. A member whose own expansion was curtailed may have no scenario
-/// for an assignment; that assignment is skipped and reported as curtailment.
+/// The result includes the all-true, all-false, and single-flip assignments used
+/// for pairwise condition coverage, plus an assignment that selects every
+/// scenario of every member at least once. Other members are selected greedily
+/// while preserving satisfiability, so each reachable alternative has a
+/// reachable full-container witness. Forcing the selected member scenario is
+/// necessary when two alternatives share the same condition assignment, as
+/// parameter enums can. This keeps the result linear in the sum of member
+/// alternatives without hiding a branch that requires three or more literals.
 fn cover_cartesian_scenarios<T: Clone>(
     items: &[(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
     base_assumptions: &HashMap<String, bool>,
     limit: usize,
     build_result: impl Fn(Vec<(T, ResolvedValue)>) -> ResolvedValue,
     results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    is_reachable: &dyn Fn(&HashMap<String, bool>) -> bool,
 ) -> bool {
     let mut conditions: Vec<&str> = items
         .iter()
@@ -646,44 +671,71 @@ fn cover_cartesian_scenarios<T: Clone>(
         assumptions.extend(conditions.iter().map(|condition| (condition.to_string(), decide(condition))));
         assumptions
     };
-    let mut assignments = vec![assignment(&|_| true), assignment(&|_| false)];
-    assignments.extend(conditions.iter().map(|flipped| assignment(&|condition| condition != *flipped)));
 
-    let mut seen: Vec<Vec<(String, bool)>> = Vec::new();
+    let mut seen: HashSet<(Vec<(String, bool)>, Vec<usize>)> = HashSet::new();
     let mut curtailed = false;
-    for global in assignments {
-        let mut merged = base_assumptions.clone();
+    let mut add_assignment = |seed: HashMap<String, bool>, forced: Option<(usize, usize)>| -> bool {
+        if !is_reachable(&seed) {
+            return false;
+        }
+        let mut merged = seed;
         let mut collected = Vec::with_capacity(items.len());
-        let mut complete = true;
-        for (key, scenarios) in items {
-            let consistent = scenarios.iter().find(|(_, assumptions)| {
-                assumptions.iter().all(|(condition, value)| global.get(condition) == Some(value))
-            });
-            match consistent {
-                Some((value, assumptions)) => {
-                    merged.extend(assumptions.iter().map(|(condition, value)| (condition.clone(), *value)));
-                    collected.push((key.clone(), value.clone()));
-                }
-                None => {
-                    complete = false;
-                    break;
-                }
-            }
+        let mut selected_indices = Vec::with_capacity(items.len());
+        for (item_index, (key, scenarios)) in items.iter().enumerate() {
+            let selected = if let Some((_, forced_scenario)) = forced.filter(|(item, _)| *item == item_index) {
+                scenarios.get(forced_scenario).and_then(|(value, assumptions)| {
+                    merge_scenario_assumptions(&merged, assumptions)
+                        .filter(|candidate| is_reachable(candidate))
+                        .map(|candidate| (forced_scenario, value, candidate))
+                })
+            } else {
+                scenarios.iter().enumerate().find_map(|(scenario_index, (value, assumptions))| {
+                    merge_scenario_assumptions(&merged, assumptions)
+                        .filter(|candidate| is_reachable(candidate))
+                        .map(|candidate| (scenario_index, value, candidate))
+                })
+            };
+            let Some((scenario_index, value, candidate)) = selected else {
+                curtailed = true;
+                return false;
+            };
+            merged = candidate;
+            collected.push((key.clone(), value.clone()));
+            selected_indices.push(scenario_index);
         }
-        if !complete {
-            curtailed = true;
-            continue;
-        }
-        let mut canonical: Vec<(String, bool)> = merged.iter().map(|(c, v)| (c.clone(), *v)).collect();
-        canonical.sort();
-        if seen.contains(&canonical) {
-            continue;
+
+        let mut canonical: Vec<(String, bool)> =
+            merged.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
+        canonical.sort_unstable();
+        if !seen.insert((canonical, selected_indices)) {
+            return false;
         }
         if results.len() >= limit {
+            curtailed = true;
             return true;
         }
-        seen.push(canonical);
         results.push((build_result(collected), merged));
+        false
+    };
+
+    if add_assignment(assignment(&|_| true), None) || add_assignment(assignment(&|_| false), None) {
+        return true;
+    }
+    for flipped in &conditions {
+        if add_assignment(assignment(&|condition| condition != *flipped), None) {
+            return true;
+        }
+    }
+
+    for (item_index, (_, scenarios)) in items.iter().enumerate() {
+        for (scenario_index, (_, scenario_assumptions)) in scenarios.iter().enumerate() {
+            let Some(seed) = merge_scenario_assumptions(base_assumptions, scenario_assumptions) else {
+                continue;
+            };
+            if add_assignment(seed, Some((item_index, scenario_index))) {
+                return true;
+            }
+        }
     }
     curtailed
 }
@@ -693,6 +745,7 @@ fn expand_list_scenarios(
     base_assumptions: &HashMap<String, bool>,
     limit: usize,
     results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    is_reachable: &dyn Fn(&HashMap<String, bool>) -> bool,
 ) -> bool {
     let remaining = limit.saturating_sub(results.len());
     if remaining == 0 {
@@ -703,7 +756,8 @@ fn expand_list_scenarios(
     let mut prepared = Vec::with_capacity(items.len());
     for (index, item) in items.iter().enumerate() {
         let mut scenarios = Vec::new();
-        nested_curtailed |= collect_scenarios(item, base_assumptions, remaining, &mut scenarios);
+        nested_curtailed |=
+            collect_scenarios_reachable(item, base_assumptions, remaining, &mut scenarios, is_reachable);
         if scenarios.is_empty() {
             scenarios.push((item.clone(), base_assumptions.clone()));
         }
@@ -715,6 +769,7 @@ fn expand_list_scenarios(
         remaining,
         |collected| ResolvedValue::List { items: collected.into_iter().map(|(_, value)| value).collect() },
         results,
+        is_reachable,
     );
     nested_curtailed || product_curtailed
 }
@@ -724,6 +779,7 @@ fn expand_map_scenarios(
     base_assumptions: &HashMap<String, bool>,
     limit: usize,
     results: &mut Vec<(ResolvedValue, HashMap<String, bool>)>,
+    is_reachable: &dyn Fn(&HashMap<String, bool>) -> bool,
 ) -> bool {
     let remaining = limit.saturating_sub(results.len());
     if remaining == 0 {
@@ -734,7 +790,8 @@ fn expand_map_scenarios(
     let mut prepared = Vec::with_capacity(entries.len());
     for entry in entries {
         let mut scenarios = Vec::new();
-        nested_curtailed |= collect_scenarios(&entry.value, base_assumptions, remaining, &mut scenarios);
+        nested_curtailed |=
+            collect_scenarios_reachable(&entry.value, base_assumptions, remaining, &mut scenarios, is_reachable);
         if scenarios.is_empty() {
             scenarios.push((entry.value.clone(), base_assumptions.clone()));
         }
@@ -748,6 +805,7 @@ fn expand_map_scenarios(
             entries: collected.into_iter().map(|(key, value)| MapEntry { key, value }).collect(),
         },
         results,
+        is_reachable,
     );
     nested_curtailed || product_curtailed
 }
@@ -1439,6 +1497,7 @@ mod tests {
             4,
             |collected| ResolvedValue::List { items: collected.into_iter().map(|(_, v)| v).collect() },
             &mut results,
+            &|_| true,
         );
         assert!(!curtailed, "4 combos with limit=4 must not be curtailed");
         assert_eq!(results.len(), 4);
@@ -1461,6 +1520,7 @@ mod tests {
             4,
             |collected| ResolvedValue::List { items: collected.into_iter().map(|(_, v)| v).collect() },
             &mut results,
+            &|_| true,
         );
         assert!(curtailed, "8 combos with limit=4 must be curtailed");
         assert!(results.len() <= 4, "at most limit results; got {}", results.len());
@@ -1504,7 +1564,7 @@ mod tests {
     }
 
     #[test]
-    fn independent_conditions_above_the_product_bound_are_covered_pairwise() {
+    fn independent_conditions_above_the_product_bound_preserve_pairwise_condition_states() {
         let count = 13;
         let list = ResolvedValue::List {
             items: (0..count).map(|i| optional_item(&format!("C{i:02}"), &format!("v{i:02}"))).collect(),
@@ -1540,6 +1600,77 @@ mod tests {
         let mut scenarios = Vec::new();
         collect_scenarios(&list, &HashMap::new(), MAX_SCENARIO_COMBINATIONS, &mut scenarios);
         assert_eq!(scenarios.len(), 2, "shared conditions never multiply");
+    }
+
+    #[test]
+    fn covering_set_includes_an_alternative_requiring_three_literals() {
+        let selected_value = ResolvedValue::Conditional {
+            condition: "CA".to_string(),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!("a").into() }),
+            if_false: Box::new(ResolvedValue::Conditional {
+                condition: "CB".to_string(),
+                if_true: Box::new(ResolvedValue::Concrete { value: json!("b").into() }),
+                if_false: Box::new(ResolvedValue::Conditional {
+                    condition: "CC".to_string(),
+                    if_true: Box::new(ResolvedValue::Concrete { value: json!("selected").into() }),
+                    if_false: Box::new(ResolvedValue::Concrete { value: json!("c").into() }),
+                }),
+            }),
+        };
+        let mut items = vec![selected_value];
+        items.extend((0..11).map(|index| optional_item(&format!("C{index:02}"), "sibling")));
+        let list = ResolvedValue::List { items };
+
+        let mut scenarios = Vec::new();
+        let curtailed = collect_scenarios(&list, &HashMap::new(), MAX_SCENARIO_COMBINATIONS, &mut scenarios);
+
+        assert!(!curtailed);
+        let selected = scenarios
+            .iter()
+            .find(|(scenario, _)| present_items(scenario).first().is_some_and(|value| value == "selected"))
+            .expect("the three-literal alternative must be represented");
+        assert_eq!(selected.1.get("CA"), Some(&false));
+        assert_eq!(selected.1.get("CB"), Some(&false));
+        assert_eq!(selected.1.get("CC"), Some(&true));
+    }
+
+    #[test]
+    fn covering_set_finds_a_reachable_completion_for_each_alternative() {
+        let selected_value = ResolvedValue::Conditional {
+            condition: "A".to_string(),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!("other").into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!("selected").into() }),
+        };
+        let correlated_value = ResolvedValue::Conditional {
+            condition: "B".to_string(),
+            if_true: Box::new(ResolvedValue::Concrete { value: json!("b-true").into() }),
+            if_false: Box::new(ResolvedValue::Concrete { value: json!("b-false").into() }),
+        };
+        let mut items = vec![selected_value, correlated_value];
+        items.extend((0..11).map(|index| optional_item(&format!("C{index:02}"), "sibling")));
+        let list = ResolvedValue::List { items };
+        let is_reachable = |assumptions: &HashMap<String, bool>| match (assumptions.get("A"), assumptions.get("B")) {
+            (Some(a), Some(b)) => a == b,
+            _ => true,
+        };
+
+        let mut scenarios = Vec::new();
+        let curtailed = collect_scenarios_reachable(
+            &list,
+            &HashMap::new(),
+            MAX_SCENARIO_COMBINATIONS,
+            &mut scenarios,
+            &is_reachable,
+        );
+
+        assert!(!curtailed);
+        assert!(scenarios.iter().all(|(_, assumptions)| is_reachable(assumptions)));
+        let selected = scenarios
+            .iter()
+            .find(|(scenario, _)| present_items(scenario).first().is_some_and(|value| value == "selected"))
+            .expect("the reachable false alternative must be represented");
+        assert_eq!(selected.1.get("A"), Some(&false));
+        assert_eq!(selected.1.get("B"), Some(&false));
     }
 
     #[test]

@@ -226,11 +226,16 @@ fn collect_template_paths(directory: &Path, output: &mut Vec<PathBuf>) -> Result
 }
 
 /// Security fixtures the anchored release cannot measure, so no base launch exists to pair a head launch with: it
-/// exhausts memory on the alias expansion and the conditional list items, and needs over 20 s per validation of the
-/// conditional statements. Releases from `BOUNDED_EXPANSION_RELEASE` on complete them at the fixed baseline; remove the
-/// entries when `drift-anchor.txt` reaches that release (`uncomparable_fixtures_exist_until_the_anchor_measures_them`).
-const UNCOMPARABLE_SECURITY_FIXTURES: [&str; 3] =
-    ["independent_conditions_list_items.yaml", "independent_conditions_statements.yaml", "yaml_alias_expansion.yaml"];
+/// exhausts memory on the alias expansion and the conditional list items, aborts on alias-expanded nesting, and needs
+/// over 20 s per validation of the conditional statements. Releases from `BOUNDED_EXPANSION_RELEASE` on complete them
+/// at the fixed baseline; remove the entries when `drift-anchor.txt` reaches that release
+/// (`uncomparable_fixtures_exist_until_the_anchor_measures_them`).
+const UNCOMPARABLE_SECURITY_FIXTURES: [&str; 4] = [
+    "independent_conditions_list_items.yaml",
+    "independent_conditions_statements.yaml",
+    "yaml_alias_expanded_depth.yaml",
+    "yaml_alias_expansion.yaml",
+];
 
 /// First release that bounds independent-condition and alias expansion, measured against `drift-anchor.txt` by the
 /// unit test that retires `UNCOMPARABLE_SECURITY_FIXTURES`.
@@ -488,12 +493,14 @@ mod tests {
             generate_fixtures(&project_root().join("tmp/performance-harness-unit-test/fixtures")).expect("fixtures");
         let workloads = workload_matrix(&fixtures).expect("workloads");
         let names: Vec<&str> = workloads.iter().map(|workload| workload.name.as_str()).collect();
-        assert_eq!(workloads.len(), 21, "{names:?}");
+        assert_eq!(workloads.len(), 22, "{names:?}");
         assert!(names.contains(&"tiny") && names.contains(&"mixed-real"), "{names:?}");
         assert!(names.contains(&"security-cross-reference-fanout"), "{names:?}");
         assert!(names.contains(&"security-independent-conditions-properties"), "{names:?}");
         assert!(!names.contains(&"security-yaml-alias-expansion"), "{names:?}");
-        assert_eq!(ENGINES.len() * workloads.len(), 63);
+        assert!(!names.contains(&"security-yaml-alias-expanded-depth"), "{names:?}");
+        assert!(names.contains(&"security-conditional-scenario-correctness"), "{names:?}");
+        assert_eq!(ENGINES.len() * workloads.len(), 66);
     }
 
     #[test]

@@ -9,18 +9,16 @@ use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string,
 use template_model::conditions::Satisfiability;
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
-    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH,
+    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCENARIO_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH,
     MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
     MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS as MAX_GROUP_SCENARIO_MERGE_ATTEMPTS, PARAM_TYPE_COMMA_DELIMITED_LIST,
     PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
 };
-use template_model::member_presence::{
-    ContainerMember, MemberPresence, classify_members, extend_assignment, present_alternatives,
-};
+use template_model::member_presence::{ContainerMember, MemberPresence, classify_members, extend_assignment};
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
-use template_model::resolved_value::contains_dynamic_resolved;
+use template_model::resolved_value::{collect_scenarios, contains_dynamic_resolved, is_resolved_null};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
     BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
@@ -3819,6 +3817,10 @@ fn validate_member_cardinality(
                 skipped_unsatisfiable = true;
             }
         }
+        if skipped_unsatisfiable {
+            validate_item_cardinality_from_scenarios(out, m, rid, prop_path, schema);
+            return;
+        }
         if count > max {
             out.push(build_diagnostic_conditional(
                 "F3032",
@@ -3829,9 +3831,6 @@ fn validate_member_cardinality(
                 None,
                 condition_map(&witness),
             ));
-        } else if skipped_unsatisfiable {
-            validate_item_cardinality_from_scenarios(out, m, rid, prop_path, schema);
-            return;
         }
     }
 
@@ -3852,6 +3851,10 @@ fn validate_member_cardinality(
                 count += 1;
             }
         }
+        if skipped_unsatisfiable {
+            validate_item_cardinality_from_scenarios(out, m, rid, prop_path, schema);
+            return;
+        }
         if count < min {
             out.push(build_diagnostic_conditional(
                 "F3032",
@@ -3862,35 +3865,35 @@ fn validate_member_cardinality(
                 None,
                 condition_map(&witness),
             ));
-        } else if skipped_unsatisfiable {
-            validate_item_cardinality_from_scenarios(out, m, rid, prop_path, schema);
-            return;
         }
     }
 
     if schema.unique_items == Some(true) {
-        let member_alternatives: Vec<Vec<(Vec<(String, bool)>, serde_json::Value)>> = members
+        let member_alternatives: Vec<Vec<(HashMap<String, bool>, serde_json::Value)>> = members
             .iter()
             .map(|member| {
-                present_alternatives(member.value)
+                let mut alternatives = Vec::new();
+                collect_scenarios(member.value, &HashMap::new(), MAX_SCENARIO_COMBINATIONS, &mut alternatives);
+                alternatives
                     .into_iter()
-                    .filter(|(_, value)| !contains_dynamic_resolved(value))
-                    .map(|(literals, value)| (literals, resolved_value_to_json(value)))
+                    .filter(|(value, _)| !is_resolved_null(value) && !contains_dynamic_resolved(value))
+                    .map(|(value, conditions)| (conditions, resolved_value_to_json(&value)))
                     .collect()
             })
             .collect();
         'pairs: for (left_index, left_alternatives) in member_alternatives.iter().enumerate() {
             for right_alternatives in &member_alternatives[left_index + 1..] {
-                for (left_literals, left_json) in left_alternatives {
-                    for (right_literals, right_json) in right_alternatives {
+                for (left_conditions, left_json) in left_alternatives {
+                    for (right_conditions, right_json) in right_alternatives {
                         if left_json != right_json {
                             continue;
                         }
-                        let mut witness = outer_conditions.clone();
-                        if extend_assignment(&mut witness, left_literals)
-                            && extend_assignment(&mut witness, right_literals)
-                            && is_satisfiable(m, &witness)
-                        {
+                        let Some(witness) = try_merge_assignments(outer_conditions, left_conditions)
+                            .and_then(|merged| try_merge_assignments(&merged, right_conditions))
+                        else {
+                            continue;
+                        };
+                        if is_satisfiable(m, &witness) {
                             out.push(build_diagnostic_conditional(
                                 "F3037",
                                 "Array items are not unique",

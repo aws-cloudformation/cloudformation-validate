@@ -10,7 +10,7 @@ violation contains make_diag_full("W2530", "WARN", name,
     "") if {
     cfn_rule_active("W2530")
     some name in resources_of_type("AWS::Lambda::Function")
-    snap := resolve(name, "Properties.SnapStart")
+    some snap in resolve_all(name, "Properties.SnapStart")
     is_object(snap)
     apply_on := object.get(snap, "ApplyOn", "None")
     apply_on == "PublishedVersions"

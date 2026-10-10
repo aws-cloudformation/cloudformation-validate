@@ -77,9 +77,10 @@ Conditions:
   Enabled16: !Not [!Equals [!Ref Toggle16, '']]
   Enabled17: !Not [!Equals [!Ref Toggle17, '']]
 Resources:
-  Bucket:
-    Type: AWS::S3::Bucket
+  Analyzer:
+    Type: AWS::AccessAnalyzer::Analyzer
     Properties:
+      Type: ACCOUNT
       Tags:
         - !If [Enabled00, {Key: tag-00, Value: !Ref Toggle00}, !Ref AWS::NoValue]
         - !If [Enabled01, {Key: tag-01, Value: !Ref Toggle01}, !Ref AWS::NoValue]
