@@ -54,6 +54,14 @@ static MX_RECORD_RE: LazyLock<regex::Regex> =
 static ARN_HAS_ACCOUNT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r":\d{12}:").expect("Invalid ARN_HAS_ACCOUNT_RE pattern"));
 
+/// Matches a reference authored within an `AWS::Lambda::Version`'s `FunctionName`,
+/// whether the property sits in a conditional `Properties` block or its value
+/// selects between `Fn::If` branches.
+static VERSION_FUNCTION_NAME_PATH_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"^Properties(\.Fn::If\.[12])*\.FunctionName(\.|$)")
+        .expect("Invalid VERSION_FUNCTION_NAME_PATH_RE pattern")
+});
+
 /// Converts a `ResourcePropertyPath`'s segments (after the `Properties` prefix)
 /// into a dot-separated property path string suitable for `resolve_concrete` and
 /// diagnostic anchoring. Wildcard segments are excluded from the prefix because
@@ -210,6 +218,111 @@ fn snapstart_runtime_supported(
         return false;
     }
     !unsupported_runtimes.iter().any(|r| r == runtime)
+}
+
+const SNAPSTART_APPLY_ON_PATH: &str = "Properties.SnapStart.ApplyOn";
+const SNAPSTART_PUBLISHED_VERSIONS: &str = "PublishedVersions";
+const LAMBDA_VERSION_TYPE: &str = "AWS::Lambda::Version";
+
+/// A reference's branch context lists the `Fn::If` conditions enclosing it,
+/// separated by commas, with a false branch marked by a leading `!`.
+const BRANCH_CONTEXT_SEPARATOR: char = ',';
+const FALSE_BRANCH_PREFIX: char = '!';
+
+/// SnapStart only takes effect on a published function version. Each reachable
+/// scenario that enables it is reported at its authored `ApplyOn` value unless a
+/// version publishing the function can be created in that same scenario.
+fn snapstart_without_published_version(m: &SemanticModel, function_id: &str) -> Vec<Diagnostic> {
+    let published_versions = published_version_scenarios(m, function_id);
+    let unpublished_source_paths: BTreeSet<String> = m
+        .resolve_scenarios_json_shared(function_id, SNAPSTART_APPLY_ON_PATH)
+        .iter()
+        .filter(|(apply_on, conditions)| {
+            apply_on.as_str() == Some(SNAPSTART_PUBLISHED_VERSIONS)
+                && scenario_is_reachable(m, function_id, conditions)
+                && !scenario_overlaps_any(m, function_id, conditions, &published_versions)
+        })
+        .map(|(_, conditions)| scenario_source_path_or_effective(m, function_id, SNAPSTART_APPLY_ON_PATH, conditions))
+        .collect();
+    unpublished_source_paths
+        .iter()
+        .map(|source_path| {
+            make_resource_diagnostic_at_source(
+                "W2530",
+                "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+                m,
+                function_id,
+                SNAPSTART_APPLY_ON_PATH,
+                source_path,
+                Some("Add an AWS::Lambda::Version resource that references this function"),
+            )
+        })
+        .collect()
+}
+
+/// The condition assignments under which an `AWS::Lambda::Version` publishes a
+/// version of `function_id`: the version is created and its `FunctionName`
+/// refers to the function. A reference from anywhere else in a version, such as
+/// `DependsOn` or `Description`, publishes nothing.
+fn published_version_scenarios(m: &SemanticModel, function_id: &str) -> Vec<HashMap<String, bool>> {
+    let mut scenarios: Vec<HashMap<String, bool>> = m
+        .graph
+        .incoming(function_id)
+        .into_iter()
+        .filter(|edge| {
+            m.resources.get(&edge.source_resource).is_some_and(|source| source.resource_type == LAMBDA_VERSION_TYPE)
+                && VERSION_FUNCTION_NAME_PATH_RE.is_match(&edge.source_path)
+        })
+        .filter_map(|edge| reference_activation_conditions(m, &edge.source_resource, edge.condition_context.as_deref()))
+        .collect();
+
+    if let Some(function_name_identity) = m.value_identity(function_id, "Properties.FunctionName") {
+        scenarios.extend(m.resources_of_type(LAMBDA_VERSION_TYPE).iter().filter_map(|version_id| {
+            (m.value_identity(version_id, "Properties.FunctionName").as_ref() == Some(&function_name_identity))
+                .then(|| reference_activation_conditions(m, version_id, None))
+                .flatten()
+        }));
+    }
+    scenarios.sort_by_key(canonical_condition_assignment);
+    scenarios.dedup();
+    scenarios
+}
+
+fn canonical_condition_assignment(conditions: &HashMap<String, bool>) -> Vec<(String, bool)> {
+    let mut assignment: Vec<(String, bool)> =
+        conditions.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
+    assignment.sort_unstable();
+    assignment
+}
+
+/// The conditions under which a reference is active: the `Fn::If` branches it is
+/// authored in and the condition that creates its resource. `None` when they
+/// contradict each other, so the reference is never active.
+fn reference_activation_conditions(
+    m: &SemanticModel,
+    resource_id: &str,
+    branch_context: Option<&str>,
+) -> Option<HashMap<String, bool>> {
+    let branch_literals = branch_context
+        .into_iter()
+        .flat_map(|context| context.split(BRANCH_CONTEXT_SEPARATOR))
+        .filter(|literal| !literal.is_empty())
+        .map(|literal| match literal.strip_prefix(FALSE_BRANCH_PREFIX) {
+            Some(condition) => (condition, false),
+            None => (literal, true),
+        });
+    let creation_literal = m
+        .resources
+        .get(resource_id)
+        .and_then(|resource| resource.condition.as_deref())
+        .map(|condition| (condition, true));
+    let mut conditions = HashMap::new();
+    for (condition, value) in branch_literals.chain(creation_literal) {
+        if conditions.insert(condition.to_string(), value).is_some_and(|previous| previous != value) {
+            return None;
+        }
+    }
+    Some(conditions)
 }
 
 fn resolve_all_json(m: &SemanticModel, rid: &str, path: &str) -> Vec<serde_json::Value> {
@@ -482,7 +595,7 @@ fn scenario_property_json(properties: &ResolvedValue, property_name: &str) -> Op
     }
 }
 
-fn route53_scenario_source_path(
+fn scenario_source_path_or_effective(
     m: &SemanticModel,
     resource_id: &str,
     effective_path: &str,
@@ -1951,27 +2064,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
-        // SnapStart gated by a condition is enabled in the deployments where that
-        // condition holds, so every branch value counts, not only a fixed one.
-        let snapstart_publishes_versions = resolve_all_json(m, name, "Properties.SnapStart")
-            .iter()
-            .any(|snap| snap.get("ApplyOn").and_then(|a| a.as_str()) == Some("PublishedVersions"));
-        if snapstart_publishes_versions {
-            let version_refs = m.graph.ref_sources(name);
-            let has_ver = version_refs
-                .iter()
-                .any(|src| m.resources.get(&**src).map(|r| r.resource_type == "AWS::Lambda::Version").unwrap_or(false));
-            if !has_ver {
-                out.push(make_resource_diagnostic(
-                    "W2530",
-                    "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
-                    m,
-                    name,
-                    "Properties.SnapStart",
-                    Some("Add an AWS::Lambda::Version resource that references this function"),
-                ));
-            }
-        }
+        out.extend(snapstart_without_published_version(m, name));
     }
 
     for rpp in &ctx.cached_data.rule_tables.iam_role_arn_property_paths {
@@ -3470,7 +3563,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 && record_name.trim_end_matches('.') == hosted_zone_name.trim_end_matches('.')
             {
                 let property_path = "Properties.Name";
-                let source_path = route53_scenario_source_path(m, name, property_path, conditions);
+                let source_path = scenario_source_path_or_effective(m, name, property_path, conditions);
                 out.push(make_resource_diagnostic_at_source(
                     "E3023",
                     &format!(
@@ -3492,7 +3585,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     &record_type,
                     &records,
                     "Properties.ResourceRecords",
-                    |property_path| route53_scenario_source_path(m, name, property_path, conditions),
+                    |property_path| scenario_source_path_or_effective(m, name, property_path, conditions),
                 );
             }
         }
@@ -3519,7 +3612,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         record_type,
                         records,
                         &format!("Properties.RecordSets.{}.ResourceRecords", set_index),
-                        |property_path| route53_scenario_source_path(m, name, property_path, conditions),
+                        |property_path| scenario_source_path_or_effective(m, name, property_path, conditions),
                     );
                 }
             }

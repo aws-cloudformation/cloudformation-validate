@@ -1,0 +1,168 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SnapStart that is either never enabled in a reachable deployment or is published in every deployment that enables it
+Conditions:
+  IsUsEast1: !Equals [!Ref AWS::Region, us-east-1]
+  IsUsWest2: !Equals [!Ref AWS::Region, us-west-2]
+  IsNotUsEast1: !Not [!Condition IsUsEast1]
+Resources:
+  PropertiesBranchExcludedByResourceCondition:
+    Type: AWS::Lambda::Function
+    Condition: IsUsEast1
+    Properties: !If
+      - IsUsEast1
+      - Runtime: python3.12
+        Handler: index.handler
+        Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+        Code:
+          S3Bucket: bucket
+          S3Key: code.zip
+      - Runtime: python3.12
+        Handler: index.handler
+        Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+        Code:
+          S3Bucket: bucket
+          S3Key: code.zip
+        SnapStart:
+          ApplyOn: PublishedVersions
+  ApplyOnBranchExcludedByResourceCondition:
+    Type: AWS::Lambda::Function
+    Condition: IsUsEast1
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: !If [IsUsEast1, None, PublishedVersions]
+  RepeatedConditionExcludesInnerBranch:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart: !If
+        - IsUsEast1
+        - ApplyOn: !If [IsUsEast1, None, PublishedVersions]
+        - ApplyOn: None
+  ExclusiveConditionsExcludeInnerBranch:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart: !If
+        - IsUsEast1
+        - ApplyOn: !If [IsUsWest2, PublishedVersions, None]
+        - ApplyOn: None
+  SnapStartNoValueOrNone:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart: !If
+        - IsUsEast1
+        - !Ref AWS::NoValue
+        - ApplyOn: None
+  PublishedThroughSub:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: PublishedVersions
+  PublishedThroughSubVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Sub ${PublishedThroughSub}
+  PublishedFromConditionalProperties:
+    Type: AWS::Lambda::Function
+    Properties: !If
+      - IsUsEast1
+      - Runtime: python3.12
+        Handler: index.handler
+        Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+        Code:
+          S3Bucket: bucket
+          S3Key: code.zip
+        SnapStart:
+          ApplyOn: PublishedVersions
+      - Runtime: python3.12
+        Handler: index.handler
+        Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+        Code:
+          S3Bucket: bucket
+          S3Key: code.zip
+  PublishedFromConditionalPropertiesVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !GetAtt PublishedFromConditionalProperties.Arn
+  PublishedInMatchingCondition:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart: !If
+        - IsUsEast1
+        - ApplyOn: PublishedVersions
+        - !Ref AWS::NoValue
+  PublishedInMatchingConditionVersion:
+    Type: AWS::Lambda::Version
+    Condition: IsUsEast1
+    Properties:
+      FunctionName: !Ref PublishedInMatchingCondition
+  PublishedInEveryDeployment:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: PublishedVersions
+  PublishedInUsEast1Version:
+    Type: AWS::Lambda::Version
+    Condition: IsUsEast1
+    Properties:
+      FunctionName: !Ref PublishedInEveryDeployment
+  PublishedElsewhereVersion:
+    Type: AWS::Lambda::Version
+    Condition: IsNotUsEast1
+    Properties:
+      FunctionName: !Ref PublishedInEveryDeployment
+  PublishedFromMatchingFunctionNameBranch:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: !If [IsUsEast1, PublishedVersions, None]
+  PublishedFromMatchingFunctionNameBranchVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !If [IsUsEast1, !Ref PublishedFromMatchingFunctionNameBranch, !Ref PublishedThroughSub]

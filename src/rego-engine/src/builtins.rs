@@ -73,6 +73,7 @@ pub(crate) fn register_all(
     register_make_diag(rego);
     register_make_diag_at(rego);
     register_make_diag_at_source(rego);
+    register_make_diag_at_source_full(rego);
     register_make_diag_full(rego);
     register_make_diag_related(rego);
     register_make_diag_conditional(rego);
@@ -2298,6 +2299,43 @@ fn register_make_diag_at_source(rego: &mut regorus::Engine) {
                 fields.insert("end_column".into(), span.end_column.into());
             }
             Ok(json_to_value(&obj))
+        }),
+    );
+}
+
+fn register_make_diag_at_source_full(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "make_diag_at_source_full".into(),
+        7,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let rule_id = params[0].as_string()?;
+            let severity = params[1].as_string()?;
+            let resource_id = params[2].as_string()?;
+            let prop_path = params[3].as_string()?;
+            let source_path = params[4].as_string()?;
+            let message = params[5].as_string()?;
+            let fix = params[6].as_string()?;
+            let span = resolve_span(&model, resource_id, source_path);
+            let fix_value =
+                if fix.is_empty() { serde_json::Value::Null } else { serde_json::Value::String(fix.to_string()) };
+            let mut diagnostic = serde_json::json!({
+                "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
+                "message": message.as_ref(), "resource_id": resource_id.as_ref(),
+                "resource_path": prop_path.as_ref(),
+                (DIAGNOSTIC_SOURCE_PATH_FIELD): source_path.as_ref(),
+                "suggested_fix": fix_value,
+            });
+            if span != UNKNOWN_SPAN {
+                let fields = diagnostic.as_object_mut().unwrap();
+                fields.insert("start_line".into(), span.start_line.into());
+                fields.insert("start_column".into(), span.start_column.into());
+                fields.insert("end_line".into(), span.end_line.into());
+                fields.insert("end_column".into(), span.end_column.into());
+            }
+            Ok(json_to_value(&diagnostic))
         }),
     );
 }

@@ -1,4 +1,238 @@
 {
+  "bad/functions/import_value.yaml": {
+    "filePath": "bad/functions/import_value.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 1,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E8003",
+        "severity": "ERROR",
+        "message": "Fn::Equals: argument 1: {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "primaryRegion",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/primaryRegion/Fn::Equals",
+        "category": "Intrinsic Function",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 13,
+        "ruleDescription": "Fn::Equals must take exactly two scalar operands",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'primaryRegion' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "primaryRegion",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/primaryRegion",
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 16,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (cross-stack import)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (cross-stack import)"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'subnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/length_no_transform.yaml": {
+    "filePath": "bad/functions/length_no_transform.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1030",
+        "severity": "FATAL",
+        "message": "Fn::Length requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.DelaySeconds",
+        "category": "Intrinsic Function",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Length requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/functions/relationship_conditions.yaml": {
     "filePath": "bad/functions/relationship_conditions.yaml",
     "status": "OK",
@@ -6251,12 +6485,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::Lambda::Function"
         },
-        "propertyPath": "Properties.SnapStart",
+        "propertyPath": "Properties.SnapStart.ApplyOn",
         "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
         "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
+        "startLine": 14,
+        "startColumn": 9,
+        "endLine": 14,
         "endColumn": 16,
         "ruleDescription": "Validate that SnapStart is properly configured",
         "phase": "LINT"
@@ -6350,12 +6584,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::Lambda::Function"
         },
-        "propertyPath": "Properties.SnapStart",
+        "propertyPath": "Properties.SnapStart.ApplyOn",
         "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
         "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
+        "startLine": 13,
+        "startColumn": 9,
+        "endLine": 13,
         "endColumn": 16,
         "ruleDescription": "Validate that SnapStart is properly configured",
         "phase": "LINT"
@@ -89639,72 +89873,6 @@
         "endColumn": 21,
         "ruleDescription": "Validate identity based IAM policies",
         "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/properties/custom.yaml": {
-    "filePath": "bad/resources/properties/custom.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
-  },
-  "bad/resources/properties/list_duplicates.yaml": {
-    "filePath": "bad/resources/properties/list_duplicates.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3037",
-        "severity": "FATAL",
-        "message": "Array items are not unique",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "IamGroupWithNestedConditions",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Group"
-        },
-        "propertyPath": "Properties.ManagedPolicyArns",
-        "category": "Schema",
-        "startLine": 33,
-        "startColumn": 7,
-        "endLine": 33,
-        "endColumn": 24,
-        "conditionScenario": {
-          "isPrimaryRegion": true
-        },
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Array items not unique",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": [
-            "arn:aws:iam::aws:policy/AdministratorPolicy",
-            "arn:aws:iam::aws:policy/AdministratorPolicy"
-          ]
-        }
       }
     ]
   }

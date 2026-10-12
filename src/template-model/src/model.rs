@@ -1543,7 +1543,7 @@ impl SemanticModel {
     /// a property can take must stop when one of them cannot be known.
     #[must_use]
     pub fn has_unresolved_scenario(&self, resource_id: &str, path: &str) -> bool {
-        let scenarios = self.resolve_scenarios(resource_id, path);
+        let scenarios = self.resolve_scenarios_shared(resource_id, path);
         scenarios.is_empty() || scenarios.iter().any(|(value, _)| contains_dynamic_resolved(value))
     }
 
@@ -1837,6 +1837,13 @@ impl SemanticModel {
         self.resolve_properties_scenarios_selected(resource_id, None)
     }
 
+    /// Owned copy of [`Self::resolve_properties_scenarios_shared`]; read-only
+    /// callers should use the shared accessor to avoid cloning the cached
+    /// expansion.
+    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        self.resolve_properties_scenarios_shared(resource_id).as_ref().clone()
+    }
+
     /// Like [`Self::resolve_properties_scenarios_shared`] but expands only the
     /// named top-level properties. Conditions that gate other properties never
     /// enter the expansion, so the scenario count grows with the conditions on
@@ -1911,16 +1918,28 @@ impl SemanticModel {
         scenario_source_path_at(&properties, relative_path, conditions, KEY_PROPERTIES)
     }
 
-    pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
-        self.resolve_scenarios_with_limit(resource_id, path, MAX_SCENARIO_COMBINATIONS).0
+    /// Returns one immutable allocation of the scenarios for the value at `path`
+    /// under the default per-value limit, shared across read-only callers.
+    pub fn resolve_scenarios_shared(
+        &self,
+        resource_id: &str,
+        path: &str,
+    ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        self.resolve_scenarios_with_limit_shared(resource_id, path, MAX_SCENARIO_COMBINATIONS).0
+    }
+
+    /// Owned copy of [`Self::resolve_scenarios_shared`]; read-only callers should
+    /// use the shared accessor to avoid cloning the memoized expansion.
+    pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        self.resolve_scenarios_shared(resource_id, path).as_ref().clone()
     }
 
     /// Expands the value at `path` under a per-value scenario limit, reporting
     /// whether the expansion was curtailed. Results are memoized per
     /// `(resource, path, limit)` so repeated queries, including the default-limit
-    /// [`Self::resolve_scenarios`], share one allocation and charge the
+    /// [`Self::resolve_scenarios_shared`], share one allocation and charge the
     /// cumulative budget once.
-    pub fn resolve_scenarios_with_limit(
+    pub fn resolve_scenarios_with_limit_shared(
         &self,
         resource_id: &str,
         path: &str,
@@ -1935,6 +1954,19 @@ impl SemanticModel {
         let scenarios = Arc::new(scenarios);
         memo.insert(key, (Arc::clone(&scenarios), was_curtailed));
         (scenarios, was_curtailed)
+    }
+
+    /// Owned copy of [`Self::resolve_scenarios_with_limit_shared`]; read-only
+    /// callers should use the shared accessor to avoid cloning the memoized
+    /// expansion.
+    pub fn resolve_scenarios_with_limit(
+        &self,
+        resource_id: &str,
+        path: &str,
+        per_value_limit: usize,
+    ) -> (Vec<(ResolvedValue, HashMap<String, bool>)>, bool) {
+        let (scenarios, was_curtailed) = self.resolve_scenarios_with_limit_shared(resource_id, path, per_value_limit);
+        (scenarios.as_ref().clone(), was_curtailed)
     }
 
     fn expand_scenarios_at_path(
@@ -1975,7 +2007,7 @@ impl SemanticModel {
         resource_id: &str,
         path: &str,
     ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
-        self.resolve_scenarios(resource_id, path)
+        self.resolve_scenarios_shared(resource_id, path)
             .iter()
             .filter_map(|(val, conds)| {
                 if contains_dynamic_resolved(val) {
@@ -3445,16 +3477,17 @@ Resources:
         assert_eq!(s1, s2);
     }
 
+    const CONDITIONAL_PROPERTY_TEMPLATE: &[u8] = br#"{
+        "Parameters": {"Mode": {"Type": "String"}},
+        "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+        "Resources": {"R": {"Type": "T", "Properties": {
+            "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
+        }}}
+    }"#;
+
     #[test]
     fn resolve_scenarios_json_shared_reuses_allocation_and_matches_owned() {
-        let input = br#"{
-            "Parameters": {"Mode": {"Type": "String"}},
-            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
-            "Resources": {"R": {"Type": "T", "Properties": {
-                "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
-            }}}
-        }"#;
-        let model = SemanticModel::from_bytes(input).unwrap();
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
 
         let first = model.resolve_scenarios_json_shared("R", "Properties.V");
         let combinations_after_first = model.scenario_combinations_used();
@@ -3468,27 +3501,87 @@ Resources:
     }
 
     #[test]
-    fn resolve_properties_scenarios_shared_reuses_allocation() {
-        let input = br#"{
-            "Parameters": {"Mode": {"Type": "String"}},
-            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
-            "Resources": {"R": {"Type": "T", "Properties": {
-                "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
-            }}}
-        }"#;
-        let model = SemanticModel::from_bytes(input).unwrap();
+    fn resolve_properties_scenarios_shared_reuses_allocation_and_matches_owned() {
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
 
         let first = model.resolve_properties_scenarios_shared("R");
         let combinations_after_first = model.scenario_combinations_used();
         let second = model.resolve_properties_scenarios_shared("R");
+        let owned = model.resolve_properties_scenarios("R");
 
         assert!(Arc::ptr_eq(&first, &second), "repeated shared access must reuse one allocation");
         assert!(first.len() > 1, "the Fn::If value must expand the whole-properties object into multiple scenarios");
+        assert_eq!(
+            serde_json::to_value(first.as_ref()).expect("shared scenarios serialize"),
+            serde_json::to_value(&owned).expect("owned scenarios serialize"),
+            "the owned API must return the same scenarios as the shared accessor"
+        );
         assert_eq!(
             model.scenario_combinations_used(),
             combinations_after_first,
             "a cached shared access must not consume additional scenario budget"
         );
+    }
+
+    #[test]
+    fn resolve_scenarios_shared_reuses_allocation_and_matches_owned() {
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
+
+        let first = model.resolve_scenarios_shared("R", "Properties.V");
+        let combinations_after_first = model.scenario_combinations_used();
+        let second = model.resolve_scenarios_shared("R", "Properties.V");
+        let owned = model.resolve_scenarios("R", "Properties.V");
+
+        assert!(Arc::ptr_eq(&first, &second), "repeated shared access must reuse one allocation");
+        assert_eq!(first.len(), 2, "the Fn::If value must expand into one scenario per branch");
+        assert_eq!(
+            serde_json::to_value(first.as_ref()).expect("shared scenarios serialize"),
+            serde_json::to_value(&owned).expect("owned scenarios serialize"),
+            "the owned API must return the same scenarios as the shared accessor"
+        );
+        assert_eq!(
+            model.scenario_combinations_used(),
+            combinations_after_first,
+            "cached shared and owned access must not consume additional scenario budget"
+        );
+    }
+
+    #[test]
+    fn resolve_scenarios_with_limit_owned_matches_shared_including_curtailment() {
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
+
+        let (shared, shared_was_curtailed) = model.resolve_scenarios_with_limit_shared("R", "Properties.V", 1);
+        let (repeated, repeated_was_curtailed) = model.resolve_scenarios_with_limit_shared("R", "Properties.V", 1);
+        let (owned, owned_was_curtailed) = model.resolve_scenarios_with_limit("R", "Properties.V", 1);
+
+        assert!(Arc::ptr_eq(&shared, &repeated), "a repeated limited query must reuse its memoized allocation");
+        assert_eq!(shared.len(), 1, "a per-value limit of one must keep only the first branch scenario");
+        assert!(shared_was_curtailed, "omitting the second branch scenario must be reported as curtailment");
+        assert!(repeated_was_curtailed, "a memoized result must keep its curtailment status");
+        assert!(owned_was_curtailed, "the owned API must report the memoized curtailment status");
+        assert_eq!(
+            serde_json::to_value(shared.as_ref()).expect("shared scenarios serialize"),
+            serde_json::to_value(&owned).expect("owned scenarios serialize"),
+            "the owned API must return the same scenarios as the shared accessor"
+        );
+    }
+
+    #[test]
+    fn resolve_scenarios_with_limit_shared_memoizes_each_limit_separately() {
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
+
+        let (limited, _) = model.resolve_scenarios_with_limit_shared("R", "Properties.V", 1);
+        let default_limit = model.resolve_scenarios_shared("R", "Properties.V");
+        let (explicit_default_limit, was_curtailed) =
+            model.resolve_scenarios_with_limit_shared("R", "Properties.V", MAX_SCENARIO_COMBINATIONS);
+
+        assert_eq!(limited.len(), 1, "a per-value limit of one must keep only the first branch scenario");
+        assert_eq!(default_limit.len(), 2, "a curtailed limited expansion must not be served to a default-limit query");
+        assert!(
+            Arc::ptr_eq(&default_limit, &explicit_default_limit),
+            "the default-limit accessor and an explicit default-limit query must share one memoized allocation"
+        );
+        assert!(!was_curtailed, "the complete default-limit expansion must not report curtailment");
     }
 
     #[test]

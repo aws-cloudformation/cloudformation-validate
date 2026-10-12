@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SnapStart enabled where no AWS::Lambda::Version publishes the function in the same deployment
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [prod, dev]
+    Default: dev
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+  IsDev: !Equals [!Ref Environment, dev]
+  IsUsEast1: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  PublishedFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+  VersionOnlyDependsOnFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: PublishedVersions
+  OrderedVersion:
+    Type: AWS::Lambda::Version
+    DependsOn: VersionOnlyDependsOnFunction
+    Properties:
+      FunctionName: !Ref PublishedFunction
+  VersionOnlyDescribesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: PublishedVersions
+  DescribedVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref PublishedFunction
+      Description: !Ref VersionOnlyDescribesFunction
+  VersionInOtherEnvironment:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart: !If
+        - IsProd
+        - ApplyOn: PublishedVersions
+        - !Ref AWS::NoValue
+  DevOnlyVersion:
+    Type: AWS::Lambda::Version
+    Condition: IsDev
+    Properties:
+      FunctionName: !Ref VersionInOtherEnvironment
+  VersionNamesOtherFunctionWhenEnabled:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code:
+        S3Bucket: bucket
+        S3Key: code.zip
+      SnapStart:
+        ApplyOn: !If [IsUsEast1, PublishedVersions, None]
+  SwitchedVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !If [IsUsEast1, !Ref PublishedFunction, !Ref VersionNamesOtherFunctionWhenEnabled]

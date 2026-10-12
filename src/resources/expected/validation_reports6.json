@@ -1,4 +1,377 @@
 {
+  "good/elb_https_empty_sslcertificateid.yaml": {
+    "filePath": "good/elb_https_empty_sslcertificateid.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ELB' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ELB",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 7,
+        "startColumn": 5,
+        "endLine": 7,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/enum_case_insensitive_casing.yaml": {
+    "filePath": "good/enum_case_insensitive_casing.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 6,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ComputeResources.Subnets' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.ComputeResources.Subnets",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 9,
+        "endLine": 16,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ComputeResources.Type' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.ComputeResources.Type",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 9,
+        "endLine": 18,
+        "endColumn": 13,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "LowercaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 20,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Type' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MixedCaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Type",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Tags' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MixedCaseType",
+          "entityType": "Resource",
+          "resourceType": "AWS::Batch::ComputeEnvironment"
+        },
+        "propertyPath": "Properties.Tags",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "good/functions/dynamic_reference_embedded.yaml": {
+    "filePath": "good/functions/dynamic_reference_embedded.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 8,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Sg",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Sg",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupName",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (dynamic reference: prefix-{{resolve:ssm:/network/sg-name}})"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.BucketName",
+        "category": "Best Practice",
+        "startLine": 19,
+        "startColumn": 7,
+        "endLine": 19,
+        "endColumn": 17,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (dynamic reference: {{resolve:ssm:/config/bucket-name}})"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (dynamic reference: prefix-{{resolve:ssm:/ec2/ami-id}})"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 35,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9003",
+        "severity": "INFO",
+        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
+        "source": "ENGINE",
+        "category": "Best Practice",
+        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ScheduledRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ScheduledRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 5,
+        "endLine": 25,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Instance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 5,
+        "endLine": 33,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/functions/foreach.yaml": {
     "filePath": "good/functions/foreach.yaml",
     "status": "OK",
@@ -4858,12 +5231,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::Lambda::Function"
         },
-        "propertyPath": "Properties.SnapStart",
+        "propertyPath": "Properties.SnapStart.ApplyOn",
         "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
         "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
+        "startLine": 14,
+        "startColumn": 9,
+        "endLine": 14,
         "endColumn": 16,
         "ruleDescription": "Validate that SnapStart is properly configured",
         "phase": "LINT"
@@ -16273,143 +16646,6 @@
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
         "ruleDescription": "Property is ignored in this configuration (from extension)",
         "phase": "SCHEMA"
-      }
-    ]
-  },
-  "good/sam/api_stagename_valid.yaml": {
-    "filePath": "good/sam/api_stagename_valid.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyApi' of type 'AWS::Serverless::Api' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyApi",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Api"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/sam/connector_valid.yaml": {
-    "filePath": "good/sam/connector_valid.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 10,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyFn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyFn",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/sam/function_deploymentpreference_with_alias.yaml": {
-    "filePath": "good/sam/function_deploymentpreference_with_alias.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Fn' of type 'AWS::Serverless::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Fn",
-          "entityType": "Resource",
-          "resourceType": "AWS::Serverless::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
       }
     ]
   }

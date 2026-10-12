@@ -579,7 +579,7 @@ fn reachable_identity_policy_scenarios(
     } else {
         let expanded = model.resolve_scenarios(resource_id, document_path);
         if !expanded.is_empty() {
-            expanded.as_ref().clone()
+            expanded
         } else if use_masked_fallback {
             vec![(mask_scenario_branching(&document), HashMap::new())]
         } else {
