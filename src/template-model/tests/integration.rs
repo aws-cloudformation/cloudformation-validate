@@ -1,6 +1,6 @@
-use template_model::SemanticModel;
-use template_model::SpanProvider;
+use std::collections::HashMap;
 use template_model::resolver::ResolvedValue;
+use template_model::{ParseConfig, SemanticModel, SpanProvider};
 
 const TEMPLATES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../resources/templates");
 
@@ -546,6 +546,36 @@ Resources:
 }
 
 #[test]
+fn lifecycle_parameter_edges_keep_lifecycle_paths() {
+    let input = r#"
+Transform: AWS::LanguageExtensions
+Parameters:
+  Policy:
+    Type: String
+    Default: Retain
+Resources:
+  R:
+    Type: T
+    DeletionPolicy: !Ref Policy
+    UpdateReplacePolicy: !Ref Policy
+    Properties:
+      Cpu: 256
+"#;
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    let mut paths = model
+        .graph
+        .outgoing("R")
+        .into_iter()
+        .filter(|edge| edge.target == "Policy")
+        .map(|edge| edge.source_path.as_str())
+        .collect::<Vec<_>>();
+    paths.sort_unstable();
+
+    assert_eq!(paths, ["DeletionPolicy", "UpdateReplacePolicy"]);
+    assert!(!model.scenario_uses_unresolved_parameter("R", "Properties.Cpu", &HashMap::new()));
+}
+
+#[test]
 fn resolve_scenarios_nested_conditionals() {
     let input = r#"
 Conditions:
@@ -570,6 +600,148 @@ Resources:
     let scenarios = model.resolve_scenarios("R", "Properties.V");
     // Should produce 3 scenarios: A=true,B=true→1; A=true,B=false→2; A=false→3
     assert_eq!(scenarios.len(), 3, "expected 3 scenarios, got {:?}", scenarios);
+}
+
+const SCENARIO_PARAMETER_PROVENANCE_TEMPLATE: &str = r#"
+Parameters:
+  Cpu:
+    Type: Number
+    Default: 8192
+    AllowedValues: [256, 8192]
+  CpuList:
+    Type: CommaDelimitedList
+    Default: "2048"
+  Environment:
+    Type: String
+    Default: small
+    AllowedValues: [small, large]
+  Prefix:
+    Type: String
+    Default: "1"
+  Suffix:
+    Type: String
+    Default: "024"
+  RuntimeCpu:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ecs/task/cpu
+Mappings:
+  TaskSizes:
+    small: {Cpu: 256}
+    large: {Cpu: 8192}
+Conditions:
+  UseParameter: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  R:
+    Type: T
+    Properties:
+      Direct: !Ref Cpu
+      List: !Ref CpuList
+      Split: !Split [",", !Ref Suffix]
+      Ssm: !Ref RuntimeCpu
+      Literal: 512
+      Joined: !Join ["", [!Ref Cpu]]
+      Mapped: !FindInMap [TaskSizes, !Ref Environment, Cpu]
+      Conditional: !If [UseParameter, !Ref Cpu, 512]
+      HoistedSelect:
+        Fn::Select:
+          - 0
+          - - Fn::If: [UseParameter, !Ref Cpu, 512]
+      HoistedJoin:
+        Fn::Join:
+          - ""
+          - Fn::If: [UseParameter, !Ref CpuList, ["512"]]
+      Substituted: !Sub "${Prefix}${Suffix}"
+      SubstitutedReverse: !Sub "${Suffix}${Prefix}"
+      Nested:
+        - Cpu: !Ref Cpu
+"#;
+
+fn parameter_provenance_model(overrides: &[(&str, &str)]) -> SemanticModel {
+    let config = ParseConfig {
+        parameters: overrides.iter().map(|(name, value)| ((*name).into(), (*value).into())).collect(),
+        ..Default::default()
+    };
+    SemanticModel::parse(SCENARIO_PARAMETER_PROVENANCE_TEMPLATE.as_bytes(), config).unwrap().model
+}
+
+#[test]
+fn scenario_unresolved_parameter_provenance_follows_intrinsics_and_condition_branches() {
+    let model = parameter_provenance_model(&[]);
+    let no_conditions = HashMap::new();
+
+    for path in [
+        "Properties.Direct",
+        "Properties.List.0",
+        "Properties.List.{}",
+        "Properties.Split.0",
+        "Properties.Ssm",
+        "Properties.Joined",
+        "Properties.Mapped",
+        "Properties.Substituted",
+        "Properties.SubstitutedReverse",
+        "Properties.Nested.{}.Cpu",
+    ] {
+        assert!(
+            model.scenario_uses_unresolved_parameter("R", path, &no_conditions),
+            "{path} must retain unresolved parameter provenance"
+        );
+    }
+    assert!(!model.scenario_uses_unresolved_parameter("R", "Properties.Literal", &no_conditions));
+    for path in ["Properties.Conditional", "Properties.HoistedSelect", "Properties.HoistedJoin"] {
+        assert!(model.scenario_uses_unresolved_parameter("R", path, &HashMap::from([("UseParameter".into(), true)]),));
+        assert!(
+            !model.scenario_uses_unresolved_parameter("R", path, &HashMap::from([("UseParameter".into(), false)]),)
+        );
+    }
+}
+
+#[test]
+fn scenario_unresolved_parameter_provenance_excludes_only_supplied_overrides() {
+    let all_overridden = parameter_provenance_model(&[
+        ("Cpu", "256"),
+        ("CpuList", "2048"),
+        ("Environment", "small"),
+        ("Prefix", "1"),
+        ("Suffix", "024"),
+        ("RuntimeCpu", "/ecs/task/cpu"),
+    ]);
+    let no_conditions = HashMap::new();
+
+    for path in [
+        "Properties.Direct",
+        "Properties.List.0",
+        "Properties.List.{}",
+        "Properties.Split.0",
+        "Properties.Joined",
+        "Properties.Mapped",
+        "Properties.Substituted",
+        "Properties.SubstitutedReverse",
+        "Properties.Nested.{}.Cpu",
+    ] {
+        assert!(
+            !all_overridden.scenario_uses_unresolved_parameter("R", path, &no_conditions),
+            "{path} must treat caller overrides as concrete values"
+        );
+    }
+    assert!(all_overridden.scenario_uses_unresolved_parameter("R", "Properties.Ssm", &no_conditions));
+    assert!(!all_overridden.scenario_uses_unresolved_parameter("R", "Properties.Literal", &no_conditions));
+    for path in ["Properties.Conditional", "Properties.HoistedSelect", "Properties.HoistedJoin"] {
+        assert!(!all_overridden.scenario_uses_unresolved_parameter(
+            "R",
+            path,
+            &HashMap::from([("UseParameter".into(), true)]),
+        ));
+    }
+
+    for partial_overrides in [[("Prefix", "1")], [("Suffix", "024")]] {
+        let partially_overridden = parameter_provenance_model(&partial_overrides);
+        for path in ["Properties.Substituted", "Properties.SubstitutedReverse"] {
+            assert!(
+                partially_overridden.scenario_uses_unresolved_parameter("R", path, &no_conditions),
+                "{path} must retain the parameter that was not overridden"
+            );
+        }
+    }
 }
 
 #[test]

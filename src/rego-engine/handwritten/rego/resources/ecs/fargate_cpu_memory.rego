@@ -11,9 +11,11 @@ violation contains make_diag_full("E3047", "ERROR", name,
     some name in resources_of_type("AWS::ECS::TaskDefinition")
     some compatibility_scenario in _fargate_compatibility_scenarios(name)
     some cpu_scenario in resolve_scenarios(name, "Properties.Cpu")
+    not scenario_uses_unresolved_parameter(name, "Properties.Cpu", cpu_scenario.conditions)
     _scenario_conditions_compatible(name, compatibility_scenario.conditions, cpu_scenario.conditions)
     fargate_cpu_conditions := object.union(compatibility_scenario.conditions, cpu_scenario.conditions)
     some memory_scenario in resolve_scenarios(name, "Properties.Memory")
+    not scenario_uses_unresolved_parameter(name, "Properties.Memory", memory_scenario.conditions)
     _scenario_conditions_compatible(name, fargate_cpu_conditions, memory_scenario.conditions)
     cpu := cpu_scenario.value
     memory := memory_scenario.value
