@@ -213,9 +213,10 @@ COMPOSITE = CompositeEngine()
 
 
 class SnapshotNormalizationTest(unittest.TestCase):
-    def test_context_rules_and_counts_are_excluded(self):
+    def test_only_manifest_rules_and_counts_are_excluded(self):
         report = {
             "diagnostics": [
+                {"ruleId": "W4012", "severity": "WARN"},
                 {"ruleId": "I4010", "severity": "INFO"},
                 {"ruleId": "E3012", "severity": "ERROR"},
             ],
@@ -223,7 +224,7 @@ class SnapshotNormalizationTest(unittest.TestCase):
                 "counts": {
                     "fatal": 0,
                     "errors": 1,
-                    "warnings": 0,
+                    "warnings": 1,
                     "informational": 1,
                     "debug": 0,
                 }
@@ -232,7 +233,14 @@ class SnapshotNormalizationTest(unittest.TestCase):
 
         normalized = strip_snapshot_excluded_fields(report)
 
-        self.assertEqual([{"ruleId": "E3012", "severity": "ERROR"}], normalized["diagnostics"])
+        self.assertEqual(
+            [
+                {"ruleId": "W4012", "severity": "WARN"},
+                {"ruleId": "E3012", "severity": "ERROR"},
+            ],
+            normalized["diagnostics"],
+        )
+        self.assertEqual(1, normalized["metadata"]["counts"]["warnings"])
         self.assertEqual(0, normalized["metadata"]["counts"]["informational"])
         self.assertEqual(1, normalized["metadata"]["counts"]["errors"])
 

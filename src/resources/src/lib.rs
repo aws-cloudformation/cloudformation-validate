@@ -203,10 +203,10 @@ fn collect_templates(dir: &Path, root: &Path, out: &mut Vec<String>) {
     }
 }
 
-/// Rules whose findings are kept out of the snapshot chunks. The Metadata Context
-/// rules report nearly every corpus template, so persisting them would turn any
-/// change to their output into a corpus-wide snapshot diff. Their behavior is
-/// covered by dedicated fixtures and tests instead.
+/// Rules whose findings are kept out of the snapshot chunks. Missing Context is
+/// reported on nearly every corpus template, so persisting that informational
+/// finding would turn any output change into a corpus-wide snapshot diff. Its
+/// behavior is covered by dedicated fixtures and tests instead.
 pub static SNAPSHOT_EXCLUDED_RULE_IDS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
     include_str!("../expected/snapshot_excluded_rule_ids.txt")
         .lines()
@@ -283,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    fn exclude_snapshot_rules_drops_context_findings_and_their_counts() {
+    fn exclude_snapshot_rules_drops_only_missing_context_findings_and_their_counts() {
         let mut report = json!({
             "diagnostics": [
                 {"ruleId": "W4012", "severity": "WARN"},
@@ -304,11 +304,12 @@ mod tests {
             report,
             json!({
                 "diagnostics": [
+                    {"ruleId": "W4012", "severity": "WARN"},
                     {"ruleId": "E3012", "severity": "ERROR"},
                     {"ruleId": "I3011", "severity": "INFO"}
                 ],
                 "metadata": {
-                    "counts": {"fatal": 0, "errors": 1, "warnings": 0, "informational": 1, "debug": 0},
+                    "counts": {"fatal": 0, "errors": 1, "warnings": 1, "informational": 1, "debug": 0},
                     "suppressed": 0
                 }
             })

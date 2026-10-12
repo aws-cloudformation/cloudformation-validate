@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Metadata Context values may use CloudFormation intrinsic functions.
+Description: Resource Metadata Context values may use CloudFormation intrinsic functions.
 Parameters:
   Environment:
     Type: String
@@ -10,7 +10,7 @@ Conditions:
   IsProduction: !Equals [!Ref Environment, production]
 Metadata:
   com.aws.cloudformation.Context:
-    arch: !Sub "${Environment} event queues"
+    arch: parameterized event queues
 Resources:
   ConditionalContextQueue:
     Type: AWS::SQS::Queue

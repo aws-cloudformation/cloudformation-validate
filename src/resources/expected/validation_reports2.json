@@ -1,4 +1,62 @@
 {
+  "bad/functions/findinmap_default_value_no_transform.yaml": {
+    "filePath": "bad/functions/findinmap_default_value_no_transform.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1101",
+        "severity": "FATAL",
+        "message": "Fn::FindInMap: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName",
+        "category": "Structure",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 18,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/functions/foreach_no_transform.yaml": {
     "filePath": "bad/functions/foreach_no_transform.yaml",
     "status": "OK",
@@ -89080,264 +89138,6 @@
         "startLine": 28,
         "startColumn": 5,
         "endLine": 28,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/lambda/required_properties.yaml": {
-    "filePath": "bad/resources/lambda/required_properties.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 7,
-        "informational": 4,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'Runtime' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Function3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'Runtime'",
-        "category": "Schema",
-        "startLine": 25,
-        "startColumn": 5,
-        "endLine": 25,
-        "endColumn": 15,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "W2531",
-        "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Function2",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Runtime",
-        "category": "Deprecation",
-        "startLine": 21,
-        "startColumn": 7,
-        "endLine": 21,
-        "endColumn": 14,
-        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "python3.9",
-          "lifecycle": "deprecated"
-        }
-      },
-      {
-        "ruleId": "W2533",
-        "severity": "WARN",
-        "message": "Properties ['Handler', 'Runtime'] missing for zip file deployment at Resources/Function1/Properties",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Function1",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Code",
-        "suggestedFix": "Add the missing properties for zip file deployment",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 11,
-        "ruleDescription": "Check required properties for Lambda if the deployment package is a .zip file",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W2533",
-        "severity": "WARN",
-        "message": "Properties ['Handler'] missing for zip file deployment at Resources/Function2/Properties",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Function2",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Code",
-        "suggestedFix": "Add the missing properties for zip file deployment",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 7,
-        "endLine": 18,
-        "endColumn": 11,
-        "ruleDescription": "Check required properties for Lambda if the deployment package is a .zip file",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W2533",
-        "severity": "WARN",
-        "message": "Properties ['Runtime'] missing for zip file deployment at Resources/Function3/Properties",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Function3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Code",
-        "suggestedFix": "Add the missing properties for zip file deployment",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 7,
-        "endLine": 28,
-        "endColumn": 11,
-        "ruleDescription": "Check required properties for Lambda if the deployment package is a .zip file",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Function1",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "category": "Security",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 12,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Function2",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "category": "Security",
-        "startLine": 13,
-        "startColumn": 3,
-        "endLine": 13,
-        "endColumn": 12,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Function3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "category": "Security",
-        "startLine": 23,
-        "startColumn": 3,
-        "endLine": 23,
-        "endColumn": 12,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'PackageType' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Function2",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.PackageType",
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 7,
-        "endLine": 22,
-        "endColumn": 18,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Function1' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Function1",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 5,
-        "endLine": 6,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Function2' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Function2",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 5,
-        "endLine": 15,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Function3' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Function3",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 5,
-        "endLine": 25,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

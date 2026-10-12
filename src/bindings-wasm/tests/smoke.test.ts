@@ -1013,24 +1013,28 @@ function stripEnrichmentFields(report: any): unknown {
 }
 
 describe('snapshot exclusion normalization', () => {
-    it('removes excluded rules and adjusts their severity counts', () => {
+    it('removes only manifest rules and adjusts their severity counts', () => {
         const report = {
             diagnostics: [
+                { ruleId: 'W4012', severity: 'WARN' },
                 { ruleId: 'I4010', severity: 'INFO' },
                 { ruleId: 'E3012', severity: 'ERROR' },
             ],
             metadata: {
-                counts: { fatal: 0, errors: 1, warnings: 0, informational: 1, debug: 0 },
+                counts: { fatal: 0, errors: 1, warnings: 1, informational: 1, debug: 0 },
             },
         };
 
         const normalized: any = stripSnapshotExcludedFields(report);
 
-        expect(normalized.diagnostics).toEqual([{ ruleId: 'E3012', severity: 'ERROR' }]);
+        expect(normalized.diagnostics).toEqual([
+            { ruleId: 'W4012', severity: 'WARN' },
+            { ruleId: 'E3012', severity: 'ERROR' },
+        ]);
         expect(normalized.metadata.counts).toEqual({
             fatal: 0,
             errors: 1,
-            warnings: 0,
+            warnings: 1,
             informational: 0,
             debug: 0,
         });

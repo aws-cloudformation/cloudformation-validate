@@ -1,4 +1,3262 @@
 {
+  "quickstart/nist_application.yaml": {
+    "filePath": "quickstart/nist_application.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 28,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 81,
+        "informational": 76,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W1011",
+        "severity": "WARN",
+        "message": "Use dynamic references (e.g., SSM SecureString) instead of parameter 'pDBPassword' for secrets",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.MasterUserPassword",
+        "category": "Security",
+        "startLine": 1016,
+        "startColumn": 7,
+        "endLine": 1016,
+        "endColumn": 25,
+        "ruleDescription": "Instead of REFing a parameter for a secret use a dynamic reference",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1030",
+        "severity": "WARN",
+        "message": "{'Ref': 'pAppAmi'} is not a 'AWS::EC2::Image.Id' when 'Ref' is resolved",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.ImageId",
+        "suggestedFix": "Use parameter type AWS::EC2::Image::Id",
+        "category": "Best Practice",
+        "startLine": 378,
+        "startColumn": 7,
+        "endLine": 378,
+        "endColumn": 14,
+        "ruleDescription": "Validate the values that come from a Ref function",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1030",
+        "severity": "WARN",
+        "message": "{'Ref': 'pWebServerAMI'} is not a 'AWS::EC2::Image.Id' when 'Ref' is resolved",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.ImageId",
+        "suggestedFix": "Use parameter type AWS::EC2::Image::Id",
+        "category": "Best Practice",
+        "startLine": 510,
+        "startColumn": 7,
+        "endLine": 510,
+        "endColumn": 14,
+        "ruleDescription": "Validate the values that come from a Ref function",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W1030",
+        "severity": "WARN",
+        "message": "{'Ref': 'pWebServerAMI'} is not a 'AWS::EC2::Image.Id' when 'Ref' is resolved",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rPostProcInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "suggestedFix": "Use parameter type AWS::EC2::Image::Id",
+        "category": "Best Practice",
+        "startLine": 800,
+        "startColumn": 7,
+        "endLine": 800,
+        "endColumn": 14,
+        "ruleDescription": "Validate the values that come from a Ref function",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2010",
+        "severity": "WARN",
+        "message": "Don't use 'NoEcho' parameter 'pDBPassword' in resource metadata",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.install_wordpress.files./tmp/create-wp-config.content.Fn::Join.1.9",
+        "suggestedFix": "Move the parameter reference out of Metadata or remove NoEcho",
+        "category": "Security",
+        "startLine": 343,
+        "startColumn": 24,
+        "endLine": 343,
+        "endColumn": 25,
+        "ruleDescription": "NoEcho parameters are not masked when used in Metadata and Outputs",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2506",
+        "severity": "WARN",
+        "message": "Parameter 'pAppAmi' is used as an ImageId but has Type 'String' - consider using 'AWS::EC2::Image::Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "pAppAmi",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/pAppAmi",
+        "category": "Best Practice",
+        "startLine": 125,
+        "startColumn": 3,
+        "endLine": 125,
+        "endColumn": 10,
+        "ruleDescription": "Check if ImageId Parameters have the correct type",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2506",
+        "severity": "WARN",
+        "message": "Parameter 'pWebServerAMI' is used as an ImageId but has Type 'String' - consider using 'AWS::EC2::Image::Id'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "pWebServerAMI",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/pWebServerAMI",
+        "category": "Best Practice",
+        "startLine": 213,
+        "startColumn": 3,
+        "endLine": 213,
+        "endColumn": 16,
+        "ruleDescription": "Check if ImageId Parameters have the correct type",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2511",
+        "severity": "WARN",
+        "message": "IAM Policy Version should be updated to '2012-10-17'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rS3AccessLogsPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "propertyPath": "Properties.PolicyDocument.Version",
+        "suggestedFix": "Update the policy document Version to '2012-10-17'",
+        "category": "Security",
+        "startLine": 1058,
+        "startColumn": 9,
+        "endLine": 1058,
+        "endColumn": 16,
+        "ruleDescription": "Check IAM Resource Policies syntax",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rRDSInstanceMySQL' dependency already enforced by a 'GetAtt' at 'Metadata.AWS::CloudFormation::Init.install_wordpress.files./tmp/create-wp-config.content.Fn::Join.1.12'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 219,
+        "startColumn": 5,
+        "endLine": 219,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rELBApp' dependency already enforced by a 'GetAtt' at 'Metadata.AWS::CloudFormation::Init.nginx.files./tmp/nginx/default.conf.content.Fn::Join.1.9'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 417,
+        "startColumn": 5,
+        "endLine": 417,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rAutoScalingConfigApp' dependency already enforced by a 'Ref' at 'Properties.LaunchConfigurationName'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 577,
+        "startColumn": 5,
+        "endLine": 577,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rAutoScalingConfigWeb' dependency already enforced by a 'Ref' at 'Properties.LaunchConfigurationName'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 603,
+        "startColumn": 5,
+        "endLine": 603,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rAutoScalingGroupWeb' dependency already enforced by a 'Ref' at 'Properties.Dimensions.0.Value'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 698,
+        "startColumn": 5,
+        "endLine": 698,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rS3ELBAccessLogs' dependency already enforced by a 'Ref' at 'Properties.AccessLoggingPolicy.S3BucketName'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 723,
+        "startColumn": 5,
+        "endLine": 723,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rSecurityGroupApp' dependency already enforced by a 'Ref' at 'Properties.SecurityGroups.0'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 723,
+        "startColumn": 5,
+        "endLine": 723,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rS3ELBAccessLogs' dependency already enforced by a 'Ref' at 'Properties.AccessLoggingPolicy.S3BucketName'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 759,
+        "startColumn": 5,
+        "endLine": 759,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rSecurityGroupWeb' dependency already enforced by a 'Ref' at 'Properties.SecurityGroups.0'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 759,
+        "startColumn": 5,
+        "endLine": 759,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rDBSubnetGroup' dependency already enforced by a 'Ref' at 'Properties.DBSubnetGroupName'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 1003,
+        "startColumn": 5,
+        "endLine": 1003,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rSecurityGroupRDS' dependency already enforced by a 'Ref' at 'Properties.VPCSecurityGroups.0'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 1003,
+        "startColumn": 5,
+        "endLine": 1003,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rWebContentBucket' dependency already enforced by a 'Ref' at 'Properties.Bucket'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rWebContentS3Policy",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 1198,
+        "startColumn": 5,
+        "endLine": 1198,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rWebContentBucket' dependency already enforced by a 'Ref' at 'Properties.PolicyDocument.Statement.0.Resource.Fn::Join.1.3'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rWebContentS3Policy",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 1198,
+        "startColumn": 5,
+        "endLine": 1198,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3005",
+        "severity": "WARN",
+        "message": "'rWebContentBucket' dependency already enforced by a 'Ref' at 'Properties.PolicyDocument.Statement.1.Resource.Fn::Join.1.3'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rWebContentS3Policy",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "propertyPath": "DependsOn",
+        "suggestedFix": "Remove the DependsOn entry",
+        "category": "Best Practice",
+        "startLine": 1198,
+        "startColumn": 5,
+        "endLine": 1198,
+        "endColumn": 14,
+        "ruleDescription": "Check obsolete DependsOn configuration for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3011",
+        "severity": "WARN",
+        "message": "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rS3AccessLogsPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "category": "Best Practice",
+        "startLine": 1026,
+        "startColumn": 3,
+        "endLine": 1026,
+        "endColumn": 22,
+        "ruleDescription": "Check resources with UpdateReplacePolicy/DeletionPolicy have both",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3011",
+        "severity": "WARN",
+        "message": "Both 'UpdateReplacePolicy' and 'DeletionPolicy' are needed to protect resource from deletion",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rS3ELBAccessLogs",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "category": "Best Practice",
+        "startLine": 1060,
+        "startColumn": 3,
+        "endLine": 1060,
+        "endColumn": 19,
+        "ruleDescription": "Check resources with UpdateReplacePolicy/DeletionPolicy have both",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W3045",
+        "severity": "WARN",
+        "message": "AccessControl property is deprecated. Use bucket policies instead",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rS3ELBAccessLogs",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.AccessControl",
+        "suggestedFix": "Remove AccessControl and use an AWS::S3::BucketPolicy resource",
+        "category": "Deprecation",
+        "startLine": 1063,
+        "startColumn": 7,
+        "endLine": 1063,
+        "endColumn": 20,
+        "ruleDescription": "Controlling access to an S3 bucket should be done with bucket policies",
+        "phase": "LINT",
+        "context": {
+          "actualValue": "Private"
+        }
+      },
+      {
+        "ruleId": "W3045",
+        "severity": "WARN",
+        "message": "AccessControl property is deprecated. Use bucket policies instead",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rWebContentBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.AccessControl",
+        "suggestedFix": "Remove AccessControl and use an AWS::S3::BucketPolicy resource",
+        "category": "Deprecation",
+        "startLine": 1180,
+        "startColumn": 7,
+        "endLine": 1180,
+        "endColumn": 20,
+        "ruleDescription": "Controlling access to an S3 bucket should be done with bucket policies",
+        "phase": "LINT",
+        "context": {
+          "actualValue": "Private"
+        }
+      },
+      {
+        "ruleId": "W3697",
+        "severity": "WARN",
+        "message": "Resource type 'AWS::AutoScaling::LaunchConfiguration' is from a service in maintenance mode since 2024-10-01. Consider migrating to an alternative",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "category": "Deprecation",
+        "startLine": 218,
+        "startColumn": 3,
+        "endLine": 218,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Resource type is from a service in maintenance mode",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W3697",
+        "severity": "WARN",
+        "message": "Resource type 'AWS::AutoScaling::LaunchConfiguration' is from a service in maintenance mode since 2024-10-01. Consider migrating to an alternative",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "category": "Deprecation",
+        "startLine": 416,
+        "startColumn": 3,
+        "endLine": 416,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Resource type is from a service in maintenance mode",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'True' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.AssociatePublicIpAddress",
+        "category": "Best Practice",
+        "startLine": 509,
+        "startColumn": 7,
+        "endLine": 509,
+        "endColumn": 31,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingDownApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.ScalingAdjustment",
+        "category": "Best Practice",
+        "startLine": 566,
+        "startColumn": 7,
+        "endLine": 566,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'-1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingDownWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.ScalingAdjustment",
+        "category": "Best Practice",
+        "startLine": 574,
+        "startColumn": 7,
+        "endLine": 574,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'300' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.HealthCheckGracePeriod",
+        "category": "Best Practice",
+        "startLine": 582,
+        "startColumn": 7,
+        "endLine": 582,
+        "endColumn": 29,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags.0.PropagateAtLaunch",
+        "category": "Best Practice",
+        "startLine": 592,
+        "startColumn": 9,
+        "endLine": 592,
+        "endColumn": 26,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags.1.PropagateAtLaunch",
+        "category": "Best Practice",
+        "startLine": 595,
+        "startColumn": 9,
+        "endLine": 595,
+        "endColumn": 26,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'300' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.HealthCheckGracePeriod",
+        "category": "Best Practice",
+        "startLine": 608,
+        "startColumn": 7,
+        "endLine": 608,
+        "endColumn": 29,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags.0.PropagateAtLaunch",
+        "category": "Best Practice",
+        "startLine": 618,
+        "startColumn": 9,
+        "endLine": 618,
+        "endColumn": 26,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags.1.PropagateAtLaunch",
+        "category": "Best Practice",
+        "startLine": 621,
+        "startColumn": 9,
+        "endLine": 621,
+        "endColumn": 26,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'-1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingUpApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.ScalingAdjustment",
+        "category": "Best Practice",
+        "startLine": 634,
+        "startColumn": 7,
+        "endLine": 634,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingUpWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.ScalingAdjustment",
+        "category": "Best Practice",
+        "startLine": 642,
+        "startColumn": 7,
+        "endLine": 642,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.EvaluationPeriods",
+        "category": "Best Practice",
+        "startLine": 655,
+        "startColumn": 7,
+        "endLine": 655,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'60' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Period",
+        "category": "Best Practice",
+        "startLine": 658,
+        "startColumn": 7,
+        "endLine": 658,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'50' is not of type 'number' - automatically coerced (string to number)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Threshold",
+        "category": "Best Practice",
+        "startLine": 660,
+        "startColumn": 7,
+        "endLine": 660,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.EvaluationPeriods",
+        "category": "Best Practice",
+        "startLine": 673,
+        "startColumn": 7,
+        "endLine": 673,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'60' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Period",
+        "category": "Best Practice",
+        "startLine": 676,
+        "startColumn": 7,
+        "endLine": 676,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'50' is not of type 'number' - automatically coerced (string to number)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Threshold",
+        "category": "Best Practice",
+        "startLine": 678,
+        "startColumn": 7,
+        "endLine": 678,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.EvaluationPeriods",
+        "category": "Best Practice",
+        "startLine": 690,
+        "startColumn": 7,
+        "endLine": 690,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'60' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Period",
+        "category": "Best Practice",
+        "startLine": 693,
+        "startColumn": 7,
+        "endLine": 693,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'10' is not of type 'number' - automatically coerced (string to number)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Threshold",
+        "category": "Best Practice",
+        "startLine": 695,
+        "startColumn": 7,
+        "endLine": 695,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'1' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.EvaluationPeriods",
+        "category": "Best Practice",
+        "startLine": 708,
+        "startColumn": 7,
+        "endLine": 708,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'60' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Period",
+        "category": "Best Practice",
+        "startLine": 711,
+        "startColumn": 7,
+        "endLine": 711,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'10' is not of type 'number' - automatically coerced (string to number)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Threshold",
+        "category": "Best Practice",
+        "startLine": 713,
+        "startColumn": 7,
+        "endLine": 713,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'60' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.AccessLoggingPolicy.EmitInterval",
+        "category": "Best Practice",
+        "startLine": 729,
+        "startColumn": 9,
+        "endLine": 729,
+        "endColumn": 21,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.AccessLoggingPolicy.Enabled",
+        "category": "Best Practice",
+        "startLine": 730,
+        "startColumn": 9,
+        "endLine": 730,
+        "endColumn": 16,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'60' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.AccessLoggingPolicy.EmitInterval",
+        "category": "Best Practice",
+        "startLine": 765,
+        "startColumn": 9,
+        "endLine": 765,
+        "endColumn": 21,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rELBWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.AccessLoggingPolicy.Enabled",
+        "category": "Best Practice",
+        "startLine": 766,
+        "startColumn": 9,
+        "endLine": 766,
+        "endColumn": 16,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.MultiAZ",
+        "category": "Best Practice",
+        "startLine": 1020,
+        "startColumn": 7,
+        "endLine": 1020,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'true' is not of type 'boolean' - automatically coerced (string to boolean)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 1021,
+        "startColumn": 7,
+        "endLine": 1021,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupEgress.0.FromPort",
+        "category": "Best Practice",
+        "startLine": 1070,
+        "startColumn": 9,
+        "endLine": 1070,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupEgress.0.ToPort",
+        "category": "Best Practice",
+        "startLine": 1072,
+        "startColumn": 9,
+        "endLine": 1072,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'80' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupEgress.1.FromPort",
+        "category": "Best Practice",
+        "startLine": 1074,
+        "startColumn": 9,
+        "endLine": 1074,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'80' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupEgress.1.ToPort",
+        "category": "Best Practice",
+        "startLine": 1076,
+        "startColumn": 9,
+        "endLine": 1076,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.FromPort",
+        "category": "Best Practice",
+        "startLine": 1080,
+        "startColumn": 9,
+        "endLine": 1080,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.ToPort",
+        "category": "Best Practice",
+        "startLine": 1082,
+        "startColumn": 9,
+        "endLine": 1082,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.FromPort",
+        "category": "Best Practice",
+        "startLine": 1098,
+        "startColumn": 9,
+        "endLine": 1098,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.ToPort",
+        "category": "Best Practice",
+        "startLine": 1100,
+        "startColumn": 9,
+        "endLine": 1100,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'80' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.1.FromPort",
+        "category": "Best Practice",
+        "startLine": 1103,
+        "startColumn": 9,
+        "endLine": 1103,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'80' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.1.ToPort",
+        "category": "Best Practice",
+        "startLine": 1105,
+        "startColumn": 9,
+        "endLine": 1105,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'22' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.2.FromPort",
+        "category": "Best Practice",
+        "startLine": 1108,
+        "startColumn": 9,
+        "endLine": 1108,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'22' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.2.ToPort",
+        "category": "Best Practice",
+        "startLine": 1110,
+        "startColumn": 9,
+        "endLine": 1110,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'3306' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupRDS",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.FromPort",
+        "category": "Best Practice",
+        "startLine": 1124,
+        "startColumn": 9,
+        "endLine": 1124,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'3306' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupRDS",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.ToPort",
+        "category": "Best Practice",
+        "startLine": 1128,
+        "startColumn": 9,
+        "endLine": 1128,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.FromPort",
+        "category": "Best Practice",
+        "startLine": 1143,
+        "startColumn": 9,
+        "endLine": 1143,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.ToPort",
+        "category": "Best Practice",
+        "startLine": 1145,
+        "startColumn": 9,
+        "endLine": 1145,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.FromPort",
+        "category": "Best Practice",
+        "startLine": 1155,
+        "startColumn": 9,
+        "endLine": 1155,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'443' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.0.ToPort",
+        "category": "Best Practice",
+        "startLine": 1157,
+        "startColumn": 9,
+        "endLine": 1157,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'80' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.1.FromPort",
+        "category": "Best Practice",
+        "startLine": 1160,
+        "startColumn": 9,
+        "endLine": 1160,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'80' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.1.ToPort",
+        "category": "Best Practice",
+        "startLine": 1162,
+        "startColumn": 9,
+        "endLine": 1162,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'22' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.2.FromPort",
+        "category": "Best Practice",
+        "startLine": 1165,
+        "startColumn": 9,
+        "endLine": 1165,
+        "endColumn": 17,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'22' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.SecurityGroupIngress.2.ToPort",
+        "category": "Best Practice",
+        "startLine": 1167,
+        "startColumn": 9,
+        "endLine": 1167,
+        "endColumn": 15,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'2555' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rWebContentBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.ExpirationInDays",
+        "category": "Best Practice",
+        "startLine": 1183,
+        "startColumn": 11,
+        "endLine": 1183,
+        "endColumn": 27,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'90' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rWebContentBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.Transition.TransitionInDays",
+        "category": "Best Practice",
+        "startLine": 1192,
+        "startColumn": 13,
+        "endLine": 1192,
+        "endColumn": 29,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "LandingPageURL",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/LandingPageURL/Value.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 92,
+        "startColumn": 3,
+        "endLine": 92,
+        "endColumn": 17,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "WebsiteURL",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/WebsiteURL/Value.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 105,
+        "startColumn": 3,
+        "endLine": 105,
+        "endColumn": 13,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.copy_landing_content.sources./var/www/html.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 236,
+        "startColumn": 15,
+        "endLine": 236,
+        "endColumn": 23,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.0-download-DSA.command.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 244,
+        "startColumn": 17,
+        "endLine": 244,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 255,
+        "startColumn": 17,
+        "endLine": 255,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.install_cfn.files./etc/cfn/cfn-hup.conf.content.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 264,
+        "startColumn": 17,
+        "endLine": 264,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.install_cfn.files./etc/cfn/hooks.d/cfn-auto-reloader.conf.content.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 284,
+        "startColumn": 17,
+        "endLine": 284,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.install_wordpress.files./tmp/create-wp-config.content.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 324,
+        "startColumn": 17,
+        "endLine": 324,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.UserData.Fn::Base64.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 388,
+        "startColumn": 11,
+        "endLine": 388,
+        "endColumn": 19,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.0-download-DSA.command.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 430,
+        "startColumn": 17,
+        "endLine": 430,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.installDeepSecurityAgent.commands.3-activate-DSA.command.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 441,
+        "startColumn": 17,
+        "endLine": 441,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Metadata.AWS::CloudFormation::Init.nginx.files./tmp/nginx/default.conf.content.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 450,
+        "startColumn": 17,
+        "endLine": 450,
+        "endColumn": 25,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.UserData.Fn::Base64.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 520,
+        "startColumn": 11,
+        "endLine": 520,
+        "endColumn": 19,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rPostProcInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData.Fn::Base64.Fn::Join.1.44.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 923,
+        "startColumn": 15,
+        "endLine": 923,
+        "endColumn": 23,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 1002,
+        "startColumn": 3,
+        "endLine": 1002,
+        "endColumn": 20,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "category": "Best Practice",
+        "startLine": 1002,
+        "startColumn": 3,
+        "endLine": 1002,
+        "endColumn": 20,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 378,
+        "startColumn": 7,
+        "endLine": 378,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 380,
+        "startColumn": 7,
+        "endLine": 380,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pAppInstanceType' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeyName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.KeyName",
+        "category": "Best Practice",
+        "startLine": 382,
+        "startColumn": 7,
+        "endLine": 382,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SecurityGroups' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.SecurityGroups",
+        "category": "Best Practice",
+        "startLine": 384,
+        "startColumn": 7,
+        "endLine": 384,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 386,
+        "startColumn": 7,
+        "endLine": 386,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AssociatePublicIpAddress' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.AssociatePublicIpAddress",
+        "category": "Best Practice",
+        "startLine": 509,
+        "startColumn": 7,
+        "endLine": 509,
+        "endColumn": 31,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 510,
+        "startColumn": 7,
+        "endLine": 510,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 512,
+        "startColumn": 7,
+        "endLine": 512,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pWebInstanceType' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeyName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.KeyName",
+        "category": "Best Practice",
+        "startLine": 514,
+        "startColumn": 7,
+        "endLine": 514,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SecurityGroups' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.SecurityGroups",
+        "category": "Best Practice",
+        "startLine": 516,
+        "startColumn": 7,
+        "endLine": 516,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingConfigWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 518,
+        "startColumn": 7,
+        "endLine": 518,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AutoScalingGroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingDownApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.AutoScalingGroupName",
+        "category": "Best Practice",
+        "startLine": 563,
+        "startColumn": 7,
+        "endLine": 563,
+        "endColumn": 27,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'rAutoScalingGroupApp'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AutoScalingGroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingDownWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.AutoScalingGroupName",
+        "category": "Best Practice",
+        "startLine": 571,
+        "startColumn": 7,
+        "endLine": 571,
+        "endColumn": 27,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'rAutoScalingGroupWeb'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LaunchConfigurationName' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.LaunchConfigurationName",
+        "category": "Best Practice",
+        "startLine": 584,
+        "startColumn": 7,
+        "endLine": 584,
+        "endColumn": 30,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "Ref to 'rAutoScalingConfigApp'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VPCZoneIdentifier' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.VPCZoneIdentifier",
+        "category": "Best Practice",
+        "startLine": 598,
+        "startColumn": 7,
+        "endLine": 598,
+        "endColumn": 24,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LaunchConfigurationName' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.LaunchConfigurationName",
+        "category": "Best Practice",
+        "startLine": 610,
+        "startColumn": 7,
+        "endLine": 610,
+        "endColumn": 30,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "Ref to 'rAutoScalingConfigWeb'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VPCZoneIdentifier' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.VPCZoneIdentifier",
+        "category": "Best Practice",
+        "startLine": 624,
+        "startColumn": 7,
+        "endLine": 624,
+        "endColumn": 24,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AutoScalingGroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingUpApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.AutoScalingGroupName",
+        "category": "Best Practice",
+        "startLine": 631,
+        "startColumn": 7,
+        "endLine": 631,
+        "endColumn": 27,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'rAutoScalingGroupApp'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AutoScalingGroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rAutoScalingUpWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::ScalingPolicy"
+        },
+        "propertyPath": "Properties.AutoScalingGroupName",
+        "category": "Best Practice",
+        "startLine": 639,
+        "startColumn": 7,
+        "endLine": 639,
+        "endColumn": 27,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-autoscaling.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'rAutoScalingGroupWeb'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HealthCheck' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rELBApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.HealthCheck",
+        "category": "Best Practice",
+        "startLine": 734,
+        "startColumn": 7,
+        "endLine": 734,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Scheme' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rELBApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Scheme",
+        "category": "Best Practice",
+        "startLine": 745,
+        "startColumn": 7,
+        "endLine": 745,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Subnets' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rELBApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Subnets",
+        "category": "Best Practice",
+        "startLine": 748,
+        "startColumn": 7,
+        "endLine": 748,
+        "endColumn": 14,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HealthCheck' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rELBWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.HealthCheck",
+        "category": "Best Practice",
+        "startLine": 770,
+        "startColumn": 7,
+        "endLine": 770,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Subnets' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rELBWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::ElasticLoadBalancing::LoadBalancer"
+        },
+        "propertyPath": "Properties.Subnets",
+        "category": "Best Practice",
+        "startLine": 783,
+        "startColumn": 7,
+        "endLine": 783,
+        "endColumn": 14,
+        "documentationUrl": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-elb.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ImageId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.ImageId",
+        "category": "Best Practice",
+        "startLine": 800,
+        "startColumn": 7,
+        "endLine": 800,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 802,
+        "startColumn": 7,
+        "endLine": 802,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "parameter 'pAppInstanceType' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SecurityGroupIds' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.SecurityGroupIds",
+        "category": "Best Practice",
+        "startLine": 804,
+        "startColumn": 7,
+        "endLine": 804,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SubnetId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.SubnetId",
+        "category": "Best Practice",
+        "startLine": 806,
+        "startColumn": 7,
+        "endLine": 806,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pAppPrivateSubnetA' (type AWS::EC2::Subnet::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'UserData' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Instance"
+        },
+        "propertyPath": "Properties.UserData",
+        "category": "Best Practice",
+        "startLine": 811,
+        "startColumn": 7,
+        "endLine": 811,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only",
+          "resolutionSource": "dynamic (Base64 with unresolvable argument)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstanceProfile",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::InstanceProfile"
+        },
+        "propertyPath": "Properties.Path",
+        "category": "Best Practice",
+        "startLine": 955,
+        "startColumn": 7,
+        "endLine": 955,
+        "endColumn": 11,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstanceRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Path",
+        "category": "Best Practice",
+        "startLine": 970,
+        "startColumn": 7,
+        "endLine": 970,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DBName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.DBName",
+        "category": "Best Practice",
+        "startLine": 1011,
+        "startColumn": 7,
+        "endLine": 1011,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pDBName' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DBSubnetGroupName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.DBSubnetGroupName",
+        "category": "Best Practice",
+        "startLine": 1013,
+        "startColumn": 7,
+        "endLine": 1013,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'rDBSubnetGroup'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Engine",
+        "category": "Best Practice",
+        "startLine": 1015,
+        "startColumn": 7,
+        "endLine": 1015,
+        "endColumn": 13,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MasterUsername' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.MasterUsername",
+        "category": "Best Practice",
+        "startLine": 1018,
+        "startColumn": 7,
+        "endLine": 1018,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pDBUser' (type String)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'MultiAZ' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.MultiAZ",
+        "category": "Best Practice",
+        "startLine": 1020,
+        "startColumn": 7,
+        "endLine": 1020,
+        "endColumn": 14,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'StorageEncrypted' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.StorageEncrypted",
+        "category": "Best Practice",
+        "startLine": 1021,
+        "startColumn": 7,
+        "endLine": 1021,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'BackupRetentionPeriod' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.BackupRetentionPeriod",
+        "category": "Best Practice",
+        "startLine": 1022,
+        "startColumn": 7,
+        "endLine": 1022,
+        "endColumn": 28,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Bucket' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rS3AccessLogsPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "propertyPath": "Properties.Bucket",
+        "category": "Best Practice",
+        "startLine": 1029,
+        "startColumn": 7,
+        "endLine": 1029,
+        "endColumn": 13,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'rS3ELBAccessLogs'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 1067,
+        "startColumn": 7,
+        "endLine": 1067,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 1089,
+        "startColumn": 7,
+        "endLine": 1089,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 1094,
+        "startColumn": 7,
+        "endLine": 1094,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupAppInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 1117,
+        "startColumn": 7,
+        "endLine": 1117,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupRDS",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 1122,
+        "startColumn": 7,
+        "endLine": 1122,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupRDS",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 1135,
+        "startColumn": 7,
+        "endLine": 1135,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 1140,
+        "startColumn": 7,
+        "endLine": 1140,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 1146,
+        "startColumn": 7,
+        "endLine": 1146,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'GroupDescription' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.GroupDescription",
+        "category": "Best Practice",
+        "startLine": 1151,
+        "startColumn": 7,
+        "endLine": 1151,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupWebInstance",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 1174,
+        "startColumn": 7,
+        "endLine": 1174,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "parameter 'pProductionVPC' (type AWS::EC2::VPC::Id)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Bucket' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rWebContentS3Policy",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::BucketPolicy"
+        },
+        "propertyPath": "Properties.Bucket",
+        "category": "Best Practice",
+        "startLine": 1200,
+        "startColumn": 7,
+        "endLine": 1200,
+        "endColumn": 13,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'rWebContentBucket'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rCWAlarmHighCPUApp' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 645,
+        "startColumn": 5,
+        "endLine": 645,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rCWAlarmHighCPUWeb' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rCWAlarmHighCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 663,
+        "startColumn": 5,
+        "endLine": 663,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rCWAlarmLowCPUApp' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUApp",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 681,
+        "startColumn": 5,
+        "endLine": 681,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rCWAlarmLowCPUWeb' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rCWAlarmLowCPUWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudWatch::Alarm"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 699,
+        "startColumn": 5,
+        "endLine": 699,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rDBSubnetGroup' of type 'AWS::RDS::DBSubnetGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rDBSubnetGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBSubnetGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 716,
+        "startColumn": 5,
+        "endLine": 716,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rPostProcInstanceRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rPostProcInstanceRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 960,
+        "startColumn": 5,
+        "endLine": 960,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rRDSInstanceMySQL' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rRDSInstanceMySQL",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 1006,
+        "startColumn": 5,
+        "endLine": 1006,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rS3ELBAccessLogs' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rS3ELBAccessLogs",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 1062,
+        "startColumn": 5,
+        "endLine": 1062,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rSecurityGroupWeb' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rSecurityGroupWeb",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::SecurityGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 1139,
+        "startColumn": 5,
+        "endLine": 1139,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'rWebContentBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "rWebContentBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 1179,
+        "startColumn": 5,
+        "endLine": 1179,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "quickstart/nist_config_rules.yaml": {
     "filePath": "quickstart/nist_config_rules.yaml",
     "status": "OK",

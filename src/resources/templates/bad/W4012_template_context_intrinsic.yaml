@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Template-level Metadata is not transformed, so an intrinsic object does not satisfy the Context string schema.
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - production
+      - development
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: !Sub "${Environment} event queues"
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: buffers environment-specific events

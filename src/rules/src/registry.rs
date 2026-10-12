@@ -1986,19 +1986,19 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "I4010",
         category: Category::BestPractice,
         description: "Template or architecture-relevant resource has no Metadata Context block",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Engine,
     },
     RuleDefinition {
         id: "W4011",
         category: Category::BestPractice,
         description: "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Engine,
     },
     RuleDefinition {
         id: "W4012",
         category: Category::BestPractice,
         description: "Metadata Context block does not match the Metadata Context schema",
-        origin: RuleOrigin::CfnLint,
+        origin: RuleOrigin::Engine,
     },
 ];
 

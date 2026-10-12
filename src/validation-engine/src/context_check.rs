@@ -3,6 +3,7 @@
 //! must record a rationale, and every supplied block must match the Metadata
 //! Context schema published in the CloudFormation template reference.
 
+use crate::engine::ValidateConfig;
 use data_source::embedded::METADATA_CONTEXT_SCHEMA_BYTES;
 use diagnostics::{Diagnostic, RegisteredDiagnostic, RelatedResource, ResourceRef};
 use rules::{FilterConfig, lookup_rule};
@@ -57,26 +58,64 @@ const MISSING_WHY_FIX: &str = "Add 'why' stating the resource's purpose and nota
 
 static CONTEXT_SCHEMA: OnceLock<Result<ContextSchema, String>> = OnceLock::new();
 
-pub(crate) fn check_context(model: &SemanticModel, filters: &FilterConfig) -> Result<Vec<Diagnostic>, String> {
-    let schema = context_schema()?;
-    let missing_context_category = lookup_rule(MISSING_CONTEXT_RULE_ID)
-        .ok_or_else(|| format!("Metadata Context rule '{MISSING_CONTEXT_RULE_ID}' is not registered"))?
-        .category
-        .as_str();
+pub(crate) fn check_context(model: &SemanticModel, config: &ValidateConfig) -> Result<Vec<Diagnostic>, String> {
+    let check_missing = context_rule_survives_global_filters(config, MISSING_CONTEXT_RULE_ID)?;
+    let check_missing_why = context_rule_survives_global_filters(config, MISSING_WHY_RULE_ID)?;
+    let check_schema = context_rule_survives_global_filters(config, SCHEMA_VIOLATION_RULE_ID)?;
+    if !check_missing && !check_missing_why && !check_schema {
+        return Ok(Vec::new());
+    }
+
     let primaries = primary_resources(model);
-    let mut diagnostics = missing_context_diagnostics(model, &primaries, filters, missing_context_category);
+    let mut diagnostics = if check_missing {
+        let category = lookup_rule(MISSING_CONTEXT_RULE_ID)
+            .ok_or_else(|| format!("Metadata Context rule '{MISSING_CONTEXT_RULE_ID}' is not registered"))?
+            .category
+            .as_str();
+        missing_context_diagnostics(model, &primaries, &config.filters, category)
+    } else {
+        Vec::new()
+    };
+    let mut schema = None;
 
     for &(logical_id, resource) in &primaries {
         let Some(context) = resource_context(resource) else {
             continue;
         };
-        diagnostics.extend(missing_why_diagnostic(model, logical_id, resource, context));
-        diagnostics.extend(schema_violation_diagnostics(model, Some((logical_id, resource)), context, schema)?);
+        if check_missing_why && let Some(diagnostic) = missing_why_diagnostic(model, logical_id, resource, context) {
+            diagnostics.push(diagnostic);
+        }
+        if check_schema {
+            let schema = match schema {
+                Some(schema) => schema,
+                None => {
+                    let loaded = context_schema()?;
+                    schema = Some(loaded);
+                    loaded
+                }
+            };
+            diagnostics.extend(schema_violation_diagnostics(model, Some((logical_id, resource)), context, schema)?);
+        }
     }
-    if let Some(context) = template_context(model) {
+    if check_schema && let Some(context) = template_context(model) {
+        let schema = match schema {
+            Some(schema) => schema,
+            None => context_schema()?,
+        };
         diagnostics.extend(schema_violation_diagnostics(model, None, context, schema)?);
     }
     Ok(diagnostics)
+}
+
+fn context_rule_survives_global_filters(config: &ValidateConfig, rule_id: &str) -> Result<bool, String> {
+    let rule = lookup_rule(rule_id).ok_or_else(|| format!("Metadata Context rule '{rule_id}' is not registered"))?;
+    Ok(!config.filters.globally_suppresses_builtin_rule(
+        rule_id,
+        Some(rule.category.as_str()),
+        rule.severity(),
+        config.strict,
+        config.severity_level,
+    ))
 }
 
 fn context_schema() -> Result<&'static ContextSchema, String> {
@@ -91,17 +130,17 @@ fn context_schema() -> Result<&'static ContextSchema, String> {
 /// like the template. A resource whose `Type` is missing or not a string is
 /// reported by the resource-shape rules and cannot be architecture-relevant.
 fn primary_resources(model: &SemanticModel) -> Vec<(&str, &ResolvedResource)> {
-    let mut primaries: Vec<(&str, &ResolvedResource)> = model
+    let mut positioned: Vec<(u32, u32, &str, &ResolvedResource)> = model
         .resources
         .iter()
         .filter(|(logical_id, resource)| !resource.resource_type.is_empty() && !is_incidental(logical_id))
-        .map(|(logical_id, resource)| (logical_id.as_str(), resource))
+        .map(|(logical_id, resource)| {
+            let span = model.resource_span(logical_id, "");
+            (span.start_line, span.start_column, logical_id.as_str(), resource)
+        })
         .collect();
-    primaries.sort_by_cached_key(|&(logical_id, _)| {
-        let span = model.resource_span(logical_id, "");
-        (span.start_line, span.start_column, logical_id.to_string())
-    });
-    primaries
+    positioned.sort_unstable_by(|left, right| (left.0, left.1, left.2).cmp(&(right.0, right.1, right.2)));
+    positioned.into_iter().map(|(_, _, logical_id, resource)| (logical_id, resource)).collect()
 }
 
 fn is_incidental(logical_id: &str) -> bool {
@@ -128,7 +167,8 @@ fn resource_context(resource: &ResolvedResource) -> Option<&Value> {
 }
 
 fn template_context(model: &SemanticModel) -> Option<&Value> {
-    model.template_metadata.as_ref()?.as_object()?.get(CONTEXT_KEY)
+    model.template_metadata.as_ref()?.as_object()?.get(CONTEXT_KEY)?;
+    model.authored_template_json().get(SECTION_METADATA)?.as_object()?.get(CONTEXT_KEY)
 }
 
 fn is_unresolved_intrinsic(value: &Value) -> bool {
@@ -343,6 +383,10 @@ impl Placement {
         }
     }
 
+    fn allows_intrinsics(self) -> bool {
+        matches!(self, Self::Resource)
+    }
+
     fn other(self) -> Self {
         match self {
             Self::Template => Self::Resource,
@@ -408,7 +452,7 @@ impl ContextSchema {
             }]);
         }
         let mut violations = Vec::new();
-        validate_node(block, self.definition(placement)?, &self.document, &[], &mut violations)?;
+        validate_node(block, self.definition(placement)?, &self.document, placement, &[], &mut violations)?;
         let other_fields = self.fields(placement.other());
         for violation in &mut violations {
             if matches!(violation.kind, SchemaViolationKind::UnknownField { .. })
@@ -501,18 +545,19 @@ fn validate_node(
     instance: &Value,
     schema: &Value,
     root: &Value,
+    placement: Placement,
     path: &[String],
     violations: &mut Vec<SchemaViolation>,
 ) -> Result<(), String> {
-    if is_unresolved_intrinsic(instance) {
+    if placement.allows_intrinsics() && is_unresolved_intrinsic(instance) {
         return Ok(());
     }
     let node = schema_object(schema, path)?;
     if let Some(reference) = node.get("$ref") {
-        return validate_node(instance, resolve_reference(reference, root)?, root, path, violations);
+        return validate_node(instance, resolve_reference(reference, root)?, root, placement, path, violations);
     }
     if let Some(branches) = node.get("oneOf").and_then(Value::as_array) {
-        return validate_one_of(instance, branches, root, path, violations);
+        return validate_one_of(instance, branches, root, placement, path, violations);
     }
     if let Some(expected_type) = node.get("type").and_then(Value::as_str)
         && !matches_json_type(instance, expected_type)?
@@ -536,13 +581,13 @@ fn validate_node(
         return Ok(());
     }
     if let Some(object) = instance.as_object() {
-        validate_object(object, node, root, path, violations)?;
+        validate_object(object, node, root, placement, path, violations)?;
     }
     if let Some(items) = instance.as_array()
         && let Some(item_schema) = node.get("items")
     {
         for (index, item) in items.iter().enumerate() {
-            validate_node(item, item_schema, root, &child_path(path, &index.to_string()), violations)?;
+            validate_node(item, item_schema, root, placement, &child_path(path, &index.to_string()), violations)?;
         }
     }
     Ok(())
@@ -552,6 +597,7 @@ fn validate_object(
     object: &Map<String, Value>,
     node: &Map<String, Value>,
     root: &Value,
+    placement: Placement,
     path: &[String],
     violations: &mut Vec<SchemaViolation>,
 ) -> Result<(), String> {
@@ -569,7 +615,7 @@ fn validate_object(
     for (field, value) in object {
         let field_path = child_path(path, field);
         if let Some(property_schema) = properties.and_then(|properties| properties.get(field)) {
-            validate_node(value, property_schema, root, &field_path, violations)?;
+            validate_node(value, property_schema, root, placement, &field_path, violations)?;
             continue;
         }
         match node.get("additionalProperties") {
@@ -584,7 +630,7 @@ fn validate_object(
                 },
             }),
             Some(additional_schema @ Value::Object(_)) => {
-                validate_node(value, additional_schema, root, &field_path, violations)?;
+                validate_node(value, additional_schema, root, placement, &field_path, violations)?;
             }
             Some(Value::Bool(true)) | None => {}
             Some(other) => {
@@ -605,13 +651,14 @@ fn validate_one_of(
     instance: &Value,
     branches: &[Value],
     root: &Value,
+    placement: Placement,
     path: &[String],
     violations: &mut Vec<SchemaViolation>,
 ) -> Result<(), String> {
     let mut branch_violations = Vec::with_capacity(branches.len());
     for branch in branches {
         let mut candidate = Vec::new();
-        validate_node(instance, branch, root, path, &mut candidate)?;
+        validate_node(instance, branch, root, placement, path, &mut candidate)?;
         branch_violations.push(candidate);
     }
     if branch_violations.iter().any(Vec::is_empty) {
@@ -771,11 +818,16 @@ mod tests {
     }
 
     fn check(template: &str) -> Vec<Diagnostic> {
-        check_with_filters(template, &FilterConfig::default())
+        check_with_config(template, &ValidateConfig::default())
     }
 
     fn check_with_filters(template: &str, filters: &FilterConfig) -> Vec<Diagnostic> {
-        check_context(&model(template), filters).expect("embedded Metadata Context schema should load")
+        let config = ValidateConfig { filters: filters.clone(), ..Default::default() };
+        check_with_config(template, &config)
+    }
+
+    fn check_with_config(template: &str, config: &ValidateConfig) -> Vec<Diagnostic> {
+        check_context(&model(template), config).expect("embedded Metadata Context schema should load")
     }
 
     fn rule_ids(diagnostics: &[Diagnostic]) -> Vec<&str> {
@@ -964,6 +1016,26 @@ Resources:
     }
 
     #[test]
+    fn globally_suppressed_context_rules_produce_no_findings() {
+        let filters = FilterConfig::new(
+            RuleFilterConfig { ids: vec!["E3012".to_string()], ..Default::default() },
+            RuleFilterConfig::default(),
+        );
+        let template = r#"
+Metadata:
+  com.aws.cloudformation.Context:
+    unknown: true
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+"#;
+
+        let diagnostics = check_with_filters(template, &filters);
+
+        assert!(diagnostics.is_empty(), "globally suppressed Context rules must do no observable work");
+    }
+
+    #[test]
     fn unresolved_intrinsics_preserve_static_sibling_validation() {
         let template = r#"
 Parameters:
@@ -1004,13 +1076,14 @@ Resources:
             BTreeSet::from([
                 "Metadata.com.aws.cloudformation.Context.trust.src",
                 "Metadata.com.aws.cloudformation.Context.unknown",
+                "Metadata/com.aws.cloudformation.Context/arch",
                 "Metadata/com.aws.cloudformation.Context/unknown",
             ])
         );
     }
 
     #[test]
-    fn unresolved_intrinsics_do_not_create_context_findings() {
+    fn resource_intrinsics_do_not_create_context_findings() {
         let template = r#"
 Parameters:
   Rationale:
@@ -1020,10 +1093,8 @@ Parameters:
 Conditions:
   IsProduction: !Equals [!Ref Rationale, production]
 Metadata:
-  com.aws.cloudformation.Context: !If
-    - IsProduction
-    - arch: production queue
-    - arch: development queue
+  com.aws.cloudformation.Context:
+    arch: parameterized queues
 Resources:
   QueueWithDynamicContext:
     Type: AWS::SQS::Queue
@@ -1046,9 +1117,94 @@ Resources:
 
         let diagnostics = check(template);
 
+        assert!(diagnostics.is_empty(), "resource Metadata supports intrinsic Context values: {diagnostics:?}");
+    }
+
+    #[test]
+    fn template_intrinsics_are_validated_as_authored_values() {
+        let dynamic_field = check(
+            r#"
+Parameters:
+  Rationale:
+    Type: String
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: !Ref Rationale
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: buffers events
+"#,
+        );
+        let field_findings = with_rule(&dynamic_field, SCHEMA_VIOLATION_RULE_ID);
+        assert_eq!(field_findings.len(), 1, "{dynamic_field:?}");
+        assert_eq!(field_findings[0].property_path.as_deref(), Some("Metadata/com.aws.cloudformation.Context/arch"));
+        assert_eq!(field_findings[0].message, "'arch' is an object; it must be a string.");
+
+        let dynamic_block = check(
+            r#"
+Parameters:
+  Rationale:
+    Type: String
+Conditions:
+  IsProduction: !Equals [!Ref Rationale, production]
+Metadata:
+  com.aws.cloudformation.Context: !If
+    - IsProduction
+    - arch: production queue
+    - arch: development queue
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: buffers events
+"#,
+        );
+        let block_findings = with_rule(&dynamic_block, SCHEMA_VIOLATION_RULE_ID);
+        assert_eq!(block_findings.len(), 1, "{dynamic_block:?}");
+        assert_eq!(block_findings[0].property_path.as_deref(), Some("Metadata/com.aws.cloudformation.Context/Fn::If"));
+        assert_eq!(
+            block_findings[0].message,
+            "'Fn::If' is not a recognized template-level Context field; allowed fields: arch, must, owner, ref."
+        );
+
+        let nested_intrinsic = check(
+            r#"
+Parameters:
+  ContextReference:
+    Type: String
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: queue
+    ref:
+      - !Ref ContextReference
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: buffers events
+"#,
+        );
+        let nested_findings = with_rule(&nested_intrinsic, SCHEMA_VIOLATION_RULE_ID);
+        let nested_paths: BTreeSet<&str> =
+            nested_findings.iter().filter_map(|diagnostic| diagnostic.property_path.as_deref()).collect();
+        assert_eq!(
+            nested_paths,
+            BTreeSet::from([
+                "Metadata/com.aws.cloudformation.Context/ref/0",
+                "Metadata/com.aws.cloudformation.Context/ref/0/Ref",
+            ])
+        );
         assert!(
-            diagnostics.is_empty(),
-            "unresolved intrinsic values cannot prove a Context violation: {diagnostics:?}"
+            nested_findings.iter().all(|diagnostic| {
+                !diagnostic.message.contains(MARKER_INTRINSIC)
+                    && !diagnostic.property_path.as_deref().is_some_and(|path| path.contains(MARKER_INTRINSIC))
+            }),
+            "internal intrinsic markers must not reach diagnostics: {nested_intrinsic:?}"
         );
     }
 

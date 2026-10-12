@@ -5,8 +5,7 @@ use common::load_template;
 use composite_engine::CompositeEngine;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
-use resources::SNAPSHOT_EXCLUDED_RULE_IDS;
-use rules::{FilterConfig, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, Severity};
+use rules::{FilterConfig, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, RuleOrigin, Severity};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
 use template_model::EntityType;
@@ -17,6 +16,8 @@ static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::
 static COMPOSITE: LazyLock<CompositeEngine> =
     LazyLock::new(|| CompositeEngine::new(CompositeEngineConfig::default()).unwrap());
 
+const CONTEXT_RULE_IDS: [&str; 3] = ["I4010", "W4011", "W4012"];
+
 fn engines() -> [(&'static str, &'static dyn ValidationEngine); 3] {
     [("rego", &*REGO), ("cel", &*CEL), ("composite", &*COMPOSITE)]
 }
@@ -24,7 +25,7 @@ fn engines() -> [(&'static str, &'static dyn ValidationEngine); 3] {
 fn context_diagnostics(engine: &dyn ValidationEngine, template: &str, config: ValidateConfig) -> Vec<Diagnostic> {
     let report = validate_bytes(engine, &SchemaValidator::default(), &load_template(template), config)
         .expect("context fixture should validate");
-    report.diagnostics.into_iter().filter(|d| SNAPSHOT_EXCLUDED_RULE_IDS.contains(&d.rule_id.as_str())).collect()
+    report.diagnostics.into_iter().filter(|d| CONTEXT_RULE_IDS.contains(&d.rule_id.as_str())).collect()
 }
 
 /// Runs every engine selector on `template` and asserts they agree before
@@ -71,6 +72,7 @@ fn cdk_synthesized_template_is_checked_except_for_its_analytics_record() {
 
     let rule_ids: Vec<&str> = diagnostics.iter().map(|d| d.rule_id.as_str()).collect();
     assert_eq!(rule_ids, ["W4011", "I4010", "I4010"], "{diagnostics:?}");
+    assert!(diagnostics.iter().all(|diagnostic| diagnostic.source == RuleOrigin::Engine));
     assert_eq!(diagnostics[0].resource_logical_id(), Some("OrderTopic"));
     assert_eq!(
         diagnostics[2].message,
@@ -159,11 +161,23 @@ fn resource_filters_are_applied_before_missing_context_aggregation() {
 }
 
 #[test]
-fn intrinsic_context_values_are_clean_on_every_engine() {
+fn resource_intrinsic_context_values_are_clean_on_every_engine() {
     let diagnostics =
         context_diagnostics_on_every_engine("good/metadata_context_intrinsics.yaml", ValidateConfig::default());
 
-    assert!(diagnostics.is_empty(), "intrinsic Context values cannot prove a violation: {diagnostics:?}");
+    assert!(diagnostics.is_empty(), "resource Metadata supports intrinsic Context values: {diagnostics:?}");
+}
+
+#[test]
+fn template_intrinsic_context_value_is_rejected_on_every_engine() {
+    let diagnostics =
+        context_diagnostics_on_every_engine("bad/W4012_template_context_intrinsic.yaml", ValidateConfig::default());
+
+    assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+    assert_eq!(diagnostics[0].rule_id, "W4012");
+    assert_eq!(diagnostics[0].property_path.as_deref(), Some("Metadata/com.aws.cloudformation.Context/arch"));
+    assert_eq!(diagnostics[0].location.map(|span| span.start_line), Some(11));
+    assert_eq!(diagnostics[0].message, "'arch' is an object; it must be a string.");
 }
 
 #[test]

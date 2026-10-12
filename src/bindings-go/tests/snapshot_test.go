@@ -274,9 +274,10 @@ func diffJSON(t *testing.T, rel string, actual, expected map[string]any) {
 	t.Errorf("%s: report does not match snapshot\n--- actual ---\n%s\n--- expected ---\n%s", rel, actualJSON, expectedJSON)
 }
 
-func TestStripSnapshotExcludedFieldsRemovesRulesAndAdjustsCounts(t *testing.T) {
+func TestStripSnapshotExcludedFieldsRemovesOnlyManifestRulesAndAdjustsCounts(t *testing.T) {
 	report := map[string]any{
 		"diagnostics": []any{
+			map[string]any{"ruleId": "W4012", "severity": "WARN"},
 			map[string]any{"ruleId": "I4010", "severity": "INFO"},
 			map[string]any{"ruleId": "E3012", "severity": "ERROR"},
 		},
@@ -284,7 +285,7 @@ func TestStripSnapshotExcludedFieldsRemovesRulesAndAdjustsCounts(t *testing.T) {
 			"counts": map[string]any{
 				"fatal":         float64(0),
 				"errors":        float64(1),
-				"warnings":      float64(0),
+				"warnings":      float64(1),
 				"informational": float64(1),
 				"debug":         float64(0),
 			},
@@ -294,11 +295,11 @@ func TestStripSnapshotExcludedFieldsRemovesRulesAndAdjustsCounts(t *testing.T) {
 	normalized := stripSnapshotExcludedFields(report, "")
 
 	diagnostics := normalized["diagnostics"].([]any)
-	if len(diagnostics) != 1 || diagnostics[0].(map[string]any)["ruleId"] != "E3012" {
+	if len(diagnostics) != 2 || diagnostics[0].(map[string]any)["ruleId"] != "W4012" || diagnostics[1].(map[string]any)["ruleId"] != "E3012" {
 		t.Fatalf("unexpected normalized diagnostics: %#v", diagnostics)
 	}
 	counts := normalized["metadata"].(map[string]any)["counts"].(map[string]any)
-	if counts["informational"] != float64(0) || counts["errors"] != float64(1) {
+	if counts["warnings"] != float64(1) || counts["informational"] != float64(0) || counts["errors"] != float64(1) {
 		t.Fatalf("unexpected normalized counts: %#v", counts)
 	}
 }

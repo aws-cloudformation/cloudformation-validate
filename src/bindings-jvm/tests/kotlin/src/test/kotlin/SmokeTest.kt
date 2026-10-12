@@ -537,9 +537,10 @@ class SmokeTest {
     }
 
     @Test
-    fun snapshotExclusionRemovesRulesAndAdjustsCounts() {
+    fun snapshotExclusionRemovesOnlyManifestRulesAndAdjustsCounts() {
         val report = mapOf<String, Any?>(
             "diagnostics" to listOf(
+                mapOf("ruleId" to "W4012", "severity" to "WARN"),
                 mapOf("ruleId" to "I4010", "severity" to "INFO"),
                 mapOf("ruleId" to "E3012", "severity" to "ERROR"),
             ),
@@ -547,7 +548,7 @@ class SmokeTest {
                 "counts" to mapOf(
                     "fatal" to 0L,
                     "errors" to 1L,
-                    "warnings" to 0L,
+                    "warnings" to 1L,
                     "informational" to 1L,
                     "debug" to 0L,
                 )
@@ -557,13 +558,17 @@ class SmokeTest {
         val normalized = stripSnapshotExcludedFields(report)
 
         assertEquals(
-            listOf(mapOf("ruleId" to "E3012", "severity" to "ERROR")),
+            listOf(
+                mapOf("ruleId" to "W4012", "severity" to "WARN"),
+                mapOf("ruleId" to "E3012", "severity" to "ERROR"),
+            ),
             normalized["diagnostics"],
         )
         @Suppress("UNCHECKED_CAST")
         val metadata = normalized["metadata"] as Map<String, Any?>
         @Suppress("UNCHECKED_CAST")
         val counts = metadata["counts"] as Map<String, Any?>
+        assertEquals(1L, counts["warnings"])
         assertEquals(0L, counts["informational"])
         assertEquals(1L, counts["errors"])
     }
