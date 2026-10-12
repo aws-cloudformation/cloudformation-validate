@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  TaskACpu:
+    Type: Number
+    Default: 16384
+    AllowedValues: [256, 512, 1024, 2048, 4096, 8192, 16384]
+  TaskAMemory:
+    Type: Number
+    Default: 49152
+  TaskBCpu:
+    Type: Number
+    Default: 2048
+    AllowedValues: [256, 512, 1024, 2048, 4096, 8192, 16384]
+  TaskBMemory:
+    Type: Number
+    Default: 8192
+  Environment:
+    Type: String
+    Default: small
+    AllowedValues: [small, large]
+Mappings:
+  TaskSizes:
+    small: {Cpu: 256, Memory: 512}
+    large: {Cpu: 8192, Memory: 49152}
+Resources:
+  TaskA:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: parameterized-a
+      Cpu: !Ref TaskACpu
+      Memory: !Ref TaskAMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+  TaskB:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: parameterized-b
+      Cpu: !Ref TaskBCpu
+      Memory: !Ref TaskBMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+  MappedTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: parameterized-mapping
+      Cpu: !FindInMap [TaskSizes, !Ref Environment, Cpu]
+      Memory: !FindInMap [TaskSizes, !Ref Environment, Memory]
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+  JoinedTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: parameterized-join
+      Cpu: !Join ["", [!Ref TaskACpu]]
+      Memory: "49152"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
