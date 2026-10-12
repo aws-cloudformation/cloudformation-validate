@@ -33,8 +33,16 @@ fn eval_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         if fargate_scenarios.is_empty() {
             continue;
         }
-        let cpu_scenarios = m.resolve_scenarios_json(name, "Properties.Cpu");
-        let memory_scenarios = m.resolve_scenarios_json(name, "Properties.Memory");
+        let cpu_scenarios = m
+            .resolve_scenarios_json(name, "Properties.Cpu")
+            .into_iter()
+            .filter(|(_, conditions)| !m.scenario_uses_unresolved_parameter(name, "Properties.Cpu", conditions))
+            .collect::<Vec<_>>();
+        let memory_scenarios = m
+            .resolve_scenarios_json(name, "Properties.Memory")
+            .into_iter()
+            .filter(|(_, conditions)| !m.scenario_uses_unresolved_parameter(name, "Properties.Memory", conditions))
+            .collect::<Vec<_>>();
         let mut invalid_sizes = BTreeSet::new();
 
         for fargate_conditions in &fargate_scenarios {

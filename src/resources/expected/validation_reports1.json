@@ -6741,656 +6741,6 @@
       }
     ]
   },
-  "bad/I4010_cdk_synthesized_missing_context.json": {
-    "filePath": "bad/I4010_cdk_synthesized_missing_context.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 4,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W4011",
-        "severity": "WARN",
-        "message": "Metadata.com.aws.cloudformation.Context has no 'why' and no trust declaration with conf 'low'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context",
-        "suggestedFix": "Add 'why' stating the resource's purpose and notable design choices without restating its type or property values, or set trust to {src: infer, conf: low, note: \"rationale not documented\"} when the rationale is unknown.",
-        "category": "Best Practice",
-        "startLine": 31,
-        "startColumn": 9,
-        "endLine": 31,
-        "endColumn": 40,
-        "ruleDescription": "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrderHandler' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderHandler",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrderTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 5,
-        "endLine": 27,
-        "endColumn": 16,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/I4010_context_missing.json": {
-    "filePath": "bad/I4010_context_missing.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 4,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 12,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 5,
-        "endLine": 8,
-        "endColumn": 17,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 5,
-        "endLine": 8,
-        "endColumn": 17,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 5,
-        "endLine": 26,
-        "endColumn": 21,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 5,
-        "endLine": 26,
-        "endColumn": 21,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.KeySchema",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 9,
-        "endLine": 11,
-        "endColumn": 19,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 16,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrdersTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ServiceLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 7,
-        "endLine": 28,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 34,
-        "startColumn": 7,
-        "endLine": 34,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/I4010_context_missing.yaml": {
-    "filePath": "bad/I4010_context_missing.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 4,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 12,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 13,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 13,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 14,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 3,
-        "endLine": 10,
-        "endColumn": 14,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 20,
-        "startColumn": 3,
-        "endLine": 20,
-        "endColumn": 18,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 20,
-        "startColumn": 3,
-        "endLine": 20,
-        "endColumn": 18,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 13,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.KeySchema",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
-        "endColumn": 16,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 3,
-        "endLine": 8,
-        "endColumn": 13,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrdersTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrdersTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 5,
-        "endLine": 12,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ServiceLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 5,
-        "endLine": 22,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a' of type 'AWS::Lambda::Function' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 5,
-        "endLine": 26,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
   "bad/I9001_conditional_create_only.yaml": {
     "filePath": "bad/I9001_conditional_create_only.yaml",
     "status": "OK",
@@ -10248,858 +9598,6 @@
         "startColumn": 5,
         "endLine": 22,
         "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/W4011_context_missing_why.yaml": {
-    "filePath": "bad/W4011_context_missing_why.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 4,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 3,
-        "informational": 12,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W4011",
-        "severity": "WARN",
-        "message": "Metadata.com.aws.cloudformation.Context has no 'why' and no trust declaration with conf 'low'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context",
-        "suggestedFix": "Add 'why' stating the resource's purpose and notable design choices without restating its type or property values, or set trust to {src: infer, conf: low, note: \"rationale not documented\"} when the rationale is unknown.",
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 7,
-        "endLine": 14,
-        "endColumn": 37,
-        "ruleDescription": "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4011",
-        "severity": "WARN",
-        "message": "Metadata.com.aws.cloudformation.Context has no 'why' and no trust declaration with conf 'low'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Notifier",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context",
-        "suggestedFix": "Add 'why' stating the resource's purpose and notable design choices without restating its type or property values, or set trust to {src: infer, conf: low, note: \"rationale not documented\"} when the rationale is unknown.",
-        "category": "Best Practice",
-        "startLine": 21,
-        "startColumn": 7,
-        "endLine": 21,
-        "endColumn": 37,
-        "ruleDescription": "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4011",
-        "severity": "WARN",
-        "message": "Metadata.com.aws.cloudformation.Context has no 'why' and no trust declaration with conf 'low'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context",
-        "suggestedFix": "Add 'why' stating the resource's purpose and notable design choices without restating its type or property values, or set trust to {src: infer, conf: low, note: \"rationale not documented\"} when the rationale is unknown.",
-        "category": "Best Practice",
-        "startLine": 48,
-        "startColumn": 7,
-        "endLine": 48,
-        "endColumn": 37,
-        "ruleDescription": "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 3,
-        "endLine": 11,
-        "endColumn": 13,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 3,
-        "endLine": 11,
-        "endColumn": 13,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "LegacyTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 3,
-        "endLine": 27,
-        "endColumn": 14,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "LegacyTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 3,
-        "endLine": 27,
-        "endColumn": 14,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 43,
-        "startColumn": 3,
-        "endLine": 43,
-        "endColumn": 18,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 43,
-        "startColumn": 3,
-        "endLine": 43,
-        "endColumn": 18,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 3,
-        "endLine": 11,
-        "endColumn": 13,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LegacyTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.KeySchema",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 7,
-        "endLine": 30,
-        "endColumn": 16,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "OrderQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 3,
-        "endLine": 11,
-        "endColumn": 13,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Notifier' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Notifier",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 3,
-        "endLine": 18,
-        "endColumn": 11,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'LegacyTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "LegacyTable",
-          "entityType": "Resource",
-          "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 29,
-        "startColumn": 5,
-        "endLine": 29,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ServiceLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ServiceLogGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 45,
-        "startColumn": 5,
-        "endLine": 45,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/W4012_context_schema_violation.yaml": {
-    "filePath": "bad/W4012_context_schema_violation.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 16,
-        "informational": 5,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W4011",
-        "severity": "WARN",
-        "message": "Metadata.com.aws.cloudformation.Context has no 'why' and no trust declaration with conf 'low'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context",
-        "suggestedFix": "Add 'why' stating the resource's purpose and notable design choices without restating its type or property values, or set trust to {src: infer, conf: low, note: \"rationale not documented\"} when the rationale is unknown.",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 7,
-        "endLine": 25,
-        "endColumn": 37,
-        "ruleDescription": "Metadata Context block has no 'why' rationale and no low-confidence trust declaration",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'arch' is an array; it must be a string.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "com.aws.cloudformation.Context",
-          "entityType": "Metadata"
-        },
-        "propertyPath": "Metadata/com.aws.cloudformation.Context/arch",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 5,
-        "endLine": 9,
-        "endColumn": 9,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'why' belongs at resource level, not template level. Template-level fields: arch, must, owner, ref; resource-level fields: deps, must, mutability, mutable, trust, why.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "com.aws.cloudformation.Context",
-          "entityType": "Metadata"
-        },
-        "propertyPath": "Metadata/com.aws.cloudformation.Context/why",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 5,
-        "endLine": 11,
-        "endColumn": 8,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'ref.0' is missing required field 'at'; 'ref' must be an array whose entries are each a string or an object with required 'at'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "com.aws.cloudformation.Context",
-          "entityType": "Metadata"
-        },
-        "propertyPath": "Metadata/com.aws.cloudformation.Context/ref/0",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 12,
-        "endLine": 13,
-        "endColumn": 13,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'ref.1' does not match any supported shape; 'ref' must be an array whose entries are each a string or an object with required 'at'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "com.aws.cloudformation.Context",
-          "entityType": "Metadata"
-        },
-        "propertyPath": "Metadata/com.aws.cloudformation.Context/ref/1",
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 9,
-        "endLine": 14,
-        "endColumn": 10,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'gaps' is not a recognized template-level Context field; allowed fields: arch, must, owner, ref.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "com.aws.cloudformation.Context",
-          "entityType": "Metadata"
-        },
-        "propertyPath": "Metadata/com.aws.cloudformation.Context/gaps",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 5,
-        "endLine": 15,
-        "endColumn": 9,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "Metadata.com.aws.cloudformation.Context must be a mapping of Context fields; found a string.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context",
-        "category": "Best Practice",
-        "startLine": 21,
-        "startColumn": 7,
-        "endLine": 21,
-        "endColumn": 37,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'why' is a number; it must be a string.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.why",
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 9,
-        "endLine": 26,
-        "endColumn": 12,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'must' is a string; it must be an array of strings.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.must",
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 9,
-        "endLine": 27,
-        "endColumn": 13,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'mutable' value 'sometimes' is not recognized; allowed values: must-never-change, change-with-constraints, review-required, free-to-tune.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.mutable",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 9,
-        "endLine": 28,
-        "endColumn": 16,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'mutability.QueueName' value 'never-ish' is not recognized; allowed values: must-never-change, change-with-constraints, review-required, free-to-tune.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.mutability.QueueName",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 11,
-        "endLine": 30,
-        "endColumn": 20,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'trust' is missing required field 'src'; 'trust' must be an object with required 'src' and 'conf'.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.trust",
-        "category": "Best Practice",
-        "startLine": 31,
-        "startColumn": 9,
-        "endLine": 31,
-        "endColumn": 14,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'trust.conf' value 'certain' is not recognized; allowed values: high, medium, low.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.trust.conf",
-        "category": "Best Practice",
-        "startLine": 32,
-        "startColumn": 11,
-        "endLine": 32,
-        "endColumn": 15,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'trust.extra' is not a recognized field of 'trust'; allowed fields: cite, conf, note, src.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.trust.extra",
-        "category": "Best Practice",
-        "startLine": 33,
-        "startColumn": 11,
-        "endLine": 33,
-        "endColumn": 16,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'ref' belongs at template level, not resource level. Template-level fields: arch, must, owner, ref; resource-level fields: deps, must, mutability, mutable, trust, why.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.ref",
-        "category": "Best Practice",
-        "startLine": 34,
-        "startColumn": 9,
-        "endLine": 34,
-        "endColumn": 12,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'unknown' is not a recognized resource-level Context field; allowed fields: deps, must, mutability, mutable, trust, why.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Metadata.com.aws.cloudformation.Context.unknown",
-        "category": "Best Practice",
-        "startLine": 35,
-        "startColumn": 9,
-        "endLine": 35,
-        "endColumn": 16,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 3,
-        "endLine": 22,
-        "endColumn": 8,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 3,
-        "endLine": 22,
-        "endColumn": 8,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 3,
-        "endLine": 22,
-        "endColumn": 8,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 3,
-        "endLine": 18,
-        "endColumn": 9,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 22,
-        "startColumn": 3,
-        "endLine": 22,
-        "endColumn": 8,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/W4012_template_context_intrinsic.yaml": {
-    "filePath": "bad/W4012_template_context_intrinsic.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 2,
-        "informational": 4,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'Environment' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Environment",
-          "entityType": "Parameter"
-        },
-        "propertyPath": "Parameters/Environment",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 14,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W4012",
-        "severity": "WARN",
-        "message": "'arch' is an object; it must be a string.",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "com.aws.cloudformation.Context",
-          "entityType": "Metadata"
-        },
-        "propertyPath": "Metadata/com.aws.cloudformation.Context/arch",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 5,
-        "endLine": 11,
-        "endColumn": 9,
-        "ruleDescription": "Metadata Context block does not match the Metadata Context schema",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 3,
-        "endLine": 13,
-        "endColumn": 8,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 3,
-        "endLine": 13,
-        "endColumn": 8,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 3,
-        "endLine": 13,
-        "endColumn": 8,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Queue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 3,
-        "endLine": 13,
-        "endColumn": 8,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
@@ -20475,6 +18973,814 @@
         "startLine": 8,
         "startColumn": 5,
         "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/findinmap_default_value_no_transform.yaml": {
+    "filePath": "bad/functions/findinmap_default_value_no_transform.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1101",
+        "severity": "FATAL",
+        "message": "Fn::FindInMap: the 'DefaultValue' element requires the AWS::LanguageExtensions transform; without it Fn::FindInMap accepts at most 3 elements",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName",
+        "category": "Structure",
+        "startLine": 14,
+        "startColumn": 7,
+        "endLine": 14,
+        "endColumn": 18,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/foreach_no_transform.yaml": {
+    "filePath": "bad/functions/foreach_no_transform.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 4,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0006",
+        "severity": "FATAL",
+        "message": "Logical ID 'Fn::ForEach::Buckets' must be alphanumeric (A-Za-z0-9)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::Buckets",
+          "entityType": "Resource",
+          "resourceType": ""
+        },
+        "category": "Structure",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 25,
+        "ruleDescription": "Logical IDs must be alphanumeric",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::Buckets'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::Buckets",
+          "entityType": "Resource",
+          "resourceType": ""
+        },
+        "category": "Intrinsic Function",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 25,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::BucketOutputs'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::BucketOutputs",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/Fn::ForEach::BucketOutputs",
+        "category": "Intrinsic Function",
+        "startLine": 33,
+        "startColumn": 5,
+        "endLine": 33,
+        "endColumn": 31,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "F1032",
+        "severity": "FATAL",
+        "message": "Fn::ForEach requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use 'Fn::ForEach::GetAttLoop'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Fn::ForEach::BucketOutputs",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/Fn::ForEach::BucketOutputs/2/Fn::ForEach::GetAttLoop",
+        "category": "Intrinsic Function",
+        "startLine": 36,
+        "startColumn": 11,
+        "endLine": 36,
+        "endColumn": 34,
+        "ruleDescription": "Fn::ForEach requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      }
+    ]
+  },
+  "bad/functions/get_stack_output.json": {
+    "filePath": "bad/functions/get_stack_output.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 4,
+      "counts": {
+        "fatal": 0,
+        "errors": 4,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'OutputName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 8,
+        "startColumn": 11,
+        "endLine": 8,
+        "endColumn": 30,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'StackName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 18,
+        "startColumn": 11,
+        "endLine": 18,
+        "endColumn": 30,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'invalid' is not of type 'object'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 28,
+        "startColumn": 11,
+        "endLine": 28,
+        "endColumn": 30,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "Additional properties are not allowed ('BadKey' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput.BadKey",
+        "category": "Intrinsic Function",
+        "startLine": 39,
+        "startColumn": 13,
+        "endLine": 39,
+        "endColumn": 20,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic1' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic2' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 7,
+        "endLine": 16,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic3' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic4' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 7,
+        "endLine": 34,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/get_stack_output.yaml": {
+    "filePath": "bad/functions/get_stack_output.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 0,
+        "errors": 4,
+        "warnings": 0,
+        "informational": 8,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'OutputName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 8,
+        "startColumn": 9,
+        "endLine": 8,
+        "endColumn": 27,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'StackName' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 15,
+        "startColumn": 9,
+        "endLine": 15,
+        "endColumn": 27,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "'invalid' is not of type 'object'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput",
+        "category": "Intrinsic Function",
+        "startLine": 22,
+        "startColumn": 9,
+        "endLine": 22,
+        "endColumn": 27,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E1033",
+        "severity": "ERROR",
+        "message": "Additional properties are not allowed ('BadKey' was unexpected)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.DisplayName.Fn::GetStackOutput.BadKey",
+        "category": "Intrinsic Function",
+        "startLine": 31,
+        "startColumn": 11,
+        "endLine": 31,
+        "endColumn": 17,
+        "ruleDescription": "GetStackOutput validation of parameters",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 3,
+        "endLine": 33,
+        "endColumn": 9,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 3,
+        "endLine": 33,
+        "endColumn": 9,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic1' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic1",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic2' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic2",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 5,
+        "endLine": 13,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic3' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic3",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 5,
+        "endLine": 20,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic4' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic4",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic5' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic5",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/import_value.yaml": {
+    "filePath": "bad/functions/import_value.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 1,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E8003",
+        "severity": "ERROR",
+        "message": "Fn::Equals: argument 1: {'Fn::ImportValue': 'PrimaryRegion'} is not of type 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "primaryRegion",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/primaryRegion/Fn::Equals",
+        "category": "Intrinsic Function",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 13,
+        "ruleDescription": "Fn::Equals must take exactly two scalar operands",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "W8001",
+        "severity": "WARN",
+        "message": "Condition 'primaryRegion' is not used by any resource or Fn::If",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "primaryRegion",
+          "entityType": "Condition"
+        },
+        "propertyPath": "Conditions/primaryRegion",
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 16,
+        "ruleDescription": "Check if Conditions are Used",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'CidrBlock' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.CidrBlock",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 7,
+        "endLine": 9,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (cross-stack import)"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.VpcId",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 12,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "dynamic (cross-stack import)"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'subnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "subnet",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::Subnet"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/functions/length_no_transform.yaml": {
+    "filePath": "bad/functions/length_no_transform.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1030",
+        "severity": "FATAL",
+        "message": "Fn::Length requires the AWS::LanguageExtensions transform, but it is not declared. Add 'Transform: AWS::LanguageExtensions' to use it",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.DelaySeconds",
+        "category": "Intrinsic Function",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 19,
+        "ruleDescription": "Fn::Length requires the AWS::LanguageExtensions transform",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Queue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
