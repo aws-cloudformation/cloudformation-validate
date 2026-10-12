@@ -33,6 +33,25 @@ EXPECTED_DIR = os.path.join(WORKSPACE, "resources", "expected")
 
 CHUNK_PREFIX = "validation_reports"
 CHUNK_EXTENSION = ".json"
+SNAPSHOT_EXCLUDED_RULE_IDS_PATH = os.path.join(EXPECTED_DIR, "snapshot_excluded_rule_ids.txt")
+
+
+def _load_snapshot_excluded_rule_ids():
+    with open(SNAPSHOT_EXCLUDED_RULE_IDS_PATH, encoding="utf-8") as excluded_rules_file:
+        rule_ids = frozenset(line.strip() for line in excluded_rules_file if line.strip())
+    if not rule_ids:
+        raise RuntimeError(f"snapshot exclusion manifest is empty: {SNAPSHOT_EXCLUDED_RULE_IDS_PATH}")
+    return rule_ids
+
+
+SNAPSHOT_EXCLUDED_RULE_IDS = _load_snapshot_excluded_rule_ids()
+SEVERITY_COUNT_FIELDS = {
+    "FATAL": "fatal",
+    "ERROR": "errors",
+    "WARN": "warnings",
+    "INFO": "informational",
+    "DEBUG": "debug",
+}
 
 # Enrichment fields present only at the DETAILED detail level; stripped from the
 # snapshot entry when comparing at STANDARD.
@@ -91,7 +110,41 @@ def discover_snapshot_templates():
     return sorted(templates)
 
 
+def _exclude_snapshot_rules(report):
+    diagnostics = report.get("diagnostics")
+    if not isinstance(diagnostics, list):
+        raise AssertionError("report has no diagnostics list")
+    removed = [
+        diagnostic
+        for diagnostic in diagnostics
+        if diagnostic.get("ruleId") in SNAPSHOT_EXCLUDED_RULE_IDS
+    ]
+    report["diagnostics"] = [
+        diagnostic
+        for diagnostic in diagnostics
+        if diagnostic.get("ruleId") not in SNAPSHOT_EXCLUDED_RULE_IDS
+    ]
+    if not removed:
+        return
+
+    counts = report.get("metadata", {}).get("counts")
+    if not isinstance(counts, dict):
+        raise AssertionError("report has no metadata.counts object")
+    for diagnostic in removed:
+        severity = diagnostic.get("severity")
+        count_field = SEVERITY_COUNT_FIELDS.get(severity)
+        if count_field is None:
+            raise AssertionError(f"excluded diagnostic has unsupported severity: {severity!r}")
+        current_count = counts.get(count_field)
+        if not isinstance(current_count, int) or current_count < 1:
+            raise AssertionError(
+                f"metadata.counts does not account for excluded {severity} diagnostic"
+            )
+        counts[count_field] = current_count - 1
+
+
 def strip_snapshot_excluded_fields(report, file_path=None):
+    _exclude_snapshot_rules(report)
     if file_path is not None:
         report["filePath"] = file_path
     report.pop("version", None)
@@ -157,6 +210,31 @@ STANDARD_DEBUG = ValidateConfig(severity_level=Severity.DEBUG, detail_level=Deta
 REGO = RegoEngine()
 CEL = CelEngine()
 COMPOSITE = CompositeEngine()
+
+
+class SnapshotNormalizationTest(unittest.TestCase):
+    def test_context_rules_and_counts_are_excluded(self):
+        report = {
+            "diagnostics": [
+                {"ruleId": "I4010", "severity": "INFO"},
+                {"ruleId": "E3012", "severity": "ERROR"},
+            ],
+            "metadata": {
+                "counts": {
+                    "fatal": 0,
+                    "errors": 1,
+                    "warnings": 0,
+                    "informational": 1,
+                    "debug": 0,
+                }
+            },
+        }
+
+        normalized = strip_snapshot_excluded_fields(report)
+
+        self.assertEqual([{"ruleId": "E3012", "severity": "ERROR"}], normalized["diagnostics"])
+        self.assertEqual(0, normalized["metadata"]["counts"]["informational"])
+        self.assertEqual(1, normalized["metadata"]["counts"]["errors"])
 
 
 class SnapshotValidationTest(unittest.TestCase):

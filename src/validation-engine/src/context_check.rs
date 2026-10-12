@@ -5,12 +5,13 @@
 
 use data_source::embedded::METADATA_CONTEXT_SCHEMA_BYTES;
 use diagnostics::{Diagnostic, RegisteredDiagnostic, RelatedResource, ResourceRef};
+use rules::{FilterConfig, lookup_rule};
 use serde_json::{Map, Value};
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
 use template_model::consts::{CDK_METADATA_TYPE, KEY_METADATA, SECTION_METADATA, SECTION_RESOURCES};
 use template_model::model::ResolvedResource;
-use template_model::{SemanticModel, SourceSpan, UNKNOWN_SPAN, span_to_option};
+use template_model::{EntityType, MARKER_INTRINSIC, SemanticModel, SourceSpan, UNKNOWN_SPAN, span_to_option};
 
 const MISSING_CONTEXT_RULE_ID: &str = "I4010";
 const MISSING_WHY_RULE_ID: &str = "W4011";
@@ -56,10 +57,14 @@ const MISSING_WHY_FIX: &str = "Add 'why' stating the resource's purpose and nota
 
 static CONTEXT_SCHEMA: OnceLock<Result<ContextSchema, String>> = OnceLock::new();
 
-pub(crate) fn check_context(model: &SemanticModel) -> Result<Vec<Diagnostic>, String> {
+pub(crate) fn check_context(model: &SemanticModel, filters: &FilterConfig) -> Result<Vec<Diagnostic>, String> {
     let schema = context_schema()?;
+    let missing_context_category = lookup_rule(MISSING_CONTEXT_RULE_ID)
+        .ok_or_else(|| format!("Metadata Context rule '{MISSING_CONTEXT_RULE_ID}' is not registered"))?
+        .category
+        .as_str();
     let primaries = primary_resources(model);
-    let mut diagnostics = missing_context_diagnostics(model, &primaries);
+    let mut diagnostics = missing_context_diagnostics(model, &primaries, filters, missing_context_category);
 
     for &(logical_id, resource) in &primaries {
         let Some(context) = resource_context(resource) else {
@@ -126,11 +131,40 @@ fn template_context(model: &SemanticModel) -> Option<&Value> {
     model.template_metadata.as_ref()?.as_object()?.get(CONTEXT_KEY)
 }
 
-fn missing_context_diagnostics(model: &SemanticModel, primaries: &[(&str, &ResolvedResource)]) -> Vec<Diagnostic> {
+fn is_unresolved_intrinsic(value: &Value) -> bool {
+    value.as_object().is_some_and(|object| object.len() == 1 && object.contains_key(MARKER_INTRINSIC))
+}
+
+fn missing_context_finding_survives(
+    filters: &FilterConfig,
+    category: &str,
+    logical_id: &str,
+    resource: &ResolvedResource,
+) -> bool {
+    filters.matches_rule(
+        MISSING_CONTEXT_RULE_ID,
+        Some(category),
+        Some(logical_id),
+        Some(resource.resource_type.as_str()),
+        Some(logical_id),
+        Some(EntityType::Resource),
+    )
+}
+
+fn missing_context_diagnostics(
+    model: &SemanticModel,
+    primaries: &[(&str, &ResolvedResource)],
+    filters: &FilterConfig,
+    category: &str,
+) -> Vec<Diagnostic> {
     let missing: Vec<(&str, &ResolvedResource)> = primaries
         .iter()
         .copied()
-        .filter(|&(_, resource)| requires_context(resource) && resource_context(resource).is_none())
+        .filter(|&(logical_id, resource)| {
+            requires_context(resource)
+                && resource_context(resource).is_none()
+                && missing_context_finding_survives(filters, category, logical_id, resource)
+        })
         .collect();
     if missing.is_empty() {
         return Vec::new();
@@ -146,7 +180,13 @@ fn missing_context_diagnostics(model: &SemanticModel, primaries: &[(&str, &Resol
                 format!("The template has no top-level {CONTEXT_DISPLAY} block describing its architecture."),
             )
             .property_path(SECTION_METADATA)
-            .location(model.source_location(SECTION_METADATA).copied().unwrap_or(UNKNOWN_SPAN))
+            .location(
+                model
+                    .source_location(SECTION_METADATA)
+                    .or_else(|| model.source_location(SECTION_RESOURCES))
+                    .copied()
+                    .unwrap_or(UNKNOWN_SPAN),
+            )
             .suggested_fix(Some(TEMPLATE_CONTEXT_FIX))
             .build(),
         );
@@ -193,14 +233,22 @@ fn missing_why_diagnostic(
     resource: &ResolvedResource,
     context: &Value,
 ) -> Option<Diagnostic> {
+    if is_unresolved_intrinsic(context) {
+        return None;
+    }
     // A block that is not a mapping is reported by the schema check instead.
     let block = context.as_object()?;
-    let has_why = block.get("why").and_then(Value::as_str).is_some_and(|why| !why.trim().is_empty());
-    // Only low confidence acknowledges an undocumented rationale; medium and high
-    // assert that it is at least partly known.
-    let acknowledges_unknown_rationale =
-        block.get("trust").and_then(Value::as_object).and_then(|trust| trust.get("conf")).and_then(Value::as_str)
-            == Some(LOW_CONFIDENCE);
+    let has_why = block
+        .get("why")
+        .is_some_and(|why| why.as_str().is_some_and(|why| !why.trim().is_empty()) || is_unresolved_intrinsic(why));
+    // Only low confidence acknowledges an undocumented rationale; an intrinsic
+    // confidence cannot prove the requirement is violated, so defer judgment.
+    let acknowledges_unknown_rationale = block.get("trust").is_some_and(|trust| {
+        is_unresolved_intrinsic(trust)
+            || trust.as_object().and_then(|trust| trust.get("conf")).is_some_and(|confidence| {
+                confidence.as_str() == Some(LOW_CONFIDENCE) || is_unresolved_intrinsic(confidence)
+            })
+    });
     if has_why || acknowledges_unknown_rationale {
         return None;
     }
@@ -456,6 +504,9 @@ fn validate_node(
     path: &[String],
     violations: &mut Vec<SchemaViolation>,
 ) -> Result<(), String> {
+    if is_unresolved_intrinsic(instance) {
+        return Ok(());
+    }
     let node = schema_object(schema, path)?;
     if let Some(reference) = node.get("$ref") {
         return validate_node(instance, resolve_reference(reference, root)?, root, path, violations);
@@ -695,6 +746,7 @@ fn render_list(fields: &BTreeSet<String>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rules::{ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig};
 
     /// Schema keywords the validator interprets. A vendored schema update that
     /// introduces another keyword must extend the validator, not be ignored.
@@ -719,7 +771,11 @@ mod tests {
     }
 
     fn check(template: &str) -> Vec<Diagnostic> {
-        check_context(&model(template)).expect("embedded Metadata Context schema should load")
+        check_with_filters(template, &FilterConfig::default())
+    }
+
+    fn check_with_filters(template: &str, filters: &FilterConfig) -> Vec<Diagnostic> {
+        check_context(&model(template), filters).expect("embedded Metadata Context schema should load")
     }
 
     fn rule_ids(diagnostics: &[Diagnostic]) -> Vec<&str> {
@@ -841,7 +897,7 @@ Resources:
         let template_finding = &diagnostics[0];
         assert!(template_finding.entity.is_none());
         assert_eq!(template_finding.property_path.as_deref(), Some(SECTION_METADATA));
-        assert!(template_finding.location.is_none(), "no Metadata section exists to anchor at");
+        assert_eq!(template_finding.location.map(|span| span.start_line), Some(2));
         let aggregate = &diagnostics[1];
         assert_eq!(aggregate.resource_logical_id(), Some("OrdersTable"), "anchored at the first declared resource");
         assert!(aggregate.message.contains("OrdersTable (AWS::DynamoDB::Table), OrderQueue (AWS::SQS::Queue)"));
@@ -850,6 +906,150 @@ Resources:
         assert_eq!(related.len(), 1);
         assert_eq!(related[0].resource.as_ref().and_then(|resource| resource.id.as_deref()), Some("OrderQueue"));
         assert!(related[0].location.is_some());
+    }
+
+    #[test]
+    fn resource_filters_are_applied_before_missing_context_aggregation() {
+        let template = r#"
+Resources:
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+  OrderQueue:
+    Type: AWS::SQS::Queue
+"#;
+        let exclude_first = FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                resource_ids: vec![ResourceIdFilter {
+                    rule_id: Some(MISSING_CONTEXT_RULE_ID.to_string()),
+                    resource_id: "OrdersTable".to_string(),
+                }],
+                ..Default::default()
+            },
+        );
+        let exclude_related = FilterConfig::new(
+            RuleFilterConfig::default(),
+            RuleFilterConfig {
+                resource_ids: vec![ResourceIdFilter {
+                    rule_id: Some(MISSING_CONTEXT_RULE_ID.to_string()),
+                    resource_id: "OrderQueue".to_string(),
+                }],
+                ..Default::default()
+            },
+        );
+        let include_queue_type = FilterConfig::new(
+            RuleFilterConfig {
+                resource_types: vec![ResourceTypeFilter {
+                    rule_id: Some(MISSING_CONTEXT_RULE_ID.to_string()),
+                    resource_type: "AWS::SQS::Queue".to_string(),
+                }],
+                ..Default::default()
+            },
+            RuleFilterConfig::default(),
+        );
+
+        for (filters, expected_resource, absent_resource) in [
+            (exclude_first, "OrderQueue", "OrdersTable"),
+            (exclude_related, "OrdersTable", "OrderQueue"),
+            (include_queue_type, "OrderQueue", "OrdersTable"),
+        ] {
+            let diagnostics = check_with_filters(template, &filters);
+
+            assert_eq!(diagnostics.len(), 1, "one unsuppressed resource remains: {diagnostics:?}");
+            assert_eq!(diagnostics[0].resource_logical_id(), Some(expected_resource));
+            assert!(diagnostics[0].message.contains(expected_resource));
+            assert!(!diagnostics[0].message.contains(absent_resource));
+            assert!(diagnostics[0].related_resources.is_none());
+        }
+    }
+
+    #[test]
+    fn unresolved_intrinsics_preserve_static_sibling_validation() {
+        let template = r#"
+Parameters:
+  Rationale:
+    Type: String
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: !Ref Rationale
+    unknown: true
+Resources:
+  QueueWithDynamicRationale:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: !Ref Rationale
+        trust:
+          src: invalid
+          conf: high
+        unknown: true
+  QueueWithoutRationale:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        must: !Ref Rationale
+"#;
+
+        let diagnostics = check(template);
+
+        let missing_why = with_rule(&diagnostics, MISSING_WHY_RULE_ID);
+        assert_eq!(missing_why.len(), 1, "only the resource without a dynamic rationale is flagged");
+        assert_eq!(missing_why[0].resource_logical_id(), Some("QueueWithoutRationale"));
+        let violation_paths: BTreeSet<&str> = with_rule(&diagnostics, SCHEMA_VIOLATION_RULE_ID)
+            .into_iter()
+            .filter_map(|diagnostic| diagnostic.property_path.as_deref())
+            .collect();
+        assert_eq!(
+            violation_paths,
+            BTreeSet::from([
+                "Metadata.com.aws.cloudformation.Context.trust.src",
+                "Metadata.com.aws.cloudformation.Context.unknown",
+                "Metadata/com.aws.cloudformation.Context/unknown",
+            ])
+        );
+    }
+
+    #[test]
+    fn unresolved_intrinsics_do_not_create_context_findings() {
+        let template = r#"
+Parameters:
+  Rationale:
+    Type: String
+  Confidence:
+    Type: String
+Conditions:
+  IsProduction: !Equals [!Ref Rationale, production]
+Metadata:
+  com.aws.cloudformation.Context: !If
+    - IsProduction
+    - arch: production queue
+    - arch: development queue
+Resources:
+  QueueWithDynamicContext:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context: !If
+        - IsProduction
+        - why: production queue
+        - why: development queue
+  QueueWithDynamicFields:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: !Ref Rationale
+        trust:
+          src: infer
+          conf: !Ref Confidence
+        must:
+          - !Sub "rationale-${Rationale}"
+"#;
+
+        let diagnostics = check(template);
+
+        assert!(
+            diagnostics.is_empty(),
+            "unresolved intrinsic values cannot prove a Context violation: {diagnostics:?}"
+        );
     }
 
     #[test]

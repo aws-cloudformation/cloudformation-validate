@@ -536,6 +536,38 @@ class SmokeTest {
         assertEquals("S3 bucket must have encryption configured", listed.description, "CUSTOM001 description")
     }
 
+    @Test
+    fun snapshotExclusionRemovesRulesAndAdjustsCounts() {
+        val report = mapOf<String, Any?>(
+            "diagnostics" to listOf(
+                mapOf("ruleId" to "I4010", "severity" to "INFO"),
+                mapOf("ruleId" to "E3012", "severity" to "ERROR"),
+            ),
+            "metadata" to mapOf(
+                "counts" to mapOf(
+                    "fatal" to 0L,
+                    "errors" to 1L,
+                    "warnings" to 0L,
+                    "informational" to 1L,
+                    "debug" to 0L,
+                )
+            ),
+        )
+
+        val normalized = stripSnapshotExcludedFields(report)
+
+        assertEquals(
+            listOf(mapOf("ruleId" to "E3012", "severity" to "ERROR")),
+            normalized["diagnostics"],
+        )
+        @Suppress("UNCHECKED_CAST")
+        val metadata = normalized["metadata"] as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val counts = metadata["counts"] as Map<String, Any?>
+        assertEquals(0L, counts["informational"])
+        assertEquals(1L, counts["errors"])
+    }
+
     @TestFactory
     fun regoDetailedMatchesSnapshot(): List<DynamicTest> = snapshotDetailedTests("rego", REGO)
 
@@ -632,8 +664,39 @@ class SmokeTest {
     }
 
     @Suppress("UNCHECKED_CAST")
+    private fun excludeSnapshotRules(report: MutableMap<String, Any?>) {
+        val diagnostics = report["diagnostics"] as? List<Map<String, Any?>>
+            ?: error("report has no diagnostics list")
+        val removed = diagnostics.filter { it["ruleId"] in snapshotExcludedRuleIds }
+        report["diagnostics"] = diagnostics.filterNot { it["ruleId"] in snapshotExcludedRuleIds }
+        if (removed.isEmpty()) return
+
+        val metadata = LinkedHashMap(
+            report["metadata"] as? Map<String, Any?> ?: error("report has no metadata object")
+        )
+        val counts = LinkedHashMap(
+            metadata["counts"] as? Map<String, Any?> ?: error("report has no metadata.counts object")
+        )
+        for (diagnostic in removed) {
+            val severity = diagnostic["severity"] as? String
+                ?: error("excluded diagnostic has no string severity")
+            val countField = severityCountFields[severity]
+                ?: error("excluded diagnostic has unsupported severity: $severity")
+            val currentCount = counts[countField] as? Long
+                ?: error("metadata.counts has no integer $countField field")
+            require(currentCount >= 1L) {
+                "metadata.counts does not account for excluded $severity diagnostic"
+            }
+            counts[countField] = currentCount - 1L
+        }
+        metadata["counts"] = counts
+        report["metadata"] = metadata
+    }
+
+    @Suppress("UNCHECKED_CAST")
     private fun stripSnapshotExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
+        excludeSnapshotRules(out)
         if (filePath != null) out["filePath"] = filePath
         out.remove("version")
         out.remove("performance")
@@ -784,6 +847,19 @@ class SmokeTest {
         private val templatesRoot = File(resourcesRoot, "templates")
         private val expectedDir = File(resourcesRoot, "expected")
         private val rulesDir = File(resourcesRoot, "rules")
+        private val snapshotExcludedRuleIds = File(expectedDir, "snapshot_excluded_rule_ids.txt")
+            .readLines()
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .toSet()
+            .also { require(it.isNotEmpty()) { "snapshot exclusion manifest must not be empty" } }
+        private val severityCountFields = mapOf(
+            "FATAL" to "fatal",
+            "ERROR" to "errors",
+            "WARN" to "warnings",
+            "INFO" to "informational",
+            "DEBUG" to "debug",
+        )
 
         private val gson = buildBindingsGson()
 

@@ -5,13 +5,12 @@ use common::load_template;
 use composite_engine::CompositeEngine;
 use diagnostics::Diagnostic;
 use rego_engine::RegoEngine;
-use rules::Severity;
+use resources::SNAPSHOT_EXCLUDED_RULE_IDS;
+use rules::{FilterConfig, ResourceIdFilter, ResourceTypeFilter, RuleFilterConfig, Severity};
 use schema_validator::SchemaValidator;
 use std::sync::LazyLock;
 use template_model::EntityType;
 use validation_engine::{CompositeEngineConfig, EngineConfig, ValidateConfig, ValidationEngine, validate_bytes};
-
-const CONTEXT_RULE_IDS: [&str; 3] = ["I4010", "W4011", "W4012"];
 
 static REGO: LazyLock<RegoEngine> = LazyLock::new(|| RegoEngine::new(EngineConfig::default()).unwrap());
 static CEL: LazyLock<CelEngine> = LazyLock::new(|| CelEngine::new(EngineConfig::default()).unwrap());
@@ -25,7 +24,7 @@ fn engines() -> [(&'static str, &'static dyn ValidationEngine); 3] {
 fn context_diagnostics(engine: &dyn ValidationEngine, template: &str, config: ValidateConfig) -> Vec<Diagnostic> {
     let report = validate_bytes(engine, &SchemaValidator::default(), &load_template(template), config)
         .expect("context fixture should validate");
-    report.diagnostics.into_iter().filter(|d| CONTEXT_RULE_IDS.contains(&d.rule_id.as_str())).collect()
+    report.diagnostics.into_iter().filter(|d| SNAPSHOT_EXCLUDED_RULE_IDS.contains(&d.rule_id.as_str())).collect()
 }
 
 /// Runs every engine selector on `template` and asserts they agree before
@@ -91,6 +90,7 @@ fn missing_context_yields_a_template_finding_and_one_aggregate_in_yaml_and_json(
     let template_finding = &from_yaml[0];
     assert!(template_finding.entity.is_none());
     assert_eq!(template_finding.property_path.as_deref(), Some("Metadata"));
+    assert_eq!(template_finding.location.map(|span| span.start_line), Some(7));
     let aggregate = &from_yaml[1];
     assert_eq!(aggregate.resource_logical_id(), Some("OrderQueue"));
     assert_eq!(
@@ -105,6 +105,65 @@ fn missing_context_yields_a_template_finding_and_one_aggregate_in_yaml_and_json(
         assert!(diagnostics.iter().all(|d| d.rule_id == "I4010"));
         assert!(diagnostics[1].location.is_some(), "the aggregate is anchored at the first resource");
     }
+}
+
+#[test]
+fn resource_filters_are_applied_before_missing_context_aggregation() {
+    let resource_filter = |resource_id: &str| ResourceIdFilter {
+        rule_id: Some("I4010".to_string()),
+        resource_id: resource_id.to_string(),
+    };
+    let cases = [
+        (
+            FilterConfig::new(
+                RuleFilterConfig::default(),
+                RuleFilterConfig { resource_ids: vec![resource_filter("OrderQueue")], ..Default::default() },
+            ),
+            "OrdersTable",
+            "OrderQueue",
+        ),
+        (
+            FilterConfig::new(
+                RuleFilterConfig::default(),
+                RuleFilterConfig { resource_ids: vec![resource_filter("OrdersTable")], ..Default::default() },
+            ),
+            "OrderQueue",
+            "OrdersTable",
+        ),
+        (
+            FilterConfig::new(
+                RuleFilterConfig {
+                    resource_types: vec![ResourceTypeFilter {
+                        rule_id: Some("I4010".to_string()),
+                        resource_type: "AWS::SQS::Queue".to_string(),
+                    }],
+                    ..Default::default()
+                },
+                RuleFilterConfig::default(),
+            ),
+            "OrderQueue",
+            "OrdersTable",
+        ),
+    ];
+
+    for (filters, expected_resource, absent_resource) in cases {
+        let config = ValidateConfig { filters, ..Default::default() };
+        let diagnostics = context_diagnostics_on_every_engine("bad/I4010_context_missing.yaml", config);
+
+        assert_eq!(diagnostics.len(), 1, "only one resource-specific finding should survive: {diagnostics:?}");
+        assert_eq!(diagnostics[0].resource_logical_id(), Some(expected_resource));
+        assert!(diagnostics[0].message.contains(expected_resource));
+        assert!(!diagnostics[0].message.contains(absent_resource));
+        assert!(diagnostics[0].related_resources.is_none());
+    }
+}
+
+#[test]
+fn intrinsic_context_values_are_clean_on_every_engine() {
+    let diagnostics =
+        context_diagnostics_on_every_engine("good/metadata_context_intrinsics.yaml", ValidateConfig::default());
+
+    assert!(diagnostics.is_empty(), "intrinsic Context values cannot prove a violation: {diagnostics:?}");
 }
 
 #[test]

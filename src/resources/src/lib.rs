@@ -7,6 +7,7 @@
 //! snapshot loading.
 
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 use diagnostics::Summary;
 use rules::Severity;
@@ -206,7 +207,13 @@ fn collect_templates(dir: &Path, root: &Path, out: &mut Vec<String>) {
 /// rules report nearly every corpus template, so persisting them would turn any
 /// change to their output into a corpus-wide snapshot diff. Their behavior is
 /// covered by dedicated fixtures and tests instead.
-pub const SNAPSHOT_EXCLUDED_RULE_IDS: &[&str] = &["I4010", "W4011", "W4012"];
+pub static SNAPSHOT_EXCLUDED_RULE_IDS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    include_str!("../expected/snapshot_excluded_rule_ids.txt")
+        .lines()
+        .map(str::trim)
+        .filter(|rule_id| !rule_id.is_empty())
+        .collect()
+});
 
 /// Removes the findings of [`SNAPSHOT_EXCLUDED_RULE_IDS`] from a serialized
 /// report and subtracts them from `metadata.counts`, leaving the report exactly as
@@ -258,6 +265,22 @@ pub fn exclude_snapshot_rules(report: &mut Value) -> Result<(), String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn snapshot_excluded_rule_ids_are_unique_and_well_formed() {
+        let mut unique_ids = std::collections::HashSet::new();
+
+        assert!(!SNAPSHOT_EXCLUDED_RULE_IDS.is_empty(), "snapshot exclusion manifest must not be empty");
+        for rule_id in SNAPSHOT_EXCLUDED_RULE_IDS.iter().copied() {
+            assert!(
+                rule_id.len() == 5
+                    && matches!(rule_id.as_bytes()[0], b'F' | b'E' | b'W' | b'I' | b'D')
+                    && rule_id.as_bytes()[1..].iter().all(u8::is_ascii_digit),
+                "invalid snapshot-excluded rule ID {rule_id:?}"
+            );
+            assert!(unique_ids.insert(rule_id), "duplicate snapshot-excluded rule ID {rule_id}");
+        }
+    }
 
     #[test]
     fn exclude_snapshot_rules_drops_context_findings_and_their_counts() {

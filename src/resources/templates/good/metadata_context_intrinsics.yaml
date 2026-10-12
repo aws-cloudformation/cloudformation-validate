@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Metadata Context values may use CloudFormation intrinsic functions.
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - production
+      - development
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: !Sub "${Environment} event queues"
+Resources:
+  ConditionalContextQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context: !If
+        - IsProduction
+        - why: buffers production events
+        - why: buffers development events
+  IntrinsicFieldQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: !Sub "Buffers ${Environment} events"
+        must:
+          - !Sub "Queue must remain in the ${AWS::Region} region"
+        trust:
+          src: authored
+          conf: high

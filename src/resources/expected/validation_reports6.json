@@ -7071,6 +7071,175 @@
       }
     ]
   },
+  "good/metadata_context_intrinsics.yaml": {
+    "filePath": "good/metadata_context_intrinsics.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 8,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalContextQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 3,
+        "endLine": 15,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalContextQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 3,
+        "endLine": 15,
+        "endColumn": 26,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "IntrinsicFieldQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 22,
+        "endColumn": 22,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "IntrinsicFieldQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 22,
+        "endColumn": 22,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalContextQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 3,
+        "endLine": 15,
+        "endColumn": 26,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "IntrinsicFieldQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 22,
+        "endColumn": 22,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalContextQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalContextQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 3,
+        "endLine": 15,
+        "endColumn": 26,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'IntrinsicFieldQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "IntrinsicFieldQueue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 22,
+        "endColumn": 22,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/minimal.yaml": {
     "filePath": "good/minimal.yaml",
     "status": "OK",
@@ -17438,136 +17607,6 @@
   },
   "good/resources_deletionpolicy.yaml": {
     "filePath": "good/resources_deletionpolicy.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 5,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W9008",
-        "severity": "WARN",
-        "message": "RDS instance should have StorageEncrypted set to true",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties.StorageEncrypted",
-        "suggestedFix": "Set StorageEncrypted to true",
-        "category": "Security",
-        "startLine": 28,
-        "startColumn": 5,
-        "endLine": 28,
-        "endColumn": 15,
-        "ruleDescription": "RDS instance should have StorageEncrypted",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 5,
-        "endLine": 28,
-        "endColumn": 15,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3100",
-        "severity": "INFO",
-        "message": "Previous generation instance type 'db.m1.small' - consider upgrading",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties.DBInstanceClass",
-        "suggestedFix": "Upgrade to a current generation instance type",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 7,
-        "endLine": 30,
-        "endColumn": 22,
-        "ruleDescription": "Checks for legacy instance type generations",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Engine' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties.Engine",
-        "category": "Best Practice",
-        "startLine": 31,
-        "startColumn": 7,
-        "endLine": 31,
-        "endColumn": 13,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9003",
-        "severity": "INFO",
-        "message": "No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against it specifically.",
-        "source": "ENGINE",
-        "category": "Best Practice",
-        "ruleDescription": "Region-scoped values validated against all regions because no region was supplied",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'PolicyList' of type 'AWS::RDS::DBInstance' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 5,
-        "endLine": 28,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/resources_updatereplacepolicy.yaml": {
-    "filePath": "good/resources_updatereplacepolicy.yaml",
     "status": "OK",
     "metadata": {
       "resourcesScanned": 3,
