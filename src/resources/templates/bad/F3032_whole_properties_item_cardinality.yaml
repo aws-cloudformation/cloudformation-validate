@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Regression fixture for item cardinality inside conditional resource properties
+Parameters:
+  OuterToggle:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle00:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle01:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle02:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle03:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle04:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle05:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle06:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle07:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle08:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle09:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle10:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle11:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle12:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle13:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle14:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle15:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Toggle16:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  OuterEnabled: !Equals [!Ref OuterToggle, 'true']
+  Enabled00: !Equals [!Ref Toggle00, 'true']
+  Enabled01: !Equals [!Ref Toggle01, 'true']
+  Enabled02: !Equals [!Ref Toggle02, 'true']
+  Enabled03: !Equals [!Ref Toggle03, 'true']
+  Enabled04: !Equals [!Ref Toggle04, 'true']
+  Enabled05: !Equals [!Ref Toggle05, 'true']
+  Enabled06: !Equals [!Ref Toggle06, 'true']
+  Enabled07: !Equals [!Ref Toggle07, 'true']
+  Enabled08: !Equals [!Ref Toggle08, 'true']
+  Enabled09: !Equals [!Ref Toggle09, 'true']
+  Enabled10: !Equals [!Ref Toggle10, 'true']
+  Enabled11: !Equals [!Ref Toggle11, 'true']
+  Enabled12: !Equals [!Ref Toggle12, 'true']
+  Enabled13: !Equals [!Ref Toggle13, 'true']
+  Enabled14: !Equals [!Ref Toggle14, 'true']
+  Enabled15: !Equals [!Ref Toggle15, 'true']
+  Enabled16: !Equals [!Ref Toggle16, 'true']
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Fn::If:
+        - OuterEnabled
+        - Code: {S3Bucket: example-bucket, S3Key: function.zip}
+          Handler: example.Handler
+          Role: arn:aws:iam::123456789012:role/example
+          Runtime: python3.12
+          Tags: [{Key: Name, Value: cardinality-fixture}]
+          VpcConfig:
+            SubnetIds:
+              - !If [Enabled00, subnet-00000000000000000, !Ref AWS::NoValue]
+              - !If [Enabled01, subnet-00000000000000001, !Ref AWS::NoValue]
+              - !If [Enabled02, subnet-00000000000000002, !Ref AWS::NoValue]
+              - !If [Enabled03, subnet-00000000000000003, !Ref AWS::NoValue]
+              - !If [Enabled04, subnet-00000000000000004, !Ref AWS::NoValue]
+              - !If [Enabled05, subnet-00000000000000005, !Ref AWS::NoValue]
+              - !If [Enabled06, subnet-00000000000000006, !Ref AWS::NoValue]
+              - !If [Enabled07, subnet-00000000000000007, !Ref AWS::NoValue]
+              - !If [Enabled08, subnet-00000000000000008, !Ref AWS::NoValue]
+              - !If [Enabled09, !Ref AWS::NoValue, subnet-00000000000000009]
+              - !If [Enabled10, !Ref AWS::NoValue, subnet-0000000000000000a]
+              - !If [Enabled11, !Ref AWS::NoValue, subnet-0000000000000000b]
+              - !If [Enabled12, !Ref AWS::NoValue, subnet-0000000000000000c]
+              - !If [Enabled13, !Ref AWS::NoValue, subnet-0000000000000000d]
+              - !If [Enabled14, !Ref AWS::NoValue, subnet-0000000000000000e]
+              - !If [Enabled15, !Ref AWS::NoValue, subnet-0000000000000000f]
+              - !If [Enabled16, !Ref AWS::NoValue, subnet-00000000000000010]
+        - Code: {S3Bucket: example-bucket, S3Key: function.zip}
+          Handler: example.Handler
+          Role: arn:aws:iam::123456789012:role/example
+          Runtime: python3.12
+          Tags: [{Key: Name, Value: cardinality-fixture}]
+          VpcConfig:
+            SubnetIds: [subnet-00000000000000000]

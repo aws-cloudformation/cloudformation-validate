@@ -1,8 +1,12 @@
+use cloudformation_validate::template_model::{resolved_value_to_json, resolver::ResolvedValue};
 use cloudformation_validate::{
     AdditionalSchemaSource, CelEngine, CompositeEngine, CompositeEngineConfig, EngineConfig, ExternalRuleSource,
     RegoEngine, ReportStatus, SchemaValidator, SchemaValidatorConfig, SemanticModel, Severity, ValidateConfig,
     ValidationEngine, ValidationReport, validate_bytes_with_path, version,
 };
+use std::collections::HashMap;
+
+type Scenario = (ResolvedValue, HashMap<String, bool>);
 
 const GOOD_TEMPLATE: &[u8] = br#"
 AWSTemplateFormatVersion: "2010-09-09"
@@ -18,6 +22,22 @@ Resources:
     Properties:
       BucketName: my-test-bucket
 "#;
+
+const CONDITIONAL_BUCKET_NAME: &[u8] = br#"
+Parameters:
+  Stage:
+    Type: String
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If [IsProduction, production-bucket, staging-bucket]
+"#;
+
+const BUCKET_NAME_PATH: &str = "Properties.BucketName";
+const IS_PRODUCTION: &str = "IsProduction";
 
 const TEMPLATE_WITH_OVERLAY_PROPERTY: &[u8] = br#"
 Resources:
@@ -87,6 +107,13 @@ fn diagnostic_signatures(report: &ValidationReport) -> Vec<(String, Severity, St
         .diagnostics
         .iter()
         .map(|diagnostic| (diagnostic.rule_id.clone(), diagnostic.severity, diagnostic.message.clone()))
+        .collect()
+}
+
+fn rendered_scenarios(scenarios: &[Scenario]) -> Vec<(String, Option<bool>)> {
+    scenarios
+        .iter()
+        .map(|(value, conditions)| (resolved_value_to_json(value).to_string(), conditions.get(IS_PRODUCTION).copied()))
         .collect()
 }
 
@@ -291,6 +318,50 @@ fn semantic_model_is_available_through_the_facade() {
     assert!(model.outputs.is_empty());
     assert!(model.conditions.names().next().is_none());
     assert!(model.transforms.is_empty());
+}
+
+#[test]
+fn semantic_model_resolve_scenarios_returns_owned_branch_scenarios() {
+    let model = SemanticModel::from_bytes(CONDITIONAL_BUCKET_NAME).expect("template must parse");
+
+    let scenarios: Vec<Scenario> = model.resolve_scenarios("MyBucket", BUCKET_NAME_PATH);
+
+    assert_eq!(
+        rendered_scenarios(&scenarios),
+        vec![(r#""production-bucket""#.to_string(), Some(true)), (r#""staging-bucket""#.to_string(), Some(false))],
+        "each Fn::If branch must be one owned scenario paired with the condition value that selects it"
+    );
+}
+
+#[test]
+fn semantic_model_resolve_scenarios_with_limit_returns_owned_scenarios_and_curtailment() {
+    let model = SemanticModel::from_bytes(CONDITIONAL_BUCKET_NAME).expect("template must parse");
+
+    let (scenarios, was_curtailed): (Vec<Scenario>, bool) =
+        model.resolve_scenarios_with_limit("MyBucket", BUCKET_NAME_PATH, 1);
+
+    assert_eq!(
+        rendered_scenarios(&scenarios),
+        vec![(r#""production-bucket""#.to_string(), Some(true))],
+        "a per-value limit of one must keep only the first branch scenario"
+    );
+    assert!(was_curtailed, "omitting the second branch scenario must be reported as curtailment");
+}
+
+#[test]
+fn semantic_model_resolve_properties_scenarios_returns_owned_whole_properties_scenarios() {
+    let model = SemanticModel::from_bytes(CONDITIONAL_BUCKET_NAME).expect("template must parse");
+
+    let scenarios: Vec<Scenario> = model.resolve_properties_scenarios("MyBucket");
+
+    assert_eq!(
+        rendered_scenarios(&scenarios),
+        vec![
+            (r#"{"BucketName":"production-bucket"}"#.to_string(), Some(true)),
+            (r#"{"BucketName":"staging-bucket"}"#.to_string(), Some(false)),
+        ],
+        "the whole Properties object must expand into one owned scenario per Fn::If branch"
+    );
 }
 
 #[test]

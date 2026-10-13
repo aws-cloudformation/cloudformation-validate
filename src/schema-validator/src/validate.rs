@@ -3,20 +3,23 @@ use crate::store::CompiledSchemaStore;
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
 use rules::format_rule_for_format;
 use std::borrow::Cow;
+use std::collections::hash_map::Entry;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::conditions::Satisfiability;
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
-    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH,
-    MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
+    MAX_COMPLETE_SCENARIO_PRODUCT, MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCENARIO_PRODUCT_NODES,
+    MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH, MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
     MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS as MAX_GROUP_SCENARIO_MERGE_ATTEMPTS, PARAM_TYPE_COMMA_DELIMITED_LIST,
     PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
 };
+use template_model::member_presence::{ContainerMember, MemberPresence, classify_members, extend_assignment};
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
+use template_model::resolved_value::{collect_scenarios, contains_dynamic_resolved, is_resolved_null};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
     BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
@@ -939,22 +942,22 @@ fn property_presence_alternatives(
         return Vec::new();
     }
     let (scenarios, was_curtailed) =
-        m.resolve_scenarios_with_limit(rid, &format!("{base_path}.{property}"), MAX_GROUP_PROPERTY_SCENARIOS);
+        m.resolve_scenarios_with_limit_shared(rid, &format!("{base_path}.{property}"), MAX_GROUP_PROPERTY_SCENARIOS);
     if was_curtailed && !m.scenario_budget_exhausted() {
         m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
     }
     let mut alternatives = Vec::new();
     let mut seen = HashSet::new();
-    for (value, conditions) in scenarios {
+    for (value, conditions) in scenarios.iter() {
         let present = !matches!(value, ResolvedValue::Concrete { value } if value.is_null());
         if present != want_present {
             continue;
         }
-        let Some(merged) = try_merge_assignments(filter, &conditions) else {
+        let Some(merged) = try_merge_assignments(filter, conditions) else {
             continue;
         };
-        if assignment_is_proven_satisfiable(m, &merged) && seen.insert(canonical_assignment(&conditions)) {
-            alternatives.push(conditions);
+        if assignment_is_proven_satisfiable(m, &merged) && seen.insert(canonical_assignment(conditions)) {
+            alternatives.push(conditions.clone());
         }
     }
     alternatives
@@ -1094,7 +1097,7 @@ fn property_scenario_assignments(
 
     for property_path in property_paths {
         let (scenarios, was_curtailed) =
-            m.resolve_scenarios_with_limit(rid, property_path, MAX_GROUP_PROPERTY_SCENARIOS);
+            m.resolve_scenarios_with_limit_shared(rid, property_path, MAX_GROUP_PROPERTY_SCENARIOS);
         if was_curtailed {
             if !m.scenario_budget_exhausted() {
                 m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
@@ -1107,7 +1110,7 @@ fn property_scenario_assignments(
 
         let mut property_assignments = Vec::new();
         let mut seen_property_assignments = HashSet::new();
-        for (_, conditions) in &scenarios {
+        for (_, conditions) in scenarios.iter() {
             if !is_satisfiable(m, conditions) || !scenario_consistent_with_filter(m, conditions) {
                 continue;
             }
@@ -1198,7 +1201,10 @@ fn property_present_under(
     prop: &str,
     assignment: &HashMap<String, bool>,
 ) -> bool {
-    let scenarios = m.resolve_scenarios(rid, &format!("{}.{}", base, prop));
+    // Presence depends only on whether the property value itself resolves to
+    // `AWS::NoValue`, so only the conditions wrapping the whole value are split;
+    // conditions nested inside a present list or object cannot change the answer.
+    let scenarios = outer_resolved_scenarios(m, rid, &format!("{}.{}", base, prop));
     if scenarios.is_empty() {
         return true;
     }
@@ -3156,10 +3162,8 @@ fn outer_resolved_scenarios(
     resource_id: &str,
     property_path: &str,
 ) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-    let Some(value) =
-        model.resolve_deep(resource_id, property_path).or_else(|| model.resolve(resource_id, property_path).cloned())
-    else {
-        return model.resolve_scenarios(resource_id, property_path);
+    let Some(value) = model.resolve_unexpanded(resource_id, property_path) else {
+        return Vec::new();
     };
     let mut scenarios = Vec::new();
     collect_outer_resolved_scenarios(&value, &HashMap::new(), &mut scenarios);
@@ -3196,12 +3200,13 @@ fn collect_outer_value_scenarios(
     }
 }
 
+/// Whether a property's checks compare the whole composite value, so every
+/// joint assignment of the conditions nested inside it must be materialized.
+/// Item cardinality and uniqueness are not among them: `validate_item_cardinality`
+/// reasons about member presence instead.
 fn schema_requires_nested_value_scenarios(schema: &PropSchema) -> bool {
     let has_composite_value = |value: &serde_json::Value| value.is_array() || value.is_object();
-    schema.min_items.is_some()
-        || schema.max_items.is_some()
-        || schema.unique_items == Some(true)
-        || schema.min_properties.is_some()
+    schema.min_properties.is_some()
         || schema.max_properties.is_some()
         || schema.enum_values.iter().any(has_composite_value)
         || schema.enum_case_insensitive.iter().any(has_composite_value)
@@ -3594,72 +3599,8 @@ fn validate_prop(
         }
     }
 
-    for (val, conds) in &scenarios {
-        if !is_satisfiable(m, conds) || val.is_null() {
-            continue;
-        }
-        if let Some(arr) = val.as_array() {
-            let len = arr.iter().filter(|item| !item.is_null()).count() as u64;
-            if let Some(max) = schema.max_items
-                && len > max
-            {
-                out.push(build_diagnostic_conditional(
-                    "F3032",
-                    &format!("expected maximum item count: {}, found: {}", max, len),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
-            if let Some(min) = schema.min_items
-                && len < min
-            {
-                out.push(build_diagnostic_conditional(
-                    "F3032",
-                    &format!("expected minimum item count: {}, found: {}", min, len),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
-        }
-    }
-
-    if schema.unique_items == Some(true) {
-        for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
-                continue;
-            }
-            if let Some(arr) = val.as_array() {
-                let mut seen = Vec::new();
-                for item in arr {
-                    // A null element is an `AWS::NoValue` that CloudFormation
-                    // removes from the list at deploy time, so it is not a real
-                    // member and two such elements are not a duplicate. Only the
-                    // surviving concrete items are checked for uniqueness.
-                    if item.is_null() {
-                        continue;
-                    }
-                    if seen.contains(item) {
-                        out.push(build_diagnostic_conditional(
-                            "F3037",
-                            "Array items are not unique",
-                            m,
-                            rid,
-                            prop_path,
-                            None,
-                            condition_map(conds),
-                        ));
-                        break;
-                    }
-                    seen.push(item.clone());
-                }
-            }
-        }
+    if schema.min_items.is_some() || schema.max_items.is_some() || schema.unique_items == Some(true) {
+        validate_item_cardinality(out, m, rid, prop_path, schema);
     }
 
     let has_nested_constraints = !schema.properties.is_empty()
@@ -3720,7 +3661,7 @@ fn validate_prop(
             // anchors the diagnostic at the branch path (`<prop>.Fn::If.<idx>`),
             // so reporting here too would duplicate that finding at the
             // un-qualified property path.
-            for (val, _conds) in m.resolve_scenarios(rid, prop_path) {
+            for (val, _conds) in m.resolve_scenarios_shared(rid, prop_path).iter() {
                 if let ResolvedValue::Concrete { value } = &val
                     && let Some(obj) = value.as_object()
                 {
@@ -3774,8 +3715,10 @@ fn validate_prop(
         for (pn, ps) in &schema.properties {
             let resolved = ps.resolve(defs);
             let sub_path = format!("{}.{}", prop_path, pn);
-            let sub_scenarios = m.resolve_scenarios_json(rid, &sub_path);
-            if !sub_scenarios.is_empty() || m.resolve_deep(rid, &sub_path).is_some() {
+            // A directly resolvable sub-property is authored; only when it is not
+            // (a `Properties` block wrapped in `Fn::If`) do the scenarios decide,
+            // so the expansion is not paid merely to learn that a value exists.
+            if m.resolve_deep(rid, &sub_path).is_some() || !m.resolve_scenarios_json(rid, &sub_path).is_empty() {
                 validate_prop(out, store, m, rid, rtype, &sub_path, &resolved, defs, region);
             }
         }
@@ -3803,6 +3746,562 @@ fn validate_prop(
         }
         if !did_per_index && (!resolved.dependent_excluded.is_empty() || !resolved.dependent_required.is_empty()) {
             validate_array_item_constraints(out, m, rid, prop_path, &resolved);
+        }
+    }
+}
+
+/// Checks `minItems`, `maxItems` and `uniqueItems` from member presence.
+///
+/// Members gated by `Fn::If` over `AWS::NoValue` are decided one member at a
+/// time instead of enumerating every joint assignment, so a list of N
+/// independently optional items never materializes its 2^N worlds. A member
+/// that carries an unresolved reference still occupies a slot when present:
+/// its contents are unknown, but whether it survives is not.
+fn validate_item_cardinality(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+) {
+    for (container, outer_conditions) in outer_resolved_scenarios(m, rid, prop_path) {
+        if !is_satisfiable(m, &outer_conditions) {
+            continue;
+        }
+        match &container {
+            ResolvedValue::List { items } => {
+                let members = classify_members(items);
+                validate_member_item_counts(out, m, rid, prop_path, schema, &members, &outer_conditions);
+                if schema.unique_items == Some(true) {
+                    validate_member_uniqueness(out, m, rid, prop_path, &members, &outer_conditions);
+                }
+            }
+            ResolvedValue::Concrete { value } if value.is_array() => {
+                let value = value.0.clone();
+                validate_item_cardinality_of_value(out, m, rid, prop_path, schema, &value, &outer_conditions);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn validate_member_item_counts(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+    members: &[ContainerMember<'_>],
+    outer_conditions: &HashMap<String, bool>,
+) {
+    let bounds: Vec<ItemCountBound> = ItemCountBound::of(schema).collect();
+    if bounds.is_empty() {
+        return;
+    }
+    let Some(slots) = ItemSlots::from_members(members) else {
+        m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
+        let always_present = members.iter().filter(|member| member.presence == MemberPresence::Always).count() as u64;
+        for bound in bounds {
+            if matches!(bound, ItemCountBound::Maximum(maximum) if always_present > maximum)
+                && assignment_is_proven_satisfiable(m, outer_conditions)
+            {
+                out.push(build_diagnostic_conditional(
+                    "F3032",
+                    &bound.violation_message(always_present),
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(outer_conditions),
+                ));
+            }
+        }
+        return;
+    };
+    for bound in bounds {
+        match slots.find_violation(m, bound, outer_conditions) {
+            WitnessSearch::Found((witness, count)) => out.push(build_diagnostic_conditional(
+                "F3032",
+                &bound.violation_message(count),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(&witness),
+            )),
+            WitnessSearch::NotFound => {}
+            WitnessSearch::BudgetExhausted => m.record_budget_exhaustion(BudgetKind::SchemaScenarioMergeAttempts),
+        }
+    }
+}
+
+/// One schema bound on the number of list items that survive deployment.
+#[derive(Clone, Copy)]
+enum ItemCountBound {
+    Maximum(u64),
+    Minimum(u64),
+}
+
+impl ItemCountBound {
+    fn of(schema: &PropSchema) -> impl Iterator<Item = Self> {
+        [schema.max_items.map(Self::Maximum), schema.min_items.map(Self::Minimum)].into_iter().flatten()
+    }
+
+    fn is_violated_by(self, count: u64) -> bool {
+        self.is_reachable(count, 0)
+    }
+
+    /// Whether deciding the `undecided` members can still produce a violating
+    /// count; a decision can only add an item.
+    fn is_reachable(self, count: u64, undecided: u64) -> bool {
+        match self {
+            Self::Maximum(maximum) => count.saturating_add(undecided) > maximum,
+            Self::Minimum(minimum) => count < minimum,
+        }
+    }
+
+    /// A maximum is approached by keeping members and a minimum by removing them.
+    fn prefers_present_members(self) -> bool {
+        matches!(self, Self::Maximum(_))
+    }
+
+    fn violation_message(self, count: u64) -> String {
+        match self {
+            Self::Maximum(maximum) => format!("expected maximum item count: {maximum}, found: {count}"),
+            Self::Minimum(minimum) => format!("expected minimum item count: {minimum}, found: {count}"),
+        }
+    }
+}
+
+/// Result of a bounded search for one deployment that violates a constraint.
+enum WitnessSearch<W> {
+    Found(W),
+    NotFound,
+    BudgetExhausted,
+}
+
+/// The items a list holds in every deployment, plus the decisions of the
+/// members whose presence depends on conditions.
+struct ItemSlots {
+    always_present: u64,
+    optional_members: Vec<MemberDecisions>,
+}
+
+impl ItemSlots {
+    /// `None` when a member has more branches than one bounded search admits.
+    fn from_members(members: &[ContainerMember<'_>]) -> Option<Self> {
+        let mut slots = Self { always_present: 0, optional_members: Vec::new() };
+        for member in members {
+            match &member.presence {
+                MemberPresence::Always => slots.always_present += 1,
+                MemberPresence::Never => {}
+                MemberPresence::When(literals) => {
+                    slots.optional_members.push(MemberDecisions::from_presence_literals(literals));
+                }
+                MemberPresence::Complex => slots.optional_members.push(MemberDecisions::from_branches(member.value)?),
+            }
+        }
+        Some(slots)
+    }
+
+    /// Backtracking search for one deployment extending `seed` whose item count
+    /// violates `bound`. Every optional member is decided explicitly, so a
+    /// witness fixes each member's presence and its count holds in every world
+    /// that extends it. Each added assumption must be proven satisfiable, and
+    /// the decisions tried are capped by the schema witness merge budget.
+    fn find_violation(
+        &self,
+        m: &Arc<SemanticModel>,
+        bound: ItemCountBound,
+        seed: &HashMap<String, bool>,
+    ) -> WitnessSearch<(HashMap<String, bool>, u64)> {
+        if !bound.is_reachable(self.always_present, self.optional_members.len() as u64)
+            || !assignment_is_proven_satisfiable(m, seed)
+        {
+            return WitnessSearch::NotFound;
+        }
+        let mut frames = vec![DecisionFrame {
+            assignment: seed.clone(),
+            count: self.always_present,
+            decided_members: 0,
+            next_decision: 0,
+        }];
+        let mut merge_attempts = 0;
+        while let Some(frame) = frames.last_mut() {
+            let undecided = (self.optional_members.len() - frame.decided_members) as u64;
+            if !bound.is_reachable(frame.count, undecided) {
+                frames.pop();
+                continue;
+            }
+            let Some(member) = self.optional_members.get(frame.decided_members) else {
+                return WitnessSearch::Found((frame.assignment.clone(), frame.count));
+            };
+            let Some((literals, keeps_member)) = member.decision(bound, frame.next_decision) else {
+                frames.pop();
+                continue;
+            };
+            frame.next_decision += 1;
+            if merge_attempts == MAX_GROUP_WITNESS_MERGE_ATTEMPTS {
+                return WitnessSearch::BudgetExhausted;
+            }
+            merge_attempts += 1;
+            let mut assignment = frame.assignment.clone();
+            if !extend_assignment(&mut assignment, literals)
+                || (assignment.len() > frame.assignment.len() && !assignment_is_proven_satisfiable(m, &assignment))
+            {
+                continue;
+            }
+            let child = DecisionFrame {
+                assignment,
+                count: frame.count + u64::from(keeps_member),
+                decided_members: frame.decided_members + 1,
+                next_decision: 0,
+            };
+            frames.push(child);
+        }
+        WitnessSearch::NotFound
+    }
+}
+
+/// One partially decided deployment of the item count search.
+struct DecisionFrame {
+    assignment: HashMap<String, bool>,
+    count: u64,
+    decided_members: usize,
+    next_decision: usize,
+}
+
+/// The literal conjunctions that decide one optional member: assuming any
+/// `present` conjunction keeps the member, and assuming any `absent`
+/// conjunction removes it.
+struct MemberDecisions {
+    present: Vec<Vec<(String, bool)>>,
+    absent: Vec<Vec<(String, bool)>>,
+}
+
+impl MemberDecisions {
+    /// A member present exactly when its literals hold is kept by assuming all
+    /// of them and removed by negating any one of them.
+    fn from_presence_literals(literals: &[(String, bool)]) -> Self {
+        Self {
+            present: vec![literals.to_vec()],
+            absent: literals.iter().map(|(condition, holds)| vec![(condition.clone(), !holds)]).collect(),
+        }
+    }
+
+    /// Decisions for a member whose presence has no single literal conjunction:
+    /// the path literals of each outer branch, split by whether the branch
+    /// resolves to `AWS::NoValue`. `None` when the member has more branches
+    /// than one bounded search admits.
+    fn from_branches(value: &ResolvedValue) -> Option<Self> {
+        let mut decisions = Self { present: Vec::new(), absent: Vec::new() };
+        decisions.collect_branches(value, &mut Vec::new()).then_some(decisions)
+    }
+
+    fn collect_branches(&mut self, value: &ResolvedValue, path: &mut Vec<(String, bool)>) -> bool {
+        match value {
+            ResolvedValue::Conditional { condition, if_true, if_false } => {
+                if let Some(holds) = path.iter().find(|(name, _)| name == condition).map(|(_, holds)| *holds) {
+                    return self.collect_branches(if holds { if_true } else { if_false }, path);
+                }
+                for (branch, holds) in [(if_true, true), (if_false, false)] {
+                    path.push((condition.clone(), holds));
+                    let within_limit = self.collect_branches(branch, path);
+                    path.pop();
+                    if !within_limit {
+                        return false;
+                    }
+                }
+                true
+            }
+            ResolvedValue::Enum { variants } => variants.iter().all(|variant| self.collect_branches(variant, path)),
+            branch => {
+                let branch_count = self.present.len() + self.absent.len();
+                let decisions = if is_resolved_null(branch) { &mut self.absent } else { &mut self.present };
+                if decisions.contains(path) {
+                    return true;
+                }
+                if branch_count == MAX_GROUP_PROPERTY_SCENARIOS {
+                    return false;
+                }
+                decisions.push(path.clone());
+                true
+            }
+        }
+    }
+
+    /// The `index`th decision in the order that approaches `bound` soonest,
+    /// with whether that decision keeps the member.
+    fn decision(&self, bound: ItemCountBound, index: usize) -> Option<(&[(String, bool)], bool)> {
+        let keeps_first = bound.prefers_present_members();
+        let (first, second) = if keeps_first { (&self.present, &self.absent) } else { (&self.absent, &self.present) };
+        match first.get(index) {
+            Some(literals) => Some((literals.as_slice(), keeps_first)),
+            None => second.get(index - first.len()).map(|literals| (literals.as_slice(), !keeps_first)),
+        }
+    }
+}
+
+/// Checks `uniqueItems` across the members' surviving value alternatives. Only
+/// alternatives with equal values are compared, and a duplicate is reported
+/// with a proven satisfiable world in which both members survive holding that
+/// value. A member with more alternatives than one bounded expansion admits
+/// records the curtailment instead of concluding from a partial view.
+fn validate_member_uniqueness(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    members: &[ContainerMember<'_>],
+    outer_conditions: &HashMap<String, bool>,
+) {
+    let alternative_groups = equal_value_alternative_groups(members, outer_conditions);
+    if alternative_groups.was_incomplete {
+        m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
+    }
+    match duplicate_member_witness(m, &alternative_groups.groups) {
+        WitnessSearch::Found(witness) => out.push(build_diagnostic_conditional(
+            "F3037",
+            "Array items are not unique",
+            m,
+            rid,
+            prop_path,
+            None,
+            condition_map(&witness),
+        )),
+        WitnessSearch::NotFound => {}
+        WitnessSearch::BudgetExhausted => m.record_budget_exhaustion(BudgetKind::SchemaScenarioMergeAttempts),
+    }
+}
+
+/// Concrete alternatives grouped by equal value, plus whether any member could
+/// not be enumerated exactly within the per-member bound.
+struct EqualValueAlternativeGroups {
+    groups: Vec<Vec<MemberAlternative>>,
+    was_incomplete: bool,
+}
+
+/// One member's concrete surviving value under one condition assignment.
+struct MemberAlternative {
+    member_index: usize,
+    conditions: HashMap<String, bool>,
+}
+
+/// Groups every member's concrete surviving alternatives under
+/// `outer_conditions` by value, in first-appearance order, keeping one entry
+/// per member, value and assignment. Each group lists a member's alternatives
+/// contiguously and in member order. Members beyond the exact expansion bound
+/// contribute their safe partial alternatives while marking the result incomplete.
+fn equal_value_alternative_groups(
+    members: &[ContainerMember<'_>],
+    outer_conditions: &HashMap<String, bool>,
+) -> EqualValueAlternativeGroups {
+    let mut groups: HashMap<String, Vec<MemberAlternative>> = HashMap::new();
+    let mut value_order = Vec::new();
+    let mut was_incomplete = false;
+    for (member_index, member) in members.iter().enumerate() {
+        if member.presence == MemberPresence::Never {
+            continue;
+        }
+        if scenario_expansion_may_use_covering(member.value) {
+            was_incomplete = true;
+        }
+        let mut scenarios = Vec::new();
+        if collect_scenarios(member.value, outer_conditions, MAX_GROUP_PROPERTY_SCENARIOS, &mut scenarios) {
+            was_incomplete = true;
+        }
+        let mut seen = HashSet::new();
+        for (value, conditions) in scenarios {
+            if is_resolved_null(&value) || contains_dynamic_resolved(&value) {
+                continue;
+            }
+            let value_identity = canonical_json_key(&resolved_value_to_json(&value));
+            if !seen.insert((value_identity.clone(), canonical_assignment(&conditions))) {
+                continue;
+            }
+            let alternative = MemberAlternative { member_index, conditions };
+            match groups.entry(value_identity) {
+                Entry::Occupied(mut group) => group.get_mut().push(alternative),
+                Entry::Vacant(group) => {
+                    value_order.push(group.key().clone());
+                    group.insert(vec![alternative]);
+                }
+            }
+        }
+    }
+    EqualValueAlternativeGroups {
+        groups: value_order.iter().filter_map(|value_identity| groups.remove(value_identity)).collect(),
+        was_incomplete,
+    }
+}
+
+/// Whether expanding a value may replace an exact Cartesian product with a
+/// covering set. The shape deliberately overestimates when conditions are
+/// shared, conflict, or are already fixed outside the value: reporting
+/// incomplete analysis is safer than treating a covering set as exhaustive.
+fn scenario_expansion_may_use_covering(value: &ResolvedValue) -> bool {
+    #[derive(Clone, Copy)]
+    struct ScenarioShape {
+        combinations: usize,
+        nodes_per_combination: usize,
+        nested_covering: bool,
+    }
+
+    fn shape(value: &ResolvedValue) -> ScenarioShape {
+        let combination_cap = MAX_COMPLETE_SCENARIO_PRODUCT.saturating_add(1);
+        match value {
+            ResolvedValue::Conditional { if_true, if_false, .. } => {
+                let left = shape(if_true);
+                let right = shape(if_false);
+                ScenarioShape {
+                    combinations: left.combinations.saturating_add(right.combinations).min(combination_cap),
+                    nodes_per_combination: left.nodes_per_combination.max(right.nodes_per_combination),
+                    nested_covering: left.nested_covering || right.nested_covering,
+                }
+            }
+            ResolvedValue::Enum { variants } => {
+                let mut combined = ScenarioShape { combinations: 0, nodes_per_combination: 1, nested_covering: false };
+                for variant in variants {
+                    let variant_shape = shape(variant);
+                    combined.combinations =
+                        combined.combinations.saturating_add(variant_shape.combinations).min(combination_cap);
+                    combined.nodes_per_combination =
+                        combined.nodes_per_combination.max(variant_shape.nodes_per_combination);
+                    combined.nested_covering |= variant_shape.nested_covering;
+                }
+                combined.combinations = combined.combinations.max(1);
+                combined
+            }
+            ResolvedValue::List { items } => container_shape(items.iter().map(shape)),
+            ResolvedValue::Map { entries } => container_shape(entries.iter().map(|entry| shape(&entry.value))),
+            _ => ScenarioShape { combinations: 1, nodes_per_combination: 1, nested_covering: false },
+        }
+    }
+
+    fn container_shape(children: impl Iterator<Item = ScenarioShape>) -> ScenarioShape {
+        let combination_cap = MAX_COMPLETE_SCENARIO_PRODUCT.saturating_add(1);
+        let node_cap = MAX_SCENARIO_PRODUCT_NODES.saturating_add(1);
+        let mut container = ScenarioShape { combinations: 1, nodes_per_combination: 1, nested_covering: false };
+        for child in children {
+            container.combinations =
+                container.combinations.saturating_mul(child.combinations.max(1)).min(combination_cap);
+            container.nodes_per_combination =
+                container.nodes_per_combination.saturating_add(child.nodes_per_combination).min(node_cap);
+            container.nested_covering |= child.nested_covering;
+        }
+        let materialized_nodes = container.combinations.saturating_mul(container.nodes_per_combination);
+        container.nested_covering |=
+            container.combinations > MAX_COMPLETE_SCENARIO_PRODUCT || materialized_nodes > MAX_SCENARIO_PRODUCT_NODES;
+        container
+    }
+
+    shape(value).nested_covering
+}
+
+/// Finds a proven satisfiable world in which two different members survive
+/// with one value, charging every pairing tried to the schema witness merge
+/// budget.
+fn duplicate_member_witness(
+    m: &Arc<SemanticModel>,
+    groups: &[Vec<MemberAlternative>],
+) -> WitnessSearch<HashMap<String, bool>> {
+    let mut merge_attempts = 0;
+    for group in groups {
+        for (position, left) in group.iter().enumerate() {
+            let later_members =
+                group.iter().skip(position + 1).skip_while(|right| right.member_index == left.member_index);
+            for right in later_members {
+                if merge_attempts == MAX_GROUP_WITNESS_MERGE_ATTEMPTS {
+                    return WitnessSearch::BudgetExhausted;
+                }
+                merge_attempts += 1;
+                if let Some(witness) = try_merge_assignments(&left.conditions, &right.conditions)
+                    && assignment_is_proven_satisfiable(m, &witness)
+                {
+                    return WitnessSearch::Found(witness);
+                }
+            }
+        }
+    }
+    WitnessSearch::NotFound
+}
+
+/// A value identity independent of object key order: two JSON values share it
+/// exactly when they are equal.
+fn canonical_json_key(value: &serde_json::Value) -> String {
+    key_ordered_json(value).to_string()
+}
+
+fn key_ordered_json(value: &serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Array(items) => serde_json::Value::Array(items.iter().map(key_ordered_json).collect()),
+        serde_json::Value::Object(entries) => {
+            let mut ordered: Vec<(&String, &serde_json::Value)> = entries.iter().collect();
+            ordered.sort_unstable_by_key(|(name, _)| *name);
+            serde_json::Value::Object(
+                ordered.into_iter().map(|(name, entry)| (name.clone(), key_ordered_json(entry))).collect(),
+            )
+        }
+        // JSON Schema compares numbers mathematically, so integral floating-point
+        // spellings share one key with their integer spelling; this also merges
+        // negative and positive zero.
+        serde_json::Value::Number(number) if number.is_f64() => match number.as_f64() {
+            Some(value) if value.fract() == 0.0 && value >= 0.0 && value < u64::MAX as f64 => {
+                serde_json::Value::from(value as u64)
+            }
+            Some(value) if value.fract() == 0.0 && value >= i64::MIN as f64 && value < 0.0 => {
+                serde_json::Value::from(value as i64)
+            }
+            _ => value.clone(),
+        },
+        scalar => scalar.clone(),
+    }
+}
+
+fn validate_item_cardinality_of_value(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+    value: &serde_json::Value,
+    conditions: &HashMap<String, bool>,
+) {
+    let Some(items) = value.as_array() else {
+        return;
+    };
+    // A null element is an `AWS::NoValue` that CloudFormation removes from the
+    // list at deploy time, so it is not a real member.
+    let surviving: Vec<&serde_json::Value> = items.iter().filter(|item| !item.is_null()).collect();
+    let count = surviving.len() as u64;
+    for bound in ItemCountBound::of(schema) {
+        if bound.is_violated_by(count) {
+            out.push(build_diagnostic_conditional(
+                "F3032",
+                &bound.violation_message(count),
+                m,
+                rid,
+                prop_path,
+                None,
+                condition_map(conditions),
+            ));
+        }
+    }
+    if schema.unique_items == Some(true) {
+        let mut seen = HashSet::new();
+        for item in surviving {
+            if !seen.insert(canonical_json_key(item)) {
+                out.push(build_diagnostic_conditional(
+                    "F3037",
+                    "Array items are not unique",
+                    m,
+                    rid,
+                    prop_path,
+                    None,
+                    condition_map(conditions),
+                ));
+                break;
+            }
         }
     }
 }

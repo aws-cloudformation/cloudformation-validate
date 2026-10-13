@@ -19,9 +19,8 @@ _type_supports_tags(rtype) if {
 }
 
 _resource_missing_tags(name) if {
-    some scenario in properties_scenarios(name, ["Tags"])
-    _tag_scenario_reachable(name, scenario.conditions)
-    object.get(scenario.properties, "Tags", null) == null
+    some conditions in property_absence_scenarios(name, "Tags")
+    _tag_scenario_reachable(name, conditions)
 }
 
 _tag_scenario_reachable(name, conditions) if {

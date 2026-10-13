@@ -10,6 +10,7 @@ import software.amazon.cloudformation.validate.engine.*
 import software.amazon.cloudformation.validate.gson.buildBindingsGson
 import software.amazon.cloudformation.validate.rules.*
 import software.amazon.cloudformation.validate.schemavalidator.SchemaValidatorConfig
+import software.amazon.cloudformation.validate.templatemodel.JsonValueEnum
 import java.io.File
 
 class SmokeTest {
@@ -573,6 +574,20 @@ class SmokeTest {
         assertEquals(1L, counts["errors"])
     }
 
+    @Test
+    fun explicitJsonNullContextSurvivesFfi() {
+        val report = CEL.validateTemplate(
+            templateFile("bad/resources/properties/list_duplicates.yaml"),
+            detailedConfig(),
+        )
+        val diagnostic = report.diagnostics.first { it.entity?.logicalId == "IamGroupWithConditions" }
+
+        assertTrue(
+            diagnostic.context?.actualValue is JsonValueEnum.Null,
+            "an explicit JSON null must remain distinct from an absent violation-context value",
+        )
+    }
+
     @TestFactory
     fun regoDetailedMatchesSnapshot(): List<DynamicTest> = snapshotDetailedTests("rego", REGO)
 
@@ -699,9 +714,23 @@ class SmokeTest {
     }
 
     @Suppress("UNCHECKED_CAST")
+    private fun stripNullActualValuesOmittedByGson(report: MutableMap<String, Any?>) {
+        val diagnostics = report["diagnostics"] as? List<Map<String, Any?>> ?: return
+        report["diagnostics"] = diagnostics.map { diagnostic ->
+            val normalized = LinkedHashMap(diagnostic)
+            val context = diagnostic["context"] as? Map<String, Any?>
+            if (context?.containsKey("actualValue") == true && context["actualValue"] == null) {
+                normalized["context"] = LinkedHashMap(context).apply { remove("actualValue") }
+            }
+            normalized
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
     private fun stripSnapshotExcludedFields(report: Map<String, Any?>, filePath: String? = null): Map<String, Any?> {
         val out = LinkedHashMap(report)
         excludeSnapshotRules(out)
+        stripNullActualValuesOmittedByGson(out)
         if (filePath != null) out["filePath"] = filePath
         out.remove("version")
         out.remove("performance")

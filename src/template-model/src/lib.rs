@@ -19,6 +19,7 @@ pub mod ir;
 pub mod json_value;
 pub(crate) mod lang_ext_shapes;
 pub(crate) mod language_extensions;
+pub mod member_presence;
 pub mod message;
 pub mod model;
 pub(crate) mod nesting;
@@ -51,7 +52,7 @@ pub use defect::{DefectPhase, ParseDefect};
 pub use ir::*;
 pub use json_value::JsonValue;
 pub use message::{primary_identifier_conflict_message, quote, render_str_list, render_value, render_value_list};
-pub use model::{ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
+pub use model::{ListMemberScenario, ParseConfig, ParseResult, PseudoParameterOverrides, SemanticModel};
 pub use pattern::{
     CompiledPattern, anchor_allowed_pattern, compile as compile_pattern, default_matches_pattern, is_service_valid,
 };

@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Regression fixture for independently evaluated Route53 record members
+Parameters:
+  TypeFirstValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  TypeSecondValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  TypeThirdValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip00Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip01Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip02Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip03Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip04Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip05Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip06Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip07Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip08Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip09Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Skip10Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  TypeFirst: !Equals [!Ref TypeFirstValue, 'true']
+  TypeSecond: !Equals [!Ref TypeSecondValue, 'true']
+  TypeThird: !Equals [!Ref TypeThirdValue, 'true']
+  Skip00: !Equals [!Ref Skip00Value, 'true']
+  Skip01: !Equals [!Ref Skip01Value, 'true']
+  Skip02: !Equals [!Ref Skip02Value, 'true']
+  Skip03: !Equals [!Ref Skip03Value, 'true']
+  Skip04: !Equals [!Ref Skip04Value, 'true']
+  Skip05: !Equals [!Ref Skip05Value, 'true']
+  Skip06: !Equals [!Ref Skip06Value, 'true']
+  Skip07: !Equals [!Ref Skip07Value, 'true']
+  Skip08: !Equals [!Ref Skip08Value, 'true']
+  Skip09: !Equals [!Ref Skip09Value, 'true']
+  Skip10: !Equals [!Ref Skip10Value, 'true']
+Resources:
+  CnameCountRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: count.example.com.
+      Type: !If [TypeFirst, NS, !If [TypeSecond, NS, !If [TypeThird, CNAME, NS]]]
+      TTL: '300'
+      ResourceRecords:
+        - target.example.net.
+        - !If [Skip00, !Ref AWS::NoValue, target00.example.net.]
+        - !If [Skip01, !Ref AWS::NoValue, target01.example.net.]
+        - !If [Skip02, !Ref AWS::NoValue, target02.example.net.]
+        - !If [Skip03, !Ref AWS::NoValue, target03.example.net.]
+        - !If [Skip04, !Ref AWS::NoValue, target04.example.net.]
+        - !If [Skip05, !Ref AWS::NoValue, target05.example.net.]
+        - !If [Skip06, !Ref AWS::NoValue, target06.example.net.]
+        - !If [Skip07, !Ref AWS::NoValue, target07.example.net.]
+        - !If [Skip08, !Ref AWS::NoValue, target08.example.net.]
+        - !If [Skip09, !Ref AWS::NoValue, target09.example.net.]
+        - !If [Skip10, !Ref AWS::NoValue, target10.example.net.]
+  AddressRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: address.example.com.
+      Type: !If [TypeFirst, NS, !If [TypeSecond, NS, !If [TypeThird, A, NS]]]
+      TTL: '300'
+      ResourceRecords:
+        - 192.0.2.1
+        - !If [Skip00, !Ref AWS::NoValue, not-an-ip]
+        - !If [Skip01, !Ref AWS::NoValue, 192.0.2.2]
+        - !If [Skip02, !Ref AWS::NoValue, 192.0.2.3]
+        - !If [Skip03, !Ref AWS::NoValue, 192.0.2.4]
+        - !If [Skip04, !Ref AWS::NoValue, 192.0.2.5]
+        - !If [Skip05, !Ref AWS::NoValue, 192.0.2.6]
+        - !If [Skip06, !Ref AWS::NoValue, 192.0.2.7]
+        - !If [Skip07, !Ref AWS::NoValue, 192.0.2.8]
+        - !If [Skip08, !Ref AWS::NoValue, 192.0.2.9]
+        - !If [Skip09, !Ref AWS::NoValue, 192.0.2.10]
+        - !If [Skip10, !Ref AWS::NoValue, 192.0.2.11]

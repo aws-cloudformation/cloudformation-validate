@@ -655,3 +655,111 @@ fn deep_intrinsic_resolution_completes_within_budget() {
         finished.unwrap().unwrap_or_else(|e| panic!("{engine_name}: deep intrinsic resolution must not error: {e}"));
     }
 }
+
+/// Fixtures whose members are each gated by an independent condition. The joint
+/// assignment count is 2^16 to 2^18, which is far beyond what may be enumerated
+/// per value, yet every member is independently optional, so analysis must stay
+/// complete and polynomial.
+const INDEPENDENT_CONDITION_FIXTURES: [&str; 4] = [
+    "independent_conditions_list_items.yaml",
+    "independent_conditions_properties.yaml",
+    "independent_conditions_object_keys.yaml",
+    "independent_conditions_statements.yaml",
+];
+
+/// Independent conditions on one value must not be enumerated jointly. The
+/// fixtures are valid templates, so they must validate quickly with a complete
+/// analysis and no curtailment, identically on every engine.
+#[test]
+fn independent_conditions_are_analyzed_completely_without_joint_expansion() {
+    const CURTAILED_ANALYSIS_ADVISORY: &str = "W9052";
+    const PER_TEMPLATE_BUDGET: Duration = Duration::from_secs(10);
+    for fixture in INDEPENDENT_CONDITION_FIXTURES {
+        let bytes = common::load_security(fixture);
+        let mut engine_reports = Vec::new();
+        for engine_name in ["rego", "cel", "composite"] {
+            let report = validate_report_within(PER_TEMPLATE_BUDGET, engine_name, bytes.clone())
+                .unwrap_or_else(|| panic!("{engine_name}: {fixture} must validate within {PER_TEMPLATE_BUDGET:?}"))
+                .expect("validation must return a structured report");
+            assert_eq!(report.status, ReportStatus::Ok, "{engine_name}: {fixture} analysis must be complete");
+            assert!(
+                report.diagnostics.iter().all(|diagnostic| diagnostic.rule_id != CURTAILED_ANALYSIS_ADVISORY),
+                "{engine_name}: {fixture} must not report curtailment"
+            );
+            assert!(
+                report.metadata.budget_exhaustions.is_none(),
+                "{engine_name}: {fixture} must not exhaust any budget"
+            );
+            engine_reports.push(report);
+        }
+        let rule_ids = |report: &ValidationReport| -> Vec<String> {
+            let mut ids: Vec<String> = report.diagnostics.iter().map(|d| d.rule_id.clone()).collect();
+            ids.sort();
+            ids
+        };
+        assert_eq!(rule_ids(&engine_reports[0]), rule_ids(&engine_reports[1]), "{fixture}: rego and cel must agree");
+        assert_eq!(
+            rule_ids(&engine_reports[1]),
+            rule_ids(&engine_reports[2]),
+            "{fixture}: cel and composite must agree"
+        );
+    }
+}
+
+#[test]
+fn conditional_scenario_checks_remain_exact_beyond_the_product_bound() {
+    let bytes = common::load_security("conditional_scenario_correctness.yaml");
+    for engine_name in ["rego", "cel", "composite"] {
+        let report = validate_report_within(COMPLETION_BUDGET, engine_name, bytes.clone())
+            .unwrap_or_else(|| panic!("{engine_name}: scenario correctness fixture must complete"))
+            .expect("validation must return a structured report");
+        let has_diagnostic = |rule_id: &str, resource_id: &str| {
+            report.diagnostics.iter().any(|diagnostic| {
+                diagnostic.rule_id == rule_id && diagnostic.resource_logical_id() == Some(resource_id)
+            })
+        };
+
+        assert!(has_diagnostic("E3023", "Record"), "{engine_name}: the three-literal address branch is reachable");
+        assert!(has_diagnostic("F3037", "NestedUniqueFunction"), "{engine_name}: conditional tag values can collide");
+        assert!(has_diagnostic("W2530", "SnapStartFunction"), "{engine_name}: false-branch SnapStart is enabled");
+        assert!(
+            !has_diagnostic("F3032", "ComplementaryArchitectureFunction"),
+            "{engine_name}: one complementary dynamic member is always present"
+        );
+        assert!(
+            !has_diagnostic("F3032", "RepeatedConditionFunction"),
+            "{engine_name}: an impossible nested member is never present"
+        );
+        assert!(
+            !has_diagnostic("I9040", "TaggedTopic"),
+            "{engine_name}: Tags are present in every reachable Properties branch"
+        );
+        assert_eq!(report.status, ReportStatus::Ok, "{engine_name}: analysis must remain complete");
+        assert!(
+            report.metadata.budget_exhaustions.is_none(),
+            "{engine_name}: no validation budget should be exhausted"
+        );
+    }
+}
+
+#[test]
+fn alias_expanded_depth_is_rejected_with_structured_error() {
+    let bytes = common::load_security("yaml_alias_expanded_depth.yaml");
+    let error = match SemanticModel::from_bytes(&bytes) {
+        Err(error) => error,
+        Ok(_) => panic!("alias-expanded nesting must exceed the depth limit"),
+    };
+    let message = error.to_string().to_lowercase();
+    assert!(message.contains("nesting depth"), "error must reference nesting depth, got: {error}");
+}
+
+#[test]
+fn exponential_yaml_alias_expansion_is_rejected_with_structured_error() {
+    let bytes = common::load_security("yaml_alias_expansion.yaml");
+    let error = match SemanticModel::from_bytes(&bytes) {
+        Err(e) => e,
+        Ok(_) => panic!("a document whose aliases expand exponentially must fail with a parse error"),
+    };
+    let msg = error.to_string().to_lowercase();
+    assert!(msg.contains("alias expansion"), "error must reference alias expansion, got: {}", error);
+}

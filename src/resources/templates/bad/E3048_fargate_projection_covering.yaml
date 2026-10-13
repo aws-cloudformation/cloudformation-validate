@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Regression fixture for independently projected Fargate properties
+Parameters:
+  LaunchType:
+    Type: String
+    AllowedValues: [FARGATE, EC2]
+  NetworkFirstValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  NetworkSecondValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  NetworkThirdValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement00Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement01Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement02Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement03Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement04Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement05Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement06Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement07Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement08Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement09Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Placement10Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  IsFargate: !Equals [!Ref LaunchType, FARGATE]
+  IsNotFargate: !Not [!Condition IsFargate]
+  NetworkFirst: !Equals [!Ref NetworkFirstValue, 'true']
+  NetworkSecond: !Equals [!Ref NetworkSecondValue, 'true']
+  NetworkThird: !Equals [!Ref NetworkThirdValue, 'true']
+  Placement00: !Equals [!Ref Placement00Value, 'true']
+  Placement01: !Equals [!Ref Placement01Value, 'true']
+  Placement02: !Equals [!Ref Placement02Value, 'true']
+  Placement03: !Equals [!Ref Placement03Value, 'true']
+  Placement04: !Equals [!Ref Placement04Value, 'true']
+  Placement05: !Equals [!Ref Placement05Value, 'true']
+  Placement06: !Equals [!Ref Placement06Value, 'true']
+  Placement07: !Equals [!Ref Placement07Value, 'true']
+  Placement08: !Equals [!Ref Placement08Value, 'true']
+  Placement09: !Equals [!Ref Placement09Value, 'true']
+  Placement10: !Equals [!Ref Placement10Value, 'true']
+Resources:
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [IsFargate, [FARGATE], [EC2]]
+      Cpu: !If [IsNotFargate, '256', '512']
+      Memory: '1024'
+      NetworkMode: !If [NetworkFirst, awsvpc, !If [NetworkSecond, awsvpc, !If [NetworkThird, !Ref AWS::NoValue, awsvpc]]]
+      ContainerDefinitions:
+        - Name: app
+          Image: nginx
+          Essential: true
+      PlacementConstraints: !If
+        - IsNotFargate
+        - - !If [Placement00, {Type: memberOf, Expression: 'attribute:zone00 == a'}, !Ref AWS::NoValue]
+          - !If [Placement01, {Type: memberOf, Expression: 'attribute:zone01 == a'}, !Ref AWS::NoValue]
+          - !If [Placement02, {Type: memberOf, Expression: 'attribute:zone02 == a'}, !Ref AWS::NoValue]
+          - !If [Placement03, {Type: memberOf, Expression: 'attribute:zone03 == a'}, !Ref AWS::NoValue]
+          - !If [Placement04, {Type: memberOf, Expression: 'attribute:zone04 == a'}, !Ref AWS::NoValue]
+          - !If [Placement05, {Type: memberOf, Expression: 'attribute:zone05 == a'}, !Ref AWS::NoValue]
+          - !If [Placement06, {Type: memberOf, Expression: 'attribute:zone06 == a'}, !Ref AWS::NoValue]
+          - !If [Placement07, {Type: memberOf, Expression: 'attribute:zone07 == a'}, !Ref AWS::NoValue]
+          - !If [Placement08, {Type: memberOf, Expression: 'attribute:zone08 == a'}, !Ref AWS::NoValue]
+          - !If [Placement09, {Type: memberOf, Expression: 'attribute:zone09 == a'}, !Ref AWS::NoValue]
+          - !If [Placement10, {Type: memberOf, Expression: 'attribute:zone10 == a'}, !Ref AWS::NoValue]
+        - !Ref AWS::NoValue

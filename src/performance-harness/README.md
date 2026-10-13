@@ -63,6 +63,11 @@ it is understood and accepted - normally with each new release, so that every re
 one. The anchor is a tag rather than recorded numbers, so it is independent of runner hardware and never needs
 measurements from a GitHub runner to update.
 
+A security fixture that the anchored release cannot validate (it exhausts memory or needs tens of seconds per
+validation) has no base measurement to pair with, so `UNCOMPARABLE_SECURITY_FIXTURES` in `src/measurement.rs` leaves
+it out of the workloads. A unit test fails once the anchor reaches the release that measures those fixtures, so
+advancing the anchor past it also removes the entries.
+
 ## Run locally
 
 Build the base harness from a clean export of the base revision, then pass it to `compare`. Reusing the workspace

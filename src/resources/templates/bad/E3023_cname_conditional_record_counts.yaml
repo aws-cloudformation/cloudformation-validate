@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Regression fixture for conditional CNAME record-count source paths
+Parameters:
+  Mode:
+    Type: String
+    AllowedValues: [first, second]
+Conditions:
+  ChooseFirst: !Equals [!Ref Mode, first]
+Resources:
+  ConditionalList:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: list.example.com.
+      Type: CNAME
+      TTL: '300'
+      ResourceRecords: !If
+        - ChooseFirst
+        - [one.example.net., two.example.net.]
+        - [three.example.net., four.example.net.]
+  ConditionalProperties:
+    Type: AWS::Route53::RecordSet
+    Properties: !If
+      - ChooseFirst
+      - HostedZoneName: example.com.
+        Name: properties.example.com.
+        Type: CNAME
+        TTL: '300'
+        ResourceRecords: [five.example.net., six.example.net.]
+      - HostedZoneName: example.com.
+        Name: properties.example.com.
+        Type: CNAME
+        TTL: '300'
+        ResourceRecords: [seven.example.net., eight.example.net.]
+  SingleRecordBranches:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: single.example.com.
+      Type: CNAME
+      TTL: '300'
+      ResourceRecords: !If
+        - ChooseFirst
+        - [nine.example.net.]
+        - [ten.example.net.]

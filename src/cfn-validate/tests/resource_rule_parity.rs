@@ -40,6 +40,29 @@ fn selected_findings_with_spans(engine: &dyn ValidationEngine, template: &str, r
     findings
 }
 
+/// Each finding as `resource|property path|start line:start column`, sorted.
+fn selected_finding_anchors(engine: &dyn ValidationEngine, template: &str, rule_ids: &[&str]) -> Vec<String> {
+    let validator = SchemaValidator::default();
+    let report = validate_bytes(engine, &validator, template.as_bytes(), ValidateConfig::default()).unwrap();
+    let mut anchors: Vec<String> = report
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| rule_ids.contains(&diagnostic.rule_id.as_str()))
+        .map(|diagnostic| {
+            let location = diagnostic.location.as_ref().expect("every finding must carry a source location");
+            format!(
+                "{}|{}|{}:{}",
+                diagnostic.resource_logical_id().unwrap_or(""),
+                diagnostic.property_path.as_deref().unwrap_or(""),
+                location.start_line,
+                location.start_column
+            )
+        })
+        .collect();
+    anchors.sort();
+    anchors
+}
+
 fn diagnostic_identity(diagnostic: &Diagnostic) -> String {
     format!(
         "{}|{:?}|{}|{}|{}|{}",
@@ -2280,4 +2303,257 @@ fn composite_keys_other_engines_and_consistent_monitoring_are_not_reported() {
     let cel_findings = selected_findings(&cel, template, &rule_ids);
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "{rego_findings:?}");
+}
+
+#[test]
+fn snapstart_without_version_is_reported_at_each_reachable_enabling_apply_on() {
+    let template = include_str!("../../resources/templates/bad/W2530_snapstart_conditional_apply_on.yaml");
+    let (rego, cel) = engines();
+    assert_eq!(
+        selected_findings_with_spans(&rego, template, &["W2530"]),
+        selected_findings_with_spans(&cel, template, &["W2530"]),
+        "SnapStart version findings must be identical, spans included"
+    );
+
+    let anchors = selected_finding_anchors(&rego, template, &["W2530"]);
+
+    assert_eq!(
+        anchors,
+        [
+            "ApplyOnBesideNoValue|Properties.SnapStart.ApplyOn|74:53",
+            "ApplyOnFalseBranch|Properties.SnapStart.ApplyOn|63:40",
+            "ApplyOnTrueBranch|Properties.SnapStart.ApplyOn|52:34",
+            "EveryBranchEnables|Properties.SnapStart.ApplyOn|100:11",
+            "EveryBranchEnables|Properties.SnapStart.ApplyOn|99:11",
+            "PropertiesFalseBranch|Properties.SnapStart.ApplyOn|41:11",
+            "PropertiesTrueBranch|Properties.SnapStart.ApplyOn|17:11",
+            "SnapStartBesideNoValue|Properties.SnapStart.ApplyOn|87:11",
+        ],
+        "every reachable enabling value is reported once at its authored position"
+    );
+}
+
+#[test]
+fn snapstart_in_unreachable_or_published_scenarios_is_not_reported() {
+    let template = include_str!("../../resources/templates/good/W2530_snapstart_unreachable_or_published.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W2530"]);
+    let cel_findings = selected_findings(&cel, template, &["W2530"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(
+        rego_findings.is_empty(),
+        "unreachable enabling branches and versions published alongside SnapStart must not be reported: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn snapstart_requires_a_version_publishing_the_function_in_the_same_deployment() {
+    let template = include_str!("../../resources/templates/bad/W2530_snapstart_version_not_coexisting.yaml");
+    let (rego, cel) = engines();
+    assert_eq!(
+        selected_findings_with_spans(&rego, template, &["W2530"]),
+        selected_findings_with_spans(&cel, template, &["W2530"]),
+        "SnapStart version findings must be identical, spans included"
+    );
+
+    let anchors = selected_finding_anchors(&rego, template, &["W2530"]);
+
+    assert_eq!(
+        anchors,
+        [
+            "VersionInOtherEnvironment|Properties.SnapStart.ApplyOn|65:11",
+            "VersionNamesOtherFunctionWhenEnabled|Properties.SnapStart.ApplyOn|82:34",
+            "VersionOnlyDependsOnFunction|Properties.SnapStart.ApplyOn|32:9",
+            "VersionOnlyDescribesFunction|Properties.SnapStart.ApplyOn|48:9",
+        ],
+        "a version publishes a function only through its FunctionName and only where it is created"
+    );
+}
+
+#[test]
+fn snapstart_version_published_from_conditional_version_properties_follows_the_branch() {
+    let template = r#"
+Conditions:
+  IsUsEast1: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Other:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: bucket, S3Key: code.zip}
+  PublishedInEnablingBranch:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java21
+      Handler: example.Handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: bucket, S3Key: code.zip}
+      SnapStart: !If [IsUsEast1, {ApplyOn: PublishedVersions}, !Ref AWS::NoValue]
+  PublishedInEnablingBranchVersion:
+    Type: AWS::Lambda::Version
+    Properties: !If
+      - IsUsEast1
+      - FunctionName: !Ref PublishedInEnablingBranch
+      - FunctionName: !Ref Other
+  PublishedOutsideEnablingBranch:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java21
+      Handler: example.Handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: bucket, S3Key: code.zip}
+      SnapStart: !If [IsUsEast1, {ApplyOn: PublishedVersions}, !Ref AWS::NoValue]
+  PublishedOutsideEnablingBranchVersion:
+    Type: AWS::Lambda::Version
+    Properties: !If
+      - IsUsEast1
+      - FunctionName: !Ref Other
+      - FunctionName: !Ref PublishedOutsideEnablingBranch
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["W2530"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["W2530"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings.len(),
+        1,
+        "only the branch-mismatched version leaves SnapStart unpublished: {rego_findings:?}"
+    );
+    assert!(rego_findings[0].contains("|PublishedOutsideEnablingBranch|Properties.SnapStart.ApplyOn|"));
+}
+
+#[test]
+fn snapstart_version_with_matching_explicit_function_name_is_attached() {
+    let template = r#"
+Resources:
+  Named:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: snap-named
+      Runtime: java21
+      Handler: example.Handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: bucket, S3Key: code.zip}
+      SnapStart: {ApplyOn: PublishedVersions}
+  NamedVersion:
+    Type: AWS::Lambda::Version
+    DependsOn: Named
+    Properties:
+      FunctionName: snap-named
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["W2530"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["W2530"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "the matching explicit name publishes the function: {rego_findings:?}");
+}
+
+#[test]
+fn route53_cname_identity_ignores_unrelated_record_scenarios() {
+    let template = include_str!("../../resources/templates/bad/E3023_cname_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 1, "the reachable CNAME at the zone apex must be reported: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Record|Properties.Name|"));
+    assert!(rego_findings[0].contains("must not match HostedZoneName"));
+}
+
+#[test]
+fn fargate_missing_network_mode_ignores_ec2_only_placement_scenarios() {
+    let template = include_str!("../../resources/templates/bad/E3048_fargate_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3048"]);
+
+    assert_eq!(rego_findings, cel_findings, "Fargate diagnostics must be identical, spans included");
+    assert_eq!(
+        rego_findings.len(),
+        1,
+        "only the reachable Fargate deployment without NetworkMode must be reported: {rego_findings:?}"
+    );
+    assert!(rego_findings[0].contains("|Task|Properties|"));
+    assert!(rego_findings[0].contains("NetworkMode to be specified as 'awsvpc'"));
+}
+
+#[test]
+fn whole_properties_item_cardinality_preserves_nested_member_conditions() {
+    let template = include_str!("../../resources/templates/bad/F3032_whole_properties_item_cardinality.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["F3032"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["F3032"]);
+
+    assert_eq!(rego_findings, cel_findings, "schema diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 1, "the selected branch can contain seventeen subnets: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Function|Properties.VpcConfig.SubnetIds|"));
+    assert!(rego_findings[0].contains("expected maximum item count: 16, found: 17"));
+}
+
+#[test]
+fn route53_alias_checks_ignore_unrelated_property_scenarios() {
+    let template = include_str!("../../resources/templates/bad/E3029_alias_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3029"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3029"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 alias diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 2, "both independent alias constraints must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("TTL must not be set when AliasTarget is specified")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("record type 'NS'")));
+}
+
+#[test]
+fn route53_record_checks_expand_members_independently() {
+    let template = include_str!("../../resources/templates/bad/E3023_record_value_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 record diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 2, "both reachable record defects must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|CnameCountRecord|Properties.ResourceRecords|")
+            && finding.contains("at most 1 ResourceRecord")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|AddressRecord|Properties.ResourceRecords.1|") && finding.contains("not a valid IPv4 address")
+    }));
+}
+
+#[test]
+fn route53_cname_record_count_reports_each_invalid_branch() {
+    let template = include_str!("../../resources/templates/bad/E3023_cname_conditional_record_counts.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "conditional CNAME count diagnostics must match, spans included");
+    assert_eq!(rego_findings.len(), 4, "each invalid authored branch must be reported once: {rego_findings:?}");
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|ConditionalList|")).count(), 2);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|ConditionalProperties|")).count(), 2);
+    assert!(rego_findings.iter().all(|finding| !finding.contains("|SingleRecordBranches|")));
+}
+
+#[test]
+fn route53_recordset_group_checks_expand_members_independently() {
+    let template = include_str!("../../resources/templates/bad/E3023_recordsetgroup_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 group diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 2, "both reachable group record defects must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|CnameGroup|Properties.RecordSets.0.ResourceRecords|")
+            && finding.contains("at most 1 ResourceRecord")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|AddressGroup|Properties.RecordSets.0.ResourceRecords.1|")
+            && finding.contains("not a valid IPv4 address")
+    }));
 }

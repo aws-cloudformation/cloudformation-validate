@@ -7,6 +7,7 @@ use crate::graph::ReferenceGraph;
 use crate::ir::*;
 use crate::is_custom_resource_type;
 use crate::json_value::JsonValue;
+use crate::member_presence::absent_alternatives;
 use crate::regions::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
@@ -30,6 +31,21 @@ pub struct PathValuePair {
     /// Dot-separated property path within the resource (e.g. 'Properties.BucketName').
     pub path: String,
     pub value: String,
+}
+
+/// One deployment scenario for an authored member of a resolved list.
+#[derive(Debug, Clone)]
+pub struct ListMemberScenario {
+    /// Identity shared by members from the same outer list alternative.
+    pub container_scenario: usize,
+    /// Conditions selecting the outer list alternative containing this member.
+    pub container_conditions: HashMap<String, bool>,
+    /// Authored zero-based position of the member in that list alternative.
+    pub index: usize,
+    /// Member value after expanding only conditions that wrap this member.
+    pub value: ResolvedValue,
+    /// Conditions selecting both the outer list alternative and this member value.
+    pub conditions: HashMap<String, bool>,
 }
 
 /// A property that is dropped (resolves to AWS::NoValue) in one branch of an Fn::If condition.
@@ -324,8 +340,11 @@ pub struct SemanticModel {
     /// available for best-effort value resolution but cannot prove reachability.
     invalid_inline_conditions: HashSet<String>,
     resolve_memo: Mutex<HashMap<(String, String), Option<ResolvedValue>>>,
-    raw_scenario_memo: Mutex<HashMap<(String, String), Vec<(ResolvedValue, HashMap<String, bool>)>>>,
-    properties_scenario_cache: Mutex<HashMap<String, Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>>>,
+    raw_scenario_memo:
+        Mutex<HashMap<(String, String, usize), (Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>, bool)>>,
+    properties_scenario_cache:
+        Mutex<HashMap<(String, Option<BTreeSet<String>>), Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>>>,
+    list_member_scenario_cache: Mutex<HashMap<(String, String), Arc<Vec<ListMemberScenario>>>>,
     scenario_memo: Mutex<HashMap<(String, String), Arc<Vec<(serde_json::Value, HashMap<String, bool>)>>>>,
     lifecycle_policy_scenario_cache: Mutex<HashMap<(String, String), Vec<(serde_json::Value, HashMap<String, bool>)>>>,
     /// Cumulative count of scenarios materialized by `resolve_scenarios` across
@@ -1135,6 +1154,7 @@ impl SemanticModel {
                 resolve_memo: Mutex::new(HashMap::new()),
                 raw_scenario_memo: Mutex::new(HashMap::new()),
                 properties_scenario_cache: Mutex::new(HashMap::new()),
+                list_member_scenario_cache: Mutex::new(HashMap::new()),
                 scenario_memo: Mutex::new(HashMap::new()),
                 lifecycle_policy_scenario_cache: Mutex::new(HashMap::new()),
                 scenario_combinations_used: AtomicU64::new(0),
@@ -1517,6 +1537,278 @@ impl SemanticModel {
         result
     }
 
+    /// Returns the resolved value tree at `path` without expanding `Fn::If` or
+    /// parameter-enum alternatives. Unlike [`Self::resolve_deep`], this also
+    /// traverses a whole-`Properties` `Fn::If`; a path absent from one branch is
+    /// represented by the dynamic placeholder produced by
+    /// [`resolved_value_at_path`]. This lookup does not consume scenario budget.
+    #[must_use]
+    pub fn resolve_unexpanded(&self, resource_id: &str, path: &str) -> Option<ResolvedValue> {
+        self.resolve_deep(resource_id, path)
+            .or_else(|| self.resolve(resource_id, path).cloned())
+            .or_else(|| self.resolve_via_properties_if(resource_id, path))
+    }
+
+    /// Returns scenarios for each list member at `path`, expanding every member
+    /// independently under conditions that wrap the whole list. Conditions on
+    /// sibling members never multiply, and repeated callers share one cached
+    /// allocation. This structural query does not consume scenario budget.
+    #[must_use]
+    pub fn resolve_list_member_scenarios_shared(&self, resource_id: &str, path: &str) -> Arc<Vec<ListMemberScenario>> {
+        let cache_key = (resource_id.to_string(), path.to_string());
+        let mut cache = self.list_member_scenario_cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(scenarios) = cache.get(&cache_key) {
+            return Arc::clone(scenarios);
+        }
+
+        let mut member_scenarios = Vec::new();
+        if let Some(value) = self.resolve_unexpanded(resource_id, path) {
+            let mut next_container_scenario = 0;
+            self.collect_list_member_scenarios(
+                &value,
+                &HashMap::new(),
+                &mut next_container_scenario,
+                &mut member_scenarios,
+            );
+        }
+        let shared = Arc::new(member_scenarios);
+        cache.insert(cache_key, Arc::clone(&shared));
+        shared
+    }
+
+    /// Returns each authored list source path that can contain two distinct,
+    /// non-null members in a deployment compatible with `base_conditions`.
+    /// Dynamic member values count as present. Members from different outer list
+    /// alternatives or different alternatives of one member never form a pair.
+    #[must_use]
+    pub fn list_member_pair_source_paths(
+        &self,
+        resource_id: &str,
+        path: &str,
+        base_conditions: &HashMap<String, bool>,
+    ) -> BTreeSet<String> {
+        let member_scenarios = self.resolve_list_member_scenarios_shared(resource_id, path);
+        let container_scenarios: BTreeSet<usize> =
+            member_scenarios.iter().map(|scenario| scenario.container_scenario).collect();
+        let mut source_paths = BTreeSet::new();
+        for container_scenario in container_scenarios {
+            if self.conditions.satisfiability_budget_exhausted() {
+                break;
+            }
+            let Some(container) =
+                member_scenarios.iter().find(|scenario| scenario.container_scenario == container_scenario)
+            else {
+                continue;
+            };
+            let Some(base_and_container) =
+                self.merge_reachable_conditions(resource_id, base_conditions, &container.container_conditions)
+            else {
+                continue;
+            };
+            'container_members: for (left_position, left) in member_scenarios.iter().enumerate() {
+                if left.container_scenario != container_scenario || is_resolved_null(&left.value) {
+                    continue;
+                }
+                let Some(base_and_left) =
+                    self.merge_reachable_conditions(resource_id, &base_and_container, &left.conditions)
+                else {
+                    continue;
+                };
+                for right in member_scenarios.iter().skip(left_position + 1) {
+                    if self.conditions.satisfiability_budget_exhausted() {
+                        return source_paths;
+                    }
+                    if right.container_scenario != container_scenario
+                        || left.index == right.index
+                        || is_resolved_null(&right.value)
+                    {
+                        continue;
+                    }
+                    if let Some(conditions) =
+                        self.merge_reachable_conditions(resource_id, &base_and_left, &right.conditions)
+                    {
+                        source_paths.insert(
+                            self.scenario_source_path(resource_id, path, &conditions)
+                                .unwrap_or_else(|| path.to_string()),
+                        );
+                        break 'container_members;
+                    }
+                }
+            }
+        }
+        source_paths
+    }
+
+    fn merge_reachable_conditions(
+        &self,
+        resource_id: &str,
+        left: &HashMap<String, bool>,
+        right: &HashMap<String, bool>,
+    ) -> Option<HashMap<String, bool>> {
+        let mut merged = left.clone();
+        for (condition, value) in right {
+            if merged.get(condition).is_some_and(|existing| existing != value) {
+                return None;
+            }
+            merged.insert(condition.clone(), *value);
+        }
+        if let Some(resource_condition) =
+            self.resources.get(resource_id).and_then(|resource| resource.condition.as_ref())
+        {
+            if merged.get(resource_condition) == Some(&false) {
+                return None;
+            }
+            merged.insert(resource_condition.clone(), true);
+        }
+        let assumptions: Vec<(String, bool)> =
+            merged.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
+        (self.conditions.satisfiability(&assumptions) == Satisfiability::Satisfiable).then_some(merged)
+    }
+
+    fn collect_list_member_scenarios(
+        &self,
+        value: &ResolvedValue,
+        assumptions: &HashMap<String, bool>,
+        next_container_scenario: &mut usize,
+        member_scenarios: &mut Vec<ListMemberScenario>,
+    ) {
+        match value {
+            ResolvedValue::Conditional { condition, if_true, if_false } => match assumptions.get(condition) {
+                Some(true) => {
+                    self.collect_list_member_scenarios(if_true, assumptions, next_container_scenario, member_scenarios)
+                }
+                Some(false) => {
+                    self.collect_list_member_scenarios(if_false, assumptions, next_container_scenario, member_scenarios)
+                }
+                None => {
+                    let mut true_assumptions = assumptions.clone();
+                    true_assumptions.insert(condition.clone(), true);
+                    self.collect_list_member_scenarios(
+                        if_true,
+                        &true_assumptions,
+                        next_container_scenario,
+                        member_scenarios,
+                    );
+                    let mut false_assumptions = assumptions.clone();
+                    false_assumptions.insert(condition.clone(), false);
+                    self.collect_list_member_scenarios(
+                        if_false,
+                        &false_assumptions,
+                        next_container_scenario,
+                        member_scenarios,
+                    );
+                }
+            },
+            ResolvedValue::Enum { variants } => {
+                for variant in variants {
+                    self.collect_list_member_scenarios(variant, assumptions, next_container_scenario, member_scenarios);
+                }
+            }
+            ResolvedValue::List { items } => {
+                let container_scenario = *next_container_scenario;
+                *next_container_scenario = (*next_container_scenario).saturating_add(1);
+                for (index, item) in items.iter().enumerate() {
+                    Self::collect_member_scenarios(
+                        item,
+                        assumptions,
+                        container_scenario,
+                        index,
+                        assumptions,
+                        member_scenarios,
+                    );
+                }
+            }
+            ResolvedValue::Concrete { value } => {
+                if let Some(items) = value.as_array() {
+                    let container_scenario = *next_container_scenario;
+                    *next_container_scenario = (*next_container_scenario).saturating_add(1);
+                    member_scenarios.extend(items.iter().enumerate().map(|(index, item)| ListMemberScenario {
+                        container_scenario,
+                        container_conditions: assumptions.clone(),
+                        index,
+                        value: ResolvedValue::Concrete { value: item.clone().into() },
+                        conditions: assumptions.clone(),
+                    }));
+                }
+            }
+            ResolvedValue::Map { .. }
+            | ResolvedValue::Reference { .. }
+            | ResolvedValue::Dynamic { .. }
+            | ResolvedValue::TypedDynamic { .. } => {}
+        }
+    }
+
+    fn collect_member_scenarios(
+        value: &ResolvedValue,
+        assumptions: &HashMap<String, bool>,
+        container_scenario: usize,
+        index: usize,
+        container_conditions: &HashMap<String, bool>,
+        member_scenarios: &mut Vec<ListMemberScenario>,
+    ) {
+        match value {
+            ResolvedValue::Conditional { condition, if_true, if_false } => match assumptions.get(condition) {
+                Some(true) => Self::collect_member_scenarios(
+                    if_true,
+                    assumptions,
+                    container_scenario,
+                    index,
+                    container_conditions,
+                    member_scenarios,
+                ),
+                Some(false) => Self::collect_member_scenarios(
+                    if_false,
+                    assumptions,
+                    container_scenario,
+                    index,
+                    container_conditions,
+                    member_scenarios,
+                ),
+                None => {
+                    let mut true_assumptions = assumptions.clone();
+                    true_assumptions.insert(condition.clone(), true);
+                    Self::collect_member_scenarios(
+                        if_true,
+                        &true_assumptions,
+                        container_scenario,
+                        index,
+                        container_conditions,
+                        member_scenarios,
+                    );
+                    let mut false_assumptions = assumptions.clone();
+                    false_assumptions.insert(condition.clone(), false);
+                    Self::collect_member_scenarios(
+                        if_false,
+                        &false_assumptions,
+                        container_scenario,
+                        index,
+                        container_conditions,
+                        member_scenarios,
+                    );
+                }
+            },
+            ResolvedValue::Enum { variants } => {
+                for variant in variants {
+                    Self::collect_member_scenarios(
+                        variant,
+                        assumptions,
+                        container_scenario,
+                        index,
+                        container_conditions,
+                        member_scenarios,
+                    );
+                }
+            }
+            _ => member_scenarios.push(ListMemberScenario {
+                container_scenario,
+                container_conditions: container_conditions.clone(),
+                index,
+                value: value.clone(),
+                conditions: assumptions.clone(),
+            }),
+        }
+    }
+
     /// Whether the resource authors a value at `path`, whatever that value is.
     ///
     /// Presence is a different question from resolvability: a `Ref` to a
@@ -1542,7 +1834,7 @@ impl SemanticModel {
     /// a property can take must stop when one of them cannot be known.
     #[must_use]
     pub fn has_unresolved_scenario(&self, resource_id: &str, path: &str) -> bool {
-        let scenarios = self.resolve_scenarios(resource_id, path);
+        let scenarios = self.resolve_scenarios_shared(resource_id, path);
         scenarios.is_empty() || scenarios.iter().any(|(value, _)| contains_dynamic_resolved(value))
     }
 
@@ -1761,7 +2053,13 @@ impl SemanticModel {
         let remaining_limit = usize::try_from(remaining).unwrap_or(usize::MAX);
         let effective_limit = per_value_limit.min(remaining_limit);
         let mut scenarios = Vec::new();
-        let was_curtailed = collect_scenarios(value, assumptions, effective_limit, &mut scenarios);
+        let is_reachable = |scenario_assumptions: &HashMap<String, bool>| {
+            let assumptions: Vec<(String, bool)> =
+                scenario_assumptions.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
+            self.conditions.is_satisfiable(&assumptions)
+        };
+        let was_curtailed =
+            collect_scenarios_reachable(value, assumptions, effective_limit, &mut scenarios, &is_reachable);
         if was_curtailed {
             self.scenario_expansion_curtailed.store(true, Ordering::Relaxed);
             if per_value_limit == MAX_SCENARIO_COMBINATIONS && per_value_limit <= remaining_limit {
@@ -1827,11 +2125,61 @@ impl SemanticModel {
         &self,
         resource_id: &str,
     ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        self.resolve_properties_scenarios_selected(resource_id, None)
+    }
+
+    /// Owned copy of [`Self::resolve_properties_scenarios_shared`]; read-only
+    /// callers should use the shared accessor to avoid cloning the cached
+    /// expansion.
+    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        self.resolve_properties_scenarios_shared(resource_id).as_ref().clone()
+    }
+
+    /// Like [`Self::resolve_properties_scenarios_shared`] but expands only the
+    /// named top-level properties. Conditions that gate other properties never
+    /// enter the expansion, so the scenario count grows with the conditions on
+    /// the requested properties alone, and a scenario's assumptions carry only
+    /// the conditions its values depend on.
+    pub fn resolve_properties_scenarios_projected(
+        &self,
+        resource_id: &str,
+        property_names: &[&str],
+    ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        let selection: BTreeSet<String> = property_names.iter().map(|name| (*name).to_string()).collect();
+        self.resolve_properties_scenarios_selected(resource_id, Some(selection))
+    }
+
+    /// The condition assignments under which the top-level property
+    /// `property_name` is absent at deployment: undeclared, or resolving to
+    /// `AWS::NoValue`. Only the conditions that decide the property's own
+    /// presence appear, never conditions nested inside a present value, so the
+    /// result stays linear in the property's `Fn::If` depth. Empty when the
+    /// property is always present or the resource's properties are dynamic.
+    #[must_use]
+    pub fn property_absence_scenarios(&self, resource_id: &str, property_name: &str) -> Vec<HashMap<String, bool>> {
+        let Some(properties) = self.resolved_properties_value(resource_id) else {
+            return Vec::new();
+        };
+        let mut absences = Vec::new();
+        collect_property_absences(&properties, property_name, &mut Vec::new(), &mut absences);
+        absences
+    }
+
+    fn resolve_properties_scenarios_selected(
+        &self,
+        resource_id: &str,
+        selection: Option<BTreeSet<String>>,
+    ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        let cache_key = (resource_id.to_string(), selection);
         let mut cache = self.properties_scenario_cache.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(scenarios) = cache.get(resource_id) {
+        if let Some(scenarios) = cache.get(&cache_key) {
             return Arc::clone(scenarios);
         }
-        let scenarios = match self.resolved_properties_value(resource_id) {
+        let properties = self.resolved_properties_value(resource_id).map(|properties| match &cache_key.1 {
+            Some(selection) => project_properties_value(&properties, selection),
+            None => properties,
+        });
+        let scenarios = match properties {
             Some(properties) => self.collect_scenarios_with_budget(
                 &properties,
                 MAX_SCENARIO_COMBINATIONS,
@@ -1840,12 +2188,8 @@ impl SemanticModel {
             None => Vec::new(),
         };
         let shared = Arc::new(scenarios);
-        cache.insert(resource_id.to_string(), Arc::clone(&shared));
+        cache.insert(cache_key, Arc::clone(&shared));
         shared
-    }
-
-    pub fn resolve_properties_scenarios(&self, resource_id: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-        self.resolve_properties_scenarios_shared(resource_id).as_ref().clone()
     }
 
     /// Returns the authored, branch-qualified source path for an effective path in
@@ -1918,32 +2262,65 @@ impl SemanticModel {
         })
     }
 
-    pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-        let key = (resource_id.to_string(), path.to_string());
-        let mut memo = self.raw_scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(scenarios) = memo.get(&key) {
-            return scenarios.clone();
-        }
-        let scenarios = self.resolve_scenarios_with_limit(resource_id, path, MAX_SCENARIO_COMBINATIONS).0;
-        memo.insert(key, scenarios.clone());
-        scenarios
+    /// Returns one immutable allocation of the scenarios for the value at `path`
+    /// under the default per-value limit, shared across read-only callers.
+    pub fn resolve_scenarios_shared(
+        &self,
+        resource_id: &str,
+        path: &str,
+    ) -> Arc<Vec<(ResolvedValue, HashMap<String, bool>)>> {
+        self.resolve_scenarios_with_limit_shared(resource_id, path, MAX_SCENARIO_COMBINATIONS).0
     }
 
+    /// Owned copy of [`Self::resolve_scenarios_shared`]; read-only callers should
+    /// use the shared accessor to avoid cloning the memoized expansion.
+    pub fn resolve_scenarios(&self, resource_id: &str, path: &str) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
+        self.resolve_scenarios_shared(resource_id, path).as_ref().clone()
+    }
+
+    /// Expands the value at `path` under a per-value scenario limit, reporting
+    /// whether the expansion was curtailed. Results are memoized per
+    /// `(resource, path, limit)` so repeated queries, including the default-limit
+    /// [`Self::resolve_scenarios_shared`], share one allocation and charge the
+    /// cumulative budget once.
+    pub fn resolve_scenarios_with_limit_shared(
+        &self,
+        resource_id: &str,
+        path: &str,
+        per_value_limit: usize,
+    ) -> (Arc<Vec<(ResolvedValue, HashMap<String, bool>)>>, bool) {
+        let key = (resource_id.to_string(), path.to_string(), per_value_limit);
+        let mut memo = self.raw_scenario_memo.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((scenarios, was_curtailed)) = memo.get(&key) {
+            return (Arc::clone(scenarios), *was_curtailed);
+        }
+        let (scenarios, was_curtailed) = self.expand_scenarios_at_path(resource_id, path, per_value_limit);
+        let scenarios = Arc::new(scenarios);
+        memo.insert(key, (Arc::clone(&scenarios), was_curtailed));
+        (scenarios, was_curtailed)
+    }
+
+    /// Owned copy of [`Self::resolve_scenarios_with_limit_shared`]; read-only
+    /// callers should use the shared accessor to avoid cloning the memoized
+    /// expansion.
     pub fn resolve_scenarios_with_limit(
         &self,
         resource_id: &str,
         path: &str,
         per_value_limit: usize,
     ) -> (Vec<(ResolvedValue, HashMap<String, bool>)>, bool) {
-        let value = match self.resolve_deep(resource_id, path) {
-            Some(value) => value,
-            None => match self.resolve(resource_id, path) {
-                Some(value) => value.clone(),
-                None => match self.resolve_via_properties_if(resource_id, path) {
-                    Some(value) => value,
-                    None => return (Vec::new(), false),
-                },
-            },
+        let (scenarios, was_curtailed) = self.resolve_scenarios_with_limit_shared(resource_id, path, per_value_limit);
+        (scenarios.as_ref().clone(), was_curtailed)
+    }
+
+    fn expand_scenarios_at_path(
+        &self,
+        resource_id: &str,
+        path: &str,
+        per_value_limit: usize,
+    ) -> (Vec<(ResolvedValue, HashMap<String, bool>)>, bool) {
+        let Some(value) = self.resolve_unexpanded(resource_id, path) else {
+            return (Vec::new(), false);
         };
         self.collect_scenarios_with_budget_status(&value, per_value_limit, MAX_TOTAL_SCENARIO_COMBINATIONS)
     }
@@ -1967,10 +2344,10 @@ impl SemanticModel {
         resource_id: &str,
         path: &str,
     ) -> Vec<(serde_json::Value, HashMap<String, bool>)> {
-        self.resolve_scenarios(resource_id, path)
-            .into_iter()
+        self.resolve_scenarios_shared(resource_id, path)
+            .iter()
             .filter_map(|(val, conds)| {
-                if contains_dynamic_resolved(&val) {
+                if contains_dynamic_resolved(val) {
                     return None;
                 }
                 if !conds.is_empty() {
@@ -1979,11 +2356,11 @@ impl SemanticModel {
                         return None;
                     }
                 }
-                let json = crate::serialization::resolved_value_to_json_clean(&val)?;
+                let json = crate::serialization::resolved_value_to_json_clean(val)?;
                 if json_contains_markers(&json) {
                     return None;
                 }
-                Some((json, conds))
+                Some((json, conds.clone()))
             })
             .collect()
     }
@@ -2177,6 +2554,73 @@ impl SemanticModel {
 impl SpanProvider for SemanticModel {
     fn source_location(&self, path: &str) -> Option<SourceSpan> {
         self.span_index.get(path).copied()
+    }
+}
+
+fn collect_property_absences(
+    properties: &ResolvedValue,
+    property_name: &str,
+    literals: &mut Vec<(String, bool)>,
+    absences: &mut Vec<HashMap<String, bool>>,
+) {
+    let assignment = |literals: &[(String, bool)]| literals.iter().cloned().collect::<HashMap<String, bool>>();
+    match properties {
+        ResolvedValue::Conditional { condition, if_true, if_false } => {
+            for (branch, holds) in [(if_true, true), (if_false, false)] {
+                match literals.iter().find(|(name, _)| name == condition) {
+                    Some((_, decided)) if *decided == holds => {
+                        collect_property_absences(branch, property_name, literals, absences);
+                    }
+                    Some(_) => {}
+                    None => {
+                        literals.push((condition.clone(), holds));
+                        collect_property_absences(branch, property_name, literals, absences);
+                        literals.pop();
+                    }
+                }
+            }
+        }
+        ResolvedValue::Map { entries } => match entries.iter().find(|entry| entry.key == property_name) {
+            None => absences.push(assignment(literals)),
+            Some(entry) => {
+                for absence_literals in absent_alternatives(&entry.value, literals) {
+                    absences.push(assignment(&absence_literals));
+                }
+            }
+        },
+        ResolvedValue::Concrete { value } if value.get(property_name).is_none_or(serde_json::Value::is_null) => {
+            absences.push(assignment(literals));
+        }
+        _ => {}
+    }
+}
+
+/// Keeps only the selected top-level properties of a resolved `Properties`
+/// value, descending through an `Fn::If` that wraps the whole block.
+fn project_properties_value(properties: &ResolvedValue, selection: &BTreeSet<String>) -> ResolvedValue {
+    match properties {
+        ResolvedValue::Conditional { condition, if_true, if_false } => ResolvedValue::Conditional {
+            condition: condition.clone(),
+            if_true: Box::new(project_properties_value(if_true, selection)),
+            if_false: Box::new(project_properties_value(if_false, selection)),
+        },
+        ResolvedValue::Map { entries } => ResolvedValue::Map {
+            entries: entries.iter().filter(|entry| selection.contains(&entry.key)).cloned().collect(),
+        },
+        ResolvedValue::Concrete { value } => match value.as_object() {
+            Some(object) => ResolvedValue::Concrete {
+                value: serde_json::Value::Object(
+                    object
+                        .iter()
+                        .filter(|(key, _)| selection.contains(*key))
+                        .map(|(k, v)| (k.clone(), v.clone()))
+                        .collect(),
+                )
+                .into(),
+            },
+            None => properties.clone(),
+        },
+        other => other.clone(),
     }
 }
 
@@ -2918,6 +3362,7 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::serialization::resolved_value_to_json;
 
     #[test]
     fn invalid_overrides_reports_nothing_when_unset_or_valid() {
@@ -3289,6 +3734,144 @@ Resources:
     }
 
     #[test]
+    fn resolve_unexpanded_preserves_whole_properties_and_nested_conditions_without_spending_budget() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {
+                "ChooseProperties": {"Fn::Equals": [{"Ref": "Mode"}, "properties"]},
+                "ChooseValue": {"Fn::Equals": [{"Ref": "Mode"}, "value"]}
+            },
+            "Resources": {
+                "Direct": {"Type": "T", "Properties": {"Values": ["direct"]}},
+                "Conditional": {"Type": "T", "Properties": {
+                    "Fn::If": [
+                        "ChooseProperties",
+                        {"Values": [{"Fn::If": ["ChooseValue", "first", "second"]}]},
+                        {"Values": ["fallback"]}
+                    ]
+                }}
+            }
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+        let direct = model.resolve_unexpanded("Direct", "Properties.Values").expect("direct value");
+        let direct_deep = model.resolve_deep("Direct", "Properties.Values").expect("direct deep value");
+        assert_eq!(resolved_value_to_json(&direct), serde_json::json!(["direct"]));
+        assert_eq!(resolved_value_to_json(&direct_deep), serde_json::json!(["direct"]));
+
+        let conditional = model
+            .resolve_unexpanded("Conditional", "Properties.Values")
+            .expect("value inside whole-Properties condition");
+        let ResolvedValue::Conditional { condition, if_true, if_false } = conditional else {
+            panic!("expected the whole-Properties condition");
+        };
+        assert_eq!(condition, "ChooseProperties");
+        let ResolvedValue::List { items: true_items } = *if_true else {
+            panic!("expected true-branch list");
+        };
+        assert!(
+            matches!(true_items.as_slice(), [ResolvedValue::Conditional { condition, .. }] if condition == "ChooseValue")
+        );
+        assert_eq!(resolved_value_to_json(if_false.as_ref()), serde_json::json!(["fallback"]));
+        assert_eq!(model.scenario_combinations_used(), 0, "an unexpanded lookup must not materialize scenarios");
+    }
+
+    #[test]
+    fn list_member_scenarios_expand_members_independently_and_reuse_cache() {
+        const MEMBER_COUNT: usize = 13;
+        let mut parameters = serde_json::Map::new();
+        let mut conditions = serde_json::Map::new();
+        let mut members = Vec::new();
+        for index in 0..MEMBER_COUNT {
+            let parameter = format!("Toggle{index:02}");
+            let condition = format!("Enabled{index:02}");
+            parameters.insert(parameter.clone(), serde_json::json!({"Type": "String"}));
+            conditions.insert(condition.clone(), serde_json::json!({"Fn::Equals": [{"Ref": parameter}, "true"]}));
+            members.push(serde_json::json!({
+                "Fn::If": [condition, format!("value-{index:02}"), {"Ref": "AWS::NoValue"}]
+            }));
+        }
+        let template = serde_json::json!({
+            "Parameters": parameters,
+            "Conditions": conditions,
+            "Resources": {"R": {"Type": "T", "Properties": {"Values": members}}}
+        })
+        .to_string();
+        let model = SemanticModel::from_bytes(template.as_bytes()).unwrap();
+
+        let first = model.resolve_list_member_scenarios_shared("R", "Properties.Values");
+        let combinations_after_first = model.scenario_combinations_used();
+        let second = model.resolve_list_member_scenarios_shared("R", "Properties.Values");
+
+        assert_eq!(first.len(), MEMBER_COUNT * 2, "each member contributes only its own two branches");
+        for index in 0..MEMBER_COUNT {
+            let member_scenarios: Vec<&ListMemberScenario> =
+                first.iter().filter(|scenario| scenario.index == index).collect();
+            assert_eq!(member_scenarios.len(), 2, "member {index} must retain both branches");
+            assert!(member_scenarios.iter().all(|scenario| scenario.container_scenario == 0));
+            assert!(member_scenarios.iter().all(|scenario| scenario.container_conditions.is_empty()));
+            assert!(member_scenarios.iter().all(|scenario| scenario.conditions.len() == 1));
+        }
+        assert_eq!(combinations_after_first, 0, "member extraction must not materialize joint scenarios");
+        assert!(Arc::ptr_eq(&first, &second), "repeated member queries must share their cached allocation");
+        assert_eq!(model.scenario_combinations_used(), combinations_after_first);
+    }
+
+    #[test]
+    fn list_member_scenarios_keep_outer_enum_alternatives_separate() {
+        let model = SemanticModel::from_bytes(br#"{"Resources":{"R":{"Type":"T"}}}"#).unwrap();
+        let value = ResolvedValue::Enum {
+            variants: vec![
+                ResolvedValue::Concrete { value: serde_json::json!(["left", null]).into() },
+                ResolvedValue::Concrete { value: serde_json::json!([null, "right"]).into() },
+            ],
+        };
+        let mut next_container_scenario = 0;
+        let mut member_scenarios = Vec::new();
+
+        model.collect_list_member_scenarios(
+            &value,
+            &HashMap::new(),
+            &mut next_container_scenario,
+            &mut member_scenarios,
+        );
+
+        assert_eq!(next_container_scenario, 2);
+        assert_eq!(member_scenarios.len(), 4);
+        for container_scenario in 0..2 {
+            let members: Vec<&ListMemberScenario> =
+                member_scenarios.iter().filter(|scenario| scenario.container_scenario == container_scenario).collect();
+            assert_eq!(members.len(), 2);
+            assert_eq!(members.iter().filter(|scenario| !is_resolved_null(&scenario.value)).count(), 1);
+        }
+    }
+
+    #[test]
+    fn list_member_pair_source_paths_preserve_outer_branches() {
+        let input = br#"{
+            "Parameters": {"Mode": {"Type": "String"}},
+            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+            "Resources": {
+                "Invalid": {"Type": "T", "Properties": {
+                    "Values": {"Fn::If": ["ChooseFirst", ["a", "b"], ["c", "d"]]}
+                }},
+                "Valid": {"Type": "T", "Properties": {
+                    "Values": {"Fn::If": ["ChooseFirst", ["a"], ["b"]]}
+                }}
+            }
+        }"#;
+        let model = SemanticModel::from_bytes(input).unwrap();
+
+        assert_eq!(
+            model.list_member_pair_source_paths("Invalid", "Properties.Values", &HashMap::new()),
+            BTreeSet::from(["Properties.Values.Fn::If.1".to_string(), "Properties.Values.Fn::If.2".to_string(),])
+        );
+        assert!(
+            model.list_member_pair_source_paths("Valid", "Properties.Values", &HashMap::new()).is_empty(),
+            "members from mutually exclusive one-item branches must not form a pair"
+        );
+    }
+
+    #[test]
     fn model_findinmap_refs_tracked() {
         let input = br#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Fn::FindInMap":["MyMap","k1","k2"]}}}}}"#;
         let model = SemanticModel::from_bytes(input).unwrap();
@@ -3374,16 +3957,17 @@ Resources:
         assert_eq!(s1, s2);
     }
 
+    const CONDITIONAL_PROPERTY_TEMPLATE: &[u8] = br#"{
+        "Parameters": {"Mode": {"Type": "String"}},
+        "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
+        "Resources": {"R": {"Type": "T", "Properties": {
+            "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
+        }}}
+    }"#;
+
     #[test]
     fn resolve_scenarios_json_shared_reuses_allocation_and_matches_owned() {
-        let input = br#"{
-            "Parameters": {"Mode": {"Type": "String"}},
-            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
-            "Resources": {"R": {"Type": "T", "Properties": {
-                "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
-            }}}
-        }"#;
-        let model = SemanticModel::from_bytes(input).unwrap();
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
 
         let first = model.resolve_scenarios_json_shared("R", "Properties.V");
         let combinations_after_first = model.scenario_combinations_used();
@@ -3398,14 +3982,7 @@ Resources:
 
     #[test]
     fn resolve_properties_scenarios_shared_reuses_allocation_and_matches_owned() {
-        let input = br#"{
-            "Parameters": {"Mode": {"Type": "String"}},
-            "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
-            "Resources": {"R": {"Type": "T", "Properties": {
-                "V": {"Fn::If": ["ChooseFirst", "a", "b"]}
-            }}}
-        }"#;
-        let model = SemanticModel::from_bytes(input).unwrap();
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
 
         let first = model.resolve_properties_scenarios_shared("R");
         let combinations_after_first = model.scenario_combinations_used();
@@ -3424,6 +4001,67 @@ Resources:
             combinations_after_first,
             "a cached shared access must not consume additional scenario budget"
         );
+    }
+
+    #[test]
+    fn resolve_scenarios_shared_reuses_allocation_and_matches_owned() {
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
+
+        let first = model.resolve_scenarios_shared("R", "Properties.V");
+        let combinations_after_first = model.scenario_combinations_used();
+        let second = model.resolve_scenarios_shared("R", "Properties.V");
+        let owned = model.resolve_scenarios("R", "Properties.V");
+
+        assert!(Arc::ptr_eq(&first, &second), "repeated shared access must reuse one allocation");
+        assert_eq!(first.len(), 2, "the Fn::If value must expand into one scenario per branch");
+        assert_eq!(
+            serde_json::to_value(first.as_ref()).expect("shared scenarios serialize"),
+            serde_json::to_value(&owned).expect("owned scenarios serialize"),
+            "the owned API must return the same scenarios as the shared accessor"
+        );
+        assert_eq!(
+            model.scenario_combinations_used(),
+            combinations_after_first,
+            "cached shared and owned access must not consume additional scenario budget"
+        );
+    }
+
+    #[test]
+    fn resolve_scenarios_with_limit_owned_matches_shared_including_curtailment() {
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
+
+        let (shared, shared_was_curtailed) = model.resolve_scenarios_with_limit_shared("R", "Properties.V", 1);
+        let (repeated, repeated_was_curtailed) = model.resolve_scenarios_with_limit_shared("R", "Properties.V", 1);
+        let (owned, owned_was_curtailed) = model.resolve_scenarios_with_limit("R", "Properties.V", 1);
+
+        assert!(Arc::ptr_eq(&shared, &repeated), "a repeated limited query must reuse its memoized allocation");
+        assert_eq!(shared.len(), 1, "a per-value limit of one must keep only the first branch scenario");
+        assert!(shared_was_curtailed, "omitting the second branch scenario must be reported as curtailment");
+        assert!(repeated_was_curtailed, "a memoized result must keep its curtailment status");
+        assert!(owned_was_curtailed, "the owned API must report the memoized curtailment status");
+        assert_eq!(
+            serde_json::to_value(shared.as_ref()).expect("shared scenarios serialize"),
+            serde_json::to_value(&owned).expect("owned scenarios serialize"),
+            "the owned API must return the same scenarios as the shared accessor"
+        );
+    }
+
+    #[test]
+    fn resolve_scenarios_with_limit_shared_memoizes_each_limit_separately() {
+        let model = SemanticModel::from_bytes(CONDITIONAL_PROPERTY_TEMPLATE).unwrap();
+
+        let (limited, _) = model.resolve_scenarios_with_limit_shared("R", "Properties.V", 1);
+        let default_limit = model.resolve_scenarios_shared("R", "Properties.V");
+        let (explicit_default_limit, was_curtailed) =
+            model.resolve_scenarios_with_limit_shared("R", "Properties.V", MAX_SCENARIO_COMBINATIONS);
+
+        assert_eq!(limited.len(), 1, "a per-value limit of one must keep only the first branch scenario");
+        assert_eq!(default_limit.len(), 2, "a curtailed limited expansion must not be served to a default-limit query");
+        assert!(
+            Arc::ptr_eq(&default_limit, &explicit_default_limit),
+            "the default-limit accessor and an explicit default-limit query must share one memoized allocation"
+        );
+        assert!(!was_curtailed, "the complete default-limit expansion must not report curtailment");
     }
 
     #[test]

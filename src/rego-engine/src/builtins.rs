@@ -24,7 +24,10 @@ use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
-use template_model::{SourceSpan, UNKNOWN_SPAN, primary_identifier_conflict_message, render_value, render_value_list};
+use template_model::{
+    SourceSpan, UNKNOWN_SPAN, primary_identifier_conflict_message, render_value, render_value_list,
+    resolved_value_to_json,
+};
 use validation_engine::DIAGNOSTIC_SOURCE_PATH_FIELD;
 
 pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
@@ -73,6 +76,7 @@ pub(crate) fn register_all(
     register_make_diag(rego);
     register_make_diag_at(rego);
     register_make_diag_at_source(rego);
+    register_make_diag_at_source_full(rego);
     register_make_diag_full(rego);
     register_make_diag_related(rego);
     register_make_diag_conditional(rego);
@@ -81,6 +85,9 @@ pub(crate) fn register_all(
     register_scenario_source_path(rego);
     register_scenario_uses_unresolved_parameter(rego);
     register_properties_scenarios(rego);
+    register_list_member_scenarios(rego);
+    register_list_member_pair_source_paths(rego);
+    register_property_absence_scenarios(rego);
     register_dynamodb_scenario_analysis(rego);
     register_is_satisfiable(rego);
     register_get_resource(rego);
@@ -750,6 +757,26 @@ fn project_selected_properties(
     projected
 }
 
+fn register_property_absence_scenarios(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "property_absence_scenarios".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let rid = params[0].as_string()?;
+            let property_name = params[1].as_string()?;
+            let results: Vec<Value> = model
+                .property_absence_scenarios(rid.as_ref(), property_name.as_ref())
+                .iter()
+                .map(|conditions| json_to_value(&serde_json::json!(conditions)))
+                .collect();
+            Ok(Value::from(results))
+        }),
+    );
+}
+
 fn register_properties_scenarios(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "properties_scenarios".into(),
@@ -765,8 +792,9 @@ fn register_properties_scenarios(rego: &mut regorus::Engine) {
                 selected_fields.insert(field.as_string()?.to_string());
             }
 
+            let requested_names: Vec<&str> = selected_fields.iter().map(String::as_str).collect();
             let results: Vec<Value> = model
-                .resolve_properties_scenarios_shared(rid.as_ref())
+                .resolve_properties_scenarios_projected(rid.as_ref(), &requested_names)
                 .iter()
                 .map(|(properties, conditions)| {
                     let properties = project_selected_properties(properties, &selected_fields);
@@ -777,6 +805,53 @@ fn register_properties_scenarios(rego: &mut regorus::Engine) {
                 })
                 .collect();
             Ok(Value::from(results))
+        }),
+    );
+}
+
+fn register_list_member_scenarios(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "list_member_scenarios".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let results: Vec<Value> = model
+                .resolve_list_member_scenarios_shared(resource_id.as_ref(), path.as_ref())
+                .iter()
+                .map(|scenario| {
+                    json_to_value(&serde_json::json!({
+                        "index": scenario.index,
+                        "value": resolved_value_to_json(&scenario.value),
+                        "conditions": &scenario.conditions,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(results))
+        }),
+    );
+}
+
+fn register_list_member_pair_source_paths(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "list_member_pair_source_paths".into(),
+        3,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let base_conditions: HashMap<String, bool> = condition_assumptions(&params[2]).into_iter().collect();
+            let source_paths: Vec<Value> = model
+                .list_member_pair_source_paths(resource_id.as_ref(), path.as_ref(), &base_conditions)
+                .iter()
+                .map(|source_path| Value::from(source_path.as_str()))
+                .collect();
+            Ok(Value::from(source_paths))
         }),
     );
 }
@@ -2297,6 +2372,43 @@ fn register_make_diag_at_source(rego: &mut regorus::Engine) {
                 fields.insert("end_column".into(), span.end_column.into());
             }
             Ok(json_to_value(&obj))
+        }),
+    );
+}
+
+fn register_make_diag_at_source_full(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "make_diag_at_source_full".into(),
+        7,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let rule_id = params[0].as_string()?;
+            let severity = params[1].as_string()?;
+            let resource_id = params[2].as_string()?;
+            let prop_path = params[3].as_string()?;
+            let source_path = params[4].as_string()?;
+            let message = params[5].as_string()?;
+            let fix = params[6].as_string()?;
+            let span = resolve_span(&model, resource_id, source_path);
+            let fix_value =
+                if fix.is_empty() { serde_json::Value::Null } else { serde_json::Value::String(fix.to_string()) };
+            let mut diagnostic = serde_json::json!({
+                "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
+                "message": message.as_ref(), "resource_id": resource_id.as_ref(),
+                "resource_path": prop_path.as_ref(),
+                (DIAGNOSTIC_SOURCE_PATH_FIELD): source_path.as_ref(),
+                "suggested_fix": fix_value,
+            });
+            if span != UNKNOWN_SPAN {
+                let fields = diagnostic.as_object_mut().unwrap();
+                fields.insert("start_line".into(), span.start_line.into());
+                fields.insert("start_column".into(), span.start_column.into());
+                fields.insert("end_line".into(), span.end_line.into());
+                fields.insert("end_column".into(), span.end_column.into());
+            }
+            Ok(json_to_value(&diagnostic))
         }),
     );
 }

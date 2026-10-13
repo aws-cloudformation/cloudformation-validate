@@ -1,5 +1,5 @@
 use super::patterns::AMI_ID_RE;
-use super::resources_extra::{scenario_has_effective_property, scenario_is_reachable};
+use super::resources_extra::scenario_is_reachable;
 use super::{EvalContext, NativeRuleRegistry};
 use data_source::rule_data::{PathSegment, ResourcePropertyPath};
 use diagnostics::Diagnostic;
@@ -126,11 +126,16 @@ fn rds_storage_encryption_scenario_warns(properties: &ResolvedValue) -> bool {
 }
 
 fn rds_storage_encryption_warns(model: &SemanticModel, resource_id: &str) -> bool {
-    model.resolve_properties_scenarios(resource_id).into_iter().any(|(properties, conditions)| {
-        let assumptions: Vec<(String, bool)> = conditions.into_iter().collect();
-        (assumptions.is_empty() || model.conditions.is_satisfiable(&assumptions))
-            && rds_storage_encryption_scenario_warns(&properties)
-    })
+    let mut inspected_fields = vec!["Engine", "StorageEncrypted"];
+    inspected_fields.extend(RDS_INHERITED_OR_IGNORED_ENCRYPTION_FIELDS);
+    model.resolve_properties_scenarios_projected(resource_id, &inspected_fields).iter().any(
+        |(properties, conditions)| {
+            let assumptions: Vec<(String, bool)> =
+                conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+            (assumptions.is_empty() || model.conditions.is_satisfiable(&assumptions))
+                && rds_storage_encryption_scenario_warns(properties)
+        },
+    )
 }
 
 fn eval_best_practices(ctx: &EvalContext) -> Vec<Diagnostic> {
@@ -519,9 +524,10 @@ None,
                 .get(&res.resource_type)
                 .map(|entry| entry.properties.iter().any(|p| p == "Tags"))
                 .unwrap_or(false);
-            let tags_missing = m.resolve_properties_scenarios(name).iter().any(|(properties, conditions)| {
-                scenario_is_reachable(m, name, conditions) && !scenario_has_effective_property(properties, "Tags")
-            });
+            let tags_missing = m
+                .property_absence_scenarios(name, "Tags")
+                .iter()
+                .any(|conditions| scenario_is_reachable(m, name, conditions));
             if supports_tags && tags_missing {
                 out.push(make_resource_diagnostic(
                     "I9040",
