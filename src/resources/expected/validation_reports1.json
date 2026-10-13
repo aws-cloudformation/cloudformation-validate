@@ -331,12 +331,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::Lambda::Function"
         },
-        "propertyPath": "Properties.SnapStart",
+        "propertyPath": "Properties.SnapStart.ApplyOn",
         "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
         "category": "Best Practice",
-        "startLine": 39,
-        "startColumn": 7,
-        "endLine": 39,
+        "startLine": 40,
+        "startColumn": 9,
+        "endLine": 40,
         "endColumn": 16,
         "ruleDescription": "Validate that SnapStart is properly configured",
         "phase": "LINT"
@@ -351,12 +351,12 @@
           "entityType": "Resource",
           "resourceType": "AWS::Lambda::Function"
         },
-        "propertyPath": "Properties.SnapStart",
+        "propertyPath": "Properties.SnapStart.ApplyOn",
         "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
         "category": "Best Practice",
-        "startLine": 50,
-        "startColumn": 7,
-        "endLine": 50,
+        "startLine": 51,
+        "startColumn": 9,
+        "endLine": 51,
         "endColumn": 16,
         "ruleDescription": "Validate that SnapStart is properly configured",
         "phase": "LINT"
@@ -1544,6 +1544,208 @@
       }
     ]
   },
+  "bad/E3023_cname_conditional_record_counts.yaml": {
+    "filePath": "bad/E3023_cname_conditional_record_counts.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 4,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalList",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords",
+        "category": "Resource",
+        "startLine": 19,
+        "startColumn": 11,
+        "endLine": 19,
+        "endColumn": 12,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalList",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords",
+        "category": "Resource",
+        "startLine": 20,
+        "startColumn": 11,
+        "endLine": 20,
+        "endColumn": 12,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords",
+        "category": "Resource",
+        "startLine": 29,
+        "startColumn": 9,
+        "endLine": 29,
+        "endColumn": 24,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords",
+        "category": "Resource",
+        "startLine": 34,
+        "startColumn": 9,
+        "endLine": 34,
+        "endColumn": 24,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalList",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SingleRecordBranches",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 38,
+        "startColumn": 7,
+        "endLine": 38,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "bad/E3023_cname_projection_covering.yaml": {
+    "filePath": "bad/E3023_cname_projection_covering.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME record Name 'example.com.' must not match HostedZoneName 'example.com.' exactly",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Resource",
+        "startLine": 76,
+        "startColumn": 50,
+        "endLine": 76,
+        "endColumn": 51,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 75,
+        "startColumn": 7,
+        "endLine": 75,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
   "bad/E3023_conditional_record_items.yaml": {
     "filePath": "bad/E3023_conditional_record_items.yaml",
     "status": "OK",
@@ -1642,6 +1844,342 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "bad/E3023_record_value_projection_covering.yaml": {
+    "filePath": "bad/E3023_record_value_projection_covering.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CnameCountRecord",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords",
+        "category": "Resource",
+        "startLine": 69,
+        "startColumn": 7,
+        "endLine": 69,
+        "endColumn": 22,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'not-an-ip' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AddressRecord",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.ResourceRecords.1",
+        "category": "Resource",
+        "startLine": 91,
+        "startColumn": 43,
+        "endLine": 91,
+        "endColumn": 44,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CnameCountRecord",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 7,
+        "endLine": 65,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AddressRecord",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 85,
+        "startColumn": 7,
+        "endLine": 85,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "bad/E3023_recordsetgroup_projection_covering.yaml": {
+    "filePath": "bad/E3023_recordsetgroup_projection_covering.yaml",
+    "status": "ANALYSIS_INCOMPLETE",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 1,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG",
+      "budgetExhaustions": [
+        {
+          "kind": "schemaScenarioAssignments",
+          "description": "Checking resource schemas required more conditional value assignments than the supported limit.",
+          "limit": 256,
+          "analysisIncomplete": true
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "CNAME records must have at most 1 ResourceRecord",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CnameGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords",
+        "category": "Resource",
+        "startLine": 42,
+        "startColumn": 11,
+        "endLine": 42,
+        "endColumn": 26,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3023",
+        "severity": "ERROR",
+        "message": "'not-an-ip' is not a valid IPv4 address for record type 'A'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "AddressGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.RecordSets.0.ResourceRecords.1",
+        "category": "Resource",
+        "startLine": 65,
+        "startColumn": 47,
+        "endLine": 65,
+        "endColumn": 48,
+        "ruleDescription": "Validate Route53 RecordSets",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9052",
+        "severity": "WARN",
+        "message": "Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted",
+        "source": "ENGINE",
+        "category": "Structure",
+        "ruleDescription": "Deterministic validation budgets were exhausted; see report metadata for completeness impact",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "budgetExhaustions": [
+              {
+                "kind": "schemaScenarioAssignments",
+                "description": "Checking resource schemas required more conditional value assignments than the supported limit.",
+                "limit": 256,
+                "analysisIncomplete": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CnameGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 7,
+        "endLine": 37,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AddressGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSetGroup"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 58,
+        "startColumn": 7,
+        "endLine": 58,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      }
+    ]
+  },
+  "bad/E3029_alias_projection_covering.yaml": {
+    "filePath": "bad/E3029_alias_projection_covering.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 2,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3029",
+        "severity": "ERROR",
+        "message": "TTL must not be set when AliasTarget is specified",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.TTL",
+        "category": "Resource",
+        "startLine": 30,
+        "startColumn": 7,
+        "endLine": 30,
+        "endColumn": 10,
+        "ruleDescription": "Validate Route53 record set aliases",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3029",
+        "severity": "ERROR",
+        "message": "AliasTarget cannot be used with record type 'NS'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.AliasTarget",
+        "category": "Resource",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 18,
+        "ruleDescription": "Validate Route53 record set aliases",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'HostedZoneName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.HostedZoneName",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 21,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9002",
+        "severity": "INFO",
+        "message": "'TTL' is ignored in this configuration (from extension)",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Record",
+          "entityType": "Resource",
+          "resourceType": "AWS::Route53::RecordSet"
+        },
+        "propertyPath": "Properties.TTL",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 7,
+        "endLine": 30,
+        "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
+        "ruleDescription": "Property is ignored in this configuration (from extension)",
+        "phase": "SCHEMA",
+        "context": {
+          "resolutionSource": "parameter with AllowedValues"
         }
       }
     ]
@@ -2814,6 +3352,207 @@
         "startLine": 65,
         "startColumn": 5,
         "endLine": 65,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/E3048_fargate_projection_covering.yaml": {
+    "filePath": "bad/E3048_fargate_projection_covering.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 7,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3048",
+        "severity": "ERROR",
+        "message": "Fargate requires NetworkMode to be specified as 'awsvpc'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Set NetworkMode to 'awsvpc'",
+        "category": "Resource",
+        "startLine": 69,
+        "startColumn": 5,
+        "endLine": 69,
+        "endColumn": 15,
+        "ruleDescription": "Validate ECS Fargate tasks have required properties and values",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 70,
+        "startColumn": 7,
+        "endLine": 70,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'IsFargate'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 7,
+        "endLine": 71,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'IsNotFargate'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 72,
+        "startColumn": 7,
+        "endLine": 72,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
+        "category": "Best Practice",
+        "startLine": 73,
+        "startColumn": 7,
+        "endLine": 73,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'NetworkFirst'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 7,
+        "endLine": 74,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'PlacementConstraints' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.PlacementConstraints",
+        "category": "Best Practice",
+        "startLine": 78,
+        "startColumn": 7,
+        "endLine": 78,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'IsNotFargate'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Task' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Task",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 69,
+        "startColumn": 5,
+        "endLine": 69,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -6222,6 +6961,71 @@
       }
     ]
   },
+  "bad/F3032_whole_properties_item_cardinality.yaml": {
+    "filePath": "bad/F3032_whole_properties_item_cardinality.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3032",
+        "severity": "FATAL",
+        "message": "expected maximum item count: 16, found: 17",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.VpcConfig.SubnetIds",
+        "category": "Schema",
+        "startLine": 80,
+        "startColumn": 5,
+        "endLine": 80,
+        "endColumn": 15,
+        "conditionScenario": {
+          "Enabled00": true,
+          "Enabled01": true,
+          "Enabled02": true,
+          "Enabled03": true,
+          "Enabled04": true,
+          "Enabled05": true,
+          "Enabled06": true,
+          "Enabled07": true,
+          "Enabled08": true,
+          "Enabled09": false,
+          "Enabled10": false,
+          "Enabled11": false,
+          "Enabled12": false,
+          "Enabled13": false,
+          "Enabled14": false,
+          "Enabled15": false,
+          "Enabled16": false,
+          "OuterEnabled": true
+        },
+        "ruleDescription": "Array item count out of bounds",
+        "phase": "SCHEMA",
+        "context": {
+          "extra": {
+            "actual_count": 17,
+            "max_items": 16,
+            "min_items": 0
+          }
+        }
+      }
+    ]
+  },
   "bad/F6101_getatt_ref_typed_object_attribute.yaml": {
     "filePath": "bad/F6101_getatt_ref_typed_object_attribute.yaml",
     "status": "OK",
@@ -7973,6 +8777,639 @@
         "startLine": 18,
         "startColumn": 5,
         "endLine": 18,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/W2530_snapstart_conditional_apply_on.yaml": {
+    "filePath": "bad/W2530_snapstart_conditional_apply_on.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 8,
+        "informational": 7,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PropertiesTrueBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 17,
+        "startColumn": 11,
+        "endLine": 17,
+        "endColumn": 18,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "PropertiesFalseBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 41,
+        "startColumn": 11,
+        "endLine": 41,
+        "endColumn": 18,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ApplyOnTrueBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 52,
+        "startColumn": 34,
+        "endLine": 52,
+        "endColumn": 35,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ApplyOnFalseBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 63,
+        "startColumn": 40,
+        "endLine": 63,
+        "endColumn": 41,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ApplyOnBesideNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 53,
+        "endLine": 74,
+        "endColumn": 54,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SnapStartBesideNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 87,
+        "startColumn": 11,
+        "endLine": 87,
+        "endColumn": 18,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EveryBranchEnables",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 99,
+        "startColumn": 11,
+        "endLine": 99,
+        "endColumn": 18,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "EveryBranchEnables",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 100,
+        "startColumn": 11,
+        "endLine": 100,
+        "endColumn": 18,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PropertiesTrueBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PropertiesTrueBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PropertiesFalseBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PropertiesFalseBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ApplyOnTrueBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ApplyOnTrueBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 44,
+        "startColumn": 5,
+        "endLine": 44,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ApplyOnFalseBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ApplyOnFalseBranch",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 55,
+        "startColumn": 5,
+        "endLine": 55,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ApplyOnBesideNoValue' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ApplyOnBesideNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 66,
+        "startColumn": 5,
+        "endLine": 66,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SnapStartBesideNoValue' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SnapStartBesideNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 77,
+        "startColumn": 5,
+        "endLine": 77,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'EveryBranchEnables' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EveryBranchEnables",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 90,
+        "startColumn": 5,
+        "endLine": 90,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/W2530_snapstart_version_not_coexisting.yaml": {
+    "filePath": "bad/W2530_snapstart_version_not_coexisting.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 9,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 4,
+        "informational": 10,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "VersionOnlyDependsOnFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 32,
+        "startColumn": 9,
+        "endLine": 32,
+        "endColumn": 16,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "VersionOnlyDescribesFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 9,
+        "endLine": 48,
+        "endColumn": 16,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "VersionInOtherEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 65,
+        "startColumn": 11,
+        "endLine": 65,
+        "endColumn": 18,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2530",
+        "severity": "WARN",
+        "message": "SnapStart is enabled but no AWS::Lambda::Version resource is attached",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "VersionNamesOtherFunctionWhenEnabled",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.SnapStart.ApplyOn",
+        "suggestedFix": "Add an AWS::Lambda::Version resource that references this function",
+        "category": "Best Practice",
+        "startLine": 82,
+        "startColumn": 34,
+        "endLine": 82,
+        "endColumn": 35,
+        "ruleDescription": "Validate that SnapStart is properly configured",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "OrderedVersion",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Version"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 7,
+        "endLine": 37,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'PublishedFunction'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DescribedVersion",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Version"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 52,
+        "startColumn": 7,
+        "endLine": 52,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'PublishedFunction'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Description' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DescribedVersion",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Version"
+        },
+        "propertyPath": "Properties.Description",
+        "category": "Best Practice",
+        "startLine": 53,
+        "startColumn": 7,
+        "endLine": 53,
+        "endColumn": 18,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VersionOnlyDescribesFunction'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DevOnlyVersion",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Version"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 7,
+        "endLine": 71,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'VersionInOtherEnvironment'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SwitchedVersion",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Version"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 86,
+        "startColumn": 7,
+        "endLine": 86,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Fn::If on condition 'IsUsEast1'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PublishedFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PublishedFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 5,
+        "endLine": 15,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'VersionOnlyDependsOnFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VersionOnlyDependsOnFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 24,
+        "startColumn": 5,
+        "endLine": 24,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'VersionOnlyDescribesFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VersionOnlyDescribesFunction",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 40,
+        "startColumn": 5,
+        "endLine": 40,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'VersionInOtherEnvironment' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VersionInOtherEnvironment",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 56,
+        "startColumn": 5,
+        "endLine": 56,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'VersionNamesOtherFunctionWhenEnabled' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "VersionNamesOtherFunctionWhenEnabled",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 5,
+        "endLine": 74,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -19347,1394 +20784,6 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
-      }
-    ]
-  },
-  "bad/ecs_dynamic_port_no_traffic.yaml": {
-    "filePath": "bad/ecs_dynamic_port_no_traffic.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 1,
-        "informational": 7,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E1151",
-        "severity": "ERROR",
-        "message": "'vpc-12345' does not match format 'AWS::EC2::VPC.Id'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "TargetGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup"
-        },
-        "propertyPath": "Properties.VpcId",
-        "category": "Intrinsic Function",
-        "startLine": 17,
-        "startColumn": 7,
-        "endLine": 17,
-        "endColumn": 12,
-        "ruleDescription": "Validate VPC id format",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "vpc-12345"
-        }
-      },
-      {
-        "ruleId": "W3049",
-        "severity": "WARN",
-        "message": "Container 'app' uses dynamic host port 0, so each task registers on an ephemeral port, but TargetGroup 'TargetGroup' health-checks the fixed port '8080'. The health check will not follow the traffic port unless '8080' is separately served on every target. Use HealthCheckPort 'traffic-port' to health-check the port each target actually receives traffic on",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "TargetGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup"
-        },
-        "propertyPath": "Properties.HealthCheckPort",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 7,
-        "endLine": 18,
-        "endColumn": 22,
-        "relatedResources": [
-          {
-            "resource": {
-              "id": "Service",
-              "resourceType": "AWS::ECS::Service"
-            },
-            "location": {
-              "startLine": 23,
-              "startColumn": 7,
-              "endLine": 23,
-              "endColumn": 20
-            },
-            "message": "Dynamic host port defined here"
-          }
-        ],
-        "ruleDescription": "ELB target group health check uses a fixed port that will not follow an ECS dynamic host port",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Port' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TargetGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup"
-        },
-        "propertyPath": "Properties.Port",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 7,
-        "endLine": 15,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Protocol' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TargetGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup"
-        },
-        "propertyPath": "Properties.Protocol",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 7,
-        "endLine": 16,
-        "endColumn": 15,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TargetGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup"
-        },
-        "propertyPath": "Properties.VpcId",
-        "category": "Best Practice",
-        "startLine": 17,
-        "startColumn": 7,
-        "endLine": 17,
-        "endColumn": 12,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TargetGroup' of type 'AWS::ElasticLoadBalancingV2::TargetGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TargetGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::TargetGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 5,
-        "endLine": 14,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Service' of type 'AWS::ECS::Service' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Service",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 21,
-        "startColumn": 5,
-        "endLine": 21,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/ecs_fargate_mismatch.yaml": {
-    "filePath": "bad/ecs_fargate_mismatch.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 8,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E1154",
-        "severity": "ERROR",
-        "message": "'subnet-123' does not match format 'AWS::EC2::Subnet.Id'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Service",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.NetworkConfiguration.AwsvpcConfiguration.Subnets.0",
-        "category": "Intrinsic Function",
-        "startLine": 22,
-        "startColumn": 15,
-        "endLine": 22,
-        "endColumn": 16,
-        "ruleDescription": "Validate VPC subnet id format",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "subnet-123"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'LaunchType' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Service",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.LaunchType",
-        "category": "Best Practice",
-        "startLine": 17,
-        "startColumn": 7,
-        "endLine": 17,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Service' of type 'AWS::ECS::Service' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Service",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 5,
-        "endLine": 16,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/ecs_role_no_boundary.yaml": {
-    "filePath": "bad/ecs_role_no_boundary.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'TaskRoleArn' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.TaskRoleArn",
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 7,
-        "endLine": 26,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt TaskRole.Arn"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ExecutionRoleArn",
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 7,
-        "endLine": 27,
-        "endColumn": 23,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt ExecRole.Arn"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 28,
-        "startColumn": 7,
-        "endLine": 28,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TaskRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskRole",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ExecRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ExecRole",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 15,
-        "startColumn": 5,
-        "endLine": 15,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 5,
-        "endLine": 25,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/elb_http_443.yaml": {
-    "filePath": "bad/elb_http_443.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 2,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W9002",
-        "severity": "WARN",
-        "message": "Property 'LoadBalancerArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Listener",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
-        },
-        "propertyPath": "Properties.LoadBalancerArn",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 22,
-        "ruleDescription": "Hardcoded ARN property",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Listener",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
-        },
-        "category": "Security",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 11,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'LoadBalancerArn' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Listener",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
-        },
-        "propertyPath": "Properties.LoadBalancerArn",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 22,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticloadbalancingv2.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Listener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Listener",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElasticLoadBalancingV2::Listener"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/empty_file.yaml": {
-    "filePath": "bad/empty_file.yaml",
-    "status": "ERROR",
-    "metadata": {
-      "resourcesScanned": 0,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F1101",
-        "severity": "FATAL",
-        "message": "Empty YAML document",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 1,
-        "startColumn": 1,
-        "endLine": 1,
-        "endColumn": 1,
-        "ruleDescription": "Invalid YAML/JSON syntax",
-        "phase": "PARSE"
-      }
-    ]
-  },
-  "bad/equals_wrong_arity.yaml": {
-    "filePath": "bad/equals_wrong_arity.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 1,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E8003",
-        "severity": "ERROR",
-        "message": "Fn::Equals: expected maximum item count: 2, found: 3",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Bad",
-          "entityType": "Condition"
-        },
-        "propertyPath": "Conditions/Bad/Fn::Equals",
-        "category": "Intrinsic Function",
-        "startLine": 4,
-        "startColumn": 5,
-        "endLine": 4,
-        "endColumn": 15,
-        "ruleDescription": "Fn::Equals must take exactly two scalar operands",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "W8001",
-        "severity": "WARN",
-        "message": "Condition 'Bad' is not used by any resource or Fn::If",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Bad",
-          "entityType": "Condition"
-        },
-        "propertyPath": "Conditions/Bad",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 6,
-        "ruleDescription": "Check if Conditions are Used",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'R' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "R",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 4,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/fargate_bad_cpu_memory.yaml": {
-    "filePath": "bad/fargate_bad_cpu_memory.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 7,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E3047",
-        "severity": "ERROR",
-        "message": "Cpu '256' is not compatible with Memory '8192' for Fargate",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "suggestedFix": "Use a valid Fargate CPU/memory combination (e.g., Cpu: 256 with Memory: 512, 1024, or 2048)",
-        "category": "Resource",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 10,
-        "ruleDescription": "Validate ECS Fargate tasks have the right combination of CPU and memory",
-        "phase": "LINT",
-        "context": {
-          "extra": {
-            "cpu": "256",
-            "memory": "8192"
-          }
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 10,
-        "startColumn": 7,
-        "endLine": 10,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/fargate_daemon.yaml": {
-    "filePath": "bad/fargate_daemon.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 3,
-      "counts": {
-        "fatal": 0,
-        "errors": 2,
-        "warnings": 0,
-        "informational": 12,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E3044",
-        "severity": "ERROR",
-        "message": "Fargate launch type does not support DAEMON scheduling strategy",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FargateDaemon",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.SchedulingStrategy",
-        "suggestedFix": "Use REPLICA scheduling strategy with Fargate",
-        "category": "Resource",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 25,
-        "ruleDescription": "ECS service using FARGATE or EXTERNAL cannot use DAEMON scheduling",
-        "phase": "LINT",
-        "context": {
-          "extra": {
-            "launch_type": "FARGATE",
-            "scheduling_strategy": "DAEMON"
-          }
-        }
-      },
-      {
-        "ruleId": "E3052",
-        "severity": "ERROR",
-        "message": "NetworkConfiguration required when TaskDefinition NetworkMode is 'awsvpc'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FargateDaemon",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "category": "Resource",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 16,
-        "ruleDescription": "Validate ECS service requires NetworkConfiguration",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'LaunchType' is conditionally create-only; updating it may cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FargateDaemon",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.LaunchType",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "conditional-create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'SchedulingStrategy' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FargateDaemon",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.SchedulingStrategy",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 25,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cluster' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FargateDaemon",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.Cluster",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 14,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'Cluster'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Family' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Family",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.RequiresCompatibilities",
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 7,
-        "endLine": 14,
-        "endColumn": 30,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Cpu",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 7,
-        "endLine": 16,
-        "endColumn": 10,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Memory",
-        "category": "Best Practice",
-        "startLine": 17,
-        "startColumn": 7,
-        "endLine": 17,
-        "endColumn": 13,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.NetworkMode",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 7,
-        "endLine": 18,
-        "endColumn": 18,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.ContainerDefinitions",
-        "category": "Best Practice",
-        "startLine": 19,
-        "startColumn": 7,
-        "endLine": 19,
-        "endColumn": 27,
-        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FargateDaemon' of type 'AWS::ECS::Service' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FargateDaemon",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Service"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TaskDef",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::TaskDefinition"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 5,
-        "endLine": 12,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Cluster' of type 'AWS::ECS::Cluster' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Cluster",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECS::Cluster"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 23,
-        "startColumn": 3,
-        "endLine": 23,
-        "endColumn": 10,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/findinmap_bad.yaml": {
-    "filePath": "bad/findinmap_bad.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F1012",
-        "severity": "FATAL",
-        "message": "Fn::FindInMap references non-existent mapping 'NonExistentMap'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "category": "Intrinsic Function",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "FindInMap map name must exist in Mappings",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'BucketName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.BucketName",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 17,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
       }
     ]
   }
