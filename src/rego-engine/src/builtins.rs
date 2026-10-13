@@ -24,7 +24,10 @@ use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
 use template_model::{MARKER_DYNAMIC, MARKER_PARAM_TYPE, MARKER_REF};
-use template_model::{SourceSpan, UNKNOWN_SPAN, primary_identifier_conflict_message, render_value, render_value_list};
+use template_model::{
+    SourceSpan, UNKNOWN_SPAN, primary_identifier_conflict_message, render_value, render_value_list,
+    resolved_value_to_json,
+};
 use validation_engine::DIAGNOSTIC_SOURCE_PATH_FIELD;
 
 pub(crate) fn serde_json_to_rego_value(v: &serde_json::Value) -> Value {
@@ -81,6 +84,8 @@ pub(crate) fn register_all(
     register_has_unresolved_scenario(rego);
     register_scenario_source_path(rego);
     register_properties_scenarios(rego);
+    register_list_member_scenarios(rego);
+    register_list_member_pair_source_paths(rego);
     register_property_absence_scenarios(rego);
     register_dynamodb_scenario_analysis(rego);
     register_is_satisfiable(rego);
@@ -779,6 +784,53 @@ fn register_properties_scenarios(rego: &mut regorus::Engine) {
                 })
                 .collect();
             Ok(Value::from(results))
+        }),
+    );
+}
+
+fn register_list_member_scenarios(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "list_member_scenarios".into(),
+        2,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let results: Vec<Value> = model
+                .resolve_list_member_scenarios_shared(resource_id.as_ref(), path.as_ref())
+                .iter()
+                .map(|scenario| {
+                    json_to_value(&serde_json::json!({
+                        "index": scenario.index,
+                        "value": resolved_value_to_json(&scenario.value),
+                        "conditions": &scenario.conditions,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(results))
+        }),
+    );
+}
+
+fn register_list_member_pair_source_paths(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "list_member_pair_source_paths".into(),
+        3,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let base_conditions: HashMap<String, bool> = condition_assumptions(&params[2]).into_iter().collect();
+            let source_paths: Vec<Value> = model
+                .list_member_pair_source_paths(resource_id.as_ref(), path.as_ref(), &base_conditions)
+                .iter()
+                .map(|source_path| Value::from(source_path.as_str()))
+                .collect();
+            Ok(Value::from(source_paths))
         }),
     );
 }

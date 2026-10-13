@@ -7,7 +7,6 @@ use diagnostics::ResourceRef;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::sync::{Arc, LazyLock};
-use template_model::SemanticModel;
 use template_model::coercion::{coerce_port_to_string, coerce_to_integer, coerce_to_string, scalar_eq};
 use template_model::consts::{
     EDGE_KIND_GET_ATT, EDGE_KIND_REF, EDGE_KIND_SELECT, FIELD_ATTR, FIELD_KIND, FIELD_MAPPINGS, FIELD_OUTGOING_REFS,
@@ -24,6 +23,7 @@ use template_model::vpc_cidr::subnets_outside_vpc;
 use template_model::{
     CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
 };
+use template_model::{ListMemberScenario, SemanticModel};
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::{make_resource_diagnostic, make_resource_diagnostic_at_source};
 
@@ -604,46 +604,90 @@ fn scenario_source_path_or_effective(
     m.scenario_source_path(resource_id, effective_path, conditions).unwrap_or_else(|| effective_path.to_string())
 }
 
-fn push_route53_record_value_diagnostics<F>(
-    diagnostics: &mut Vec<Diagnostic>,
-    m: &SemanticModel,
+fn route53_record_value_message(record_type: &str, record: &str) -> Option<String> {
+    match record_type {
+        "A" if record.parse::<Ipv4Addr>().is_err() => {
+            Some(format!("'{}' is not a valid IPv4 address for record type 'A'", record))
+        }
+        "AAAA" if record.parse::<Ipv6Addr>().is_err() => {
+            Some(format!("'{}' is not a valid IPv6 address for record type 'AAAA'", record))
+        }
+        "TXT" if !TXT_RECORD_RE.is_match(record) => {
+            Some(format!("TXT record value '{}' must be enclosed in double quotes", record))
+        }
+        "CAA" if !CAA_RECORD_RE.is_match(record) => {
+            Some(format!("CAA record value '{}' must match format: flag tag 'value'", record))
+        }
+        "MX" if !MX_RECORD_RE.is_match(record) => {
+            Some(format!("MX record value '{}' must match format: priority domain", record))
+        }
+        _ => None,
+    }
+}
+
+fn route53_cname_multiple_record_source_paths(
+    model: &SemanticModel,
     resource_id: &str,
-    record_type: &str,
-    records: &[serde_json::Value],
+    base_conditions: &HashMap<String, bool>,
+    type_scenarios: &[(serde_json::Value, HashMap<String, bool>)],
     records_path: &str,
-    source_path_for: F,
-) where
-    F: Fn(&str) -> String,
-{
-    for (record_index, record) in records.iter().enumerate() {
-        let Some(record) = record.as_str() else {
+) -> BTreeSet<String> {
+    let mut source_paths = BTreeSet::new();
+    for (record_type, type_conditions) in type_scenarios {
+        if record_type.as_str() != Some("CNAME") {
+            continue;
+        }
+        let Some(base_and_type) =
+            merge_reachable_scenario_conditions(model, resource_id, base_conditions, type_conditions)
+        else {
             continue;
         };
-        let message = match record_type {
-            "A" if record.parse::<Ipv4Addr>().is_err() => {
-                Some(format!("'{}' is not a valid IPv4 address for record type 'A'", record))
-            }
-            "AAAA" if record.parse::<Ipv6Addr>().is_err() => {
-                Some(format!("'{}' is not a valid IPv6 address for record type 'AAAA'", record))
-            }
-            "TXT" if !TXT_RECORD_RE.is_match(record) => {
-                Some(format!("TXT record value '{}' must be enclosed in double quotes", record))
-            }
-            "CAA" if !CAA_RECORD_RE.is_match(record) => {
-                Some(format!("CAA record value '{}' must match format: flag tag 'value'", record))
-            }
-            "MX" if !MX_RECORD_RE.is_match(record) => {
-                Some(format!("MX record value '{}' must match format: priority domain", record))
-            }
-            _ => None,
+        source_paths.extend(model.list_member_pair_source_paths(resource_id, records_path, &base_and_type));
+    }
+    source_paths
+}
+
+fn push_route53_record_member_diagnostics(
+    diagnostics: &mut Vec<Diagnostic>,
+    model: &SemanticModel,
+    resource_id: &str,
+    base_conditions: &HashMap<String, bool>,
+    type_scenarios: &[(serde_json::Value, HashMap<String, bool>)],
+    member_scenarios: &[ListMemberScenario],
+    records_path: &str,
+) {
+    let mut reported_values = HashSet::new();
+    for (record_type, type_conditions) in type_scenarios {
+        let Some(record_type) = record_type.as_str() else {
+            continue;
         };
-        if let Some(message) = message {
-            let property_path = format!("{}.{}", records_path, record_index);
-            let source_path = source_path_for(&property_path);
+        let Some(base_and_type) =
+            merge_reachable_scenario_conditions(model, resource_id, base_conditions, type_conditions)
+        else {
+            continue;
+        };
+        for member in member_scenarios {
+            let Some(conditions) =
+                merge_reachable_scenario_conditions(model, resource_id, &base_and_type, &member.conditions)
+            else {
+                continue;
+            };
+            let record_value = resolved_to_route53_scenario_json(&member.value);
+            let Some(record) = record_value.as_str() else {
+                continue;
+            };
+            let Some(message) = route53_record_value_message(record_type, record) else {
+                continue;
+            };
+            let property_path = format!("{}.{}", records_path, member.index);
+            let source_path = scenario_source_path_or_effective(model, resource_id, &property_path, &conditions);
+            if !reported_values.insert((property_path.clone(), source_path.clone(), message.clone())) {
+                continue;
+            }
             diagnostics.push(make_resource_diagnostic_at_source(
                 "E3023",
                 &message,
-                m,
+                model,
                 resource_id,
                 &property_path,
                 &source_path,
@@ -652,13 +696,13 @@ fn push_route53_record_value_diagnostics<F>(
         }
     }
 
-    let effective_record_count = records.iter().filter(|record| !record.is_null()).count();
-    if record_type == "CNAME" && effective_record_count > 1 {
-        let source_path = source_path_for(records_path);
+    for source_path in
+        route53_cname_multiple_record_source_paths(model, resource_id, base_conditions, type_scenarios, records_path)
+    {
         diagnostics.push(make_resource_diagnostic_at_source(
             "E3023",
             "CNAME records must have at most 1 ResourceRecord",
-            m,
+            model,
             resource_id,
             records_path,
             &source_path,
@@ -3548,9 +3592,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        let scenarios =
-            m.resolve_properties_scenarios_projected(name, &["HostedZoneName", "Name", "ResourceRecords", "Type"]);
-        for (properties, conditions) in scenarios.iter() {
+        let identity_scenarios = m.resolve_properties_scenarios_projected(name, &["HostedZoneName", "Name", "Type"]);
+        for (properties, conditions) in identity_scenarios.iter() {
             if !scenario_is_reachable(m, name, conditions) {
                 continue;
             }
@@ -3577,45 +3620,41 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     None,
                 ));
             }
-            if let Some(serde_json::Value::Array(records)) = scenario_property_json(properties, "ResourceRecords") {
-                push_route53_record_value_diagnostics(
-                    &mut out,
-                    m,
-                    name,
-                    &record_type,
-                    &records,
-                    "Properties.ResourceRecords",
-                    |property_path| scenario_source_path_or_effective(m, name, property_path, conditions),
-                );
-            }
         }
+
+        let type_scenarios = m.resolve_scenarios_json_shared(name, "Properties.Type");
+        let member_scenarios = m.resolve_list_member_scenarios_shared(name, "Properties.ResourceRecords");
+        push_route53_record_member_diagnostics(
+            &mut out,
+            m,
+            name,
+            &HashMap::new(),
+            type_scenarios.as_slice(),
+            member_scenarios.as_slice(),
+            "Properties.ResourceRecords",
+        );
     }
 
     // RecordSetGroup - validate records within RecordSets[]
     for name in m.resources_of_type("AWS::Route53::RecordSetGroup") {
-        for (properties, conditions) in m.resolve_properties_scenarios_projected(name, &["RecordSets"]).iter() {
-            if !scenario_is_reachable(m, name, conditions) {
+        let record_set_scenarios = m.resolve_list_member_scenarios_shared(name, "Properties.RecordSets");
+        for record_set_scenario in record_set_scenarios.iter() {
+            if !resolved_to_route53_scenario_json(&record_set_scenario.value).is_object() {
                 continue;
             }
-            let Some(serde_json::Value::Array(record_sets)) = scenario_property_json(properties, "RecordSets") else {
-                continue;
-            };
-            for (set_index, record_set) in record_sets.iter().enumerate() {
-                let Some(record_type) = record_set.get("Type").and_then(|value| value.as_str()) else {
-                    continue;
-                };
-                if let Some(records) = record_set.get("ResourceRecords").and_then(|value| value.as_array()) {
-                    push_route53_record_value_diagnostics(
-                        &mut out,
-                        m,
-                        name,
-                        record_type,
-                        records,
-                        &format!("Properties.RecordSets.{}.ResourceRecords", set_index),
-                        |property_path| scenario_source_path_or_effective(m, name, property_path, conditions),
-                    );
-                }
-            }
+            let type_path = format!("Properties.RecordSets.{}.Type", record_set_scenario.index);
+            let records_path = format!("Properties.RecordSets.{}.ResourceRecords", record_set_scenario.index);
+            let type_scenarios = m.resolve_scenarios_json_shared(name, &type_path);
+            let member_scenarios = m.resolve_list_member_scenarios_shared(name, &records_path);
+            push_route53_record_member_diagnostics(
+                &mut out,
+                m,
+                name,
+                &record_set_scenario.conditions,
+                type_scenarios.as_slice(),
+                member_scenarios.as_slice(),
+                &records_path,
+            );
         }
     }
 
@@ -3669,8 +3708,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     // Route53 RecordSet Alias validation
     for name in m.resources_of_type("AWS::Route53::RecordSet") {
-        let property_scenarios = m.resolve_properties_scenarios_projected(name, &["AliasTarget", "TTL", "Type"]);
-        let has_alias_ttl_conflict = property_scenarios.iter().any(|(properties, conditions)| {
+        let alias_ttl_scenarios = m.resolve_properties_scenarios_projected(name, &["AliasTarget", "TTL"]);
+        let has_alias_ttl_conflict = alias_ttl_scenarios.iter().any(|(properties, conditions)| {
             scenario_is_reachable(m, name, conditions)
                 && scenario_has_effective_property(properties, "AliasTarget")
                 && scenario_has_effective_property(properties, "TTL")
@@ -3686,7 +3725,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
 
-        let invalid_alias_types: BTreeSet<String> = property_scenarios
+        let alias_type_scenarios = m.resolve_properties_scenarios_projected(name, &["AliasTarget", "Type"]);
+        let invalid_alias_types: BTreeSet<String> = alias_type_scenarios
             .iter()
             .filter_map(|(properties, conditions)| {
                 if !scenario_is_reachable(m, name, conditions)
@@ -4129,15 +4169,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 continue;
             }
 
-            let properties_scenarios = m.resolve_properties_scenarios_projected(
-                name,
-                &["Cpu", "Memory", "NetworkMode", "PlacementConstraints"],
-            );
             let property_can_be_missing = |property_name: &str| {
-                properties_scenarios.iter().any(|(properties, conditions)| {
-                    !scenario_has_effective_property(properties, property_name)
-                        && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
-                })
+                m.resolve_properties_scenarios_projected(name, &[property_name]).iter().any(
+                    |(properties, conditions)| {
+                        !scenario_has_effective_property(properties, property_name)
+                            && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                    },
+                )
             };
 
             let network_mode_scenarios = m.resolve_scenarios_json(name, "Properties.NetworkMode");
@@ -4218,10 +4256,13 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                 ));
             }
 
-            let placement_is_unsupported = properties_scenarios.iter().any(|(properties, conditions)| {
-                scenario_has_effective_property(properties, "PlacementConstraints")
-                    && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
-            });
+            let placement_is_unsupported = m
+                .resolve_properties_scenarios_projected(name, &["PlacementConstraints"])
+                .iter()
+                .any(|(properties, conditions)| {
+                    scenario_has_effective_property(properties, "PlacementConstraints")
+                        && scenario_overlaps_any(m, name, conditions, &fargate_scenarios)
+                });
             if placement_is_unsupported {
                 out.push(make_resource_diagnostic(
                     "E3048",

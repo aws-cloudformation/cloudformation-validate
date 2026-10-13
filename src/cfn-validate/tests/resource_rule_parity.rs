@@ -2193,3 +2193,110 @@ Resources:
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "the matching explicit name publishes the function: {rego_findings:?}");
 }
+
+#[test]
+fn route53_cname_identity_ignores_unrelated_record_scenarios() {
+    let template = include_str!("../../resources/templates/bad/E3023_cname_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 1, "the reachable CNAME at the zone apex must be reported: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Record|Properties.Name|"));
+    assert!(rego_findings[0].contains("must not match HostedZoneName"));
+}
+
+#[test]
+fn fargate_missing_network_mode_ignores_ec2_only_placement_scenarios() {
+    let template = include_str!("../../resources/templates/bad/E3048_fargate_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3048"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3048"]);
+
+    assert_eq!(rego_findings, cel_findings, "Fargate diagnostics must be identical, spans included");
+    assert_eq!(
+        rego_findings.len(),
+        1,
+        "only the reachable Fargate deployment without NetworkMode must be reported: {rego_findings:?}"
+    );
+    assert!(rego_findings[0].contains("|Task|Properties|"));
+    assert!(rego_findings[0].contains("NetworkMode to be specified as 'awsvpc'"));
+}
+
+#[test]
+fn whole_properties_item_cardinality_preserves_nested_member_conditions() {
+    let template = include_str!("../../resources/templates/bad/F3032_whole_properties_item_cardinality.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["F3032"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["F3032"]);
+
+    assert_eq!(rego_findings, cel_findings, "schema diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 1, "the selected branch can contain seventeen subnets: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Function|Properties.VpcConfig.SubnetIds|"));
+    assert!(rego_findings[0].contains("expected maximum item count: 16, found: 17"));
+}
+
+#[test]
+fn route53_alias_checks_ignore_unrelated_property_scenarios() {
+    let template = include_str!("../../resources/templates/bad/E3029_alias_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3029"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3029"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 alias diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 2, "both independent alias constraints must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("TTL must not be set when AliasTarget is specified")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("record type 'NS'")));
+}
+
+#[test]
+fn route53_record_checks_expand_members_independently() {
+    let template = include_str!("../../resources/templates/bad/E3023_record_value_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 record diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 2, "both reachable record defects must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|CnameCountRecord|Properties.ResourceRecords|")
+            && finding.contains("at most 1 ResourceRecord")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|AddressRecord|Properties.ResourceRecords.1|") && finding.contains("not a valid IPv4 address")
+    }));
+}
+
+#[test]
+fn route53_cname_record_count_reports_each_invalid_branch() {
+    let template = include_str!("../../resources/templates/bad/E3023_cname_conditional_record_counts.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "conditional CNAME count diagnostics must match, spans included");
+    assert_eq!(rego_findings.len(), 4, "each invalid authored branch must be reported once: {rego_findings:?}");
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|ConditionalList|")).count(), 2);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|ConditionalProperties|")).count(), 2);
+    assert!(rego_findings.iter().all(|finding| !finding.contains("|SingleRecordBranches|")));
+}
+
+#[test]
+fn route53_recordset_group_checks_expand_members_independently() {
+    let template = include_str!("../../resources/templates/bad/E3023_recordsetgroup_projection_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3023"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
+
+    assert_eq!(rego_findings, cel_findings, "Route53 group diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 2, "both reachable group record defects must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|CnameGroup|Properties.RecordSets.0.ResourceRecords|")
+            && finding.contains("at most 1 ResourceRecord")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|AddressGroup|Properties.RecordSets.0.ResourceRecords.1|")
+            && finding.contains("not a valid IPv4 address")
+    }));
+}

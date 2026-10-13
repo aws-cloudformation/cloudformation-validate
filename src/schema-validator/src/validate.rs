@@ -3162,10 +3162,8 @@ fn outer_resolved_scenarios(
     resource_id: &str,
     property_path: &str,
 ) -> Vec<(ResolvedValue, HashMap<String, bool>)> {
-    let Some(value) =
-        model.resolve_deep(resource_id, property_path).or_else(|| model.resolve(resource_id, property_path).cloned())
-    else {
-        return model.resolve_scenarios(resource_id, property_path);
+    let Some(value) = model.resolve_unexpanded(resource_id, property_path) else {
+        return Vec::new();
     };
     let mut scenarios = Vec::new();
     collect_outer_resolved_scenarios(&value, &HashMap::new(), &mut scenarios);

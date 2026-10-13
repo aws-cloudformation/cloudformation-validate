@@ -30,6 +30,26 @@ fn list_template(sections: Value, members: Value) -> String {
     template.to_string()
 }
 
+fn conditional_properties_list_template(
+    sections: Value,
+    condition: &str,
+    if_true_members: Value,
+    if_false_members: Value,
+) -> String {
+    let mut template = sections;
+    template["Resources"] = json!({
+        "Resource": {
+            "Type": LIST_TYPE,
+            "Properties": if_condition(
+                condition,
+                json!({"Values": if_true_members}),
+                json!({"Values": if_false_members}),
+            ),
+        }
+    });
+    template.to_string()
+}
+
 fn model(template: &str) -> Arc<SemanticModel> {
     Arc::new(SemanticModel::from_bytes(template.as_bytes()).expect("template must parse"))
 }
@@ -155,6 +175,68 @@ fn max_items_counts_members_whose_conditions_exclude_each_other() {
     assert_eq!(violations.len(), 1, "twelve members survive together in one deployment: {diagnostics:#?}");
     assert_eq!(violations[0].message, "expected maximum item count: 5, found: 12");
     assert_eq!(violations[0].condition_scenario, Some(expected_witness));
+}
+
+#[test]
+fn max_items_checks_members_inside_whole_properties_condition() {
+    const MEMBER_COUNT: usize = 13;
+    const PRESENT_WHEN_TRUE_COUNT: usize = 7;
+    let member_conditions: Vec<String> = (0..MEMBER_COUNT).map(|index| format!("Present{index:02}")).collect();
+    let condition_refs: Vec<&str> =
+        std::iter::once("UseConditionalProperties").chain(member_conditions.iter().map(String::as_str)).collect();
+    let members: Vec<Value> = member_conditions
+        .iter()
+        .enumerate()
+        .map(|(index, condition)| {
+            let member = json!(format!("value-{index:02}"));
+            if index < PRESENT_WHEN_TRUE_COUNT {
+                if_condition(condition, member, no_value())
+            } else {
+                if_condition(condition, no_value(), member)
+            }
+        })
+        .collect();
+    let template = conditional_properties_list_template(
+        toggles(&condition_refs),
+        "UseConditionalProperties",
+        Value::Array(members),
+        json!(["fallback"]),
+    );
+    let validator = list_validator(string_list_schema("maxItems", json!(12)));
+    let mut expected_witness = HashMap::from([("UseConditionalProperties".to_string(), true)]);
+    expected_witness.extend(
+        member_conditions
+            .iter()
+            .enumerate()
+            .map(|(index, condition)| (condition.clone(), index < PRESENT_WHEN_TRUE_COUNT)),
+    );
+
+    let diagnostics = validate(&validator, &model(&template));
+
+    let violations = findings(&diagnostics, "F3032");
+    assert_eq!(violations.len(), 1, "all thirteen members coexist only in the selected branch: {diagnostics:#?}");
+    assert_eq!(violations[0].message, "expected maximum item count: 12, found: 13");
+    assert_eq!(violations[0].condition_scenario, Some(expected_witness));
+}
+
+#[test]
+fn max_items_respects_outer_condition_when_nested_member_reuses_it() {
+    let mut members: Vec<Value> = (0..12).map(|index| json!(format!("fixed-{index:02}"))).collect();
+    members.push(if_condition("UseConditionalProperties", no_value(), json!("excluded")));
+    let template = conditional_properties_list_template(
+        toggles(&["UseConditionalProperties"]),
+        "UseConditionalProperties",
+        Value::Array(members),
+        json!(["fallback"]),
+    );
+    let validator = list_validator(string_list_schema("maxItems", json!(12)));
+
+    let diagnostics = validate(&validator, &model(&template));
+
+    assert!(
+        findings(&diagnostics, "F3032").is_empty(),
+        "the thirteenth member exists only outside its enclosing branch: {diagnostics:#?}"
+    );
 }
 
 #[test]
