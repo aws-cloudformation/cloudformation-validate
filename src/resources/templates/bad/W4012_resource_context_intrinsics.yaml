@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Resource Metadata Context values may use CloudFormation intrinsic functions.
+Description: Intrinsic functions inside resource Metadata Context do not satisfy the published Context schema.
 Parameters:
   Environment:
     Type: String
@@ -29,3 +29,18 @@ Resources:
         trust:
           src: authored
           conf: high
+  SubMutabilityQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: exercises intrinsic rejection in the mutability map
+        mutability: !Sub "${Environment}-review-required"
+  ConditionalMutabilityQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: exercises conditional intrinsic rejection in the mutability map
+        mutability: !If
+          - IsProduction
+          - QueueName: review-required
+          - QueueName: free-to-tune

@@ -161,11 +161,23 @@ fn resource_filters_are_applied_before_missing_context_aggregation() {
 }
 
 #[test]
-fn resource_intrinsic_context_values_are_clean_on_every_engine() {
+fn resource_intrinsic_context_values_are_rejected_on_every_engine() {
     let diagnostics =
-        context_diagnostics_on_every_engine("good/metadata_context_intrinsics.yaml", ValidateConfig::default());
+        context_diagnostics_on_every_engine("bad/W4012_resource_context_intrinsics.yaml", ValidateConfig::default());
 
-    assert!(diagnostics.is_empty(), "resource Metadata supports intrinsic Context values: {diagnostics:?}");
+    assert!(diagnostics.iter().all(|diagnostic| diagnostic.rule_id == "W4012"), "{diagnostics:?}");
+    assert_eq!(diagnostics.len(), 5);
+    assert!(diagnostics.iter().all(|diagnostic| diagnostic.source == RuleOrigin::Engine));
+    let paths: Vec<&str> = diagnostics.iter().filter_map(|diagnostic| diagnostic.property_path.as_deref()).collect();
+    for expected in [
+        "Metadata.com.aws.cloudformation.Context",
+        "Metadata.com.aws.cloudformation.Context.why",
+        "Metadata.com.aws.cloudformation.Context.must.0",
+        "Metadata.com.aws.cloudformation.Context.mutability",
+    ] {
+        assert!(paths.contains(&expected), "missing {expected} in {paths:?}");
+    }
+    assert_eq!(paths.iter().filter(|path| **path == "Metadata.com.aws.cloudformation.Context.mutability").count(), 2);
 }
 
 #[test]
@@ -177,7 +189,7 @@ fn template_intrinsic_context_value_is_rejected_on_every_engine() {
     assert_eq!(diagnostics[0].rule_id, "W4012");
     assert_eq!(diagnostics[0].property_path.as_deref(), Some("Metadata/com.aws.cloudformation.Context/arch"));
     assert_eq!(diagnostics[0].location.map(|span| span.start_line), Some(11));
-    assert_eq!(diagnostics[0].message, "'arch' is an object; it must be a string.");
+    assert_eq!(diagnostics[0].message, "'arch' uses intrinsic function 'Fn::Sub'; 'arch' must be a string.");
 }
 
 #[test]

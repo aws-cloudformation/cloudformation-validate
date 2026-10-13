@@ -10,7 +10,10 @@ use rules::{FilterConfig, lookup_rule};
 use serde_json::{Map, Value};
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
-use template_model::consts::{CDK_METADATA_TYPE, KEY_METADATA, SECTION_METADATA, SECTION_RESOURCES};
+use template_model::consts::{
+    CDK_METADATA_TYPE, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_METADATA, SECTION_METADATA, SECTION_RESOURCES,
+    SHORT_TAG_TO_FN_KEY, TAG_IF_EXPR,
+};
 use template_model::model::ResolvedResource;
 use template_model::{EntityType, MARKER_INTRINSIC, SemanticModel, SourceSpan, UNKNOWN_SPAN, span_to_option};
 
@@ -79,7 +82,7 @@ pub(crate) fn check_context(model: &SemanticModel, config: &ValidateConfig) -> R
     let mut schema = None;
 
     for &(logical_id, resource) in &primaries {
-        let Some(context) = resource_context(resource) else {
+        let Some(context) = resource_context(model, logical_id, resource) else {
             continue;
         };
         if check_missing_why && let Some(diagnostic) = missing_why_diagnostic(model, logical_id, resource, context) {
@@ -162,8 +165,24 @@ fn requires_context(resource: &ResolvedResource) -> bool {
         && !resource_type.ends_with(MODULE_TYPE_SUFFIX)
 }
 
-fn resource_context(resource: &ResolvedResource) -> Option<&Value> {
-    resource.metadata.as_ref()?.as_object()?.get(CONTEXT_KEY)
+fn resource_context<'a>(
+    model: &'a SemanticModel,
+    logical_id: &str,
+    resource: &'a ResolvedResource,
+) -> Option<&'a Value> {
+    let resolved_context = resource.metadata.as_ref()?.as_object()?.get(CONTEXT_KEY)?;
+    // A transform-expanded resource may not have a direct authored logical ID.
+    // Its resolved marker is still validated strictly rather than treated as a missing or valid Context block.
+    model
+        .authored_template_json()
+        .get(SECTION_RESOURCES)
+        .and_then(Value::as_object)
+        .and_then(|resources| resources.get(logical_id))
+        .and_then(Value::as_object)
+        .and_then(|resource| resource.get(KEY_METADATA))
+        .and_then(Value::as_object)
+        .and_then(|metadata| metadata.get(CONTEXT_KEY))
+        .or(Some(resolved_context))
 }
 
 fn template_context(model: &SemanticModel) -> Option<&Value> {
@@ -171,8 +190,34 @@ fn template_context(model: &SemanticModel) -> Option<&Value> {
     model.authored_template_json().get(SECTION_METADATA)?.as_object()?.get(CONTEXT_KEY)
 }
 
-fn is_unresolved_intrinsic(value: &Value) -> bool {
-    value.as_object().is_some_and(|object| object.len() == 1 && object.contains_key(MARKER_INTRINSIC))
+fn context_intrinsic_name(value: &Value) -> Option<&str> {
+    let object = value.as_object()?;
+    if object.len() != 1 {
+        return None;
+    }
+    if let Some(marker_name) = object.get(MARKER_INTRINSIC).and_then(Value::as_str) {
+        if marker_name == TAG_IF_EXPR {
+            return Some(FN_IF);
+        }
+        return SHORT_TAG_TO_FN_KEY
+            .iter()
+            .find_map(|(short, canonical)| (*short == marker_name).then_some(*canonical))
+            .or(Some(marker_name));
+    }
+    let key = object.keys().next()?.as_str();
+    (key == FN_REF || INTRINSIC_FN_PATH_SEGMENTS.contains(&key)).then_some(key)
+}
+
+fn is_internal_intrinsic_marker(value: &Value) -> bool {
+    value.as_object().is_some_and(|object| object.contains_key(MARKER_INTRINSIC))
+}
+
+fn schema_accepts_object_key(schema: &Map<String, Value>, key: &str) -> bool {
+    if schema.get("properties").and_then(Value::as_object).is_some_and(|properties| properties.contains_key(key)) {
+        return true;
+    }
+    let is_reserved_intrinsic = key == FN_REF || INTRINSIC_FN_PATH_SEGMENTS.contains(&key);
+    !is_reserved_intrinsic && matches!(schema.get("additionalProperties"), Some(Value::Bool(true) | Value::Object(_)))
 }
 
 fn missing_context_finding_survives(
@@ -202,7 +247,7 @@ fn missing_context_diagnostics(
         .copied()
         .filter(|&(logical_id, resource)| {
             requires_context(resource)
-                && resource_context(resource).is_none()
+                && resource_context(model, logical_id, resource).is_none()
                 && missing_context_finding_survives(filters, category, logical_id, resource)
         })
         .collect();
@@ -273,22 +318,22 @@ fn missing_why_diagnostic(
     resource: &ResolvedResource,
     context: &Value,
 ) -> Option<Diagnostic> {
-    if is_unresolved_intrinsic(context) {
+    if context_intrinsic_name(context).is_some() {
         return None;
     }
     // A block that is not a mapping is reported by the schema check instead.
     let block = context.as_object()?;
-    let has_why = block
-        .get("why")
-        .is_some_and(|why| why.as_str().is_some_and(|why| !why.trim().is_empty()) || is_unresolved_intrinsic(why));
-    // Only low confidence acknowledges an undocumented rationale; an intrinsic
-    // confidence cannot prove the requirement is violated, so defer judgment.
-    let acknowledges_unknown_rationale = block.get("trust").is_some_and(|trust| {
-        is_unresolved_intrinsic(trust)
-            || trust.as_object().and_then(|trust| trust.get("conf")).is_some_and(|confidence| {
-                confidence.as_str() == Some(LOW_CONFIDENCE) || is_unresolved_intrinsic(confidence)
-            })
-    });
+    let why = block.get("why");
+    let trust = block.get("trust");
+    let confidence = trust.and_then(Value::as_object).and_then(|trust| trust.get("conf"));
+    if why.is_some_and(|value| context_intrinsic_name(value).is_some())
+        || trust.is_some_and(|value| context_intrinsic_name(value).is_some())
+        || confidence.is_some_and(|value| context_intrinsic_name(value).is_some())
+    {
+        return None;
+    }
+    let has_why = why.is_some_and(|why| why.as_str().is_some_and(|why| !why.trim().is_empty()));
+    let acknowledges_unknown_rationale = confidence.and_then(Value::as_str) == Some(LOW_CONFIDENCE);
     if has_why || acknowledges_unknown_rationale {
         return None;
     }
@@ -383,10 +428,6 @@ impl Placement {
         }
     }
 
-    fn allows_intrinsics(self) -> bool {
-        matches!(self, Self::Resource)
-    }
-
     fn other(self) -> Self {
         match self {
             Self::Template => Self::Resource,
@@ -452,7 +493,7 @@ impl ContextSchema {
             }]);
         }
         let mut violations = Vec::new();
-        validate_node(block, self.definition(placement)?, &self.document, placement, &[], &mut violations)?;
+        validate_node(block, self.definition(placement)?, &self.document, &[], &mut violations)?;
         let other_fields = self.fields(placement.other());
         for violation in &mut violations {
             if matches!(violation.kind, SchemaViolationKind::UnknownField { .. })
@@ -472,6 +513,12 @@ impl ContextSchema {
         let message = match (&violation.kind, top_field) {
             (SchemaViolationKind::NotAMapping { found }, _) => {
                 format!("{CONTEXT_DISPLAY} must be a mapping of Context fields; found {found}.")
+            }
+            (SchemaViolationKind::IntrinsicFunction { name }, None) => format!(
+                "{CONTEXT_DISPLAY} uses intrinsic function '{name}'; it must match the Context schema directly."
+            ),
+            (SchemaViolationKind::IntrinsicFunction { name }, Some(top)) => {
+                format!("'{field}' uses intrinsic function '{name}'; '{top}' must be {}.", shape(top)?)
             }
             (kind, None) => {
                 return Err(format!("Metadata Context violation {kind:?} was reported without a field path"));
@@ -524,6 +571,7 @@ struct SchemaViolation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SchemaViolationKind {
     NotAMapping { found: &'static str },
+    IntrinsicFunction { name: String },
     MisplacedField,
     UnknownField { allowed: String },
     WrongType { found: &'static str },
@@ -545,19 +593,24 @@ fn validate_node(
     instance: &Value,
     schema: &Value,
     root: &Value,
-    placement: Placement,
     path: &[String],
     violations: &mut Vec<SchemaViolation>,
 ) -> Result<(), String> {
-    if placement.allows_intrinsics() && is_unresolved_intrinsic(instance) {
-        return Ok(());
-    }
     let node = schema_object(schema, path)?;
     if let Some(reference) = node.get("$ref") {
-        return validate_node(instance, resolve_reference(reference, root)?, root, placement, path, violations);
+        return validate_node(instance, resolve_reference(reference, root)?, root, path, violations);
+    }
+    if let Some(name) = context_intrinsic_name(instance)
+        && (is_internal_intrinsic_marker(instance) || !schema_accepts_object_key(node, name))
+    {
+        violations.push(SchemaViolation {
+            path: path.to_vec(),
+            kind: SchemaViolationKind::IntrinsicFunction { name: name.to_string() },
+        });
+        return Ok(());
     }
     if let Some(branches) = node.get("oneOf").and_then(Value::as_array) {
-        return validate_one_of(instance, branches, root, placement, path, violations);
+        return validate_one_of(instance, branches, root, path, violations);
     }
     if let Some(expected_type) = node.get("type").and_then(Value::as_str)
         && !matches_json_type(instance, expected_type)?
@@ -581,13 +634,13 @@ fn validate_node(
         return Ok(());
     }
     if let Some(object) = instance.as_object() {
-        validate_object(object, node, root, placement, path, violations)?;
+        validate_object(object, node, root, path, violations)?;
     }
     if let Some(items) = instance.as_array()
         && let Some(item_schema) = node.get("items")
     {
         for (index, item) in items.iter().enumerate() {
-            validate_node(item, item_schema, root, placement, &child_path(path, &index.to_string()), violations)?;
+            validate_node(item, item_schema, root, &child_path(path, &index.to_string()), violations)?;
         }
     }
     Ok(())
@@ -597,7 +650,6 @@ fn validate_object(
     object: &Map<String, Value>,
     node: &Map<String, Value>,
     root: &Value,
-    placement: Placement,
     path: &[String],
     violations: &mut Vec<SchemaViolation>,
 ) -> Result<(), String> {
@@ -615,7 +667,7 @@ fn validate_object(
     for (field, value) in object {
         let field_path = child_path(path, field);
         if let Some(property_schema) = properties.and_then(|properties| properties.get(field)) {
-            validate_node(value, property_schema, root, placement, &field_path, violations)?;
+            validate_node(value, property_schema, root, &field_path, violations)?;
             continue;
         }
         match node.get("additionalProperties") {
@@ -630,7 +682,7 @@ fn validate_object(
                 },
             }),
             Some(additional_schema @ Value::Object(_)) => {
-                validate_node(value, additional_schema, root, placement, &field_path, violations)?;
+                validate_node(value, additional_schema, root, &field_path, violations)?;
             }
             Some(Value::Bool(true)) | None => {}
             Some(other) => {
@@ -651,14 +703,13 @@ fn validate_one_of(
     instance: &Value,
     branches: &[Value],
     root: &Value,
-    placement: Placement,
     path: &[String],
     violations: &mut Vec<SchemaViolation>,
 ) -> Result<(), String> {
     let mut branch_violations = Vec::with_capacity(branches.len());
     for branch in branches {
         let mut candidate = Vec::new();
-        validate_node(instance, branch, root, placement, path, &mut candidate)?;
+        validate_node(instance, branch, root, path, &mut candidate)?;
         branch_violations.push(candidate);
     }
     if branch_violations.iter().any(Vec::is_empty) {
@@ -1036,7 +1087,7 @@ Resources:
     }
 
     #[test]
-    fn unresolved_intrinsics_preserve_static_sibling_validation() {
+    fn intrinsic_values_are_invalid_while_static_siblings_are_still_validated() {
         let template = r#"
 Parameters:
   Rationale:
@@ -1064,9 +1115,11 @@ Resources:
 
         let diagnostics = check(template);
 
-        let missing_why = with_rule(&diagnostics, MISSING_WHY_RULE_ID);
-        assert_eq!(missing_why.len(), 1, "only the resource without a dynamic rationale is flagged");
-        assert_eq!(missing_why[0].resource_logical_id(), Some("QueueWithoutRationale"));
+        let missing_why_resources: BTreeSet<&str> = with_rule(&diagnostics, MISSING_WHY_RULE_ID)
+            .into_iter()
+            .filter_map(|diagnostic| diagnostic.resource_logical_id())
+            .collect();
+        assert_eq!(missing_why_resources, BTreeSet::from(["QueueWithoutRationale"]));
         let violation_paths: BTreeSet<&str> = with_rule(&diagnostics, SCHEMA_VIOLATION_RULE_ID)
             .into_iter()
             .filter_map(|diagnostic| diagnostic.property_path.as_deref())
@@ -1074,8 +1127,10 @@ Resources:
         assert_eq!(
             violation_paths,
             BTreeSet::from([
+                "Metadata.com.aws.cloudformation.Context.must",
                 "Metadata.com.aws.cloudformation.Context.trust.src",
                 "Metadata.com.aws.cloudformation.Context.unknown",
+                "Metadata.com.aws.cloudformation.Context.why",
                 "Metadata/com.aws.cloudformation.Context/arch",
                 "Metadata/com.aws.cloudformation.Context/unknown",
             ])
@@ -1083,7 +1138,7 @@ Resources:
     }
 
     #[test]
-    fn resource_intrinsics_do_not_create_context_findings() {
+    fn resource_intrinsics_create_context_findings() {
         let template = r#"
 Parameters:
   Rationale:
@@ -1117,7 +1172,27 @@ Resources:
 
         let diagnostics = check(template);
 
-        assert!(diagnostics.is_empty(), "resource Metadata supports intrinsic Context values: {diagnostics:?}");
+        let missing_why_resources: BTreeSet<&str> = with_rule(&diagnostics, MISSING_WHY_RULE_ID)
+            .into_iter()
+            .filter_map(|diagnostic| diagnostic.resource_logical_id())
+            .collect();
+        assert!(
+            missing_why_resources.is_empty(),
+            "intrinsic rationale values are reported explicitly by the schema rule"
+        );
+        let violation_paths: BTreeSet<&str> = with_rule(&diagnostics, SCHEMA_VIOLATION_RULE_ID)
+            .into_iter()
+            .filter_map(|diagnostic| diagnostic.property_path.as_deref())
+            .collect();
+        assert_eq!(
+            violation_paths,
+            BTreeSet::from([
+                "Metadata.com.aws.cloudformation.Context",
+                "Metadata.com.aws.cloudformation.Context.must.0",
+                "Metadata.com.aws.cloudformation.Context.trust.conf",
+                "Metadata.com.aws.cloudformation.Context.why",
+            ])
+        );
     }
 
     #[test]
@@ -1141,7 +1216,7 @@ Resources:
         let field_findings = with_rule(&dynamic_field, SCHEMA_VIOLATION_RULE_ID);
         assert_eq!(field_findings.len(), 1, "{dynamic_field:?}");
         assert_eq!(field_findings[0].property_path.as_deref(), Some("Metadata/com.aws.cloudformation.Context/arch"));
-        assert_eq!(field_findings[0].message, "'arch' is an object; it must be a string.");
+        assert_eq!(field_findings[0].message, "'arch' uses intrinsic function 'Ref'; 'arch' must be a string.");
 
         let dynamic_block = check(
             r#"
@@ -1165,10 +1240,10 @@ Resources:
         );
         let block_findings = with_rule(&dynamic_block, SCHEMA_VIOLATION_RULE_ID);
         assert_eq!(block_findings.len(), 1, "{dynamic_block:?}");
-        assert_eq!(block_findings[0].property_path.as_deref(), Some("Metadata/com.aws.cloudformation.Context/Fn::If"));
+        assert_eq!(block_findings[0].property_path.as_deref(), Some("Metadata/com.aws.cloudformation.Context"));
         assert_eq!(
             block_findings[0].message,
-            "'Fn::If' is not a recognized template-level Context field; allowed fields: arch, must, owner, ref."
+            "Metadata.com.aws.cloudformation.Context uses intrinsic function 'Fn::If'; it must match the Context schema directly."
         );
 
         let nested_intrinsic = check(
@@ -1192,13 +1267,7 @@ Resources:
         let nested_findings = with_rule(&nested_intrinsic, SCHEMA_VIOLATION_RULE_ID);
         let nested_paths: BTreeSet<&str> =
             nested_findings.iter().filter_map(|diagnostic| diagnostic.property_path.as_deref()).collect();
-        assert_eq!(
-            nested_paths,
-            BTreeSet::from([
-                "Metadata/com.aws.cloudformation.Context/ref/0",
-                "Metadata/com.aws.cloudformation.Context/ref/0/Ref",
-            ])
-        );
+        assert_eq!(nested_paths, BTreeSet::from(["Metadata/com.aws.cloudformation.Context/ref/0"]));
         assert!(
             nested_findings.iter().all(|diagnostic| {
                 !diagnostic.message.contains(MARKER_INTRINSIC)
@@ -1206,6 +1275,72 @@ Resources:
             }),
             "internal intrinsic markers must not reach diagnostics: {nested_intrinsic:?}"
         );
+    }
+
+    #[test]
+    fn mutability_property_names_are_not_intrinsics_but_intrinsic_values_are_rejected() {
+        let valid_property_name = check(
+            r#"
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: event routing
+Resources:
+  Policy:
+    Type: AWS::Events::EventBusPolicy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: controls event publishing
+        mutability:
+          Condition: review-required
+"#,
+        );
+        assert!(valid_property_name.is_empty(), "Condition is a property name here: {valid_property_name:?}");
+
+        let root_condition = check(
+            r#"
+Resources:
+  Policy:
+    Type: AWS::Events::EventBusPolicy
+    Metadata:
+      com.aws.cloudformation.Context:
+        Condition: review-required
+"#,
+        );
+        assert_eq!(rule_ids(&root_condition), [MISSING_WHY_RULE_ID, SCHEMA_VIOLATION_RULE_ID]);
+        assert!(
+            with_rule(&root_condition, SCHEMA_VIOLATION_RULE_ID)[0]
+                .message
+                .contains("'Condition' is not a recognized resource-level Context field")
+        );
+
+        let internal_if = context_schema()
+            .expect("schema")
+            .violations(Placement::Resource, &serde_json::json!({MARKER_INTRINSIC: TAG_IF_EXPR}))
+            .expect("marker validation");
+        assert_eq!(
+            internal_if,
+            [SchemaViolation {
+                path: Vec::new(),
+                kind: SchemaViolationKind::IntrinsicFunction { name: FN_IF.to_string() },
+            }]
+        );
+
+        for intrinsic in [
+            "!Sub '${Environment}-review-required'",
+            "!If [IsProduction, {Condition: review-required}, {Condition: free-to-tune}]",
+        ] {
+            let template = format!(
+                "Parameters:\n  Environment:\n    Type: String\nConditions:\n  IsProduction: !Equals [!Ref Environment, production]\nMetadata:\n  com.aws.cloudformation.Context:\n    arch: event routing\nResources:\n  Policy:\n    Type: AWS::Events::EventBusPolicy\n    Metadata:\n      com.aws.cloudformation.Context:\n        why: controls event publishing\n        mutability: {intrinsic}\n"
+            );
+            let diagnostics = check(&template);
+            let findings = with_rule(&diagnostics, SCHEMA_VIOLATION_RULE_ID);
+            assert_eq!(findings.len(), 1, "{intrinsic}: {diagnostics:?}");
+            assert_eq!(
+                findings[0].property_path.as_deref(),
+                Some("Metadata.com.aws.cloudformation.Context.mutability")
+            );
+            assert!(findings[0].message.contains("uses intrinsic function"), "{intrinsic}: {findings:?}");
+        }
     }
 
     #[test]

@@ -24,7 +24,7 @@ Resources:
           - "Visibility timeout remains above function timeout"
         mutable: "change-with-constraints"
         mutability:
-          QueueName: "must-never-change"
+          Condition: "review-required"
         trust:
           src: "authored"
           conf: "high"
