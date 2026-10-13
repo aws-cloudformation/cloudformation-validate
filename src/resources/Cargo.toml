@@ -18,6 +18,8 @@ name = "generate_validation_reports"
 path = "examples/generate_validation_reports.rs"
 
 [dependencies]
+diagnostics = { workspace = true }
+rules = { workspace = true }
 serde_json = { version = "1", features = ["preserve_order"] }
 
 [lints]

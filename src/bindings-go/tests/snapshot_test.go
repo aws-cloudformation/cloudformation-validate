@@ -27,6 +27,35 @@ const chunkExtension = ".json"
 var enrichmentDiagnosticFields = []string{"documentationUrl", "context", "ruleDescription", "phase", "section"}
 
 var templatesRoot = filepath.Join(workspaceDir, "resources", "templates")
+var snapshotExcludedRuleIDs = loadSnapshotExcludedRuleIDs()
+
+var severityCountFields = map[string]string{
+	"FATAL": "fatal",
+	"ERROR": "errors",
+	"WARN":  "warnings",
+	"INFO":  "informational",
+	"DEBUG": "debug",
+}
+
+func loadSnapshotExcludedRuleIDs() map[string]struct{} {
+	manifestPath := filepath.Join(workspaceDir, "resources", "expected", "snapshot_excluded_rule_ids.txt")
+	contents, err := os.ReadFile(manifestPath)
+	if err != nil {
+		panic("reading snapshot exclusion manifest: " + err.Error())
+	}
+	lines := strings.Split(strings.ReplaceAll(string(contents), "\r\n", "\n"), "\n")
+	excluded := make(map[string]struct{}, len(lines))
+	for _, line := range lines {
+		ruleID := strings.TrimSpace(line)
+		if ruleID != "" {
+			excluded[ruleID] = struct{}{}
+		}
+	}
+	if len(excluded) == 0 {
+		panic("snapshot exclusion manifest is empty: " + manifestPath)
+	}
+	return excluded
+}
 
 func discoverSnapshotTemplates(t *testing.T) []string {
 	t.Helper()
@@ -126,9 +155,58 @@ func loadSnapshots(t *testing.T) map[string]map[string]any {
 	return snapshots
 }
 
-// stripSnapshotExcludedFields removes the report fields the snapshot file excludes
-// (version, performance, and changing metadata provenance) and normalizes filePath.
+func excludeSnapshotRules(report map[string]any) {
+	diagnostics, ok := report["diagnostics"].([]any)
+	if !ok {
+		panic("report has no diagnostics array")
+	}
+	retained := make([]any, 0, len(diagnostics))
+	removedSeverities := make([]string, 0)
+	for _, entry := range diagnostics {
+		diagnostic, ok := entry.(map[string]any)
+		if !ok {
+			panic("report diagnostics contains a non-object entry")
+		}
+		ruleID, _ := diagnostic["ruleId"].(string)
+		if _, excluded := snapshotExcludedRuleIDs[ruleID]; !excluded {
+			retained = append(retained, entry)
+			continue
+		}
+		severity, ok := diagnostic["severity"].(string)
+		if !ok {
+			panic("excluded diagnostic has no string severity")
+		}
+		removedSeverities = append(removedSeverities, severity)
+	}
+	report["diagnostics"] = retained
+	if len(removedSeverities) == 0 {
+		return
+	}
+	metadata, ok := report["metadata"].(map[string]any)
+	if !ok {
+		panic("report has no metadata object")
+	}
+	counts, ok := metadata["counts"].(map[string]any)
+	if !ok {
+		panic("report has no metadata.counts object")
+	}
+	for _, severity := range removedSeverities {
+		countField, ok := severityCountFields[severity]
+		if !ok {
+			panic("excluded diagnostic has unsupported severity: " + severity)
+		}
+		currentCount, ok := counts[countField].(float64)
+		if !ok || currentCount < 1 {
+			panic("metadata.counts does not account for excluded " + severity + " diagnostic")
+		}
+		counts[countField] = currentCount - 1
+	}
+}
+
+// stripSnapshotExcludedFields removes diagnostics and report fields excluded
+// from snapshots, adjusts counts, and normalizes filePath.
 func stripSnapshotExcludedFields(report map[string]any, filePath string) map[string]any {
+	excludeSnapshotRules(report)
 	if filePath != "" {
 		report["filePath"] = filePath
 	}
@@ -194,6 +272,36 @@ func diffJSON(t *testing.T, rel string, actual, expected map[string]any) {
 	actualJSON, _ := json.MarshalIndent(actual, "", " ")
 	expectedJSON, _ := json.MarshalIndent(expected, "", " ")
 	t.Errorf("%s: report does not match snapshot\n--- actual ---\n%s\n--- expected ---\n%s", rel, actualJSON, expectedJSON)
+}
+
+func TestStripSnapshotExcludedFieldsRemovesOnlyManifestRulesAndAdjustsCounts(t *testing.T) {
+	report := map[string]any{
+		"diagnostics": []any{
+			map[string]any{"ruleId": "W4012", "severity": "WARN"},
+			map[string]any{"ruleId": "I4010", "severity": "INFO"},
+			map[string]any{"ruleId": "E3012", "severity": "ERROR"},
+		},
+		"metadata": map[string]any{
+			"counts": map[string]any{
+				"fatal":         float64(0),
+				"errors":        float64(1),
+				"warnings":      float64(1),
+				"informational": float64(1),
+				"debug":         float64(0),
+			},
+		},
+	}
+
+	normalized := stripSnapshotExcludedFields(report, "")
+
+	diagnostics := normalized["diagnostics"].([]any)
+	if len(diagnostics) != 2 || diagnostics[0].(map[string]any)["ruleId"] != "W4012" || diagnostics[1].(map[string]any)["ruleId"] != "E3012" {
+		t.Fatalf("unexpected normalized diagnostics: %#v", diagnostics)
+	}
+	counts := normalized["metadata"].(map[string]any)["counts"].(map[string]any)
+	if counts["warnings"] != float64(1) || counts["informational"] != float64(0) || counts["errors"] != float64(1) {
+		t.Fatalf("unexpected normalized counts: %#v", counts)
+	}
 }
 
 func TestSnapshotValidation(t *testing.T) {

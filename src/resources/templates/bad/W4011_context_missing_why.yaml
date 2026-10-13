@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Context blocks without 'why'. Only a trust declaration with conf low excuses
+  the omission (LegacyTable); medium and high confidence assert the rationale is
+  known (OrderQueue, Notifier), and a subordinate type that supplies a block is
+  still held to it (ServiceLogGroup). Three findings are expected.
+Metadata:
+  com.aws.cloudformation.Context:
+    arch: "SNS fan-out into an SQS buffer"
+Resources:
+  OrderQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        trust:
+          src: "infer"
+          conf: "medium"
+  Notifier:
+    Type: AWS::SNS::Topic
+    Metadata:
+      com.aws.cloudformation.Context:
+        must:
+          - "At least one subscriber"
+        trust:
+          src: "authored"
+          conf: "high"
+  LegacyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+    Metadata:
+      com.aws.cloudformation.Context:
+        trust:
+          src: "infer"
+          conf: "low"
+          note: "rationale not documented"
+  ServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+    Metadata:
+      com.aws.cloudformation.Context:
+        must:
+          - "Retain 30 days"
