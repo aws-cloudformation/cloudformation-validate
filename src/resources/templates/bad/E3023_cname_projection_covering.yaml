@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Regression fixture for correlated Route53 record identity scenarios
+Parameters:
+  TypeFirstValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  TypeSecondValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  TypeThirdValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  UseSubdomainValue:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record00Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record01Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record02Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record03Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record04Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record05Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record06Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record07Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record08Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+  Record09Value:
+    Type: String
+    AllowedValues: ['true', 'false']
+Conditions:
+  TypeFirst: !Equals [!Ref TypeFirstValue, 'true']
+  TypeSecond: !Equals [!Ref TypeSecondValue, 'true']
+  TypeThird: !Equals [!Ref TypeThirdValue, 'true']
+  UseSubdomain: !Equals [!Ref UseSubdomainValue, 'true']
+  Record00Enabled: !Equals [!Ref Record00Value, 'true']
+  Record01Enabled: !Equals [!Ref Record01Value, 'true']
+  Record02Enabled: !Equals [!Ref Record02Value, 'true']
+  Record03Enabled: !Equals [!Ref Record03Value, 'true']
+  Record04Enabled: !Equals [!Ref Record04Value, 'true']
+  Record05Enabled: !Equals [!Ref Record05Value, 'true']
+  Record06Enabled: !Equals [!Ref Record06Value, 'true']
+  Record07Enabled: !Equals [!Ref Record07Value, 'true']
+  Record08Enabled: !Equals [!Ref Record08Value, 'true']
+  Record09Enabled: !Equals [!Ref Record09Value, 'true']
+  IncludeRecord00: !And [!Condition Record00Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord01: !And [!Condition Record01Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord02: !And [!Condition Record02Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord03: !And [!Condition Record03Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord04: !And [!Condition Record04Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord05: !And [!Condition Record05Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord06: !And [!Condition Record06Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord07: !And [!Condition Record07Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord08: !And [!Condition Record08Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+  IncludeRecord09: !And [!Condition Record09Enabled, !Or [!Condition TypeFirst, !Condition TypeSecond, !Not [!Condition TypeThird]]]
+Resources:
+  Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: example.com.
+      Name: !If [UseSubdomain, www.example.com., example.com.]
+      Type: !If [TypeFirst, NS, !If [TypeSecond, NS, !If [TypeThird, CNAME, NS]]]
+      TTL: '300'
+      ResourceRecords:
+        - target.example.net.
+        - !If [IncludeRecord00, target00.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord01, target01.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord02, target02.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord03, target03.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord04, target04.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord05, target05.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord06, target06.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord07, target07.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord08, target08.example.net., !Ref AWS::NoValue]
+        - !If [IncludeRecord09, target09.example.net., !Ref AWS::NoValue]
