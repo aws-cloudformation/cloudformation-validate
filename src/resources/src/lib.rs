@@ -7,7 +7,10 @@
 //! snapshot loading.
 
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
+use diagnostics::Summary;
+use rules::Severity;
 use serde_json::Value;
 
 /// Maximum number of template reports stored in a single snapshot chunk file.
@@ -200,9 +203,143 @@ fn collect_templates(dir: &Path, root: &Path, out: &mut Vec<String>) {
     }
 }
 
+/// Rules whose findings are kept out of the snapshot chunks. Missing Context is
+/// reported on nearly every corpus template, so persisting that informational
+/// finding would turn any output change into a corpus-wide snapshot diff. Its
+/// behavior is covered by dedicated fixtures and tests instead.
+pub static SNAPSHOT_EXCLUDED_RULE_IDS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    include_str!("../expected/snapshot_excluded_rule_ids.txt")
+        .lines()
+        .map(str::trim)
+        .filter(|rule_id| !rule_id.is_empty())
+        .collect()
+});
+
+/// Removes the findings of [`SNAPSHOT_EXCLUDED_RULE_IDS`] from a serialized
+/// report and subtracts them from `metadata.counts`, leaving the report exactly as
+/// the engine would have produced it without those rules.
+pub fn exclude_snapshot_rules(report: &mut Value) -> Result<(), String> {
+    let diagnostics = report
+        .get_mut("diagnostics")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "report has no 'diagnostics' array".to_string())?;
+    let mut removed = Vec::new();
+    diagnostics.retain(|diagnostic| {
+        let excluded =
+            diagnostic.get("ruleId").and_then(Value::as_str).is_some_and(|id| SNAPSHOT_EXCLUDED_RULE_IDS.contains(&id));
+        if excluded {
+            removed.push(diagnostic.clone());
+        }
+        !excluded
+    });
+    if removed.is_empty() {
+        return Ok(());
+    }
+
+    let counts_value = report
+        .get_mut("metadata")
+        .and_then(|metadata| metadata.get_mut("counts"))
+        .ok_or_else(|| "report has no 'metadata.counts'".to_string())?;
+    let mut counts: Summary =
+        serde_json::from_value(counts_value.clone()).map_err(|e| format!("parse 'metadata.counts': {e}"))?;
+    for diagnostic in &removed {
+        let severity_value = diagnostic.get("severity").cloned().unwrap_or(Value::Null);
+        let severity: Severity =
+            serde_json::from_value(severity_value).map_err(|e| format!("parse excluded diagnostic severity: {e}"))?;
+        let count = match severity {
+            Severity::Fatal => &mut counts.fatal,
+            Severity::Error => &mut counts.errors,
+            Severity::Warn => &mut counts.warnings,
+            Severity::Info => &mut counts.informational,
+            Severity::Debug => &mut counts.debug,
+        };
+        *count = count
+            .checked_sub(1)
+            .ok_or_else(|| format!("'metadata.counts' does not account for an excluded {severity:?} finding"))?;
+    }
+    *counts_value = serde_json::to_value(counts).map_err(|e| format!("serialize 'metadata.counts': {e}"))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn snapshot_excluded_rule_ids_are_unique_and_well_formed() {
+        let mut unique_ids = std::collections::HashSet::new();
+
+        assert!(!SNAPSHOT_EXCLUDED_RULE_IDS.is_empty(), "snapshot exclusion manifest must not be empty");
+        for rule_id in SNAPSHOT_EXCLUDED_RULE_IDS.iter().copied() {
+            assert!(
+                rule_id.len() == 5
+                    && matches!(rule_id.as_bytes()[0], b'F' | b'E' | b'W' | b'I' | b'D')
+                    && rule_id.as_bytes()[1..].iter().all(u8::is_ascii_digit),
+                "invalid snapshot-excluded rule ID {rule_id:?}"
+            );
+            assert!(unique_ids.insert(rule_id), "duplicate snapshot-excluded rule ID {rule_id}");
+        }
+    }
+
+    #[test]
+    fn exclude_snapshot_rules_drops_only_missing_context_findings_and_their_counts() {
+        let mut report = json!({
+            "diagnostics": [
+                {"ruleId": "W4012", "severity": "WARN"},
+                {"ruleId": "E3012", "severity": "ERROR"},
+                {"ruleId": "I4010", "severity": "INFO"},
+                {"ruleId": "I4010", "severity": "INFO"},
+                {"ruleId": "I3011", "severity": "INFO"}
+            ],
+            "metadata": {
+                "counts": {"fatal": 0, "errors": 1, "warnings": 1, "informational": 3, "debug": 0},
+                "suppressed": 0
+            }
+        });
+
+        exclude_snapshot_rules(&mut report).expect("well-formed report");
+
+        assert_eq!(
+            report,
+            json!({
+                "diagnostics": [
+                    {"ruleId": "W4012", "severity": "WARN"},
+                    {"ruleId": "E3012", "severity": "ERROR"},
+                    {"ruleId": "I3011", "severity": "INFO"}
+                ],
+                "metadata": {
+                    "counts": {"fatal": 0, "errors": 1, "warnings": 1, "informational": 1, "debug": 0},
+                    "suppressed": 0
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn exclude_snapshot_rules_leaves_reports_without_context_findings_untouched() {
+        let original = json!({
+            "diagnostics": [{"ruleId": "E3012", "severity": "ERROR"}],
+            "metadata": {"counts": {"fatal": 0, "errors": 1, "warnings": 0, "informational": 0, "debug": 0}}
+        });
+        let mut report = original.clone();
+
+        exclude_snapshot_rules(&mut report).expect("well-formed report");
+
+        assert_eq!(report, original);
+    }
+
+    #[test]
+    fn exclude_snapshot_rules_rejects_counts_that_do_not_cover_the_findings() {
+        let mut report = json!({
+            "diagnostics": [{"ruleId": "I4010", "severity": "INFO"}],
+            "metadata": {"counts": {"fatal": 0, "errors": 0, "warnings": 0, "informational": 0, "debug": 0}}
+        });
+
+        let error = exclude_snapshot_rules(&mut report).expect_err("counts cannot go negative");
+
+        assert!(error.contains("does not account"), "{error}");
+    }
 
     #[test]
     fn snapshot_chunk_filename_produces_expected_names() {

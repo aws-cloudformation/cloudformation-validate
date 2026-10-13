@@ -344,6 +344,263 @@ Resources:
 }
 
 #[test]
+fn fargate_parameter_scenarios_are_not_treated_as_deployment_values() {
+    let template = r#"
+Parameters:
+  Cpu:
+    Type: Number
+    Default: 16384
+    AllowedValues: [256, 512, 1024, 2048, 4096, 8192, 16384]
+  Memory:
+    Type: Number
+    Default: 49152
+  CpuList:
+    Type: CommaDelimitedList
+    Default: "2048"
+  Prefix:
+    Type: String
+    Default: "1"
+  Suffix:
+    Type: String
+    Default: "024"
+  Environment:
+    Type: String
+    Default: small
+    AllowedValues: [small, large]
+Mappings:
+  TaskSizes:
+    small: {Cpu: 256, Memory: 512}
+    large: {Cpu: 8192, Memory: 49152}
+Conditions:
+  UseParameter: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ParameterizedPair:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref Cpu
+      Memory: !Ref Memory
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  ParameterizedCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref Cpu
+      Memory: 49152
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  ParameterizedMemory:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: 256
+      Memory: !Ref Memory
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  MappedPair:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !FindInMap [TaskSizes, !Ref Environment, Cpu]
+      Memory: !FindInMap [TaskSizes, !Ref Environment, Memory]
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  JoinedCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Join ["", [!Ref Cpu]]
+      Memory: 49152
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  HoistedSelect:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu:
+        Fn::Select:
+          - 0
+          - - Fn::If: [UseParameter, !Ref Cpu, 512]
+      Memory: 512
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  HoistedJoin:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu:
+        Fn::Join:
+          - ""
+          - Fn::If: [UseParameter, !Ref CpuList, ["512"]]
+      Memory: 512
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  SubstitutedCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Sub "${Prefix}${Suffix}"
+      Memory: 512
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  ConditionalCpu:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !If [UseParameter, !Ref Cpu, 512]
+      Memory: 512
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  ConditionalMemory:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: 256
+      Memory: !If [UseParameter, !Ref Memory, 4096]
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  LiteralInvalid:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: 256
+      Memory: 4096
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3047"]);
+    let cel_findings = selected_findings(&cel, template, &["E3047"]);
+
+    assert_eq!(rego_findings, cel_findings, "parameter handling must match across engines");
+    assert_eq!(rego_findings.len(), 5, "only invalid literal scenarios should be reported: {rego_findings:?}");
+    for (resource, message) in [
+        ("ConditionalCpu", "Cpu 512 is not compatible with Memory 512 for Fargate"),
+        ("ConditionalMemory", "Cpu 256 is not compatible with Memory 4096 for Fargate"),
+        ("HoistedSelect", "Cpu 512 is not compatible with Memory 512 for Fargate"),
+        ("HoistedJoin", "Cpu '512' is not compatible with Memory 512 for Fargate"),
+        ("LiteralInvalid", "Cpu 256 is not compatible with Memory 4096 for Fargate"),
+    ] {
+        assert!(
+            rego_findings.iter().any(|finding| finding.contains(resource) && finding.contains(message)),
+            "missing literal-scenario finding for {resource}: {rego_findings:?}"
+        );
+    }
+    for resource in
+        ["ParameterizedPair", "ParameterizedCpu", "ParameterizedMemory", "MappedPair", "JoinedCpu", "SubstitutedCpu"]
+    {
+        assert!(
+            rego_findings.iter().all(|finding| !finding.contains(resource)),
+            "parameter-derived values must not be reported for {resource}: {rego_findings:?}"
+        );
+    }
+}
+
+#[test]
+fn fargate_parameter_overrides_are_validated_as_deployment_values() {
+    let template = r#"
+Parameters:
+  Cpu:
+    Type: Number
+    Default: 8192
+    AllowedValues: [256, 8192]
+  Memory:
+    Type: Number
+    Default: 49152
+  Prefix:
+    Type: String
+    Default: "8"
+  Suffix:
+    Type: String
+    Default: "192"
+  RuntimeCpu:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ecs/task/cpu
+Resources:
+  DirectTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref Cpu
+      Memory: !Ref Memory
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  SubstitutedTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Sub "${Prefix}${Suffix}"
+      Memory: !Ref Memory
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+  SsmTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref RuntimeCpu
+      Memory: 512
+      ContainerDefinitions: [{Name: app, Image: nginx}]
+"#;
+    let invalid_config = ValidateConfig {
+        parameter_overrides: [
+            ("Cpu".into(), "256".into()),
+            ("Memory".into(), "4096".into()),
+            ("Prefix".into(), "2".into()),
+            ("Suffix".into(), "56".into()),
+            ("RuntimeCpu".into(), "/ecs/task/cpu".into()),
+        ]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    };
+    let partial_config = ValidateConfig {
+        parameter_overrides: [
+            ("Cpu".into(), "256".into()),
+            ("Memory".into(), "4096".into()),
+            ("Suffix".into(), "56".into()),
+            ("RuntimeCpu".into(), "/ecs/task/cpu".into()),
+        ]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    };
+    let valid_config = ValidateConfig {
+        parameter_overrides: [
+            ("Cpu".into(), "8192".into()),
+            ("Memory".into(), "49152".into()),
+            ("Prefix".into(), "8".into()),
+            ("Suffix".into(), "192".into()),
+            ("RuntimeCpu".into(), "/ecs/task/cpu".into()),
+        ]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    };
+    let (rego, cel) = engines();
+    let rego_invalid = selected_findings_with_config(&rego, template, &["E3047"], invalid_config.clone());
+    let cel_invalid = selected_findings_with_config(&cel, template, &["E3047"], invalid_config);
+    let rego_partial = selected_findings_with_config(&rego, template, &["E3047"], partial_config.clone());
+    let cel_partial = selected_findings_with_config(&cel, template, &["E3047"], partial_config);
+    let rego_valid = selected_findings_with_config(&rego, template, &["E3047"], valid_config.clone());
+    let cel_valid = selected_findings_with_config(&cel, template, &["E3047"], valid_config);
+
+    assert_eq!(rego_invalid, cel_invalid, "invalid overrides must match across engines");
+    assert_eq!(rego_invalid.len(), 2, "each invalid supplied pair must be reported: {rego_invalid:?}");
+    assert!(rego_invalid.iter().any(|finding| finding.contains("DirectTask")));
+    assert!(rego_invalid.iter().any(|finding| finding.contains("SubstitutedTask")));
+    assert_eq!(rego_partial, cel_partial, "partial overrides must match across engines");
+    assert_eq!(rego_partial.len(), 1, "only the fully supplied pair may be reported: {rego_partial:?}");
+    assert!(rego_partial[0].contains("DirectTask"));
+    assert_eq!(rego_valid, cel_valid, "valid overrides must match across engines");
+    assert!(rego_valid.is_empty(), "valid supplied pairs must not be reported: {rego_valid:?}");
+    for findings in [&rego_invalid, &rego_partial, &rego_valid] {
+        assert!(findings.iter().all(|finding| !finding.contains("SsmTask")));
+    }
+}
+
+#[test]
 fn conditional_fargate_task_sizes_check_both_branch_orders() {
     let template = r#"
 Conditions:

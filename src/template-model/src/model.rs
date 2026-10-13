@@ -318,6 +318,7 @@ pub struct SemanticModel {
     /// specific mapping.
     pub has_dynamic_findinmap_name: bool,
     pub resolution_sources: HashMap<(String, String), String>,
+    parameter_overrides: HashSet<String>,
     /// Per-resource set of property paths whose value is produced by an intrinsic
     /// function - either recorded with an `Intrinsic/*` resolution source or
     /// anchoring a reference edge. Built once at construction so `is_from_intrinsic`
@@ -1143,6 +1144,7 @@ impl SemanticModel {
                 params_referenced_in_definitions,
                 has_dynamic_findinmap_name,
                 resolution_sources,
+                parameter_overrides: config.parameters.keys().cloned().collect(),
                 intrinsic_source_paths,
                 value_nodes,
                 lifecycle_attribute_nodes,
@@ -2207,6 +2209,59 @@ impl SemanticModel {
         scenario_source_path_at(&properties, relative_path, conditions, KEY_PROPERTIES)
     }
 
+    /// Whether a scenario depends on a parameter whose final deployment value is
+    /// unknown. Ordinary caller overrides are fixed values; overrides for SSM
+    /// value parameter types remain lookup names that CloudFormation resolves.
+    #[must_use]
+    pub fn scenario_uses_unresolved_parameter(
+        &self,
+        resource_id: &str,
+        effective_path: &str,
+        conditions: &HashMap<String, bool>,
+    ) -> bool {
+        self.graph.outgoing_edges(resource_id).any(|edge| {
+            self.parameters.get(&edge.target).is_some_and(|parameter| {
+                (!self.parameter_overrides.contains(&edge.target)
+                    || parameter.param_type.starts_with(SSM_PARAMETER_VALUE_TYPE_PREFIX))
+                    && Self::reference_path_overlaps(&edge.source_path, effective_path)
+                    && Self::edge_applies_to_scenario(edge.condition_context.as_deref(), conditions)
+            })
+        })
+    }
+
+    fn reference_path_overlaps(source_path: &str, effective_path: &str) -> bool {
+        let Some(normalized_source) = effective_path_from_scenario_source_path(source_path) else {
+            return false;
+        };
+        let reference_anchor =
+            normalized_source.split_once(".Fn::").map_or(normalized_source.as_str(), |(prefix, _)| prefix);
+        Self::path_is_at_or_below(reference_anchor, effective_path)
+            || Self::path_is_at_or_below(effective_path, reference_anchor)
+    }
+
+    fn path_is_at_or_below(candidate_path: &str, root_path: &str) -> bool {
+        if root_path.is_empty() {
+            return true;
+        }
+        let mut candidate_segments = candidate_path.split('.');
+        root_path.split('.').all(|root_segment| {
+            !root_segment.is_empty()
+                && candidate_segments.next().is_some_and(|candidate_segment| {
+                    !candidate_segment.is_empty() && (root_segment == "{}" || root_segment == candidate_segment)
+                })
+        })
+    }
+
+    fn edge_applies_to_scenario(condition_context: Option<&str>, conditions: &HashMap<String, bool>) -> bool {
+        condition_context.is_none_or(|context| {
+            context.split(',').all(|selector| {
+                let (condition, expected) =
+                    selector.strip_prefix('!').map_or((selector, true), |condition| (condition, false));
+                !condition.is_empty() && conditions.get(condition).is_none_or(|actual| *actual == expected)
+            })
+        })
+    }
+
     /// Returns one immutable allocation of the scenarios for the value at `path`
     /// under the default per-value limit, shared across read-only callers.
     pub fn resolve_scenarios_shared(
@@ -3000,10 +3055,14 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
             _ => vec![],
         })
         .unwrap_or_default();
-    let deletion_policy =
-        entries.iter().find(|(k, _)| k == KEY_DELETION_POLICY).map(|(_, v)| resolver.resolve_node(*v));
-    let update_replace_policy =
-        entries.iter().find(|(k, _)| k == KEY_UPDATE_REPLACE_POLICY).map(|(_, v)| resolver.resolve_node(*v));
+    let deletion_policy = entries.iter().find(|(key, _)| key == KEY_DELETION_POLICY).map(|(_, value)| {
+        resolver.set_current_path(KEY_DELETION_POLICY);
+        resolver.resolve_node(*value)
+    });
+    let update_replace_policy = entries.iter().find(|(key, _)| key == KEY_UPDATE_REPLACE_POLICY).map(|(_, value)| {
+        resolver.set_current_path(KEY_UPDATE_REPLACE_POLICY);
+        resolver.resolve_node(*value)
+    });
     let metadata_ref = entries.iter().find(|(k, _)| k == SECTION_METADATA).map(|(_, v)| *v);
     let metadata = metadata_ref.map(|v| node_to_json(arena, v));
     let update_policy = entries.iter().find(|(k, _)| k == KEY_UPDATE_POLICY).map(|(_, v)| node_to_json(arena, *v));

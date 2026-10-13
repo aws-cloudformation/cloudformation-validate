@@ -31,6 +31,24 @@ function loadRule(filename: string): string {
 
 const CHUNK_PREFIX = 'validation_reports';
 const CHUNK_EXTENSION = '.json';
+const SNAPSHOT_EXCLUDED_RULE_IDS_PATH = path.join(EXPECTED_DIR, 'snapshot_excluded_rule_ids.txt');
+const SNAPSHOT_EXCLUDED_RULE_IDS = new Set(
+    fs
+        .readFileSync(SNAPSHOT_EXCLUDED_RULE_IDS_PATH, 'utf-8')
+        .split(/\r?\n/)
+        .map((ruleId) => ruleId.trim())
+        .filter((ruleId) => ruleId.length > 0),
+);
+if (SNAPSHOT_EXCLUDED_RULE_IDS.size === 0) {
+    throw new Error(`snapshot exclusion manifest is empty: ${SNAPSHOT_EXCLUDED_RULE_IDS_PATH}`);
+}
+const SEVERITY_COUNT_FIELDS: Record<string, string> = {
+    FATAL: 'fatal',
+    ERROR: 'errors',
+    WARN: 'warnings',
+    INFO: 'informational',
+    DEBUG: 'debug',
+};
 
 /**
  * Discover all numbered snapshot chunk files (validation_reportsN.json) in numeric
@@ -136,6 +154,34 @@ function loadSnapshot(rel: string): unknown {
 
 function stripSnapshotExcludedFields(report: any, filePath?: string): unknown {
     const clone = JSON.parse(JSON.stringify(report));
+    if (!Array.isArray(clone.diagnostics)) {
+        throw new Error('report has no diagnostics array');
+    }
+    const removed = clone.diagnostics.filter(
+        (diagnostic: any) =>
+            typeof diagnostic?.ruleId === 'string' && SNAPSHOT_EXCLUDED_RULE_IDS.has(diagnostic.ruleId),
+    );
+    clone.diagnostics = clone.diagnostics.filter(
+        (diagnostic: any) =>
+            typeof diagnostic?.ruleId !== 'string' || !SNAPSHOT_EXCLUDED_RULE_IDS.has(diagnostic.ruleId),
+    );
+    if (removed.length > 0) {
+        const counts = clone.metadata?.counts;
+        if (typeof counts !== 'object' || counts === null || Array.isArray(counts)) {
+            throw new Error('report has no metadata.counts object');
+        }
+        for (const diagnostic of removed) {
+            const countField = SEVERITY_COUNT_FIELDS[diagnostic.severity];
+            if (countField === undefined) {
+                throw new Error(`excluded diagnostic has unsupported severity: ${String(diagnostic.severity)}`);
+            }
+            const currentCount = counts[countField];
+            if (!Number.isInteger(currentCount) || currentCount < 1) {
+                throw new Error(`metadata.counts does not account for excluded ${diagnostic.severity} diagnostic`);
+            }
+            counts[countField] = currentCount - 1;
+        }
+    }
     if (filePath !== undefined) {
         clone.filePath = filePath;
     }
@@ -965,6 +1011,35 @@ function stripEnrichmentFields(report: any): unknown {
     }
     return clone;
 }
+
+describe('snapshot exclusion normalization', () => {
+    it('removes only manifest rules and adjusts their severity counts', () => {
+        const report = {
+            diagnostics: [
+                { ruleId: 'W4012', severity: 'WARN' },
+                { ruleId: 'I4010', severity: 'INFO' },
+                { ruleId: 'E3012', severity: 'ERROR' },
+            ],
+            metadata: {
+                counts: { fatal: 0, errors: 1, warnings: 1, informational: 1, debug: 0 },
+            },
+        };
+
+        const normalized: any = stripSnapshotExcludedFields(report);
+
+        expect(normalized.diagnostics).toEqual([
+            { ruleId: 'W4012', severity: 'WARN' },
+            { ruleId: 'E3012', severity: 'ERROR' },
+        ]);
+        expect(normalized.metadata.counts).toEqual({
+            fatal: 0,
+            errors: 1,
+            warnings: 1,
+            informational: 0,
+            debug: 0,
+        });
+    });
+});
 
 describe('snapshot validation', () => {
     function detailedTests(engineName: string, engine: any) {

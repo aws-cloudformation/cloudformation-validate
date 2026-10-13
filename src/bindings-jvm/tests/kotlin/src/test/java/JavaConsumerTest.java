@@ -70,6 +70,7 @@ class JavaConsumerTest {
             "          CidrIp: 0.0.0.0/0",
             "");
     private static final String OPEN_SSH_RULE_ID = "W2508";
+    private static final String MISSING_CONTEXT_RULE_ID = "I4010";
     private static final long OPEN_SSH_START_LINE = 16;
     private static final long OPEN_SSH_START_COLUMN = 7;
     private static final long OPEN_SSH_END_COLUMN = 27;
@@ -203,9 +204,13 @@ class JavaConsumerTest {
         ValidateConfig config = new ValidateConfigBuilder()
                 .exclude(new RuleFilterConfigBuilder().idRanges(Collections.singletonList(informationalRules)).build())
                 .build();
+        ValidationReport unfiltered = rego.validateTemplate(FIXTURE_TEMPLATE);
         ValidationReport report = rego.validateTemplate(FIXTURE_TEMPLATE, config);
 
-        assertEquals(Collections.singletonList(OPEN_SSH_RULE_ID), ruleIds(report));
+        List<String> unfilteredRuleIds = ruleIds(unfiltered);
+        assertTrue(unfilteredRuleIds.stream().anyMatch(ruleId -> ruleId.matches("I9\\d{3}")));
+        assertEquals(
+                Arrays.asList(OPEN_SSH_RULE_ID, MISSING_CONTEXT_RULE_ID, MISSING_CONTEXT_RULE_ID), ruleIds(report));
     }
 
     @Test

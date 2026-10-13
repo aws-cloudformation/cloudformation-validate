@@ -47,6 +47,7 @@ pub const KEY_DELETION_POLICY: &str = "DeletionPolicy";
 pub const KEY_UPDATE_REPLACE_POLICY: &str = "UpdateReplacePolicy";
 pub const KEY_UPDATE_POLICY: &str = "UpdatePolicy";
 pub const KEY_CREATION_POLICY: &str = "CreationPolicy";
+pub const KEY_METADATA: &str = "Metadata";
 
 pub const KEY_DEFAULT: &str = "Default";
 pub const KEY_ALLOWED_VALUES: &str = "AllowedValues";
@@ -634,6 +635,7 @@ pub const CONDITION_REF_PREFIX: &str = "Condition:";
 pub const PARAM_TYPE_STRING: &str = "String";
 pub const PARAM_TYPE_NUMBER: &str = "Number";
 pub const PARAM_TYPE_COMMA_DELIMITED_LIST: &str = "CommaDelimitedList";
+pub const SSM_PARAMETER_VALUE_TYPE_PREFIX: &str = "AWS::SSM::Parameter::Value<";
 
 // SAM transform-error identity. The transform is applied while building the
 // semantic model, so this crate owns the rule ID and message prefix that mark

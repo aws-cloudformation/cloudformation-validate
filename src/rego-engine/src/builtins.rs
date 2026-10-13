@@ -83,6 +83,7 @@ pub(crate) fn register_all(
     register_resolve_scenarios(rego);
     register_has_unresolved_scenario(rego);
     register_scenario_source_path(rego);
+    register_scenario_uses_unresolved_parameter(rego);
     register_properties_scenarios(rego);
     register_list_member_scenarios(rego);
     register_list_member_pair_source_paths(rego);
@@ -701,6 +702,26 @@ fn register_scenario_source_path(rego: &mut regorus::Engine) {
                 .scenario_source_path(resource_id.as_ref(), effective_path.as_ref(), &conditions)
                 .unwrap_or_else(|| effective_path.to_string());
             Ok(Value::from(source_path))
+        }),
+    );
+}
+
+fn register_scenario_uses_unresolved_parameter(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "scenario_uses_unresolved_parameter".into(),
+        3,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let effective_path = params[1].as_string()?;
+            let conditions: HashMap<String, bool> = condition_assumptions(&params[2]).into_iter().collect();
+            Ok(Value::from(model.scenario_uses_unresolved_parameter(
+                resource_id.as_ref(),
+                effective_path.as_ref(),
+                &conditions,
+            )))
         }),
     );
 }
