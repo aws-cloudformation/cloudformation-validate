@@ -23,6 +23,10 @@ fn main() {
         print_help();
         process::exit(2);
     }
+    if args[1] == "--version" {
+        println!("cfn-validate {}", env!("CARGO_PKG_VERSION"));
+        process::exit(0);
+    }
 
     let mut template_path = None;
     let mut include_ids = Vec::new();
@@ -505,4 +509,5 @@ fn print_help() {
     eprintln!("  --strict                      Upgrade Warn-severity diagnostics to Error");
     eprintln!("  --disable-builtin-rules       Disable all built-in rules; only evaluate custom and guard rules");
     eprintln!("  --list-rules                  List all available rules and exit");
+    eprintln!("  --version                     Print version and exit");
 }
