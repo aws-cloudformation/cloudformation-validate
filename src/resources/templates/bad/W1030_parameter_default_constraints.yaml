@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Ordinary parameter defaults remain overridable but are checked at warning severity
+Parameters:
+  BadPattern: {Type: String, Default: 'bad name!'}
+  EmptyName: {Type: String, Default: ''}
+  LongDescription:
+    Type: String
+    Default: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  BadPackageType: {Type: String, Default: Jar}
+  GoodName: {Type: String, Default: good-name}
+  NoDefault: {Type: String}
+  Timeout: {Type: Number, Default: 0}
+  SmallStorage: {Type: Number, Default: 100}
+  LongTagKey:
+    Type: String
+    Default: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  AllowedPackage: {Type: String, AllowedValues: [Zip, Jar]}
+  AllowedArchitecture: {Type: String, AllowedValues: [x86_64, sparc], Default: x86_64}
+  PackagePrefix: {Type: String, AllowedValues: [Zi, Im]}
+  InvalidRetentionDays: {Type: Number, Default: 1024}
+  RoleArn: {Type: String, Default: 'arn:aws:iam::123456789012:role/example'}
+Conditions:
+  IncludeName: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Pattern:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref BadPattern
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  EmptyConditional:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !If [IncludeName, !Ref EmptyName, !Ref AWS::NoValue]
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  Long:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: !Ref LongDescription
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  Enum:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !Ref BadPackageType
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  Numeric:
+    Type: AWS::Lambda::Function
+    Properties:
+      Timeout: !Ref Timeout
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  ValidControls:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !If [IncludeName, !Ref GoodName, !Ref NoDefault]
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  PatternSecondConsumer:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref BadPattern
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  NestedNumeric:
+    Type: AWS::Lambda::Function
+    Properties:
+      EphemeralStorage: {Size: !Ref SmallStorage}
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  ListMemberConstraint:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags:
+        - {Key: !Ref LongTagKey, Value: example}
+  WholePropertiesConditional:
+    Type: AWS::Lambda::Function
+    Properties: !If
+      - IncludeName
+      - PackageType: !Ref BadPackageType
+        Timeout: !Ref Timeout
+        Role: !Ref RoleArn
+        Runtime: python3.12
+        Handler: index.handler
+        Code: {ZipFile: x}
+      - PackageType: Zip
+        Timeout: 1
+        Role: !Ref RoleArn
+        Runtime: python3.12
+        Handler: index.handler
+        Code: {ZipFile: x}
+  ConditionalTagListParameter:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags: !If
+        - IncludeName
+        - [{Key: !Ref LongTagKey, Value: conditional-list}]
+        - !Ref AWS::NoValue
+  WholePropertiesListParameter:
+    Type: AWS::SNS::Topic
+    Properties: !If
+      - IncludeName
+      - Tags: [{Key: !Ref LongTagKey, Value: whole-properties}]
+      - Tags: [{Key: short, Value: fallback}]
+  AllowedValuesConsumers:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !Ref AllowedPackage
+      Architectures: [!Ref AllowedArchitecture]
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  ComposedConsumers:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !Join ['', [!Ref PackagePrefix, p]]
+      Timeout: !Select [0, [!Ref Timeout, 3]]
+      Role: !Ref RoleArn
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  DirectNumberEnum:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Ref InvalidRetentionDays
+  ComposedNumberEnum:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Select [0, [!Ref InvalidRetentionDays, 7]]

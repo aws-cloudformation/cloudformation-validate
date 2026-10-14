@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Tag keys must be unique independently of their values
+Parameters:
+  TagKey: {Type: String, Default: Environment}
+  OtherTagKey: {Type: String, Default: Environment}
+Conditions:
+  Production: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  DifferentValues:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: Environment, Value: development}
+        - {Key: Environment, Value: production}
+  EqualValues:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags:
+        - {Key: Environment, Value: production}
+        - {Key: Environment, Value: production}
+  ConditionalValues:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{AttributeName: id, AttributeType: S}]
+      KeySchema: [{AttributeName: id, KeyType: HASH}]
+      Tags:
+        - {Key: Environment, Value: !If [Production, production, development]}
+        - {Key: Environment, Value: production}
+  DistinctKeys:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: Environment, Value: shared}
+        - {Key: Owner, Value: shared}
+  ConditionalKey:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !If [Production, Environment, Owner], Value: conditional}
+        - {Key: Environment, Value: static}
+  MutuallyExclusiveTags:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - !If [Production, {Key: Environment, Value: production}, !Ref AWS::NoValue]
+        - !If [Production, !Ref AWS::NoValue, {Key: Environment, Value: development}]
+  CustomResourceControl:
+    Type: Custom::OpaqueTagPayload
+    Properties:
+      ServiceToken: arn:aws:lambda:us-east-1:123456789012:function:provider
+      Tags:
+        - {Key: Environment, Value: first}
+        - {Key: Environment, Value: second}
+  ConditionalMissingKeys:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !If [Production, Environment, !Ref AWS::NoValue], Value: first}
+        - {Key: !If [Production, !Ref AWS::NoValue, Owner], Value: second}
+  SameParameterKey:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !Ref TagKey, Value: first}
+        - {Key: !Ref TagKey, Value: second}
+  ParameterAndLiteralControl:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !Ref TagKey, Value: first}
+        - {Key: Environment, Value: second}
+  DifferentParametersControl:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !Ref TagKey, Value: first}
+        - {Key: !Ref OtherTagKey, Value: second}
+  PseudoAndLiteralControl:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !Ref AWS::Region, Value: first}
+        - {Key: us-east-1, Value: second}
+  ConditionalTagList:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags: !If
+        - Production
+        - [{Key: Environment, Value: first}, {Key: Environment, Value: second}]
+        - [{Key: Environment, Value: only}]
+  SourceTopic:
+    Type: AWS::SNS::Topic
+  OtherTopic:
+    Type: AWS::SNS::Topic
+  SameGetAttKey:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !GetAtt SourceTopic.TopicName, Value: first}
+        - {Key: !GetAtt SourceTopic.TopicName, Value: second}
+  DifferentGetAttTargetsControl:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - {Key: !GetAtt SourceTopic.TopicName, Value: first}
+        - {Key: !GetAtt OtherTopic.TopicName, Value: second}

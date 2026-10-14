@@ -12,6 +12,7 @@ use crate::regions::*;
 use crate::resolved_value::*;
 use crate::resolver::*;
 use crate::sam;
+use crate::serialization::resolved_value_to_json;
 use crate::span::SpanProvider;
 use log::{debug, info, warn};
 use serde::Serialize;
@@ -286,6 +287,7 @@ pub struct SemanticModel {
     /// and shared by every consumer that evaluates the authored template.
     authored_template: OnceLock<serde_json::Value>,
     pub span_index: SourceSpanIndex,
+    conditional_branch_first_descendant_spans: HashMap<String, SourceSpan>,
     pub format_version: Option<String>,
     pub description: Option<String>,
     pub transforms: Vec<String>,
@@ -325,6 +327,7 @@ pub struct SemanticModel {
     /// answers ancestor queries with borrowed lookups instead of rescanning the
     /// resolution sources and outgoing edges on every call.
     intrinsic_source_paths: HashMap<String, HashSet<String>>,
+    pseudo_parameter_source_paths: HashMap<String, HashSet<String>>,
     /// (resource_id, property_path) → authored expression retained for opaque
     /// value identity or concrete intrinsic structure inspection.
     value_nodes: HashMap<(String, String), NodeRef>,
@@ -710,6 +713,8 @@ impl SemanticModel {
         let graph = ReferenceGraph::build(all_edges, &resource_ids);
 
         let intrinsic_source_paths = build_intrinsic_source_paths(&resolution_sources, &graph);
+        let pseudo_parameter_source_paths = build_pseudo_parameter_source_paths(&ir.arena, &value_nodes);
+        let conditional_branch_first_descendant_spans = build_conditional_branch_first_descendant_spans(&ir.span_index);
 
         let mut resources_by_type: HashMap<String, Vec<String>> = HashMap::new();
         for (id, res) in &resources {
@@ -1119,6 +1124,7 @@ impl SemanticModel {
                 root: ir.root,
                 authored_template: OnceLock::new(),
                 span_index: ir.span_index,
+                conditional_branch_first_descendant_spans,
                 format_version: ir.format_version,
                 description: ir.description,
                 transforms: ir.transforms,
@@ -1146,6 +1152,7 @@ impl SemanticModel {
                 resolution_sources,
                 parameter_overrides: config.parameters.keys().cloned().collect(),
                 intrinsic_source_paths,
+                pseudo_parameter_source_paths,
                 value_nodes,
                 lifecycle_attribute_nodes,
                 lifecycle_attribute_status_cache: Mutex::new(HashMap::new()),
@@ -1576,8 +1583,127 @@ impl SemanticModel {
         shared
     }
 
-    /// Returns each authored list source path that can contain two distinct,
-    /// non-null members in a deployment compatible with `base_conditions`.
+    /// Whether two distinct members of one reachable list alternative have the
+    /// same concrete string value for `field_name`.
+    #[must_use]
+    pub fn duplicate_object_field_value_scenario(
+        &self,
+        resource_id: &str,
+        path: &str,
+        field_name: &str,
+    ) -> Option<HashMap<String, bool>> {
+        let mut alternatives_by_value: BTreeMap<String, Vec<(usize, usize, HashMap<String, bool>)>> = BTreeMap::new();
+        for (container, index, value, conditions) in self.list_member_value_scenarios(resource_id, path) {
+            let field_value = match &value {
+                ResolvedValue::Map { entries } => {
+                    entries.iter().find(|entry| entry.key == field_name).map(|entry| entry.value.clone())
+                }
+                ResolvedValue::Concrete { value } => value
+                    .as_object()
+                    .and_then(|object| object.get(field_name))
+                    .cloned()
+                    .map(|value| ResolvedValue::Concrete { value: value.into() }),
+                _ => None,
+            };
+            let Some(field_value) = field_value else {
+                continue;
+            };
+            let field_path = format!("{path}.{index}.{field_name}");
+            let uses_authored_identity = contains_dynamic_resolved(&field_value)
+                || self.scenario_uses_unresolved_parameter(resource_id, &field_path, &conditions)
+                || self.scenario_uses_pseudo_parameter(resource_id, &field_path, &conditions);
+            let comparison_key = if uses_authored_identity {
+                let source_path = self
+                    .scenario_source_path(resource_id, &field_path, &conditions)
+                    .unwrap_or_else(|| field_path.clone());
+                let Some(identity) = self.resolved_value_identity(resource_id, &source_path, &field_value) else {
+                    continue;
+                };
+                identity
+            } else {
+                let rendered = resolved_value_to_json(&field_value);
+                let Some(field_value) = rendered.as_str() else {
+                    continue;
+                };
+                format!("literal:{field_value}")
+            };
+            alternatives_by_value.entry(comparison_key).or_default().push((container, index, conditions));
+        }
+        for alternatives in alternatives_by_value.values() {
+            for (left_position, (left_container, left_index, left_conditions)) in alternatives.iter().enumerate() {
+                for (right_container, right_index, right_conditions) in alternatives.iter().skip(left_position + 1) {
+                    if self.conditions.satisfiability_budget_exhausted() {
+                        return None;
+                    }
+                    if left_container == right_container
+                        && left_index != right_index
+                        && let Some(conditions) =
+                            self.merge_reachable_conditions(resource_id, left_conditions, right_conditions)
+                    {
+                        return Some(conditions);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Reachable list members where `required_field` is absent while
+    /// `trigger_field` is present.
+    #[must_use]
+    pub fn list_object_missing_required_field_scenarios(
+        &self,
+        resource_id: &str,
+        path: &str,
+        required_field: &str,
+        trigger_field: &str,
+    ) -> Vec<(usize, HashMap<String, bool>)> {
+        let mut missing = Vec::new();
+        for (_, index, value, conditions) in self.list_member_value_scenarios(resource_id, path) {
+            let value = resolved_value_to_json(&value);
+            let Some(object) = value.as_object() else {
+                continue;
+            };
+            if object.get(trigger_field).is_some_and(|value| !value.is_null())
+                && object.get(required_field).is_none_or(serde_json::Value::is_null)
+            {
+                missing.push((index, conditions));
+            }
+        }
+        missing.sort_by(|(left_index, left_conditions), (right_index, right_conditions)| {
+            left_index
+                .cmp(right_index)
+                .then_with(|| canonical_conditions(left_conditions).cmp(&canonical_conditions(right_conditions)))
+        });
+        missing.dedup_by(|left, right| left == right);
+        missing
+    }
+
+    fn list_member_value_scenarios(
+        &self,
+        resource_id: &str,
+        path: &str,
+    ) -> Vec<(usize, usize, ResolvedValue, HashMap<String, bool>)> {
+        let members = self.resolve_list_member_scenarios_shared(resource_id, path);
+        let mut alternatives = Vec::new();
+        for member in members.iter() {
+            let (scenarios, _) = self.collect_scenarios_with_budget_from(
+                &member.value,
+                &member.conditions,
+                MAX_SCENARIO_COMBINATIONS,
+                MAX_TOTAL_SCENARIO_COMBINATIONS,
+            );
+            alternatives.extend(
+                scenarios
+                    .into_iter()
+                    .map(|(value, conditions)| (member.container_scenario, member.index, value, conditions)),
+            );
+        }
+        alternatives
+    }
+
+    /// Returns each source location that can contain two distinct, non-null
+    /// list members in a deployment compatible with `base_conditions`.
     /// Dynamic member values count as present. Members from different outer list
     /// alternatives or different alternatives of one member never form a pair.
     #[must_use]
@@ -1627,10 +1753,15 @@ impl SemanticModel {
                     if let Some(conditions) =
                         self.merge_reachable_conditions(resource_id, &base_and_left, &right.conditions)
                     {
-                        source_paths.insert(
-                            self.scenario_source_path(resource_id, path, &conditions)
-                                .unwrap_or_else(|| path.to_string()),
-                        );
+                        let source_path = self
+                            .scenario_source_path(resource_id, path, &conditions)
+                            .unwrap_or_else(|| path.to_string());
+                        let value_branch_prefix = format!("{path}.{FN_IF}.");
+                        source_paths.insert(if source_path.starts_with(&value_branch_prefix) {
+                            path.to_string()
+                        } else {
+                            source_path
+                        });
                         break 'container_members;
                     }
                 }
@@ -2058,8 +2189,18 @@ impl SemanticModel {
                 scenario_assumptions.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
             self.conditions.is_satisfiable(&assumptions)
         };
-        let was_curtailed =
-            collect_scenarios_reachable(value, assumptions, effective_limit, &mut scenarios, &is_reachable);
+        let mut used_covering = false;
+        let was_curtailed = collect_scenarios_reachable_with_covering(
+            value,
+            assumptions,
+            effective_limit,
+            &mut scenarios,
+            &is_reachable,
+            &mut used_covering,
+        );
+        if used_covering {
+            self.budget_tracker.record(BudgetKind::ScenarioProductCovering);
+        }
         if was_curtailed {
             self.scenario_expansion_curtailed.store(true, Ordering::Relaxed);
             if per_value_limit == MAX_SCENARIO_COMBINATIONS && per_value_limit <= remaining_limit {
@@ -2192,6 +2333,42 @@ impl SemanticModel {
         shared
     }
 
+    /// Returns the CloudFormation name of the intrinsic authored exactly at `path`.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn authored_intrinsic_name_at(&self, resource_id: &str, path: &str) -> Option<&'static str> {
+        let node_ref = self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
+        match self.arena.node(*node_ref) {
+            Node::Intrinsic(intrinsic) => Some(cfn_function_name(intrinsic)),
+            _ => None,
+        }
+    }
+
+    /// Returns the selected Ref target when a literal-index `Fn::Select` at `path`
+    /// chooses a Ref directly or through nested literal-index selects.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn authored_select_ref_target_at(&self, resource_id: &str, path: &str) -> Option<&str> {
+        let node_ref = self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
+        selected_ref_target(&self.arena, *node_ref)
+    }
+
+    /// Whether the authored node at `path` is exactly a Ref to `target`.
+    #[must_use]
+    pub fn is_authored_ref_at(&self, resource_id: &str, path: &str, target: &str) -> bool {
+        self.value_nodes
+            .get(&(resource_id.to_string(), path.to_string()))
+            .is_some_and(|node_ref| {
+                matches!(self.arena.node(*node_ref), Node::Intrinsic(IntrinsicFn::Ref(actual)) if actual == target)
+            })
+    }
+
+    /// Whether the caller supplied a concrete override for this parameter.
+    #[must_use]
+    pub fn parameter_has_override(&self, parameter_name: &str) -> bool {
+        self.parameter_overrides.contains(parameter_name)
+    }
+
     /// Returns the authored, branch-qualified source path for an effective path in
     /// one resolved scenario. The returned path uses the same dotted form as
     /// resolver source paths and can be passed to [`Self::resource_span`].
@@ -2207,6 +2384,26 @@ impl SemanticModel {
             .or_else(|| (effective_path == KEY_PROPERTIES).then_some(""))
             .unwrap_or(effective_path);
         scenario_source_path_at(&properties, relative_path, conditions, KEY_PROPERTIES)
+    }
+
+    /// Whether the selected value is authored from an AWS pseudo parameter.
+    #[must_use]
+    pub fn scenario_uses_pseudo_parameter(
+        &self,
+        resource_id: &str,
+        effective_path: &str,
+        conditions: &HashMap<String, bool>,
+    ) -> bool {
+        let source_path = self
+            .scenario_source_path(resource_id, effective_path, conditions)
+            .unwrap_or_else(|| effective_path.to_string());
+        let descendant_prefix = format!("{source_path}.");
+        let Some(source_paths) = self.pseudo_parameter_source_paths.get(resource_id) else {
+            return false;
+        };
+        source_paths
+            .iter()
+            .any(|candidate_path| candidate_path == &source_path || candidate_path.starts_with(&descendant_prefix))
     }
 
     /// Whether a scenario depends on a parameter whose final deployment value is
@@ -2462,6 +2659,18 @@ impl SemanticModel {
         } else {
             format!("Resources/{}/{}", resource_id, prop_path.replace('.', "/"))
         };
+        let exact_span = self.span_index.get(&specific).copied().filter(|span| *span != UNKNOWN_SPAN);
+        if matches!(specific.rsplit_once('/'), Some((parent, "1" | "2")) if parent.ends_with("/Fn::If"))
+            && let Some(descendant) = self.conditional_branch_first_descendant_spans.get(&specific).copied()
+            && exact_span.is_none_or(|exact| {
+                (descendant.start_line, descendant.start_column) < (exact.start_line, exact.start_column)
+            })
+        {
+            return descendant;
+        }
+        if let Some(exact) = exact_span {
+            return exact;
+        }
         // Walk up from the exact path to the nearest indexed ancestor, so a leaf that
         // carries no span of its own - a synthetic intrinsic key (`…/Topic/Fn::Sub`),
         // an `Fn::If` branch index - anchors at its closest real parent rather than
@@ -2725,6 +2934,28 @@ fn collect_refs_in_subtree(
     }
 }
 
+fn selected_ref_target(arena: &Arena, node_ref: NodeRef) -> Option<&str> {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Ref(target)) => Some(target),
+        Node::Intrinsic(IntrinsicFn::Select(index_ref, values_ref)) => {
+            let index = match arena.node(*index_ref) {
+                Node::Int(index) => usize::try_from(*index).ok()?,
+                Node::String(index) => index.parse().ok()?,
+                _ => return None,
+            };
+            let selected_ref = arena.as_list(*values_ref)?.get(index)?;
+            selected_ref_target(arena, *selected_ref)
+        }
+        _ => None,
+    }
+}
+
+fn canonical_conditions(conditions: &HashMap<String, bool>) -> Vec<(String, bool)> {
+    let mut canonical: Vec<_> = conditions.iter().map(|(name, value)| (name.clone(), *value)).collect();
+    canonical.sort_unstable();
+    canonical
+}
+
 fn parameter_name_from_source(source: &str) -> Option<&str> {
     let rest = source.strip_prefix(SECTION_PARAMETERS)?.strip_prefix('/')?;
     let name = rest.split('/').next()?;
@@ -2755,6 +2986,67 @@ fn build_intrinsic_source_paths(
         paths_by_resource.entry(edge.source_resource.clone()).or_default().insert(edge.source_path.clone());
     }
     paths_by_resource
+}
+
+fn build_conditional_branch_first_descendant_spans(span_index: &SourceSpanIndex) -> HashMap<String, SourceSpan> {
+    let mut first_by_branch = HashMap::new();
+    for (path, span) in span_index {
+        if *span == UNKNOWN_SPAN {
+            continue;
+        }
+        let segments: Vec<&str> = path.split('/').collect();
+        for index in 0..segments.len().saturating_sub(2) {
+            if segments[index] != FN_IF || !matches!(segments[index + 1], "1" | "2") {
+                continue;
+            }
+            let branch_path = segments[..=index + 1].join("/");
+            first_by_branch
+                .entry(branch_path)
+                .and_modify(|known: &mut SourceSpan| {
+                    if (span.start_line, span.start_column, span.end_line, span.end_column)
+                        < (known.start_line, known.start_column, known.end_line, known.end_column)
+                    {
+                        *known = *span;
+                    }
+                })
+                .or_insert(*span);
+        }
+    }
+    first_by_branch
+}
+
+fn build_pseudo_parameter_source_paths(
+    arena: &Arena,
+    value_nodes: &HashMap<(String, String), NodeRef>,
+) -> HashMap<String, HashSet<String>> {
+    let mut paths_by_resource: HashMap<String, HashSet<String>> = HashMap::new();
+    for ((resource_id, path), node_ref) in value_nodes {
+        if node_uses_pseudo_parameter(arena, *node_ref) {
+            paths_by_resource.entry(resource_id.clone()).or_default().insert(path.clone());
+        }
+    }
+    paths_by_resource
+}
+
+fn node_uses_pseudo_parameter(arena: &Arena, node_ref: NodeRef) -> bool {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Ref(target)) => {
+            target != PSEUDO_NO_VALUE && PSEUDO_PARAMETERS.contains(&target.as_str())
+        }
+        Node::Intrinsic(IntrinsicFn::Sub(template, bindings)) => {
+            let binding_overrides = |name: &str| {
+                bindings.as_ref().is_some_and(|entries| entries.iter().any(|(binding, _)| binding == name))
+            };
+            PSEUDO_PARAMETERS
+                .iter()
+                .filter(|name| **name != PSEUDO_NO_VALUE)
+                .any(|name| !binding_overrides(name) && template.contains(&format!("${{{name}}}")))
+                || bindings
+                    .as_ref()
+                    .is_some_and(|entries| entries.iter().any(|(_, value)| node_uses_pseudo_parameter(arena, *value)))
+        }
+        _ => false,
+    }
 }
 
 /// Some intrinsic nodes stand in for a whole object - most notably
@@ -3362,7 +3654,6 @@ fn resolve_output(arena: &Arena, node_ref: NodeRef, resolver: &mut Resolver) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::serialization::resolved_value_to_json;
 
     #[test]
     fn invalid_overrides_reports_nothing_when_unset_or_valid() {
@@ -3846,7 +4137,7 @@ Resources:
     }
 
     #[test]
-    fn list_member_pair_source_paths_preserve_outer_branches() {
+    fn list_member_pair_source_paths_collapse_value_branches() {
         let input = br#"{
             "Parameters": {"Mode": {"Type": "String"}},
             "Conditions": {"ChooseFirst": {"Fn::Equals": [{"Ref": "Mode"}, "first"]}},
@@ -3863,7 +4154,7 @@ Resources:
 
         assert_eq!(
             model.list_member_pair_source_paths("Invalid", "Properties.Values", &HashMap::new()),
-            BTreeSet::from(["Properties.Values.Fn::If.1".to_string(), "Properties.Values.Fn::If.2".to_string(),])
+            BTreeSet::from(["Properties.Values".to_string()])
         );
         assert!(
             model.list_member_pair_source_paths("Valid", "Properties.Values", &HashMap::new()).is_empty(),

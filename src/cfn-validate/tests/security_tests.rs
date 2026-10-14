@@ -660,11 +660,10 @@ fn deep_intrinsic_resolution_completes_within_budget() {
 /// assignment count is 2^16 to 2^18, which is far beyond what may be enumerated
 /// per value, yet every member is independently optional, so analysis must stay
 /// complete and polynomial.
-const INDEPENDENT_CONDITION_FIXTURES: [&str; 4] = [
+const INDEPENDENT_CONDITION_FIXTURES: [&str; 3] = [
     "independent_conditions_list_items.yaml",
     "independent_conditions_properties.yaml",
     "independent_conditions_object_keys.yaml",
-    "independent_conditions_statements.yaml",
 ];
 
 /// Independent conditions on one value must not be enumerated jointly. The
@@ -762,4 +761,22 @@ fn exponential_yaml_alias_expansion_is_rejected_with_structured_error() {
     };
     let msg = error.to_string().to_lowercase();
     assert!(msg.contains("alias expansion"), "error must reference alias expansion, got: {}", error);
+}
+
+#[test]
+fn independent_policy_statement_covering_reports_incomplete_analysis() {
+    let bytes = common::load_security("independent_conditions_statements.yaml");
+    for engine_name in ["rego", "cel", "composite"] {
+        let report = validate_report_within(COMPLETION_BUDGET, engine_name, bytes.clone())
+            .unwrap_or_else(|| panic!("{engine_name}: policy statement covering must complete within budget"))
+            .expect("validation must return a structured report");
+        assert_eq!(report.status, ReportStatus::AnalysisIncomplete);
+        assert_eq!(
+            report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "W9052").count(),
+            1,
+            "{engine_name}: an alternative-covering IAM statement product must be reported"
+        );
+        let exhaustions = report.metadata.budget_exhaustions.expect("covering metadata must be present");
+        assert!(exhaustions.iter().any(|record| record.kind == "scenarioProductCovering"));
+    }
 }

@@ -2,6 +2,7 @@ pub mod catalog;
 pub(crate) mod compiled;
 pub(crate) mod convert;
 pub mod overlay;
+mod parameter_defaults;
 pub mod resource_schema;
 pub mod store;
 pub mod validate;
@@ -449,6 +450,14 @@ impl SchemaValidator {
         let diagnostics = validate::validate_all_resources(&self.store, model, region);
         let metric = phase_metric(start);
         SchemaValidationResult { diagnostics, metric }
+    }
+
+    /// Evaluates caller-overridable parameter defaults and AllowedValues against
+    /// compiled destination property constraints without promoting them to Fatal
+    /// errors.
+    #[doc(hidden)]
+    pub fn parameter_default_constraint_diagnostics(&self, model: &SemanticModel) -> Vec<Diagnostic> {
+        parameter_defaults::parameter_default_constraint_diagnostics(model, &self.store)
     }
 
     pub fn enrich_context(&self, diagnostics: &mut [Diagnostic], model: &Arc<SemanticModel>) {

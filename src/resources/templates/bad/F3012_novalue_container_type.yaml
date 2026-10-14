@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS::NoValue removes a list member but does not make the list a dynamic scalar
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      MemorySize: [128, !Ref AWS::NoValue]
