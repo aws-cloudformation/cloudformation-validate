@@ -1,4 +1,170 @@
 {
+  "good/core/config_default_e3012.yaml": {
+    "filePath": "good/core/config_default_e3012.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'5' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "myTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.ProvisionedThroughput.WriteCapacityUnits",
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 9,
+        "endLine": 20,
+        "endColumn": 27,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'TableName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.TableName",
+        "category": "Best Practice",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 15,
+        "startColumn": 7,
+        "endLine": 15,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'myTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "myTable",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/core/config_only_i1002.yaml": {
+    "filePath": "good/core/config_only_i1002.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Resources section must exist and be non-empty",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 8,
+        "startColumn": 1,
+        "endLine": 8,
+        "endColumn": 10,
+        "ruleDescription": "Resources section must exist and be non-empty",
+        "phase": "SCHEMA"
+      }
+    ]
+  },
+  "good/core/config_only_i1003.yaml": {
+    "filePath": "good/core/config_only_i1003.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Resources section must exist and be non-empty",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 8,
+        "startColumn": 1,
+        "endLine": 8,
+        "endColumn": 10,
+        "ruleDescription": "Resources section must exist and be non-empty",
+        "phase": "SCHEMA"
+      }
+    ]
+  },
   "good/core/config_parameters.yaml": {
     "filePath": "good/core/config_parameters.yaml",
     "status": "OK",
@@ -115,7 +281,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 10,
+        "informational": 11,
         "debug": 0
       },
       "suppressed": 0,
@@ -309,6 +475,26 @@
         "startLine": 60,
         "startColumn": 5,
         "endLine": 60,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BucketWithTransform' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BucketWithTransform",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 81,
+        "startColumn": 5,
+        "endLine": 81,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -16698,9 +16884,9 @@
         "propertyPath": "Properties.Parameters.Fn::If.2.Fn::If.1",
         "category": "Best Practice",
         "startLine": 48,
-        "startColumn": 16,
+        "startColumn": 13,
         "endLine": 48,
-        "endColumn": 17,
+        "endColumn": 16,
         "ruleDescription": "Check Fn::If has a path that cannot be reached",
         "phase": "LINT"
       },
@@ -20236,232 +20422,5 @@
         "phase": "LINT"
       }
     ]
-  },
-  "good/resources/properties/allowed_pattern.yaml": {
-    "filePath": "good/resources/properties/allowed_pattern.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 3,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TESTROLE",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TESTROLE",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TESTROLE' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TESTROLE",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/resources/properties/az_cdk.yaml": {
-    "filePath": "good/resources/properties/az_cdk.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 1,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 3,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3058",
-        "severity": "FATAL",
-        "message": "One of ['CidrBlock', 'Ipv4IpamPoolId', 'Ipv6IpamPoolId', 'Ipv6CidrBlock'] is a required property",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties",
-        "category": "Schema",
-        "startLine": 6,
-        "startColumn": 5,
-        "endLine": 6,
-        "endColumn": 15,
-        "ruleDescription": "One of properties required (requiredOr)",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "E1151",
-        "severity": "ERROR",
-        "message": "'vpc-1234567' does not match format 'AWS::EC2::VPC.Id'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.VpcId",
-        "category": "Intrinsic Function",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 12,
-        "ruleDescription": "Validate VPC id format",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "vpc-1234567"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'VpcId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.VpcId",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 12,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.AvailabilityZone",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 23,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Instance' of type 'AWS::EC2::Subnet' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Instance",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Subnet"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 5,
-        "endLine": 6,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/resources/properties/custom.yaml": {
-    "filePath": "good/resources/properties/custom.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
   }
 }
