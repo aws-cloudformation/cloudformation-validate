@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+  FuncAtDefaultVisibility:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 30
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: |
+          def handler(event, context): pass
+  FuncWithDefaultTimeout:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: |
+          def handler(event, context): pass
+  ESMAtDefaultVisibility:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FuncAtDefaultVisibility
+      EventSourceArn: !GetAtt Queue.Arn
+  ESMWithDefaultTimeout:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FuncWithDefaultTimeout
+      EventSourceArn: !GetAtt Queue.Arn

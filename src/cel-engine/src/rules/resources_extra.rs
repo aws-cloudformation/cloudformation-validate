@@ -361,6 +361,16 @@ fn health_check_port_scalar(value: &serde_json::Value) -> Option<String> {
     }
 }
 
+/// The integer at `path`, or the service default when the property is absent.
+/// A property that is present but not known before deployment (for example a
+/// parameter reference) yields `None`: the default does not apply to it.
+fn integer_or_service_default(m: &SemanticModel, rid: &str, path: &str, service_default: i64) -> Option<i64> {
+    if !m.has_property(rid, path) {
+        return Some(service_default);
+    }
+    resolve_concrete(m, rid, path).as_ref().and_then(coerce_to_integer)
+}
+
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
     if let Some(resolved) = m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
         return match resolved {
@@ -392,6 +402,9 @@ fn resolved_list_items(m: &SemanticModel, rid: &str, path: &str) -> Option<Vec<s
         _ => None,
     }
 }
+
+const SQS_DEFAULT_VISIBILITY_TIMEOUT_SECONDS: i64 = 30;
+const LAMBDA_DEFAULT_TIMEOUT_SECONDS: i64 = 3;
 
 const ALB_MINIMUM_SUBNETS: usize = 2;
 
@@ -2023,16 +2036,19 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             && let Some(sqs) = m.resources.get(target)
             && sqs.resource_type == "AWS::SQS::Queue"
         {
-            let vis = resolve_concrete(m, target, "Properties.VisibilityTimeout").as_ref().and_then(coerce_to_integer);
+            let vis = integer_or_service_default(
+                m,
+                target,
+                "Properties.VisibilityTimeout",
+                SQS_DEFAULT_VISIBILITY_TIMEOUT_SECONDS,
+            );
             if let Some(fn_name) = m.follow_ref(name, "Properties.FunctionName") {
-                let timeout = resolve_concrete(m, fn_name, "Properties.Timeout")
-                    .as_ref()
-                    .and_then(coerce_to_integer)
-                    .unwrap_or(3);
+                let timeout =
+                    integer_or_service_default(m, fn_name, "Properties.Timeout", LAMBDA_DEFAULT_TIMEOUT_SECONDS);
                 // CloudFormation requires the queue's VisibilityTimeout to be at
                 // least the function Timeout. The finding is anchored on the
                 // queue's VisibilityTimeout property (the value that must be raised).
-                if let Some(v) = vis
+                if let (Some(v), Some(timeout)) = (vis, timeout)
                     && v < timeout
                 {
                     out.push(make_resource_diagnostic(

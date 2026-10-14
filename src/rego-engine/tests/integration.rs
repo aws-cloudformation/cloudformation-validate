@@ -868,6 +868,22 @@ fn e2e_e3061_s3_tiering_bad_days() {
 }
 
 #[test]
+fn e2e_e3505_sqs_default_visibility_timeout() {
+    let report = validate_fixture("bad/E3505_sqs_default_visibility_timeout.yaml");
+    assert!(
+        has_rule(&report, "E3505"),
+        "A queue at the default visibility timeout must be compared to the function timeout, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_e3505_sqs_default_visibility_timeout_covers_function() {
+    let report = validate_fixture("good/E3505_sqs_default_visibility_timeout_covers_function.yaml");
+    assert!(!has_rule(&report, "E3505"), "Expected no E3505, got: {:?}", report.diagnostics);
+}
+
+#[test]
 fn e2e_e3505_lambda_sqs_timeout() {
     let report = validate_fixture("bad/lambda_sqs_timeout.yaml");
     assert!(
