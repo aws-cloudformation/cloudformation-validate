@@ -103,6 +103,7 @@ Supported pseudo-parameters: `AWS::AccountId`, `AWS::NotificationARNs`, `AWS::Pa
 | `--strict`          | Upgrade Warn-severity diagnostics to Error                |
 | `--disable-builtin-rules` | Disable all built-in rules; only evaluate custom and guard rules |
 | `--list-rules`      | List all available rules and exit                         |
+| `--version`         | Print version and exit                                     |
 | `--help`, `-h`      | Print usage and exit                                      |
 
 **Exit codes:**
