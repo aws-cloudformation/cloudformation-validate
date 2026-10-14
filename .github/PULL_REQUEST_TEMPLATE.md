@@ -6,10 +6,6 @@
 
 <!-- Link the issue for significant work (for example, "Closes #123"). Write "None" if not applicable. -->
 
-## Validation
-
-<!-- List the exact checks you ran and their results. If an applicable check was not run, explain why. -->
-
 ## Validation behavior changes
 
 <!--
@@ -25,7 +21,8 @@ For validation behavior changes, provide:
 
 - [ ] For validation behavior changes, expected behavior is supported by CloudFormation evidence and all three engine
   selectors agree.
-- [ ] My code adheres to the [CONTRIBUTING GUIDE][contributing-guide] and DESIGN GUIDELINES.
+- [ ] My code adheres to the [CONTRIBUTING GUIDE](../CONTRIBUTING.md) and the repo code conventions and style in the
+  [code quality guide](../.kiro/skills/cloudformation-validate-development/references/source-code-rules.md).
 
 ---
 
