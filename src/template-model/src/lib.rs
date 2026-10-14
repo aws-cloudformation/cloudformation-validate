@@ -17,6 +17,7 @@ pub mod iam_policy;
 pub(crate) mod intrinsic_arg_shapes;
 pub mod ir;
 pub mod json_value;
+pub mod lambda_sqs;
 pub(crate) mod lang_ext_shapes;
 pub(crate) mod language_extensions;
 pub mod member_presence;

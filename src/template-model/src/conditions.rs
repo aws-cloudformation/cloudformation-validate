@@ -1,7 +1,7 @@
 use crate::budget::{BudgetKind, BudgetTracker};
 use crate::consts::{
     CONDITION_REF_PREFIX, FN_AND, FN_CONDITION, FN_EQUALS, FN_NOT, FN_OR, MAX_PARAM_COMBINATIONS, MAX_SAT_ITERATIONS,
-    MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL, PSEUDO_PREFIX, PSEUDO_REGION,
+    MAX_TOTAL_SAT_ITERATIONS, PARAM_UNKNOWN_SENTINEL, PSEUDO_PREFIX, PSEUDO_REGION, SSM_PARAMETER_VALUE_TYPE_PREFIX,
 };
 use crate::ir::*;
 use crate::model::PseudoParameterOverrides;
@@ -86,6 +86,7 @@ pub struct ConditionModel {
     /// storage also means recomputing the derived `implications` cannot discard
     /// them.
     rule_implications: Vec<Implication>,
+    parameter_overrides: HashMap<String, String>,
     pseudo_overrides: PseudoParameterOverrides,
     mappings: MappingData,
     /// Cumulative satisfiability search steps consumed across every query for
@@ -157,7 +158,14 @@ impl ConditionModel {
         pseudo_overrides: &PseudoParameterOverrides,
         mappings: &MappingData,
     ) -> Self {
-        Self::from_ir_with_tracker(ir, parameters, pseudo_overrides, mappings, Arc::new(BudgetTracker::new()))
+        Self::from_ir_with_tracker(
+            ir,
+            parameters,
+            pseudo_overrides,
+            mappings,
+            &HashMap::new(),
+            Arc::new(BudgetTracker::new()),
+        )
     }
 
     /// Constructs a `ConditionModel` with a pre-created shared budget tracker.
@@ -168,6 +176,7 @@ impl ConditionModel {
         parameters: &HashMap<String, ParameterInfo>,
         pseudo_overrides: &PseudoParameterOverrides,
         mappings: &MappingData,
+        parameter_overrides: &HashMap<String, String>,
         tracker: Arc<BudgetTracker>,
     ) -> Self {
         let mut conditions = HashMap::new();
@@ -197,6 +206,7 @@ impl ConditionModel {
             mutex_groups,
             implications,
             rule_implications: Vec::new(),
+            parameter_overrides: parameter_overrides.clone(),
             pseudo_overrides: pseudo_overrides.clone(),
             mappings: mappings.clone(),
             sat_iterations_used: AtomicU64::new(0),
@@ -422,6 +432,15 @@ impl ConditionModel {
         }
         let mut param_values: HashMap<String, Vec<String>> = HashMap::new();
         for (param_name, literals) in &compared_literals {
+            if let Some(fixed) = self.parameter_overrides.get(param_name)
+                && self
+                    .parameters
+                    .get(param_name)
+                    .is_some_and(|parameter| !parameter.param_type.starts_with(SSM_PARAMETER_VALUE_TYPE_PREFIX))
+            {
+                param_values.insert(param_name.clone(), vec![fixed.clone()]);
+                continue;
+            }
             if let Some(fixed) = self.pseudo_overrides.fixed_value(param_name) {
                 param_values.insert(param_name.clone(), vec![fixed]);
                 continue;

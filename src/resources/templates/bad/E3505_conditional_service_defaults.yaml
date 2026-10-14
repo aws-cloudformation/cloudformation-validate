@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Stage:
+    Type: String
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+Resources:
+  QueueAtOneSecond:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 1
+  FunctionWithConditionalNoValue:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: !If [IsProduction, 60, !Ref AWS::NoValue]
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: "def handler(event, context): pass"
+  ConditionalNoValueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionWithConditionalNoValue
+      EventSourceArn: !GetAtt QueueAtOneSecond.Arn
+
+  QueueAtServiceDefault:
+    Type: AWS::SQS::Queue
+  FunctionWithConditionalProperties:
+    Type: AWS::Lambda::Function
+    Properties: !If
+      - IsProduction
+      - PackageType: Image
+        Timeout: 60
+        Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+        Code:
+          ImageUri: 123456789012.dkr.ecr.us-east-1.amazonaws.com/repository:first
+      - PackageType: Image
+        Timeout: 90
+        Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+        Code:
+          ImageUri: 123456789012.dkr.ecr.us-east-1.amazonaws.com/repository:second
+  ConditionalPropertiesFunctionMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionWithConditionalProperties
+      EventSourceArn: !GetAtt QueueAtServiceDefault.Arn
+
+  QueueWithConditionalTimeout:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: !If [IsProduction, 10, 900]
+  FunctionAtSixtySeconds:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: "def handler(event, context): pass"
+  ConditionalQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt QueueWithConditionalTimeout.Arn
+
+  QueueWithConditionalProperties:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - VisibilityTimeout: 900
+      - DelaySeconds: 0
+  ConditionalPropertiesQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt QueueWithConditionalProperties.Arn
+
+  QueueWithConditionalTransform:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://example-bucket/queue-properties.yaml
+      - VisibilityTimeout: 10
+  ConditionalTransformQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt QueueWithConditionalTransform.Arn
+
+  QueueWithNoValue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: !Ref AWS::NoValue
+  QueueNoValueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt QueueWithNoValue.Arn

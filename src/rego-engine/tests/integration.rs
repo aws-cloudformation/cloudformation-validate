@@ -868,6 +868,39 @@ fn e2e_e3061_s3_tiering_bad_days() {
 }
 
 #[test]
+fn e2e_e3505_sqs_default_visibility_timeout() {
+    let report = validate_fixture("bad/E3505_sqs_default_visibility_timeout.yaml");
+    assert!(
+        has_rule(&report, "E3505"),
+        "A queue at the default visibility timeout must be compared to the function timeout, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_e3505_sqs_default_visibility_timeout_covers_function() {
+    let report = validate_fixture("good/E3505_sqs_default_visibility_timeout_covers_function.yaml");
+    assert!(!has_rule(&report, "E3505"), "Expected no E3505, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e3505_conditional_service_defaults() {
+    let report = validate_fixture("bad/E3505_conditional_service_defaults.yaml");
+    let timeout_violations = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E3505").count();
+    assert_eq!(
+        timeout_violations, 8,
+        "Expected eight distinct conditional/default timeout violations, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_e3505_unresolved_dynamic_and_covering_timeouts() {
+    let report = validate_fixture("good/E3505_unresolved_dynamic_and_covering.yaml");
+    assert!(!has_rule(&report, "E3505"), "Expected no E3505, got: {:?}", report.diagnostics);
+}
+
+#[test]
 fn e2e_e3505_lambda_sqs_timeout() {
     let report = validate_fixture("bad/lambda_sqs_timeout.yaml");
     assert!(

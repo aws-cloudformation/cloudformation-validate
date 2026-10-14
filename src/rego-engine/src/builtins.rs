@@ -20,6 +20,7 @@ use template_model::fargate::{cpu_is_offered, task_size_is_offered};
 use template_model::iam_policy::{
     inline_identity_policy_document_paths, policy_has_allow_not_action_scenarios, validate_identity_policy_scenarios,
 };
+use template_model::lambda_sqs::sqs_event_source_timeout_violations;
 use template_model::region_enums;
 use template_model::resolved_value::json_contains_markers;
 use template_model::resolver::{MapEntry, RefKind, ResolvedValue};
@@ -58,6 +59,7 @@ pub(crate) fn register_all(
     register_duplicate_subnet_associations(rego);
     register_subnets_outside_vpc_findings(rego);
     register_overlapping_subnet_findings(rego);
+    register_sqs_event_source_timeout_violations(rego);
     register_hardcoded_azs(rego);
     register_ref_targets(rego);
     register_ref_sources(rego);
@@ -1048,6 +1050,31 @@ fn register_duplicate_subnet_associations(rego: &mut regorus::Engine) {
                 })
                 .collect();
             Ok(Value::from(findings))
+        }),
+    );
+}
+
+fn register_sqs_event_source_timeout_violations(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "sqs_event_source_timeout_violations".into(),
+        0,
+        Box::new(move |_params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::from(Vec::<Value>::new()));
+            };
+            let violations: Vec<Value> = sqs_event_source_timeout_violations(&model)
+                .into_iter()
+                .map(|violation| {
+                    json_to_value(&serde_json::json!({
+                        "queueId": violation.queue_id,
+                        "visibilityTimeout": violation.visibility_timeout,
+                        "functionTimeout": violation.function_timeout,
+                        "message": violation.message,
+                        "suggestedFix": violation.suggested_fix,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(violations))
         }),
     );
 }

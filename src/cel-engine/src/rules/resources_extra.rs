@@ -16,6 +16,7 @@ use template_model::consts::{
 use template_model::dynamodb::analyze_dynamodb_table_scenarios;
 use template_model::fargate::{CPU_UNIT_LABELS, VCPU_SIZES, cpu_is_offered};
 use template_model::iam_policy::{inline_identity_policy_document_paths, validate_identity_policy_scenarios};
+use template_model::lambda_sqs::sqs_event_source_timeout_violations;
 use template_model::message::{primary_identifier_conflict_message, render_str_list, render_value};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
@@ -359,6 +360,22 @@ fn health_check_port_scalar(value: &serde_json::Value) -> Option<String> {
         serde_json::Value::Number(n) => Some(n.to_string()),
         _ => None,
     }
+}
+
+fn sqs_event_source_timeout_diagnostics(model: &SemanticModel) -> Vec<Diagnostic> {
+    sqs_event_source_timeout_violations(model)
+        .into_iter()
+        .map(|violation| {
+            make_resource_diagnostic(
+                "E3505",
+                &violation.message,
+                model,
+                &violation.queue_id,
+                "Properties.VisibilityTimeout",
+                Some(&violation.suggested_fix),
+            )
+        })
+        .collect()
 }
 
 fn resolve_concrete(m: &SemanticModel, rid: &str, path: &str) -> Option<serde_json::Value> {
@@ -2018,38 +2035,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for name in m.resources_of_type("AWS::Lambda::EventSourceMapping") {
-        if let Some(target) = m.follow_ref(name, "Properties.EventSourceArn")
-            && let Some(sqs) = m.resources.get(target)
-            && sqs.resource_type == "AWS::SQS::Queue"
-        {
-            let vis = resolve_concrete(m, target, "Properties.VisibilityTimeout").as_ref().and_then(coerce_to_integer);
-            if let Some(fn_name) = m.follow_ref(name, "Properties.FunctionName") {
-                let timeout = resolve_concrete(m, fn_name, "Properties.Timeout")
-                    .as_ref()
-                    .and_then(coerce_to_integer)
-                    .unwrap_or(3);
-                // CloudFormation requires the queue's VisibilityTimeout to be at
-                // least the function Timeout. The finding is anchored on the
-                // queue's VisibilityTimeout property (the value that must be raised).
-                if let Some(v) = vis
-                    && v < timeout
-                {
-                    out.push(make_resource_diagnostic(
-                        "E3505",
-                        &format!(
-                            "Queue visibility timeout ({}) is less than Function timeout ({}) seconds",
-                            v, timeout
-                        ),
-                        m,
-                        target,
-                        "Properties.VisibilityTimeout",
-                        Some("Set the SQS VisibilityTimeout to at least the Lambda function Timeout"),
-                    ));
-                }
-            }
-        }
-    }
+    out.extend(sqs_event_source_timeout_diagnostics(m));
 
     for name in m.resources_of_type("AWS::SSM::Document") {
         if let Some(content) = resolve_concrete(m, name, "Properties.Content")
