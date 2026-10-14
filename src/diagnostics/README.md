@@ -10,7 +10,7 @@ validation results, building on the template vocabulary (`SourceSpan`, `JsonValu
 All validation phases (parsing, schema validation, lint rules) surface as `Diagnostic` values. The schema validator
 and rule engines construct them directly; the parser emits plain `template_model::ParseDefect` findings that
 `diagnostic_from_parse_defect` converts, attaching severity, category, and origin from the rule registry. Each diagnostic carries a
-rule ID, severity, message, location, resource context, and optional metadata. The `ValidationReport` aggregates
+rule ID, severity, message, location, named-entity context, and optional metadata. The `ValidationReport` aggregates
 diagnostics with summary counts and performance metrics. A report is projected to an `output::ValidationReport` for
 serialization; the requested `DetailLevel` controls whether per-diagnostic enrichment is populated.
 
@@ -30,13 +30,13 @@ serialization; the requested `DetailLevel` controls whether per-diagnostic enric
 
 ## Severity
 
-| Level   | Ord | Meaning                                                          |
-|---------|-----|------------------------------------------------------------------|
-| `Fatal` | 4   | Structural schema violation - deployment will fail               |
-| `Error` | 3   | Semantic error - likely deployment failure or incorrect behavior |
-| `Warn`  | 2   | Security concern, deprecation, or risky pattern                  |
-| `Info`  | 1   | Best practice suggestion                                         |
-| `Debug` | 0   | Internal diagnostic detail                                       |
+| Level   | Ord | Meaning                                                                              |
+|---------|-----|--------------------------------------------------------------------------------------|
+| `Fatal` | 4   | Provider-schema or template-language violation - CloudFormation rejects the template |
+| `Error` | 3   | Issue likely to cause deployment failure or wrong runtime behavior                     |
+| `Warn`  | 2   | Security risk, deprecation, compatibility issue, or risky pattern                                      |
+| `Info`  | 1   | Best practice, optimization, or contextual guidance                                   |
+| `Debug` | 0   | Internal diagnostic detail                                                           |
 
 ## Diagnostic
 
@@ -48,7 +48,7 @@ Each `Diagnostic` contains:
 | `severity`           | `Severity`                      | Fatal / Error / Warn / Info / Debug                           |
 | `message`            | `String`                        | Human-readable description                                    |
 | `source`             | `RuleOrigin`                    | Where the rule originates (Schema, CfnLint, Engine, etc.)     |
-| `entity`             | `Option<Entity>`                | The named template entity the finding targets: `logical_id`, `entity_type` (`Resource`, `Parameter`, `Output`, `Mapping`, `Condition`, or `Rule`), and `resource_type` when the entity is a resource |
+| `entity`             | `Option<Entity>`                | The named template entity the finding targets: `logical_id`, `entity_type` (`Resource`, `Parameter`, `Output`, `Mapping`, `Metadata`, `Condition`, or `Rule`), and `resource_type` when the entity is a resource |
 | `property_path`      | `Option<String>`                | JSON path to offending property                               |
 | `location`           | `Option<SourceSpan>`            | Start/end line and column in source file                      |
 | `category`           | `Option<String>`                | Rule category (Schema, Structure, Intrinsic Function, etc.)   |
@@ -72,7 +72,7 @@ output.
 section - `Resource`, `Parameter`, `Output`, `Mapping`, `Metadata`, `Rule`, `Condition`, `Transform`,
 `FormatVersion`, `Description` - the singular form of the section the entity is declared in. Built-in rules currently
 attribute findings to the sections whose children are addressable by a logical ID (resources, parameters, outputs,
-mappings, conditions, and template rules).
+mappings, metadata, conditions, and template rules).
 
 ## ViolationContext
 
@@ -95,7 +95,8 @@ The serialized `output::ValidationReport` carries: `file_path`, `status` (`Ok`/`
 is absent when no deterministic budget was exhausted. Each record contains a stable `kind`, a human-readable
 `description` sentence, the numeric `limit`, and `analysis_incomplete`. A false `analysis_incomplete` value means the
 budget curtailed only diagnostic context, so the report can remain `Ok`; `requiredPropertyCombinations` is the current
-context-only budget. `rules_evaluated` is `0` when no rules ran.
+context-only budget. `rules_evaluated` counts registered rules after category exclusions; parse-failure reports set it
+to `0`.
 Source versions use canonical `https://github.com/aws-cloudformation/<source>@<version>` values.
 
 ## Detail Level

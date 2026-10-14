@@ -9,7 +9,7 @@ security risks, and best-practice findings before deployment - in your editor, b
   second.
 - **Self-contained** - the WebAssembly module is bundled in the package; there are no native dependencies.
 
-All types are exported from the `@aws/cloudformation-validate` package.
+The package exports all public entry points and most supporting types from `@aws/cloudformation-validate`.
 
 ## Installation
 
@@ -44,9 +44,11 @@ Each diagnostic identifies the rule, severity, affected entity and property, and
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-wasm/examples).
 
 Engines are expensive to construct (rules compile once) and cheap to reuse - create one engine and validate many
-templates. Every fallible call throws on failure - the thrown value is the error message string from the validation
-core, so handle it with `catch (error) { String(error) }`; internal panics are caught at the WASM boundary and surface
-the same way, never a process abort. `version()` returns the version of the bundled validation core.
+templates. Validation-core failures throw message strings; JavaScript argument checks and file reads retain their
+native error types. Handle every case with `catch (error) { String(error) }`. On `wasm32-unknown-unknown`, an internal
+Rust panic cannot unwind through `catch_panics`: it traps the WebAssembly call and surfaces as a catchable
+`WebAssembly.RuntimeError`, rather than aborting the host process. Recreate the WebAssembly instance before continuing.
+`version()` returns the bundled validation core version.
 
 A template is passed as a `Template` - either a `TemplateFile`, which wraps a filesystem path the engine reads, or a
 `TemplateContent`, which carries template text or bytes already in memory so nothing is read from disk. The file path
@@ -162,8 +164,8 @@ const engine = new CelEngine({
 });
 ```
 
-See [Custom Rules](../CUSTOM_RULES.md) for the Rego, CEL, and Guard rule formats and
-[Additional Resource Provider Schemas](../validation-engine/API.md#additional-resource-provider-schemas) for the schema
+See [Custom Rules][custom-rules] for the Rego, CEL, and Guard rule formats and
+[Additional Resource Provider Schemas][additional-schemas] for the schema
 merge model.
 
 ### `CompositeEngine`
@@ -239,7 +241,7 @@ interface ValidateConfig {
 | `parameterOverrides`       | `{}`                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                                                                        |
 | `pseudoParameterOverrides` | all `undefined`         | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                                                           |
 | `strict`                   | `false`                 | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                                                            |
-| `disableBuiltinRules`      | `false`                 | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated.                                    |
+| `disableBuiltinRules`      | `false`                 | When `true`, all built-in rules (schema validation, Step Functions, Metadata Context, and engine rules) are skipped; only custom and Guard rules are evaluated.                                    |
 
 ### RuleFilterConfig
 
@@ -248,7 +250,7 @@ Both `include` and `exclude` use this structure. All fields are additive - a rul
 ```typescript
 interface RuleFilterConfig {
     ids?: string[];                       // exact rule IDs, e.g. ["E3012", "W3010"]
-    categories?: string[];                // category names, e.g. ["security", "best_practices"]
+    categories?: string[];                // display names, e.g. ["Security", "Best Practice"]
     idRanges?: IdRange[];                 // numeric ranges, e.g. { prefix: "E", start: 3000, end: 3099 }
     idPatterns?: string[];                // regex patterns matched against rule IDs
     resourceIds?: ResourceIdFilter[];     // a rule (or every rule) on a logical resource ID
@@ -269,9 +271,9 @@ The `service` is matched verbatim against the `service-provider::service-name` p
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `resourceIds` dimension matches only diagnostics attributed to a resource; `logicalIds` additionally matches
-diagnostics on parameters, outputs, mappings, conditions, and template rules (for resource diagnostics the two carry
-the same value). An optional `entityType` scopes a `LogicalIdFilter` to entities of one type, so `MyThing` as a
-`"Parameter"` is matched without touching a same-named entity of another type.
+diagnostics on parameters, outputs, mappings, metadata, conditions, and template rules. For resource diagnostics, the
+two dimensions carry the same value. An optional `entityType` scopes a `LogicalIdFilter` to entities of one type, so
+`MyThing` as a `"Parameter"` is matched without touching a same-named entity of another type.
 
 ### PseudoParameterOverrides
 
@@ -315,9 +317,10 @@ const inMemory = new TemplateModel(new TemplateContent("Resources: {}"));
 
 ## SchemaValidator
 
-Runs schema validation independently from the rule engines. Checks each resource against the compiled CloudFormation
-provider schemas and produces `FATAL`-severity diagnostics for structural violations. The optional constructor argument
-is the same `SchemaValidatorConfig` accepted by `EngineConfig`; omitting it uses only the bundled schemas.
+Runs schema validation independently from the rule engines. Checks each resource against the compiled
+CloudFormation provider schemas and produces Fatal structural diagnostics plus schema-derived Error/Warn/Info findings.
+The optional constructor argument is the same `SchemaValidatorConfig` accepted by `EngineConfig`; omitting it uses
+only the bundled schemas.
 
 ```typescript
 const validator = new SchemaValidator();
@@ -331,7 +334,7 @@ try {
 | Method                         | Returns           | Description                                                                                                      |
 |--------------------------------|-------------------|------------------------------------------------------------------------------------------------------------------|
 | `new SchemaValidator(config?)` | `SchemaValidator` | Constructs a validator; an omitted `SchemaValidatorConfig` uses only the bundled schemas                         |
-| `validate(template, region?)`  | `Diagnostic[]`    | Schema diagnostics for a `Template` at `STANDARD` detail - the enrichment fields are absent. `region` defaults to `"us-east-1"`. |
+| `validate(template, region?)`  | `Diagnostic[]`    | Schema diagnostics for a `Template` at `STANDARD` detail - the enrichment fields are absent. An omitted `region` validates against the union of all regions. |
 | `listRules()`                  | `RuleInfo[]`      | Schema rule metadata                                                                                             |
 | `schemaCount()`                | `number`          | Number of compiled provider schemas                                                                              |
 | `free()`                       | `void`            | Releases the validator's off-heap memory; the validator must not be used afterwards                              |
@@ -383,10 +386,10 @@ interface AwsCliCommandOptions {
 
 - `serviceName` is matched case-insensitively. Signing names, endpoint aliases, and ARN prefixes are never resolved;
   translate an SDK's service identity first.
-- `parameters` accepts nested plain objects and arrays, strings, numbers, `bigint`, booleans, `null`, `Uint8Array`,
-  and `Date` (serialized as ISO 8601). Any other value is carried as an explicit unsupported marker, and because
-  synthesis is all-or-nothing the request is then skipped with a reason naming the offending parameter - no parameter
-  is ever silently dropped.
+- `parameters` accepts nested plain objects and arrays; strings; numbers (integers must be safe JavaScript integers);
+  `bigint`, booleans, `null`, `Uint8Array`, and `Date` (serialized as ISO 8601). Any other value is carried as an
+  explicit unsupported marker, and because synthesis is all-or-nothing the request is then skipped with a reason
+  naming the offending parameter - no parameter is ever silently dropped.
 
 The result is an `AwsCliCommandValidation`:
 
@@ -401,7 +404,7 @@ The result is an `AwsCliCommandValidation`:
 | `template`       | `Uint8Array \| null` - the exact template bytes that were validated (the caller's `TemplateBody` unchanged, or the synthesized JSON); `null` when skipped          |
 
 The full contract - the adapter catalog, all-or-nothing mapping, and which rules are dropped for synthesized state -
-is documented in [validation-engine/API.md](../validation-engine/API.md#validating-an-aws-cli-command).
+is documented in [validation-engine/API.md][aws-cli-validation].
 
 ## Report Types
 
@@ -413,7 +416,7 @@ status `"ERROR"` and an `F1101` diagnostic; only infrastructure or engine failur
 ```typescript
 interface ValidationReport {
     filePath: string;
-    status: "OK" | "ANALYSIS_INCOMPLETE" | "ERROR"; // ERROR is a pipeline failure; ANALYSIS_INCOMPLETE may omit findings
+    status: "OK" | "ANALYSIS_INCOMPLETE" | "ERROR"; // incomplete may omit findings; error = parse failure
     version: string;
     metadata: ReportMetadata;
     performance: PerformanceMetrics;
@@ -426,11 +429,12 @@ Every finding is a `Diagnostic` (see [Diagnostic](#diagnostic)). Its enrichment 
 `expectedConstraint`, `resolutionSource`, etc.) - are populated only at `detailLevel` `"DETAILED"` (the default);
 validating at `"STANDARD"` leaves them absent, keeping the base diagnostic fields.
 
-`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned and rules
-evaluated, the strict flag and severity threshold used, and optional budget-exhaustion records. Each budget-exhaustion
-record retains a stable machine-readable kind and also includes a human-readable description sentence, the numeric
-limit, and whether that specific exhaustion makes analysis incomplete. `requiredPropertyCombinations` is context-only,
-so its `analysisIncomplete` value is `false` and the report can remain `"OK"`.
+`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned, and the
+registered-rule count after category exclusions. It also records the strict flag, severity threshold, and optional
+budget-exhaustion records. Each record retains a stable machine-readable kind and also includes a human-readable
+description sentence, the numeric limit, and whether that specific exhaustion makes analysis incomplete.
+`requiredPropertyCombinations` is context-only, so its `analysisIncomplete` value is `false` and the report can
+remain `"OK"`.
 
 ### Diagnostic
 
@@ -471,3 +475,7 @@ type EntityType = "Resource" | "Parameter" | "Output" | "Mapping" | "Metadata"
 
 `Severity`, `RuleOrigin`, and `DetailLevel` are string-literal union types (`"WARN"`, `"GUARD"`, `"STANDARD"`, ...), as
 is the report `status` (`"OK"`, `"ANALYSIS_INCOMPLETE"`, `"ERROR"`).
+
+[custom-rules]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/CUSTOM_RULES.md
+[additional-schemas]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#additional-resource-provider-schemas
+[aws-cli-validation]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#validating-an-aws-cli-command

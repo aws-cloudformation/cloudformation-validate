@@ -11,18 +11,18 @@ resource schemas - it is purely a modeling library.
 ```
 
 1. **Parse** - Reads JSON or YAML (auto-detected), extracts all template sections (Parameters, Mappings, Conditions,
-   Resources, Outputs, Rules, Metadata, Transforms, Globals).
+   Resources, Outputs, Rules, Metadata, Transform, Globals).
 2. **Resolve** - Walks each resource and output, resolving all intrinsic functions into `ResolvedValue` variants.
 3. **Validate** - Builds a reference graph, detects cycles, validates intrinsic function nesting, and emits parse-time
-   diagnostics (`F3004` cycles, `E1028` undefined conditions, `E1101` invalid nesting, `W8003` tautological conditions).
+   diagnostics (`F3004` cycles, `E1028` undefined conditions, `E9101` invalid nesting, `W8003` tautological conditions).
 
 ## Intrinsic Function Support
 
 All CloudFormation intrinsic functions are resolved:
 
 `Ref`, `Fn::GetAtt`, `Fn::Sub`, `Fn::Join`, `Fn::Select`, `Fn::If`, `Fn::FindInMap` (with optional default),
-`Fn::Split`, `Fn::Base64`, `Fn::Cidr`, `Fn::GetAZs`, `Fn::ImportValue`, `Fn::Transform`, `Fn::And`, `Fn::Or`,
-`Fn::Not`, `Fn::Equals`, `Fn::ToJsonString`, `Fn::Length`, `Fn::ForEach`.
+`Fn::Split`, `Fn::Base64`, `Fn::Cidr`, `Fn::GetAZs`, `Fn::ImportValue`, `Fn::GetStackOutput`,
+`Fn::Transform`, `Fn::And`, `Fn::Or`, `Fn::Not`, `Fn::Equals`, `Fn::ToJsonString`, `Fn::Length`, `Fn::ForEach`.
 
 Rules-section intrinsics: `Fn::ValueOf`, `Fn::ValueOfAll`, `Fn::RefAll`, `Fn::Contains`, `Fn::EachMemberEquals`,
 `Fn::EachMemberIn`.

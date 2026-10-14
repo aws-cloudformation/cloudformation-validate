@@ -62,9 +62,9 @@ Each diagnostic identifies the rule, severity, affected entity and property, and
 [examples](https://github.com/aws-cloudformation/cloudformation-validate/tree/main/src/bindings-jvm/examples).
 
 Engines are expensive to construct (rules compile once) and cheap to reuse - create one engine and validate many
-templates. Every fallible call throws `ValidationException` on failure; internal panics are caught at the FFI boundary
-and surface as the same exception, never a process abort. `version()` returns the version of the bundled validation
-core.
+templates. Validation-core failures throw `ValidationException`; `File` overloads and `fileTo*` helpers propagate
+`java.io.IOException`. Internal panics are caught at the FFI boundary and surface as `ValidationException`, never a
+process abort. `version()` returns the bundled validation core version.
 
 A template is passed either as a `java.io.File` - the engine reads the bytes and uses the file path for diagnostic
 source locations - or as content already in memory, a `ByteArray` or a UTF-8 `String`, so nothing is read from disk.
@@ -170,8 +170,8 @@ val engine = CelEngine(
 )
 ```
 
-See [Custom Rules](../CUSTOM_RULES.md) for the Rego, CEL, and Guard rule formats and
-[Additional Resource Provider Schemas](../validation-engine/API.md#additional-resource-provider-schemas) for the schema
+See [Custom Rules][custom-rules] for the Rego, CEL, and Guard rule formats and
+[Additional Resource Provider Schemas][additional-schemas] for the schema
 merge model.
 
 ### `CompositeEngine`
@@ -250,7 +250,7 @@ data class ValidateConfig(
 | `parameterOverrides`       | `emptyMap()`             | Override template parameter values during resolution. Keys are parameter logical IDs.                                                                                    |
 | `pseudoParameterOverrides` | all `null`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                                                       |
 | `strict`                   | `false`                  | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                                                        |
-| `disableBuiltinRules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated.                                |
+| `disableBuiltinRules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, Metadata Context, and engine rules) are skipped; only custom and Guard rules are evaluated.                                |
 
 ### RuleFilterConfig
 
@@ -259,7 +259,7 @@ Both `include` and `exclude` use this structure. All fields are additive - a rul
 ```kotlin
 data class RuleFilterConfig(
     val ids: List<String> = emptyList(),                       // exact rule IDs, e.g. ["E3012", "W3010"]
-    val categories: List<String> = emptyList(),                // category names, e.g. ["security", "best_practices"]
+    val categories: List<String> = emptyList(),                // display names, e.g. ["Security", "Best Practice"]
     val idRanges: List<IdRange> = emptyList(),                 // numeric ranges, e.g. IdRange("E", 3000, 3099)
     val idPatterns: List<String> = emptyList(),                // regex patterns matched against rule IDs
     val resourceIds: List<ResourceIdFilter> = emptyList(),     // a rule (or every rule) on a logical resource ID
@@ -280,9 +280,9 @@ The `service` is matched verbatim against the `service-provider::service-name` p
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `resourceIds` dimension matches only diagnostics attributed to a resource; `logicalIds` additionally matches
-diagnostics on parameters, outputs, mappings, conditions, and template rules (for resource diagnostics the two carry
-the same value). A non-null `entityType` scopes a `LogicalIdFilter` to entities of one type, so `MyThing` as a
-`PARAMETER` is matched without touching a same-named entity of another type.
+diagnostics on parameters, outputs, mappings, metadata, conditions, and template rules. For resource diagnostics, the
+two dimensions carry the same value. A non-null `entityType` scopes a `LogicalIdFilter` to entities of one type, so
+`MyThing` as a `PARAMETER` is matched without touching a same-named entity of another type.
 
 ### PseudoParameterOverrides
 
@@ -325,9 +325,10 @@ val inMemory = TemplateModel("Resources: {}")
 
 ## SchemaValidator
 
-Runs schema validation independently from the rule engines. Checks each resource against the compiled CloudFormation
-provider schemas and produces `FATAL`-severity diagnostics for structural violations. The optional constructor argument
-is the same `SchemaValidatorConfig` accepted by `EngineConfig`; omitting it uses only the bundled schemas.
+Runs schema validation independently from the rule engines. Checks each resource against the compiled
+CloudFormation provider schemas and produces Fatal structural diagnostics plus schema-derived Error/Warn/Info findings.
+The optional constructor argument is the same `SchemaValidatorConfig` accepted by `EngineConfig`; omitting it uses
+only the bundled schemas.
 
 ```kotlin
 val validator = SchemaValidator()
@@ -337,7 +338,7 @@ val diagnostics = validator.validate(File("template.yaml"), null)
 | Method                                              | Returns            | Description                                                                                                                             |
 |-----------------------------------------------------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | `SchemaValidator(config = SchemaValidatorConfig())` | `SchemaValidator`  | Constructs a validator; the default `SchemaValidatorConfig` uses only the bundled schemas                                               |
-| `validate(template, region)`                        | `List<Diagnostic>` | Schema diagnostics for a `File`, `ByteArray`, or `String` template at `STANDARD` detail - the enrichment fields are absent. `region` is a `String?`; `null` defaults to `"us-east-1"`. |
+| `validate(template, region)`                        | `List<Diagnostic>` | Schema diagnostics for a `File`, `ByteArray`, or `String` template at `STANDARD` detail - the enrichment fields are absent. `region` is a `String?`; `null` validates against the union of all regions. |
 | `listRules()`                                       | `List<RuleInfo>`   | Schema rule metadata                                                                                                                    |
 | `schemaCount()`                                     | `Int`              | Number of compiled provider schemas                                                                                                     |
 
@@ -380,7 +381,7 @@ class AwsCliCommand @JvmOverloads constructor(
 
 - `serviceName` is matched case-insensitively. Signing names, endpoint aliases, and ARN prefixes are never resolved;
   translate an SDK's service identity first.
-- `parameters` accepts nested maps and iterables/arrays, `String`, boxed integers (including unsigned),
+- `parameters` accepts nested maps, iterables, and object arrays, `String`, boxed integers (including unsigned),
   `Float`/`Double`, `Boolean`, `null`, `ByteArray`, and `java.time` values (serialized with `toString()`). Any other
   value is carried as an explicit unsupported marker, and because synthesis is all-or-nothing the request is then
   skipped with a reason naming the offending parameter - no parameter is ever silently dropped.
@@ -398,7 +399,7 @@ The result is an `AwsCliCommandValidation`:
 | `template`       | `ByteArray?` - the exact template bytes that were validated (the caller's `TemplateBody` unchanged, or the synthesized JSON); `null` when skipped                  |
 
 The full contract - the adapter catalog, all-or-nothing mapping, and which rules are dropped for synthesized state -
-is documented in [validation-engine/API.md](../validation-engine/API.md#validating-an-aws-cli-command).
+is documented in [validation-engine/API.md][aws-cli-validation].
 
 ## Report Types
 
@@ -410,7 +411,7 @@ is documented in [validation-engine/API.md](../validation-engine/API.md#validati
 ```kotlin
 data class ValidationReport(
     val filePath: String,
-    val status: ReportStatus,            // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
+    val status: ReportStatus,            // OK, ANALYSIS_INCOMPLETE (may omit findings), or ERROR (parse failure)
     val version: String,
     val metadata: ReportMetadata,
     val performance: PerformanceMetrics,
@@ -423,11 +424,12 @@ Every finding is a `Diagnostic` (see [Diagnostic](#diagnostic)). Its enrichment 
 `expectedConstraint`, `resolutionSource`, etc.) - are populated only at `detailLevel` `DETAILED` (the default);
 validating at `STANDARD` leaves them `null`, keeping the base diagnostic fields.
 
-`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned and rules
-evaluated, the strict flag and severity threshold used, and optional budget-exhaustion records. Each budget-exhaustion
-record retains a stable machine-readable kind and also includes a human-readable description sentence, the numeric
-limit, and whether that specific exhaustion makes analysis incomplete. `requiredPropertyCombinations` is context-only,
-so its `analysisIncomplete` value is `false` and the report can remain `ReportStatus.OK`.
+`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned, and the
+registered-rule count after category exclusions. It also records the strict flag, severity threshold, and optional
+budget-exhaustion records. Each record retains a stable machine-readable kind and also includes a human-readable
+description sentence, the numeric limit, and whether that specific exhaustion makes analysis incomplete.
+`requiredPropertyCombinations` is context-only, so its `analysisIncomplete` value is `false` and the report can
+remain `ReportStatus.OK`.
 
 ### Diagnostic
 
@@ -469,3 +471,7 @@ enum class EntityType {
 
 `Severity`, `RuleOrigin`, `DetailLevel`, and `ReportStatus` are enum classes (`Severity.WARN`, `RuleOrigin.GUARD`,
 `DetailLevel.STANDARD`, `ReportStatus.OK`, ...).
+
+[custom-rules]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/CUSTOM_RULES.md
+[additional-schemas]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#additional-resource-provider-schemas
+[aws-cli-validation]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#validating-an-aws-cli-command

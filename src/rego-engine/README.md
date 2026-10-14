@@ -99,16 +99,16 @@ without observing each other's rendering. Guard rules are not affected: they nev
 
 ### Schema Introspection
 
-| Builtin                | Signature                                  | Purpose                        |
-|------------------------|--------------------------------------------|--------------------------------|
-| `schema_properties`    | `(resource_type) → [property_names]`       | List schema-defined properties |
-| `schema_required`      | `(resource_type) → [required_names]`       | List required properties       |
-| `schema_type`          | `(resource_type, property) → type_string`  | Primary schema type (first declared when several) |
-| `schema_enum`          | `(resource_type, property) → [values]`     | Allowed values (incl. case-insensitive enums) |
-| `attribute_type`       | `(resource_type, property) → type_string`  | Get schema attribute type      |
-| `getatt_return_type`   | `(resource_type, attribute) → type_string` | Get GetAtt return type         |
-| `schema_string_length` | `(resource_type, property) → {min, max}`   | Get string length constraints  |
-| `schema_requires_unique_items` | `(resource_type, property) → bool` | True when a property's schema sets `uniqueItems` |
+| Builtin                        | Signature                                              | Purpose                                           |
+|--------------------------------|--------------------------------------------------------|---------------------------------------------------|
+| `schema_properties`            | `(resource_type) → [property_names]`                   | List schema-defined properties                    |
+| `schema_required`              | `(resource_type) → [required_names]`                   | List required properties                          |
+| `schema_type`                  | `(resource_type, property) → type_string`              | Primary schema type (first declared when several) |
+| `schema_enum`                  | `(resource_type, property) → [values]`                 | Allowed values (incl. case-insensitive enums)     |
+| `attribute_type`               | `(resource_type, property) → type_string`              | Get schema attribute type                         |
+| `getatt_return_type`           | `(resource_type, attribute) → type_string`             | Get GetAtt return type                            |
+| `schema_string_length`         | `(resource_type, property) → {minLength?, maxLength?}` | Get string length constraints                     |
+| `schema_requires_unique_items` | `(resource_type, property) → bool`                     | True when a property schema sets `uniqueItems`    |
 
 ### Diagnostic Construction
 

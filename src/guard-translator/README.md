@@ -7,9 +7,9 @@ it, and those findings are the ones `cfn-guard validate` reports.
 ## How It Works
 
 ```
-  Guard DSL (.guard) ──▶ GuardRuleFile::parse ──▶ parsed once, syntax errors reported at load time
+  Guard DSL (.guard) ──▶ GuardRuleFile::parse ──▶ syntax checked and rule metadata recorded at load time
                                                         │
-  SemanticModel::authored_template_json() ──▶ GuardRuleFile::evaluate ──▶ Vec<GuardFinding>
+  SemanticModel::authored_template_json() ──▶ GuardRuleFile::evaluate (re-parses rules) ──▶ Vec<GuardFinding>
                                                         │
                                    validation-engine GuardRuleSet ──▶ Vec<Diagnostic>
 ```

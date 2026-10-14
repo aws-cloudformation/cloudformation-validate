@@ -18,6 +18,7 @@ including [schema-validator](../schema-validator/README.md)), and renders the re
                          │   ├── Schema validation (schema-validator)
                          │   ├── Engine rule evaluation
                          │   ├── Step Functions validation
+                         │   ├── Metadata Context validation
                          │   ├── Enrichment + filtering
                          │   └── Report assembly
                          └── Format output (standard / detailed)
@@ -48,7 +49,7 @@ cdk synth MyStack | cfn-validate -
 | `--exclude-range E3000-E3099`  | Suppress rules in numeric range    |
 | `--include-resource-id ID[=RULE]` | Only report rules on a logical resource ID |
 | `--exclude-resource-id ID[=RULE]` | Suppress rules on a logical resource ID |
-| `--include-logical-id ID[:TYPE][=RULE]` | Only report rules on a named template entity (resource, parameter, output, mapping, condition, or rule); `:TYPE` (e.g. `:Parameter`) scopes to one entity type |
+| `--include-logical-id ID[:TYPE][=RULE]` | Only report rules on a named template entity (resource, parameter, output, mapping, metadata, condition, or rule); `:TYPE` (e.g. `:Parameter`) scopes to one entity type |
 | `--exclude-logical-id ID[:TYPE][=RULE]` | Suppress rules on a named template entity |
 | `--include-resource-type TYPE[=RULE]` | Only report rules on a resource type |
 | `--exclude-resource-type TYPE[=RULE]` | Suppress rules on a resource type |
@@ -72,7 +73,7 @@ touching a same-named entity of another type.
 | Option                       | Description                                               |
 |------------------------------|-----------------------------------------------------------|
 | `--engine rego\|cel\|composite` | Validation engine (default: composite). `composite` layers the external rules over the built-in rules |
-| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable). With `--engine composite`, these are the Rego rules layered on top of the built-ins |
+| `--rule-source <PATH>`       | Load a custom Rego/CEL rule file (repeatable). With `--engine composite`, `.json` files are CEL rules and other files are Rego rules layered on top of the built-ins |
 | `--guard-rule-source <PATH>` | Load Guard (`.guard`) rule file or directory (repeatable) |
 | `--additional-schema <PATH>` | Merge a CloudFormation resource provider schema (`.json`) file, or every `.json` in a directory, on top of the bundled schemas (repeatable) |
 
