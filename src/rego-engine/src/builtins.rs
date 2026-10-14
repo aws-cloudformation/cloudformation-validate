@@ -13,7 +13,7 @@ use template_model::coercion::{
 };
 use template_model::consts::{
     FIELD_CONDITION, FIELD_DEPENDS_ON, FIELD_KIND, FIELD_PROPERTIES, FIELD_RESOURCE_TYPE, FIELD_SOURCE,
-    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, effective_deployed_resource_type,
+    FIELD_SOURCE_PATH, FIELD_TARGET, FN_IF, KEY_PROPERTIES, effective_deployed_resource_type,
 };
 use template_model::dynamodb::analyze_dynamodb_table_scenarios;
 use template_model::fargate::{cpu_is_offered, task_size_is_offered};
@@ -79,6 +79,7 @@ pub(crate) fn register_all(
     register_make_diag_at(rego);
     register_make_diag_at_source(rego);
     register_make_diag_at_source_full(rego);
+    register_make_diag_at_source_conditional(rego);
     register_make_diag_full(rego);
     register_make_diag_related(rego);
     register_make_diag_conditional(rego);
@@ -89,6 +90,8 @@ pub(crate) fn register_all(
     register_properties_scenarios(rego);
     register_list_member_scenarios(rego);
     register_list_member_pair_source_paths(rego);
+    register_duplicate_object_field_value_scenario(rego);
+    register_list_object_missing_required_field_scenarios(rego);
     register_property_absence_scenarios(rego);
     register_dynamodb_scenario_analysis(rego);
     register_is_satisfiable(rego);
@@ -854,6 +857,58 @@ fn register_list_member_pair_source_paths(rego: &mut regorus::Engine) {
                 .map(|source_path| Value::from(source_path.as_str()))
                 .collect();
             Ok(Value::from(source_paths))
+        }),
+    );
+}
+
+fn register_duplicate_object_field_value_scenario(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "duplicate_object_field_value_scenario".into(),
+        3,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let field_name = params[2].as_string()?;
+            match model.duplicate_object_field_value_scenario(resource_id.as_ref(), path.as_ref(), field_name.as_ref())
+            {
+                Some(conditions) => Ok(json_to_value(&serde_json::json!(conditions))),
+                None => Ok(Value::Undefined),
+            }
+        }),
+    );
+}
+
+fn register_list_object_missing_required_field_scenarios(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "list_object_missing_required_field_scenarios".into(),
+        4,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let resource_id = params[0].as_string()?;
+            let path = params[1].as_string()?;
+            let required_field = params[2].as_string()?;
+            let trigger_field = params[3].as_string()?;
+            let scenarios: Vec<Value> = model
+                .list_object_missing_required_field_scenarios(
+                    resource_id.as_ref(),
+                    path.as_ref(),
+                    required_field.as_ref(),
+                    trigger_field.as_ref(),
+                )
+                .into_iter()
+                .map(|(index, conditions)| {
+                    json_to_value(&serde_json::json!({
+                        "index": index,
+                        "conditions": conditions,
+                    }))
+                })
+                .collect();
+            Ok(Value::from(scenarios))
         }),
     );
 }
@@ -2440,6 +2495,56 @@ fn register_make_diag_at_source_full(rego: &mut regorus::Engine) {
     );
 }
 
+fn register_make_diag_at_source_conditional(rego: &mut regorus::Engine) {
+    let _ = rego.add_extension(
+        "make_diag_at_source_conditional".into(),
+        8,
+        Box::new(move |params: Vec<Value>| {
+            let Some(model) = current_model() else {
+                return Ok(Value::Undefined);
+            };
+            let rule_id = params[0].as_string()?;
+            let severity = params[1].as_string()?;
+            let resource_id = params[2].as_string()?;
+            let prop_path = params[3].as_string()?;
+            let source_path = params[4].as_string()?;
+            let message = params[5].as_string()?;
+            let fix = params[6].as_string()?;
+            let conditions_json = params[7].to_json_str()?;
+            let conditions: serde_json::Value = serde_json::from_str(&conditions_json)?;
+            let condition_map = conditions
+                .as_object()
+                .ok_or_else(|| anyhow::anyhow!("Diagnostic condition scenario must be an object"))?;
+            if condition_map.values().any(|value| !value.is_boolean()) {
+                return Err(anyhow::anyhow!("Diagnostic condition scenario values must be booleans"));
+            }
+            let span = resolve_span(&model, resource_id, source_path);
+            let fix_value =
+                if fix.is_empty() { serde_json::Value::Null } else { serde_json::Value::String(fix.to_string()) };
+            let mut diagnostic = serde_json::json!({
+                "rule_id": rule_id.as_ref(), "severity": severity.as_ref(),
+                "message": message.as_ref(), "resource_id": resource_id.as_ref(),
+                "resource_path": prop_path.as_ref(),
+                (DIAGNOSTIC_SOURCE_PATH_FIELD): source_path.as_ref(),
+                "suggested_fix": fix_value,
+            });
+            let fields = diagnostic
+                .as_object_mut()
+                .ok_or_else(|| anyhow::anyhow!("Constructed diagnostic must be an object"))?;
+            if !condition_map.is_empty() {
+                fields.insert("condition_scenario".into(), conditions);
+            }
+            if span != UNKNOWN_SPAN {
+                fields.insert("start_line".into(), span.start_line.into());
+                fields.insert("start_column".into(), span.start_column.into());
+                fields.insert("end_line".into(), span.end_line.into());
+                fields.insert("end_column".into(), span.end_column.into());
+            }
+            Ok(json_to_value(&diagnostic))
+        }),
+    );
+}
+
 fn register_make_diag_full(rego: &mut regorus::Engine) {
     let _ = rego.add_extension(
         "make_diag_full".into(),
@@ -2677,7 +2782,11 @@ fn register_unreachable_if_branches(rego: &mut regorus::Engine) {
             };
             let mut results = Vec::new();
             for (prop_key, prop_val) in &res.properties {
-                let path_prefix = format!("Properties.{}", prop_key);
+                let path_prefix = if prop_key == FN_IF {
+                    KEY_PROPERTIES.to_string()
+                } else {
+                    format!("{}.{}", KEY_PROPERTIES, prop_key)
+                };
                 collect_unreachable_branches(&model, rid, prop_val, &path_prefix, &base_assumptions, &mut results);
             }
             Ok(Value::from(results))

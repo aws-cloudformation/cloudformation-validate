@@ -2474,75 +2474,49 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for name in m.resources_of_type("AWS::CloudFront::Distribution") {
-        let scenarios = m.resolve_scenarios_json(name, "Properties.DistributionConfig.DefaultCacheBehavior");
-        for (val, conds) in &scenarios {
-            if !conds.is_empty()
-                && !m.conditions.is_satisfiable(&conds.iter().map(|(k, v)| (k.clone(), *v)).collect::<Vec<_>>())
-            {
+    if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|resources| resources.as_object()) {
+        for (name, _resource) in resources {
+            let schema_declares_tags = m
+                .resources
+                .get(name)
+                .and_then(|resolved| ctx.cached_data.schema_metadata_catalog().get(&resolved.resource_type))
+                .is_some_and(|metadata| metadata.properties.iter().any(|property| property == "Tags"));
+            if !schema_declares_tags {
                 continue;
             }
-            if val.is_null() {
-                out.push(make_resource_diagnostic(
-                    "E3003",
-                    "'DefaultCacheBehavior' is a required property",
+            for (index, conditions) in
+                m.list_object_missing_required_field_scenarios(name, "Properties.Tags", "Key", "Value")
+            {
+                let property_path = format!("Properties.Tags.{index}");
+                let source_path =
+                    m.scenario_source_path(name, &property_path, &conditions).unwrap_or_else(|| property_path.clone());
+                let mut diagnostic = make_resource_diagnostic_at_source(
+                    "E3024",
+                    "'Key' is a required property",
                     m,
                     name,
-                    "Properties.DistributionConfig",
-                    Some("Add DefaultCacheBehavior to the Fn::If branch"),
-                ));
-            } else if val.is_object() {
-                let path = "Properties.DistributionConfig.DefaultCacheBehavior.Fn::If.2";
-                if val.get("TargetOriginId").is_none() {
-                    out.push(make_resource_diagnostic(
-                        "E3003",
-                        "'TargetOriginId' is a required property",
-                        m,
-                        name,
-                        path,
-                        Some("Add TargetOriginId to the DefaultCacheBehavior"),
-                    ));
-                }
-                if val.get("ViewerProtocolPolicy").is_none() {
-                    out.push(make_resource_diagnostic(
-                        "E3003",
-                        "'ViewerProtocolPolicy' is a required property",
-                        m,
-                        name,
-                        path,
-                        Some("Add ViewerProtocolPolicy to the DefaultCacheBehavior"),
-                    ));
-                }
+                    &property_path,
+                    &source_path,
+                    Some("Tag Key cannot be null or AWS::NoValue"),
+                );
+                diagnostic.condition_scenario = (!conditions.is_empty()).then_some(conditions);
+                out.push(diagnostic);
             }
-        }
-    }
-
-    if let Some(resources) = input.get(FIELD_RESOURCES).and_then(|r| r.as_object()) {
-        for (name, res) in resources {
-            if let Some(tags) = res.get(FIELD_PROPERTIES).and_then(|p| p.get("Tags")).and_then(|t| t.as_array()) {
-                for tag in tags {
-                    if tag.is_object() && tag.get("Value").is_some() {
-                        let key = tag.get("Key");
-                        if key.is_none() || key == Some(&serde_json::Value::Null) {
-                            out.push(make_resource_diagnostic(
-                                "E3003",
-                                "'Key' is a required property",
-                                m,
-                                name,
-                                "Properties.Tags",
-                                Some("Tag Key cannot be null or AWS::NoValue"),
-                            ));
-                            out.push(make_resource_diagnostic(
-                                "E3024",
-                                "'Key' is a required property",
-                                m,
-                                name,
-                                "Properties.Tags",
-                                Some("Tag Key cannot be null or AWS::NoValue"),
-                            ));
-                        }
-                    }
-                }
+            if let Some(conditions) = m.duplicate_object_field_value_scenario(name, "Properties.Tags", "Key") {
+                let source_path = m
+                    .scenario_source_path(name, "Properties.Tags", &conditions)
+                    .unwrap_or_else(|| "Properties.Tags".to_string());
+                let mut diagnostic = make_resource_diagnostic_at_source(
+                    "E3024",
+                    "Tag keys must be unique",
+                    m,
+                    name,
+                    "Properties.Tags",
+                    &source_path,
+                    Some("Use a different Key for each tag"),
+                );
+                diagnostic.condition_scenario = (!conditions.is_empty()).then_some(conditions);
+                out.push(diagnostic);
             }
         }
     }

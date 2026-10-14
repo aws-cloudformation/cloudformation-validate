@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Required nested properties are checked in each reachable object scenario
+Conditions:
+  Enabled: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ConditionalObject:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      EphemeralStorage: !If [Enabled, {Size: 1024}, {}]
+  ConditionalChild:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      EphemeralStorage:
+        Size: !If [Enabled, 1024, !Ref AWS::NoValue]
+  UnconditionalNoValue:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      EphemeralStorage: {Size: !Ref AWS::NoValue}
+  ConditionalChildNoValueTrue:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      EphemeralStorage:
+        Size: !If [Enabled, !Ref AWS::NoValue, 1024]
+  OptionalObjectControl:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      EphemeralStorage: !If [Enabled, {Size: 1024}, !Ref AWS::NoValue]

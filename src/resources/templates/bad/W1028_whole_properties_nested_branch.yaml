@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Nested unreachable branches retain whole-Properties authored paths
+Parameters:
+  Environment: {Type: String, AllowedValues: [production, development]}
+Conditions:
+  Production: !Equals [!Ref Environment, production]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties: !If
+      - Production
+      - BucketName: !If [Production, production-bucket, unreachable-production]
+      - BucketName: !If [Production, unreachable-development, development-bucket]

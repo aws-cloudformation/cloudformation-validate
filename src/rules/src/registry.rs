@@ -1251,6 +1251,42 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "W1031",
+        category: Category::BestPractice,
+        description: "Validate the values that come from a Fn::Sub function",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1032",
+        category: Category::BestPractice,
+        description: "Validate the values that come from a Fn::Join function",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1033",
+        category: Category::BestPractice,
+        description: "Validate the values that come from a Fn::Split function",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1034",
+        category: Category::BestPractice,
+        description: "Validate the values that come from a Fn::FindInMap function",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1035",
+        category: Category::BestPractice,
+        description: "Validate the values that come from a Fn::Select function",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
+        id: "W1036",
+        category: Category::BestPractice,
+        description: "Validate the values that come from a Fn::GetAZs function",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "W1053",
         category: Category::BestPractice,
         description: "Dynamic references should not contain spaces",

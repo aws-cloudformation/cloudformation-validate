@@ -809,3 +809,42 @@ fn i9001_conditional_create_only_not_emitted_when_property_is_absent() {
         "control VPC without InstanceTenancy must not emit I9001 for InstanceTenancy, got: {control_diagnostics:?}"
     );
 }
+
+#[test]
+fn snapstart_required_child_is_checked_in_conditional_object_and_value_branches() {
+    const TEMPLATE: &[u8] = br#"
+Conditions:
+  Enabled: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  ConditionalObject:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java21
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      SnapStart: !If [Enabled, {ApplyOn: PublishedVersions}, {}]
+  ConditionalChild:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: java21
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+      SnapStart:
+        ApplyOn: !If [Enabled, PublishedVersions, !Ref AWS::NoValue]
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let findings: Vec<_> = SV
+        .validate(&model, Some("us-east-1"))
+        .diagnostics
+        .into_iter()
+        .filter(|diagnostic| diagnostic.rule_id == "F3003")
+        .collect();
+
+    assert_eq!(findings.len(), 2, "both reachable missing ApplyOn scenarios must be reported: {findings:?}");
+    assert!(findings.iter().all(|diagnostic| {
+        diagnostic.property_path.as_deref() == Some("Properties.SnapStart")
+            && diagnostic.message == "'ApplyOn' is a required property"
+    }));
+}

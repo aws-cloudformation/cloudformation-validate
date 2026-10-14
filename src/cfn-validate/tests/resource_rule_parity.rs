@@ -1,5 +1,5 @@
 use cel_engine::CelEngine;
-use diagnostics::Diagnostic;
+use diagnostics::{Diagnostic, ReportStatus};
 use rego_engine::RegoEngine;
 use schema_validator::SchemaValidator;
 use template_model::PseudoParameterOverrides;
@@ -2492,6 +2492,8 @@ fn whole_properties_item_cardinality_preserves_nested_member_conditions() {
     assert_eq!(rego_findings.len(), 1, "the selected branch can contain seventeen subnets: {rego_findings:?}");
     assert!(rego_findings[0].contains("|Function|Properties.VpcConfig.SubnetIds|"));
     assert!(rego_findings[0].contains("expected maximum item count: 16, found: 17"));
+    let anchors = selected_finding_anchors(&rego, template, &["F3032"]);
+    assert_eq!(anchors, ["Function|Properties.VpcConfig.SubnetIds|89:13"]);
 }
 
 #[test]
@@ -2533,8 +2535,12 @@ fn route53_cname_record_count_reports_each_invalid_branch() {
     let cel_findings = selected_findings_with_spans(&cel, template, &["E3023"]);
 
     assert_eq!(rego_findings, cel_findings, "conditional CNAME count diagnostics must match, spans included");
-    assert_eq!(rego_findings.len(), 4, "each invalid authored branch must be reported once: {rego_findings:?}");
-    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|ConditionalList|")).count(), 2);
+    assert_eq!(
+        rego_findings.len(),
+        3,
+        "each invalid authored property location must be reported once: {rego_findings:?}"
+    );
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|ConditionalList|")).count(), 1);
     assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|ConditionalProperties|")).count(), 2);
     assert!(rego_findings.iter().all(|finding| !finding.contains("|SingleRecordBranches|")));
 }
@@ -2957,4 +2963,420 @@ Resources:
         1,
         "the override is a lookup name, so the production branch remains reachable: {rego_findings:?}"
     );
+}
+#[test]
+fn conditional_nested_required_properties_are_checked_per_reachable_scenario() {
+    let template = include_str!("../../resources/templates/bad/F3003_conditional_nested_required.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_finding_anchors(&rego, template, &["F3003"]);
+    let cel_findings = selected_finding_anchors(&cel, template, &["F3003"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 4, "every missing nested child must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.starts_with("ConditionalObject|Properties.EphemeralStorage|")));
+    assert!(rego_findings.iter().any(|finding| finding.starts_with("ConditionalChild|Properties.EphemeralStorage|")));
+    assert!(
+        rego_findings.iter().any(|finding| finding.starts_with("UnconditionalNoValue|Properties.EphemeralStorage|"))
+    );
+    assert!(
+        rego_findings
+            .iter()
+            .any(|finding| { finding.starts_with("ConditionalChildNoValueTrue|Properties.EphemeralStorage|") })
+    );
+    assert!(rego_findings.iter().all(|finding| !finding.starts_with("OptionalObjectControl|")));
+}
+
+#[test]
+fn ordinary_parameter_defaults_warn_without_fatal_schema_contradictions() {
+    let template = include_str!("../../resources/templates/bad/W1030_parameter_default_constraints.yaml");
+    let rule_ids = ["W1030", "W1032", "W1035", "W3030", "F3030", "F3031", "F3033", "F3034"];
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings.len(),
+        19,
+        "each invalid candidate or composed output must be reported: {rego_findings:?}"
+    );
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1030|")).count(), 16);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1032|")).count(), 1);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1035|")).count(), 2);
+    assert_eq!(
+        selected_finding_anchors(&rego, template, &["W1035"]),
+        ["|Parameters/InvalidRetentionDays/Default|20:40", "|Parameters/Timeout/Default|12:27",]
+    );
+    for path in [
+        "Parameters/BadPattern/Default",
+        "Properties.FunctionName",
+        "Properties.Description",
+        "Parameters/BadPackageType/Default",
+        "Parameters/Timeout/Default",
+        "Parameters/SmallStorage/Default",
+        "Properties.Tags.0.Key",
+        "Parameters/AllowedPackage/AllowedValues/1",
+        "Parameters/AllowedArchitecture/AllowedValues/1",
+    ] {
+        assert!(rego_findings.iter().any(|finding| finding.contains(path)));
+    }
+}
+
+#[test]
+fn parameter_override_replaces_an_invalid_default_for_destination_constraints() {
+    let template = include_str!("../../resources/templates/bad/W1030_parameter_default_constraints.yaml");
+    let config = ValidateConfig {
+        parameter_overrides: [("BadPattern".to_string(), "valid-name".to_string())].into(),
+        ..ValidateConfig::default()
+    };
+    let (rego, cel) = engines();
+    let rule_ids = ["W1030", "W1032", "W1035"];
+    let rego_findings = selected_findings_with_config(&rego, template, &rule_ids, config.clone());
+    let cel_findings = selected_findings_with_config(&cel, template, &rule_ids, config);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.iter().all(|finding| !finding.contains("BadPattern")));
+    assert_eq!(
+        rego_findings.len(),
+        17,
+        "only both overridden-default consumer warnings must disappear: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn composed_parameter_values_use_their_intrinsic_rule_ids() {
+    let template = r#"
+Parameters:
+  Name: {Type: String, Default: 'bad name'}
+  Retention: {Type: Number, Default: 1024}
+  OtherRetention: {Type: Number, Default: 7}
+  Environment: {Type: String, AllowedValues: [development], Default: development}
+Mappings:
+  PackageTypes:
+    development: {Value: Jar}
+Resources:
+  Substituted:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${Name}-bucket'
+  Joined:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !Join ['', [!Ref Name]]
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/example
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  NestedSubJoined:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ['', [!Sub '${Name}', '-bucket']]
+  NestedSelectJoined:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !Join ['', [!Select [0, [!Ref Name]]]]
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/example
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  Mapped:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !FindInMap [PackageTypes, !Ref Environment, Value]
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/example
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  Selected:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Select [0, [!Select [0, [!Ref Retention]], 7]]
+  SelectedSecondParameter:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: !Select [1, [!Ref OtherRetention, !Ref Retention]]
+"#;
+    let rule_ids = ["W1030", "W1031", "W1032", "W1034", "W1035"];
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 7, "each composed value must use its outer intrinsic rule: {rego_findings:?}");
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1031|")).count(), 1);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1032|")).count(), 3);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1034|")).count(), 1);
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1035|")).count(), 2);
+    assert!(
+        rego_findings
+            .iter()
+            .filter(|finding| finding.starts_with("W1035|"))
+            .all(|finding| finding.contains("|Parameters/Retention/Default|"))
+    );
+    assert!(rego_findings.iter().all(|finding| !finding.starts_with("W1030|")));
+}
+
+#[test]
+fn composed_parameter_checks_stay_with_their_conditional_branch() {
+    let template = r#"
+Parameters:
+  Environment: {Type: String, AllowedValues: [development, production], Default: development}
+  ValidPackage: {Type: String, Default: Zip}
+  InvalidPackage: {Type: String, Default: Jar}
+Conditions:
+  Production: !Equals [!Ref Environment, production]
+Resources:
+  LiteralAndSub:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !If [Production, Jar, !Sub '${ValidPackage}']
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/example
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  DifferentCompositions:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !If [Production, !Join ['', [!Ref InvalidPackage]], !Sub '${InvalidPackage}']
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/example
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+  RefAndComposition:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: !If [Production, !Ref InvalidPackage, !Join ['', [!Ref InvalidPackage]]]
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/example
+      Runtime: python3.12
+      Handler: index.handler
+      Code: {ZipFile: x}
+"#;
+    let rule_ids = ["W1030", "W1031", "W1032"];
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 4, "only parameter-dependent invalid branches must warn: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| !finding.contains("|LiteralAndSub|")));
+    assert_eq!(rego_findings.iter().filter(|finding| finding.contains("|DifferentCompositions|")).count(), 2);
+    assert!(rego_findings.iter().any(|finding| finding.starts_with("W1031|")));
+    assert_eq!(rego_findings.iter().filter(|finding| finding.starts_with("W1032|")).count(), 2);
+    assert!(rego_findings.iter().any(|finding| finding.starts_with("W1030|")));
+}
+
+#[test]
+fn composed_ssm_parameter_paths_remain_deployment_time_values() {
+    let template = r#"
+Parameters:
+  Prefix:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /organization/application/bucket-prefix
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${Prefix}-data'
+"#;
+    let rule_ids = ["W1030", "W1031", "F3031"];
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "an SSM path is not the deployment-time parameter value: {rego_findings:?}");
+}
+
+#[test]
+fn specialized_parameter_checks_preserve_independent_schema_constraints() {
+    let template = r#"
+Parameters:
+  Value:
+    Type: String
+    Default: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Resources:
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref Value
+      InstanceType: t3.micro
+  Endpoint:
+    Type: AWS::S3Outposts::Endpoint
+    Properties:
+      OutpostId: op-01234567890123456
+      SecurityGroupId: sg-01234567890123456
+      SubnetId: subnet-01234567890123456
+      CidrBlock: !Ref Value
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W1030"]);
+    let cel_findings = selected_findings(&cel, template, &["W1030"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 4, "format and maximum-length violations must both be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| finding.contains("above maximum 255")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("above maximum 20")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("AWS::EC2::Image.Id")));
+    assert!(rego_findings.iter().any(|finding| finding.contains("ipv4-network")));
+}
+
+#[test]
+fn duplicate_tag_keys_are_reported_independently_of_values() {
+    let template = include_str!("../../resources/templates/bad/E3024_duplicate_tag_keys.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3024"]);
+    let cel_findings = selected_findings(&cel, template, &["E3024"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 9, "duplicate and conditionally missing keys must all be reported");
+    for resource in [
+        "DifferentValues",
+        "EqualValues",
+        "ConditionalValues",
+        "ConditionalKey",
+        "SameParameterKey",
+        "ConditionalTagList",
+        "SameGetAttKey",
+    ] {
+        assert!(rego_findings.iter().any(|finding| finding.contains(&format!("|{resource}|Properties.Tags|"))));
+    }
+    assert_eq!(
+        rego_findings.iter().filter(|finding| finding.contains("|ConditionalMissingKeys|Properties.Tags.")).count(),
+        2
+    );
+    for resource in [
+        "DistinctKeys",
+        "MutuallyExclusiveTags",
+        "CustomResourceControl",
+        "ParameterAndLiteralControl",
+        "DifferentParametersControl",
+        "PseudoAndLiteralControl",
+        "DifferentGetAttTargetsControl",
+    ] {
+        assert!(rego_findings.iter().all(|finding| !finding.contains(&format!("|{resource}|"))));
+    }
+}
+
+#[test]
+fn whole_properties_nested_unreachable_branches_keep_authored_paths_and_spans() {
+    let template = include_str!("../../resources/templates/bad/W1028_whole_properties_nested_branch.yaml");
+    let (rego, cel) = engines();
+    let expected = [
+        "Bucket|Properties.Fn::If.1.BucketName.Fn::If.2|12:57".to_string(),
+        "Bucket|Properties.Fn::If.2.BucketName.Fn::If.1|13:38".to_string(),
+    ];
+    let rego_findings = selected_finding_anchors(&rego, template, &["W1028"]);
+    let cel_findings = selected_finding_anchors(&cel, template, &["W1028"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings, expected);
+}
+
+#[test]
+fn scenario_product_covering_is_reported_as_incomplete_analysis() {
+    let template = include_str!("../../resources/templates/bad/W9052_scenario_product_covering.yaml");
+    let validator = SchemaValidator::default();
+    let (rego, cel) = engines();
+    let rego_report = validate_bytes(&rego, &validator, template.as_bytes(), ValidateConfig::default()).unwrap();
+    let cel_report = validate_bytes(&cel, &validator, template.as_bytes(), ValidateConfig::default()).unwrap();
+
+    assert_eq!(rego_report.status, ReportStatus::AnalysisIncomplete);
+    assert_eq!(cel_report.status, ReportStatus::AnalysisIncomplete);
+    let rego_warning = rego_report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "W9052").count();
+    let cel_warning = cel_report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "W9052").count();
+    assert_eq!(rego_warning, 1);
+    assert_eq!(cel_warning, 1);
+    let exhaustions = rego_report.metadata.budget_exhaustions.expect("covering metadata must be present");
+    assert!(exhaustions.iter().any(|record| record.kind == "scenarioProductCovering" && record.analysis_incomplete));
+}
+
+#[test]
+fn parameter_default_fragments_are_not_checked_as_whole_property_values() {
+    let template = r#"
+Parameters:
+  Prefix: {Type: String, Default: ''}
+  Suffix: {Type: String, Default: suffix}
+Resources:
+  Joined:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ['', [!Ref Prefix, function]]
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+  Substituted:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Prefix}function'
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+  Selected:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Join ['-', [function, !Select [0, [!Ref Suffix]]]]
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/example
+      Code: {ZipFile: x}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W1030"]);
+    let cel_findings = selected_findings(&cel, template, &["W1030"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "a parameter fragment is not the destination property value");
+}
+
+#[test]
+fn whole_properties_mapping_branch_unreachable_span_uses_first_authored_key() {
+    let template = include_str!("../../resources/templates/good/W2530_snapstart_unreachable_or_published.yaml");
+    let (rego, cel) = engines();
+    let rego_anchors = selected_finding_anchors(&rego, template, &["W1028"]);
+    let cel_anchors = selected_finding_anchors(&cel, template, &["W1028"]);
+
+    assert_eq!(rego_anchors, cel_anchors);
+    assert!(
+        rego_anchors
+            .iter()
+            .any(|anchor| { anchor == "PropertiesBranchExcludedByResourceCondition|Properties.Fn::If.2|19:9" }),
+        "the unreachable mapping branch must anchor at its first authored property: {rego_anchors:?}"
+    );
+}
+
+#[test]
+fn aws_no_value_does_not_defer_a_container_type_violation() {
+    let template = include_str!("../../resources/templates/bad/F3012_novalue_container_type.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["F3012"]);
+    let cel_findings = selected_findings(&cel, template, &["F3012"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "the surviving list remains the wrong type: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Function|Properties.MemorySize|"));
+}
+
+#[test]
+fn non_object_intrinsic_items_do_not_emit_nested_required_findings() {
+    let template = r#"
+Resources:
+  SplitIngress:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: example
+      SecurityGroupIngress: !Split [',', 'first,second']
+  AvailabilityZoneIngress:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: example
+      SecurityGroupIngress: !GetAZs ''
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["F3003"]);
+    let cel_findings = selected_findings(&cel, template, &["F3003"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "required object members do not apply to scalar list items");
 }

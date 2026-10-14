@@ -16,9 +16,16 @@ case "$ARCH" in
 esac
 
 case "$(uname -s)" in
-    Darwin*)              OS="darwin"; SRC_BIN="cfn-validate"; OUT_BIN="cfn-validate-${OS}-${ARCH}"     ;;
-    Linux*)               OS="linux";  SRC_BIN="cfn-validate"; OUT_BIN="cfn-validate-${OS}-${ARCH}"     ;;
-    MINGW*|MSYS*|CYGWIN*) OS="win32";  SRC_BIN="cfn-validate.exe"; OUT_BIN="cfn-validate-${OS}-${ARCH}.exe" ;;
+    Darwin*) OS="darwin"; SRC_BIN="cfn-validate"; OUT_BIN="cfn-validate-${OS}-${ARCH}"     ;;
+    Linux*)
+        OS="${CFN_VALIDATE_LINUX_PLATFORM:-linux}"
+        case "$OS" in
+            linux|amazonlinux) ;;
+            *) echo "Unsupported Linux artifact platform: $OS" >&2; exit 1 ;;
+        esac
+        SRC_BIN="cfn-validate"; OUT_BIN="cfn-validate-${OS}-${ARCH}"
+        ;;
+    MINGW*|MSYS*|CYGWIN*) OS="win32"; SRC_BIN="cfn-validate.exe"; OUT_BIN="cfn-validate-${OS}-${ARCH}.exe" ;;
     *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 
