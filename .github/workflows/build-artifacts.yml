@@ -301,7 +301,7 @@ jobs:
         shell: bash
     steps:
     - name: Install Amazon Linux build dependencies
-      run: dnf install -y curl gcc git gzip tar
+      run: dnf install -y curl-minimal gcc git gzip tar
 
     - uses: actions/checkout@v6
 
