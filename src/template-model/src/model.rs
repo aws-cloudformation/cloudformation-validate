@@ -2333,6 +2333,26 @@ impl SemanticModel {
         shared
     }
 
+    /// Returns the CloudFormation name of the intrinsic authored exactly at `path`.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn authored_intrinsic_name_at(&self, resource_id: &str, path: &str) -> Option<&'static str> {
+        let node_ref = self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
+        match self.arena.node(*node_ref) {
+            Node::Intrinsic(intrinsic) => Some(cfn_function_name(intrinsic)),
+            _ => None,
+        }
+    }
+
+    /// Returns the selected Ref target when a literal-index `Fn::Select` at `path`
+    /// chooses a Ref directly or through nested literal-index selects.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn authored_select_ref_target_at(&self, resource_id: &str, path: &str) -> Option<&str> {
+        let node_ref = self.value_nodes.get(&(resource_id.to_string(), path.to_string()))?;
+        selected_ref_target(&self.arena, *node_ref)
+    }
+
     /// Whether the authored node at `path` is exactly a Ref to `target`.
     #[must_use]
     pub fn is_authored_ref_at(&self, resource_id: &str, path: &str, target: &str) -> bool {
@@ -2911,6 +2931,22 @@ fn collect_refs_in_subtree(
             }
         }
         _ => {}
+    }
+}
+
+fn selected_ref_target(arena: &Arena, node_ref: NodeRef) -> Option<&str> {
+    match arena.node(node_ref) {
+        Node::Intrinsic(IntrinsicFn::Ref(target)) => Some(target),
+        Node::Intrinsic(IntrinsicFn::Select(index_ref, values_ref)) => {
+            let index = match arena.node(*index_ref) {
+                Node::Int(index) => usize::try_from(*index).ok()?,
+                Node::String(index) => index.parse().ok()?,
+                _ => return None,
+            };
+            let selected_ref = arena.as_list(*values_ref)?.get(index)?;
+            selected_ref_target(arena, *selected_ref)
+        }
+        _ => None,
     }
 }
 

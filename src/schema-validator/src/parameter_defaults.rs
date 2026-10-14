@@ -1,4 +1,4 @@
-use crate::compiled::PropSchema;
+use crate::compiled::{CompiledSchema, PropSchema};
 use crate::store::CompiledSchemaStore;
 use crate::validate::find_prop_schema_deep;
 use diagnostics::{Diagnostic, RegisteredDiagnostic};
@@ -15,31 +15,41 @@ fn directly_referenced_property_path(source_path: &str) -> Option<String> {
     (!property_path.is_empty()).then(|| property_path.to_string())
 }
 
-fn containing_property_path(model: &SemanticModel, resource_id: &str, source_path: &str) -> Option<String> {
+fn composed_constraint_rule_id(intrinsic_name: &str) -> Option<&'static str> {
+    match intrinsic_name.strip_prefix("Intrinsic/").unwrap_or(intrinsic_name) {
+        "Sub" | "Fn::Sub" => Some("W1031"),
+        "Join" | "Fn::Join" => Some("W1032"),
+        "Split" | "Fn::Split" => Some("W1033"),
+        "FindInMap" | "Fn::FindInMap" => Some("W1034"),
+        "Select" | "Fn::Select" => Some("W1035"),
+        "GetAZs" | "Fn::GetAZs" => Some("W1036"),
+        _ => None,
+    }
+}
+
+fn containing_property_path(
+    model: &SemanticModel,
+    resource_schema: &CompiledSchema,
+    resource_id: &str,
+    source_path: &str,
+) -> Option<(String, String, &'static str)> {
     let mut ancestor = source_path.to_string();
     loop {
-        let is_intrinsic_root = model
-            .resolution_sources
-            .get(&(resource_id.to_string(), ancestor.clone()))
-            .is_some_and(|source| source.starts_with("Intrinsic/"));
-        if is_intrinsic_root {
-            return effective_path_from_scenario_source_path(&ancestor);
+        let source = model.resolution_sources.get(&(resource_id.to_string(), ancestor.clone()));
+        let rule_id = model
+            .authored_intrinsic_name_at(resource_id, &ancestor)
+            .and_then(composed_constraint_rule_id)
+            .or_else(|| source.and_then(|source| composed_constraint_rule_id(source)));
+        if let Some(rule_id) = rule_id
+            && let Some(effective_path) = effective_path_from_scenario_source_path(&ancestor)
+            && let Some(property_path) = effective_path.strip_prefix("Properties.")
+            && find_prop_schema_deep(property_path, resource_schema).is_some()
+        {
+            return Some((effective_path, ancestor, rule_id));
         }
-        let Some((parent, _)) = ancestor.rsplit_once('.') else {
-            break;
-        };
+        let (parent, _) = ancestor.rsplit_once('.')?;
         ancestor = parent.to_string();
     }
-
-    let effective_path = effective_path_from_scenario_source_path(source_path)?;
-    let mut property_segments = Vec::new();
-    for segment in effective_path.strip_prefix("Properties.")?.split('.') {
-        if segment.starts_with("Fn::") || segment == "Ref" {
-            break;
-        }
-        property_segments.push(segment);
-    }
-    (!property_segments.is_empty()).then(|| format!("Properties.{}", property_segments.join(".")))
 }
 
 fn condition_scenario(context: Option<&str>) -> Option<HashMap<String, bool>> {
@@ -52,14 +62,6 @@ fn condition_scenario(context: Option<&str>) -> Option<HashMap<String, bool>> {
         }
     }
     (!conditions.is_empty()).then_some(conditions)
-}
-
-fn is_specialized_parameter_check(parameter_type: &str, source_path: &str) -> bool {
-    (parameter_type == PARAM_TYPE_STRING
-        && (source_path.ends_with("ImageId")
-            || source_path.ends_with("CidrBlock")
-            || source_path.ends_with("DestinationCidrBlock")))
-        || (parameter_type == "AWS::EC2::VPC::Id" && source_path.ends_with("VpcId"))
 }
 
 struct ParameterCandidate<'a> {
@@ -169,8 +171,9 @@ fn constraint_violations(
 
 fn push_warning(
     diagnostics: &mut Vec<Diagnostic>,
-    emitted: &mut HashSet<(String, String, String)>,
+    emitted: &mut HashSet<(String, String, String, String, String)>,
     model: &SemanticModel,
+    rule_id: &str,
     resource_id: &str,
     source_path: &str,
     condition_scenario: Option<HashMap<String, bool>>,
@@ -183,11 +186,17 @@ fn push_warning(
         message
     };
     let diagnostic_path = parameter_anchor.unwrap_or(source_path).to_string();
-    let identity = (resource_id.to_string(), diagnostic_path.clone(), message.clone());
+    let identity = (
+        rule_id.to_string(),
+        resource_id.to_string(),
+        source_path.to_string(),
+        diagnostic_path.clone(),
+        message.clone(),
+    );
     if !emitted.insert(identity) {
         return;
     }
-    let mut diagnostic = RegisteredDiagnostic::new("W1030", message)
+    let mut diagnostic = RegisteredDiagnostic::new(rule_id, message)
         .property_path(&diagnostic_path)
         .condition_scenario(condition_scenario);
     if parameter_anchor.is_some() {
@@ -228,9 +237,7 @@ pub(crate) fn parameter_default_constraint_diagnostics(
         let Some(parameter) = model.parameters.get(&edge.target) else {
             continue;
         };
-        if !matches!(parameter.param_type.as_str(), PARAM_TYPE_STRING | PARAM_TYPE_NUMBER)
-            || is_specialized_parameter_check(&parameter.param_type, &edge.source_path)
-        {
+        if !matches!(parameter.param_type.as_str(), PARAM_TYPE_STRING | PARAM_TYPE_NUMBER) {
             continue;
         }
         let Some(resource) = model.resources.get(&edge.source_resource) else {
@@ -259,6 +266,7 @@ pub(crate) fn parameter_default_constraint_diagnostics(
                     &mut diagnostics,
                     &mut emitted,
                     model,
+                    "W1030",
                     &edge.source_resource,
                     &edge.source_path,
                     condition_scenario(edge.condition_context.as_deref()),
@@ -269,7 +277,7 @@ pub(crate) fn parameter_default_constraint_diagnostics(
         }
     }
 
-    let mut processed_composed_properties = HashSet::new();
+    let mut processed_composed_sources = HashSet::new();
     for edge in &model.graph.edges {
         if !matches!(edge.kind, RefKind::Ref) || model.parameter_has_override(&edge.target) {
             continue;
@@ -277,7 +285,9 @@ pub(crate) fn parameter_default_constraint_diagnostics(
         let Some(parameter) = model.parameters.get(&edge.target) else {
             continue;
         };
-        if parameter.default.is_none() && parameter.allowed_values.is_none() {
+        if !matches!(parameter.param_type.as_str(), PARAM_TYPE_STRING | PARAM_TYPE_NUMBER)
+            || (parameter.default.is_none() && parameter.allowed_values.is_none())
+        {
             continue;
         }
         let Some(resource) = model.resources.get(&edge.source_resource) else {
@@ -292,10 +302,12 @@ pub(crate) fn parameter_default_constraint_diagnostics(
         if is_direct_destination {
             continue;
         }
-        let Some(effective_path) = containing_property_path(model, &edge.source_resource, &edge.source_path) else {
+        let Some((effective_path, intrinsic_source_path, rule_id)) =
+            containing_property_path(model, resource_schema, &edge.source_resource, &edge.source_path)
+        else {
             continue;
         };
-        if !processed_composed_properties.insert((edge.source_resource.clone(), effective_path.clone())) {
+        if !processed_composed_sources.insert((edge.source_resource.clone(), intrinsic_source_path.clone())) {
             continue;
         }
         let Some(property_path) = effective_path.strip_prefix("Properties.") else {
@@ -309,19 +321,41 @@ pub(crate) fn parameter_default_constraint_diagnostics(
             if !model.conditions.is_satisfiable(&assumptions) || value.is_null() {
                 continue;
             }
+            let source_path = model
+                .scenario_source_path(&edge.source_resource, &effective_path, &conditions)
+                .unwrap_or_else(|| effective_path.clone());
+            let intrinsic_descendant_prefix = format!("{intrinsic_source_path}.");
+            if source_path != intrinsic_source_path && !source_path.starts_with(&intrinsic_descendant_prefix) {
+                continue;
+            }
+            let selected_parameter_candidate = (rule_id == "W1035")
+                .then(|| model.authored_select_ref_target_at(&edge.source_resource, &intrinsic_source_path))
+                .flatten()
+                .and_then(|target| model.parameters.get(target).map(|parameter| (target, parameter)))
+                .filter(|(target, parameter)| {
+                    !model.parameter_has_override(target)
+                        && matches!(parameter.param_type.as_str(), PARAM_TYPE_STRING | PARAM_TYPE_NUMBER)
+                })
+                .and_then(|(target, parameter)| {
+                    parameter_candidates(target, parameter)
+                        .into_iter()
+                        .find(|candidate| scalar_eq(&serde_json::Value::String(candidate.value.to_string()), &value))
+                });
             let reference = format!("Resolved parameter-dependent value {}", value);
             for violation in constraint_violations(&value, &reference, property_path, &constraints) {
-                let source_path = model
-                    .scenario_source_path(&edge.source_resource, &effective_path, &conditions)
-                    .unwrap_or_else(|| effective_path.clone());
+                let parameter_anchor = selected_parameter_candidate
+                    .as_ref()
+                    .filter(|candidate| !candidate.is_default || violation.anchor_default_at_parameter)
+                    .map(|candidate| candidate.anchor.as_str());
                 push_warning(
                     &mut diagnostics,
                     &mut emitted,
                     model,
+                    rule_id,
                     &edge.source_resource,
                     &source_path,
                     (!conditions.is_empty()).then_some(conditions.clone()),
-                    None,
+                    parameter_anchor,
                     violation.message,
                 );
             }

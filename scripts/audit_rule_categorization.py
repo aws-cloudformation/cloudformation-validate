@@ -829,10 +829,6 @@ def build_report(origins: RuleOrigins) -> str:
         # Intrinsic resolved-value rules - our engine does resolution during
         # SemanticModel build; resolved-value errors surface via schema rules:
         "W1019": ("F1018/E1029", "Fn::Sub parameter usage"),
-        "W1031": ("F3012+W9003", "Fn::Sub resolved values (via resolver)"),
-        "W1032": ("F3012+W9003", "Fn::Join resolved values"),
-        "W1033": ("F3012+W9003", "Fn::Split resolved values"),
-        "W1035": ("F3012+W9003", "Fn::Select resolved values"),
         "W1040": ("F3012+W9003", "Fn::ToJsonString resolved values"),
         "W2030": ("F2015", "Parameter Default enum check"),
         "W2031": ("F3031", "Parameter AllowedPattern check"),

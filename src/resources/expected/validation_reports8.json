@@ -1528,7 +1528,7 @@
         "phase": "PARSE"
       },
       {
-        "ruleId": "W1030",
+        "ruleId": "W1031",
         "severity": "WARN",
         "message": "Resolved parameter-dependent value \"Bucket-dev\" does not match pattern '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' for property 'BucketName'",
         "source": "CFN_LINT",
@@ -1543,7 +1543,7 @@
         "startColumn": 9,
         "endLine": 57,
         "endColumn": 20,
-        "ruleDescription": "Validate the values that come from a Ref function",
+        "ruleDescription": "Validate the values that come from a Fn::Sub function",
         "phase": "LINT"
       },
       {
@@ -1848,7 +1848,7 @@
         "phase": "PARSE"
       },
       {
-        "ruleId": "W1030",
+        "ruleId": "W1031",
         "severity": "WARN",
         "message": "Resolved parameter-dependent value \"Bucket5-dev\" does not match pattern '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' for property 'BucketName'",
         "source": "CFN_LINT",
@@ -1863,11 +1863,11 @@
         "startColumn": 7,
         "endLine": 53,
         "endColumn": 17,
-        "ruleDescription": "Validate the values that come from a Ref function",
+        "ruleDescription": "Validate the values that come from a Fn::Sub function",
         "phase": "LINT"
       },
       {
-        "ruleId": "W1030",
+        "ruleId": "W1031",
         "severity": "WARN",
         "message": "Resolved parameter-dependent value \"Bucket6-dev\" does not match pattern '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' for property 'BucketName'",
         "source": "CFN_LINT",
@@ -1882,7 +1882,7 @@
         "startColumn": 7,
         "endLine": 58,
         "endColumn": 17,
-        "ruleDescription": "Validate the values that come from a Ref function",
+        "ruleDescription": "Validate the values that come from a Fn::Sub function",
         "phase": "LINT"
       },
       {

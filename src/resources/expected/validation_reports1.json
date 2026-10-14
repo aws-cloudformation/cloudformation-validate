@@ -9657,7 +9657,7 @@
         "phase": "LINT"
       },
       {
-        "ruleId": "W1030",
+        "ruleId": "W1032",
         "severity": "WARN",
         "message": "Resolved parameter-dependent value \"Imp\" is not one of the allowed values for property 'PackageType'",
         "source": "CFN_LINT",
@@ -9672,45 +9672,43 @@
         "startColumn": 7,
         "endLine": 135,
         "endColumn": 18,
-        "ruleDescription": "Validate the values that come from a Ref function",
+        "ruleDescription": "Validate the values that come from a Fn::Join function",
         "phase": "LINT"
       },
       {
-        "ruleId": "W1030",
+        "ruleId": "W1035",
         "severity": "WARN",
-        "message": "Resolved parameter-dependent value 0 is below minimum 1 for property 'Timeout'",
+        "message": "Resolved parameter-dependent value 0 is below minimum 1 for property 'Timeout' when resolved at Resources/ComposedConsumers/Properties/Timeout",
         "source": "CFN_LINT",
         "entity": {
-          "logicalId": "ComposedConsumers",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
+          "logicalId": "Timeout",
+          "entityType": "Parameter"
         },
-        "propertyPath": "Properties.Timeout",
+        "propertyPath": "Parameters/Timeout/Default",
         "category": "Best Practice",
-        "startLine": 136,
-        "startColumn": 7,
-        "endLine": 136,
-        "endColumn": 14,
-        "ruleDescription": "Validate the values that come from a Ref function",
+        "startLine": 12,
+        "startColumn": 27,
+        "endLine": 12,
+        "endColumn": 34,
+        "ruleDescription": "Validate the values that come from a Fn::Select function",
         "phase": "LINT"
       },
       {
-        "ruleId": "W1030",
+        "ruleId": "W1035",
         "severity": "WARN",
-        "message": "Resolved parameter-dependent value 1024 is not one of the allowed values for property 'RetentionInDays'",
+        "message": "Resolved parameter-dependent value 1024 is not one of the allowed values for property 'RetentionInDays' when resolved at Resources/ComposedNumberEnum/Properties/RetentionInDays",
         "source": "CFN_LINT",
         "entity": {
-          "logicalId": "ComposedNumberEnum",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
+          "logicalId": "InvalidRetentionDays",
+          "entityType": "Parameter"
         },
-        "propertyPath": "Properties.RetentionInDays",
+        "propertyPath": "Parameters/InvalidRetentionDays/Default",
         "category": "Best Practice",
-        "startLine": 148,
-        "startColumn": 7,
-        "endLine": 148,
-        "endColumn": 22,
-        "ruleDescription": "Validate the values that come from a Ref function",
+        "startLine": 20,
+        "startColumn": 40,
+        "endLine": 20,
+        "endColumn": 47,
+        "ruleDescription": "Validate the values that come from a Fn::Select function",
         "phase": "LINT"
       },
       {

@@ -495,7 +495,9 @@ fn issue_49_region_scoped_enums_assume_us_east_1() {
 #[test]
 fn issue_50_no_false_positive_on_fn_split_ref_iam_resource() {
     let diags = validate_all("issue-50.json");
-    assert_absent(&diags, "W1030");
+    for rule_id in ["W1030", "W1031", "W1032", "W1033", "W1034", "W1035", "W1036"] {
+        assert_absent(&diags, rule_id);
+    }
     assert_fires_on_resource(&diags, "I9040", "MyFunctionServiceRole");
     assert_count(&diags, "I9040", 1);
 }
