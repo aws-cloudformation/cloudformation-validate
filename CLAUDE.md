@@ -39,7 +39,9 @@ cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate
 # Core Rust tests - only when they cover the changed behavior
 cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test - preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
-# CI runs coverage, not plain test: cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
+# CI runs both plain workspace tests and coverage:
+# cargo test --locked --profile ci --workspace --no-fail-fast
+# cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
 
 # Required after every Rust source change
 cargo fmt --all
@@ -102,7 +104,7 @@ the tree.
 - **Never hand-edit `data-source/generated/`, and never run the regeneration pipeline yourself.** It is committed
   generated code; regeneration is a maintainer-run operation - if a change requires regenerating these artifacts,
   stop and ask the user to run it. `data-source/handwritten/` holds reusable JSON reference tables; add one only
-  when a rule needs a data table.
+  when a rule or validator needs reusable data.
 - **Generated binding artifacts are workflow-owned.** The `build-artifacts` workflow commits them. Local generation
   is permitted only when needed to test a hand-maintained change, and every generated artifact must be reverted after
   the affected binding tests pass.
@@ -116,8 +118,9 @@ the tree.
 - Derive expected validation behavior from first principles: compiled CloudFormation schemas and template syntax,
   official documentation and resource specifications, intrinsic/resource semantics, and focused valid and invalid
   examples. External tools are comparison evidence, not unquestionable truth.
-- **Fatal (F)** rules must reflect what CloudFormation itself rejects per the compiled resource schemas - no semantic
-  interpretation, no cross-resource analysis. cfn-lint has no Fatal severity: both **Fatal (F)** and **Error (E)** here
+- **Fatal (F)** rules must be Schema-origin violations that CloudFormation itself rejects under provider schemas or
+  template-language structural, syntax, and shape rules. cfn-lint has no Fatal severity: both **Fatal (F)** and **Error
+  (E)** here
   map to a cfn-lint **Error**. A promoted rule keeps the number with the prefix changed (for example,
   `F3006` ↔ cfn-lint `E3006`); this numbering relationship does not make cfn-lint authoritative.
 - **A rule whose number matches cfn-lint SHOULD implement the same check and behave similarly on firing and location,**
@@ -172,7 +175,8 @@ workflow-only edits.
 2. Add or reproduce a template under `src/resources/templates/` (`bad/` for the repro, `good/` for a counter-example).
 3. Check the SemanticModel with `inspect`; fix `template-model` if the model is wrong.
 4. Compare against cfn-lint for E/W/I or cfn-guard for Guard. Investigate a cfn-lint mismatch using the independent
-   evidence rather than assuming cfn-lint is correct. Validate Fatal behavior against the compiled schemas.
+   evidence rather than assuming cfn-lint is correct. Validate Fatal behavior against the applicable compiled provider
+   schemas or CloudFormation-defined template-language rules.
 5. Run `cfn-validate` with all three engines (`rego`, `cel`, `composite`), then the corpus; all three outputs must
    agree and stay free of false positives, and any built-in-rule mismatch is diagnosed in the Rego or CEL
    implementation. Regenerate the snapshot files if diagnostics legitimately changed.

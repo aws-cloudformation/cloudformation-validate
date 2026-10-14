@@ -8,7 +8,8 @@ src/
 ├── rust-toolchain.toml         # Pinned toolchain + wasm32 target
 ├── bindings-rust/              # Public Rust library facade published as `cloudformation-validate`
 ├── cfn-validate/               # CLI binary (`cfn-validate`) and CLI-only helpers
-├── validation-engine/          # ValidationEngine trait, orchestration pipeline, Step Functions validation
+├── validation-engine/          # ValidationEngine trait, orchestration pipeline, Step Functions and
+│                               # Metadata Context validation
 ├── template-model/             # LEAF crate — parser (JSON/YAML), SemanticModel, intrinsic resolver,
 │                               # condition SAT solver, reference graph, SAM transform, nesting, template
 │                               # vocabulary (TopLevelSection/EntityType, SourceSpan, JsonValue), ParseDefect
@@ -30,10 +31,10 @@ src/
 ├── data-source/                # BUILD-TIME — downloads schemas, syncs cfn-lint data, generates
 │   ├── src/                    # schema-validator artifacts and CEL rules; build.rs embeds generated
 │   │                           # and hand-maintained shared data into the binary (zstd)
-│   ├── generated/              # Generated artifacts (committed, NEVER edit manually)
-│   ├── handwritten/            # Hand-maintained JSON reference tables (deprecated resource types,
-│   │                           # sensitive ports, GetAtt return-type overrides, schema-dependent
-│   │                           # exclusion overrides)
+│   ├── generated/              # Generated artifacts (tracked except gitignored patched_schemas/; NEVER edit manually)
+│   ├── handwritten/            # Hand-maintained JSON reference tables (deprecated resource types, sensitive ports,
+│   │                           # Secrets Manager ARN fields, GetAtt overrides, Metadata Context schema, and
+│   │                           # generation-only schema-dependent exclusion overrides)
 │   ├── scripts/                # Maintainer-run Python generators (AWS CLI operation catalog, cfn-lint data sync)
 │   └── upstream/               # Upstream schema sources (provider schemas, extensions)
 ├── guard-translator/           # Guard DSL evaluation via the Guard evaluator (cloudformation-guard-lang) against the
@@ -50,9 +51,9 @@ src/
 │   ├── generated/              # Built jar (cloudformation-validate.jar)
 │   ├── tests/                  # Kotlin test suite (run.sh)
 │   └── examples/               # Usage examples
-├── bindings-python/            # Python bindings (UniFFI) — wheel with per-platform natives
+├── bindings-python/            # Python bindings (UniFFI) — one platform-tagged wheel per native target
 │   ├── python/                 # Hand-maintained public API (wrappers, re-exports, native dispatch)
-│   ├── generated/              # Build output: assembled package + dist/*.whl (only the wheel is committed)
+│   ├── generated/              # Build output: assembled package + dist/*.whl (only the platform wheels are committed)
 │   └── tests/                  # Python test suite (run.sh)
 ├── bindings-go/                # Go bindings (UniFFI via uniffi-bindgen-go) — JSON-over-FFI, cgo static linking
 │   ├── go/                     # The published Go module: hand-maintained API + types, generated
@@ -64,7 +65,7 @@ src/
     ├── src/                    # Corpus discovery API (templates_dir, load_merged_snapshots, discover_snapshot_chunks, …)
     ├── examples/               # generate_validation_reports.rs — snapshot regeneration
     ├── templates/              # Test corpus
-    │   ├── good/               # Valid templates — expect zero diagnostics
+    │   ├── good/               # Valid and counter-example templates — must produce no false positives
     │   ├── bad/                # Invalid templates — named after the rule/behavior they test
     │   ├── gh-issues/          # GitHub issue reproductions
     │   ├── issues/             # Bug reproductions
@@ -85,8 +86,8 @@ src/
 - `.kiro/steering/private/` — gitignored machine-local confidential agent context and skills; its filenames and
   contents must never be committed
 - `scripts/` — Python comparison/audit/benchmark scripts and their `snapshots/` data (see `tech.md` for usage)
-- `.github/workflows/` — CI: format check, clippy, cargo audit, coverage tests on all supported OSes, JVM + WASM +
-  Python + Go test jobs
+- `.github/workflows/` — CI: format check, clippy, cargo audit, Rust tests (plain and coverage), JVM + WASM + Python
+  + Go test jobs
 - `release-bin/` — prebuilt per-platform `cfn-validate` CLI binaries (committed); written by `cfn-validate/build.sh`
   and read by the release workflow
 - `tmp/` — scratch files, debug output, tool artifacts (gitignored)
@@ -100,16 +101,18 @@ src/
 - A number cfn-lint uses is never reused for a different check; engine-assigned rules (aliases and engine-extra) use
   the 9xxx range. See `product.md` for the full origin taxonomy and numbering rules.
 - Test templates in `templates/bad/` are named after the rule or behavior they test (e.g.
-  `E3012_invalid_ref_target.yaml`).
+  `F3012_novalue_container_type.yaml`).
 
 ### Where code must live
 
-- **Generated code lives in `data-source/generated/`.** Never edit by hand. Regenerate by changing inputs in
-  `data-source/handwritten/` or the upstream sync and rebuilding.
-- **Hand-maintained reference data tables live in `data-source/handwritten/`.** These are JSON lookup files
-  (deprecated resource types, sensitive ports, GetAtt return-type overrides, schema-dependent exclusion overrides)
-  consumed by rules at runtime. Add a new entry here only when a rule needs a reusable data table — rules themselves
-  go in `rego-engine/handwritten/rego/` or `cel-engine/src/rules/`.
+- **Generated code lives in `data-source/generated/`.** Never edit or regenerate it yourself. Maintainers regenerate
+  it with the `data-source` sync/generate pipeline; ask the user to run that pipeline when a change requires it.
+- **Hand-maintained reference data tables live in `data-source/handwritten/`.** These are JSON lookup files for
+  deprecated resource types, sensitive ports, Secrets Manager ARN fields, GetAtt return-type overrides, Metadata
+  Context, and schema-dependent exclusion overrides. Runtime validation consumes every table except the schema-dependent
+  exclusions; the maintainer generation pipeline consumes those exclusions and also the GetAtt overrides. Add a new
+  table only when a rule or validator needs reusable data. Rules themselves go in
+  `rego-engine/handwritten/rego/` or `cel-engine/src/rules/`.
 - **Hand-written Rego policies live in `rego-engine/handwritten/rego/`.** These are hand-authored Rego rules organized
   by category (structure, intrinsics, references, resources, best_practices). They are embedded into the binary by
   `rego-engine/build.rs`.

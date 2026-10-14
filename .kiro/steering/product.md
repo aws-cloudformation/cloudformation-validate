@@ -30,20 +30,19 @@ Consumers in priority order: IDE language servers, CI/CD, agentic workflows, AWS
 
 ## Severity model
 
-| Severity | Prefix | Source           | Meaning                                                                                                              |
-|----------|--------|------------------|----------------------------------------------------------------------------------------------------------------------|
-| Fatal    | F      | schema-validator | Structural template violation guaranteed to cause a CloudFormation deployment failure based on the resource schemas. |
-| Error    | E      | engine rules     | Semantic issue — likely deploy failure or wrong runtime behavior.                                                    |
-| Warn     | W      | engine rules     | Security risk, deprecation, or risky pattern.                                                                        |
-| Info     | I      | engine rules     | Best practice or optimization.                                                                                       |
-| Debug    | D      | engine rules     | Internal diagnostic detail.                                                                                          |
+| Severity | Prefix | Meaning                                                                     |
+|----------|--------|-----------------------------------------------------------------------------|
+| Fatal    | F      | Provider-schema or template-language violation that CloudFormation rejects. |
+| Error    | E      | Issue likely to cause deployment failure or wrong runtime behavior.         |
+| Warn     | W      | Security risk, deprecation, compatibility issue, or risky pattern.          |
+| Info     | I      | Best practice, optimization, or contextual guidance.                        |
+| Debug    | D      | Internal diagnostic detail.                                                 |
 
 The enum variant is `Warn`, not `Warning`. Serialized form is `WARN`.
 
-Fatal severity is reserved for structural violations the schema validator can prove against the compiled
-CloudFormation resource schemas — no semantic interpretation, no cross-resource analysis, no runtime context. Anything
-requiring those belongs to E/W/I and is evaluated by the rule engines. cfn-lint-sourced rules keep their original
-E/W/I severity.
+Fatal severity is reserved for Schema-origin violations CloudFormation provably rejects: compiled provider-schema
+constraints and CloudFormation-defined template structural, syntax, and shape rules. Non-Schema semantic, security,
+and best-practice judgments belong to E/W/I. cfn-lint-sourced rules keep their original E/W/I severity.
 
 ## Relationship to cfn-lint — compatibility evidence
 
@@ -108,7 +107,8 @@ These apply to every change. No exceptions.
 - No silent failures. Unexpected states produce errors, never plausible-looking defaults.
 - No hard crashes. Errors and exceptions never panic the process — they propagate through the language boundary
   layers (JVM, Python, Go, WASM) as catchable errors so callers can handle them.
-- Fatal rules must reflect what CloudFormation itself rejects based on the compiled resource schemas.
+- Fatal rules must reflect what CloudFormation itself rejects based on compiled provider schemas or the template
+  language's structural, syntax, and shape rules.
 - Investigate cfn-lint mismatches; preserve compatibility when it is correct and intentionally diverge when stronger
   evidence proves that it is not.
 - Rego and CEL engines must have parity — same rules, results, severities, messages — but parity is a consequence of

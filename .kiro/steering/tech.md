@@ -23,12 +23,12 @@ stop and ask the user to run it.
 
 Generated binding artifacts are owned and committed by the `build-artifacts` workflow, not by local development
 changes. If binding generation is required to test a change, generate the bindings locally, run the affected binding
-checks, then revert every generated binding artifact before finishing. Commit only the hand-maintained source change;
-the workflow will commit required generated artifacts.
+checks, then revert every generated binding artifact before finishing. Leave only the hand-maintained source change in
+the working tree; the workflow will commit required generated artifacts.
 
 ## Cargo usage and change-appropriate validation
 
-All `cargo` commands run from `src/` (the workspace root is the repo root; the Cargo workspace lives in `src/`). Select
+All `cargo` commands run from `src/` (the Cargo workspace root is `src/`, not the repository root). Select
 checks by the behavior and artifact changed, not from a blanket checklist. Run a command only when it can exercise the
 change. If no files changed, run no tests or validation commands. For mixed changes, apply the union of the relevant
 checks.
@@ -43,7 +43,9 @@ cargo build -p cfn-validate                   # CLI -> target/debug/cfn-validate
 # Core Rust tests — only when these tests exercise the changed behavior
 cargo test -p cloudformation-validate-cel-engine <name>               # single crate / filtered test — preferred while iterating
 cargo test --workspace 2>&1 | tee ../tmp/test-output.txt   # broad core changes only; at most once at completion
-# CI runs coverage, not plain test: cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
+# CI runs both plain workspace tests and coverage:
+# cargo test --locked --profile ci --workspace --no-fail-fast
+# cargo llvm-cov --locked --profile ci --workspace --no-fail-fast
 
 # Required after every Rust source change
 cargo fmt --all
@@ -93,7 +95,8 @@ A mismatch must be investigated; it does not by itself prove which implementatio
   authored template, so a mismatch points at the authored-template rendering in `template-model` or the finding-to-
   diagnostic mapping in `validation-engine`, never at an engine.
 
-Fatal rules are validated against the compiled CloudFormation resource schemas — they must reflect what
+Resource-schema Fatal rules are validated against the compiled CloudFormation provider schemas; template-language
+Fatal rules are checked against CloudFormation-defined structural, syntax, and shape rules. All must reflect what
 CloudFormation itself rejects, not the behavior of any external linter.
 
 ## Debugging and analysis tools
@@ -172,7 +175,8 @@ unrelated changes such as documentation or workflow-only edits.
 3. Check the SemanticModel with `inspect`. If the model is wrong, fix template-model first.
 4. Compare against the applicable external implementation (cfn-lint for E/W/I, cloudformation-guard for Guard). If
    cfn-lint differs, investigate and resolve the mismatch using the first-principles evidence; do not assume cfn-lint
-   is correct. Fatal rules are checked against the compiled schemas.
+   is correct. Fatal rules are checked against the applicable compiled provider schemas or CloudFormation-defined
+   template-language rules.
 5. Run `cfn-validate` with `--engine rego`, `--engine cel`, and `--engine composite` on the repro template. All three
    outputs must be identical on rule ID, severity, location, and message. `composite` reuses the CEL built-ins and
    layers an external-only Rego engine for custom Rego rules, so it is not a third built-in implementation — diagnose

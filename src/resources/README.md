@@ -21,19 +21,20 @@ exactly the `.guard` and `.rego` files of this directory - a new fixture joins t
 automatically, and one that fails to evaluate on a corpus template shows up in the report's "Templates Failing Under
 a Rule Pack" list rather than silently.
 
-- **Guard pack** (`guard_*.guard`, 19 files, 39 rule declarations under 34 distinct names, which is the count the report shows). Three are the fixtures the rule tests use
+- **Guard pack** (`guard_*.guard`, 19 files, 35 non-parameterized rule declarations under 34 distinct names (the count
+  the report shows), plus 4 parameterized helper rules). Three files are fixtures the rule tests use
   (`guard_encryption.guard`, `guard_multi.guard`, `guard_semantics.guard`). The other 16 are the security and
   compliance rules of [cloudformation-guard](https://github.com/aws-cloudformation/cloudformation-guard) at commit
-  `814bd00a4e6d761e8b5c9f615dd510b1a2a7c374`, copied verbatim and renamed `guard_<upstream stem>.guard`: every
-  CloudFormation example under `guard-examples/` (security policies, encryption, deployment safety, cross-account
-  access, tagging, network reachability) plus the compliance rules among the `guard/resources/validate/` fixtures
-  (`workshop`, `db_param_port_rule`, and the three `s3_bucket_*` rules). The remaining upstream fixtures exercise
-  evaluator semantics and built-in functions rather than check anything (`a_first`...`g_seventh`, `count`, `join`,
-  `substring`, ...) and are left out: every Guard file costs roughly the same per template regardless of what it
-  checks (about 0.5 ms on the corpus average), so the pack is limited to rules worth paying for and the benchmark
-  job stays well inside the runner's time limit. Guard type blocks (used by the three test fixtures) are an
-  evaluation error on the 26 corpus templates whose `Resources` section is empty; those templates are reported as
-  failed in the Guard scenarios and excluded from their timings.
+  `814bd00a4e6d761e8b5c9f615dd510b1a2a7c374`, copied verbatim. Local filenames use the pattern `guard_<upstream stem
+  with hyphens replaced by underscores>.guard`. The pack includes every CloudFormation example under `guard-examples/`
+  (security policies, encryption, deployment safety, cross-account access, tagging, network reachability) plus the
+  compliance rules among the `guard/resources/validate/` fixtures (`workshop`, `db_param_port_rule`, and the three
+  `s3_bucket_*` rules). The remaining upstream fixtures exercise evaluator semantics and built-in functions rather
+  than check anything (`seven-compliant-rules`, `count`, `join`, `substring`, ...) and are left out: every Guard file
+  costs roughly the same per template regardless of what it checks (about 0.5 ms on the corpus average), so the pack
+  is limited to rules worth paying for and the benchmark job stays well inside the runner's time limit. Guard type
+  blocks (used by the three test fixtures) are an evaluation error on the 26 corpus templates whose `Resources`
+  section is empty; those templates are reported as failed in the Guard scenarios and excluded from their timings.
 - **Custom Rego pack** (`rego_*.rego`, 10 files). Three are the rule-test fixtures; the other seven are authored
   here for the benchmark and hold 50 rule IDs across seven packages (`custom_iam`, `custom_network`,
   `custom_encryption`, `custom_s3`, `custom_compute`, `custom_data`, `custom_graph`). They are deliberately
@@ -45,26 +46,30 @@ a Rule Pack" list rather than silently.
   and check `cfn-validate resources/templates --engine rego --rule-source <file>` reports no
   `Custom rule package ... failed to evaluate` errors before adding one.
 
-Both benchmarked engines see the same packs, so the Guard scenario also verifies that Rego and composite report
-identical Guard findings under load.
+Both benchmarked engines see the same packs, so the Guard scenario also compares Rego and composite aggregate
+diagnostic counts (Fatal/Error/Warn/Info) under load.
 
 ## Snapshot generation
 
-`expected/validation_reports*.json` are the recorded `cfn-validate --format detailed` output for the regular template
-corpus and every JSON/YAML fixture under `security/`, using the rego, cel, and composite engines. Reports are
-deterministically partitioned by sorted template key into numbered chunk files with at most 100 templates each.
-Regenerate them with the `generate_validation_reports` example, which builds the release `cfn-validate` binary, runs
-all three engines on every fixture in parallel across CPU cores, verifies the engines agree, prints the elapsed
-validation time in milliseconds, removes any legacy single file and stale extra chunks, and writes fresh numbered
-chunks. The composite report is the one persisted; with no custom rules it matches the standalone rego and cel engines:
+`expected/validation_reports*.json` are sanitized `cfn-validate --format detailed --level debug` reports for the
+regular template corpus and every JSON/YAML fixture under `security/`, using the rego, cel, and composite engines.
+Durations are zeroed; top-level `version` and `performance` plus metadata bundle versions and `rulesEvaluated` are
+removed; findings listed in `expected/snapshot_excluded_rule_ids.txt` are excluded. Reports are deterministically
+partitioned by sorted template key into numbered chunk files with at most 100 templates each. Regenerate them with the
+`generate_validation_reports` example, which builds the release `cfn-validate` binary, runs all three engines on every
+fixture in parallel across CPU cores, verifies the engines agree, prints each template's validation time in
+milliseconds and the summed total in seconds, removes any legacy single file and stale extra chunks, and writes fresh
+numbered chunks. The composite report is the one persisted; with no custom rules it matches the standalone rego and
+cel engines:
 
 ```bash
 cargo run --release -p resources --example generate_validation_reports
 ```
 
 `discover_snapshot_templates()` combines the regular corpus returned by `discover_templates()` with security fixtures
-using canonical `security/`-prefixed keys. Core and binding snapshot tests maintain regular-template-only discovery and
-do not call the security-inclusive snapshot API.
+using canonical `security/`-prefixed keys. Core and binding snapshot comparisons use regular-template-only discovery;
+the core suite calls the security-inclusive API only to assert that its discovered keys match every persisted report
+key.
 
 ## Library API
 

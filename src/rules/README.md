@@ -5,13 +5,13 @@ Rule metadata crate: rule definitions, severity model, category enum, and diagno
 
 ## Severity
 
-| Variant | Ord | Meaning                                            |
-|---------|-----|----------------------------------------------------|
-| `Debug` | 0   | Internal diagnostic detail                         |
-| `Info`  | 1   | Best practice suggestion (default)                 |
-| `Warn`  | 2   | Security concern, deprecation, or risky pattern    |
-| `Error` | 3   | Semantic error - likely deployment failure         |
-| `Fatal` | 4   | Structural schema violation - deployment will fail |
+| Variant | Ord | Meaning                                                                              |
+|---------|-----|--------------------------------------------------------------------------------------|
+| `Debug` | 0   | Internal diagnostic detail                                                           |
+| `Info`  | 1   | Best practice, optimization, or contextual guidance (default)                        |
+| `Warn`  | 2   | Security risk, deprecation, compatibility issue, or risky pattern                                      |
+| `Error` | 3   | Issue likely to cause deployment failure or wrong runtime behavior                                           |
+| `Fatal` | 4   | Provider-schema or template-language violation - CloudFormation rejects the template |
 
 Severity is derived from the first character of a rule ID: `F`→Fatal, `E`→Error, `W`→Warn, `I`→Info, `D`→Debug.
 
@@ -80,10 +80,10 @@ The service is matched verbatim against the `service-provider::service-name` pre
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The resource-ID dimension matches only diagnostics attributed to a resource; the logical-ID dimension additionally
-matches diagnostics on Parameters, Outputs, Mappings, Conditions, and template Rules (for resource diagnostics the two
-carry the same value). A `LogicalIdFilter` also carries an optional `entity_type`: set it to match only entities of
-that type (so `MyThing` as a Parameter is suppressed without touching a same-named Resource), or omit it to match
-entities of every type.
+matches diagnostics on Parameters, Outputs, Mappings, Metadata, Conditions, and template Rules (for resource
+diagnostics the two carry the same value). A `LogicalIdFilter` also carries an optional `entity_type`: set it to
+match only entities of that type (so `MyThing` as a Parameter is suppressed without touching a same-named Resource),
+or omit it to match entities of every type.
 
 Include-then-exclude: if include filters are non-empty, a diagnostic must match at least one; any diagnostic matching
 an exclude filter is removed.

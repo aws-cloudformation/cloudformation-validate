@@ -1,8 +1,8 @@
 # data-source
 
-Build-time pipeline that downloads CloudFormation resource provider schemas (with patches pre-applied), derives
-per-region resource-type data from the downloaded schemas, syncs rule-source extensions and additional specs (when a
-cfn-lint root is provided), processes schemas, and generates all validation artifacts consumed by engine crates at
+Build-time pipeline that downloads CloudFormation resource provider schemas (with patches pre-applied) and derives
+per-region resource-type data. It requires a local cfn-lint checkout to sync rule-source extensions, additional specs,
+and rule-code data tables, then processes schemas and generates all validation artifacts consumed by engine crates at
 compile time. Everything compiles into the binary - no runtime fetching.
 
 ## Commands
@@ -58,7 +58,7 @@ data-source/
 ├── upstream/                          # Raw data synced from external sources (not committed)
 │   ├── schemas/                       # Downloaded CFN + SAM schemas (per resource type)
 │   ├── providers/                     # Per-region type→hash maps (from the enhanced archive)
-│   ├── extensions/                    # Rule-source extension files (only with --cfn-lint-root)
+│   ├── extensions/                    # Rule-source extension files from the --cfn-lint-root checkout
 │   ├── step_functions_statemachine.json  # Step Functions state machine schema from the rule source
 │   └── getatt_additions.json          # Raw GetAtt additions, folded into generated/data/getatt_attributes.json
 └── generated/                         # All processed/codegen output (never edit manually)

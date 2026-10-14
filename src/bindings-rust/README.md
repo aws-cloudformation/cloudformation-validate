@@ -26,7 +26,7 @@ cargo add cloudformation-validate
 cloudformation-validate = "1.10.0"
 ```
 
-Requires Rust 1.96 or later (the repository pins that toolchain in [`rust-toolchain.toml`](../rust-toolchain.toml)).
+Requires Rust 1.96 or later (the repository pins that toolchain in [`rust-toolchain.toml`](https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/rust-toolchain.toml)).
 
 ## Quick start
 
@@ -166,8 +166,8 @@ let engine = CelEngine::new(
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-See [Custom Rules](../CUSTOM_RULES.md) for the Rego, CEL, and Guard rule formats and
-[Additional Resource Provider Schemas](../validation-engine/API.md#additional-resource-provider-schemas) for the schema
+See [Custom Rules](https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/CUSTOM_RULES.md) for the Rego, CEL, and Guard rule formats and
+[Additional Resource Provider Schemas](https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#additional-resource-provider-schemas) for the schema
 merge model.
 
 ### `CompositeEngine`
@@ -278,7 +278,7 @@ pub struct ValidateConfig {
 | `parameter_overrides`        | empty                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                                                                    |
 | `pseudo_parameter_overrides` | all `None`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                                                       |
 | `strict`                     | `false`                  | When `true`, `Warn`-severity diagnostics are upgraded to `Error`.                                                                                                        |
-| `disable_builtin_rules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated.                                |
+| `disable_builtin_rules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, Metadata Context, and engine rules) are skipped; only custom and Guard rules are evaluated.                                |
 
 ### RuleFilterConfig
 
@@ -287,7 +287,7 @@ Both `include` and `exclude` use this structure. All fields are additive - a rul
 ```rust,ignore
 pub struct RuleFilterConfig {
     pub ids: Vec<String>,                       // exact rule IDs, e.g. ["E3012", "W3010"]
-    pub categories: Vec<String>,                // category names, e.g. ["security", "best_practices"]
+    pub categories: Vec<String>,                // display names, e.g. ["Security", "Best Practice"]
     pub id_ranges: Vec<IdRange>,                // numeric ranges, e.g. IdRange { prefix: "E", start: 3000, end: 3099 }
     pub id_patterns: Vec<String>,               // regex patterns matched against rule IDs
     pub resource_ids: Vec<ResourceIdFilter>,    // a rule (or every rule) on a logical resource ID
@@ -308,9 +308,9 @@ The `service` is matched verbatim against the `service-provider::service-name` p
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `resource_ids` dimension matches only diagnostics attributed to a resource; `logical_ids` additionally matches
-diagnostics on parameters, outputs, mappings, conditions, and template rules (for resource diagnostics the two carry
-the same value). A `Some` `entity_type` scopes a `LogicalIdFilter` to entities of one type, so `MyThing` as an
-`EntityType::Parameter` is matched without touching a same-named entity of another type.
+diagnostics on parameters, outputs, mappings, metadata, conditions, and template rules. For resource diagnostics, the
+two dimensions carry the same value. A `Some` `entity_type` scopes a `LogicalIdFilter` to entities of one type, so
+`MyThing` as an `EntityType::Parameter` is matched without touching a same-named entity of another type.
 
 ### PseudoParameterOverrides
 
@@ -358,8 +358,9 @@ assert!(model.resources.contains_key("Bucket"));
 ## SchemaValidator
 
 Runs schema validation independently from the rule engines. Checks each resource against the compiled CloudFormation
-provider schemas and produces `Fatal`-severity diagnostics for structural violations. The constructor argument is the
-same `SchemaValidatorConfig` accepted by `EngineConfig`; `SchemaValidator::default()` uses only the bundled schemas.
+provider schemas and produces Fatal structural diagnostics plus schema-derived Error/Warn/Info findings. The constructor
+argument is the same `SchemaValidatorConfig` accepted by the engine configs;
+`SchemaValidator::default()` uses only the bundled schemas.
 
 ```rust
 use std::sync::Arc;
@@ -375,7 +376,7 @@ assert!(diagnostics.is_empty());
 | Function / method                         | Returns                                            | Description                                                                                                        |
 |-------------------------------------------|----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
 | `SchemaValidator::new(config)`            | `Result<SchemaValidator, SchemaValidatorConfigError>` | Constructs a validator; `SchemaValidator::default()` uses only the bundled schemas                              |
-| `validate(&model, region)`                | `SchemaValidationResult { diagnostics, metric }`   | Schema diagnostics (`diagnostics::Diagnostic`, without rule enrichment) plus the phase timing. A `None` region defaults to `"us-east-1"`. |
+| `validate(&model, region)`                | `SchemaValidationResult { diagnostics, metric }`   | Schema diagnostics (`diagnostics::Diagnostic`, without rule enrichment) plus the phase timing. A `None` region validates region-scoped checks against the union of all regions. |
 | `list_rules()`                            | `Vec<RuleInfo>`                                    | Schema rule metadata                                                                                               |
 | `schema_count()`                          | `usize`                                            | Number of compiled provider schemas                                                                                |
 
@@ -447,7 +448,7 @@ The result is an `AwsCliCommandValidation`:
 
 `validate_aws_cli_command_with_path` additionally labels the report with a caller-chosen path. The full contract - the
 adapter catalog, all-or-nothing mapping, and which rules are dropped for synthesized state - is documented in
-[validation-engine/API.md](../validation-engine/API.md#validating-an-aws-cli-command).
+[validation-engine/API.md](https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#validating-an-aws-cli-command).
 
 ## Report Types
 
@@ -459,7 +460,7 @@ adapter catalog, all-or-nothing mapping, and which rules are dropped for synthes
 ```rust,ignore
 pub struct ValidationReport {
     pub file_path: String,
-    pub status: ReportStatus,           // Ok, AnalysisIncomplete (findings may be omitted), or Error (pipeline failure)
+    pub status: ReportStatus,           // Ok, AnalysisIncomplete (may omit findings), or Error (parse failure)
     pub version: String,
     pub metadata: ReportMetadata,
     pub performance: PerformanceMetrics,
@@ -475,11 +476,12 @@ validating at `Standard` leaves them `None`, keeping the base diagnostic fields.
 `diagnostics::output::ValidationReport`, whose diagnostics flatten the source span into
 `start_line`/`start_column`/`end_line`/`end_column` and omit the enrichment fields at `Standard`.
 
-`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned and rules
-evaluated, the strict flag and severity threshold used, and optional budget-exhaustion records. Each budget-exhaustion
-record retains a stable machine-readable kind and also includes a human-readable description sentence, the numeric
-limit, and whether that specific exhaustion makes analysis incomplete. `requiredPropertyCombinations` is context-only,
-so its `analysis_incomplete` value is `false` and the report can remain `ReportStatus::Ok`.
+`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned, and the
+registered-rule count after category exclusions. It also records the strict flag, severity threshold, and optional
+budget-exhaustion records. Each record retains a stable machine-readable kind and also includes a human-readable
+description sentence, the numeric limit, and whether that specific exhaustion makes analysis incomplete.
+`requiredPropertyCombinations` is context-only, so its `analysis_incomplete` value is `false` and the report can
+remain `ReportStatus::Ok`.
 
 ### Diagnostic
 

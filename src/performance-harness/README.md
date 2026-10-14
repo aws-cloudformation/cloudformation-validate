@@ -7,7 +7,7 @@ expectation stale.
 ## How a comparison runs
 
 The `performance-regression` workflow builds the harness twice - once from the tested commit (head) and once from the
-base revision - and runs:
+base revision - then invokes the head harness binary's `compare` command. The equivalent local invocation is:
 
 ```bash
 cd src
@@ -19,9 +19,10 @@ The head harness defines the workloads, templates, and evaluation; the base exec
 worker, so the `measure` command-line interface and its JSON output must stay backward compatible.
 
 For every engine (rego, cel, composite) and every synthetic, real-template, and security workload, the harness
-discards one launch of each side, then runs five base/head launch pairs back to back on one pinned CPU, alternating
-which side starts each pair. A metric's ratio is the median of the per-pair head/base ratios, which cancels host speed
-changes shared by both launches of a pair. An apparent regression receives four more pairs and is evaluated again.
+discards one launch of each side, then runs five base/head launch pairs back to back, alternating which side starts
+each pair. It pins launches to one CPU where `taskset` is available. A metric's ratio is the median of the per-pair
+head/base ratios, which cancels host speed changes shared by both launches of a pair. An apparent regression receives
+four more pairs and is evaluated again.
 
 The enforced metrics are initialization plus first validation, warm validation time per call, and peak resident
 memory. A metric is gated only when the base measurement is above its stability floor (5 ms, 0.30 ms, and 16 MiB); the
@@ -33,14 +34,15 @@ The limits are:
 | Init + first, warm/call |    1.20x |                      1.08x |
 | Peak RSS                |    1.10x |                      1.05x |
 
-Exceeding a limit fails the check. Improvements and changed diagnostics are reported but never fail, because there is
-no checked-in expectation to keep current. Results are written to `performance-comparison.md` (also added to the job
-summary) and `performance-comparison.json`.
+Exceeding a limit, or diagnostics changing between repeated launches of the same side, fails the check. Improvements
+and base-to-head diagnostic changes are reported but never fail, because there is no checked-in expectation to keep
+current. Results are written to `performance-comparison.md` (also added to the job summary) and
+`performance-comparison.json`.
 
 ## Where the check runs and what it compares against
 
-`Check expected performance` runs on every pull request and push to `main`, on manual runs of the `Validate` and
-`Performance` workflows, and during a release. Pull requests and pushes gate on it; the release workflow runs it with
+`Check expected performance` runs on every pull request targeting `main`, every push to `main`, manual runs of the
+`Validate` and `Performance` workflows, and releases. Pull requests and pushes gate on it; releases use
 `performance-gate: false`, so the report is attached to the release run but never blocks publishing.
 
 The base is the release tag recorded in [`drift-anchor.txt`](drift-anchor.txt). Comparing every tested commit with the

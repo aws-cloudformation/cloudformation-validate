@@ -147,8 +147,8 @@ engine, err := cfnvalidate.NewCelEngine(&cfnvalidate.EngineConfig{
 })
 ```
 
-See [Custom Rules](../CUSTOM_RULES.md) for the Rego, CEL, and Guard rule formats and
-[Additional Resource Provider Schemas](../validation-engine/API.md#additional-resource-provider-schemas) for the schema
+See [Custom Rules][custom-rules] for the Rego, CEL, and Guard rule formats and
+[Additional Resource Provider Schemas][additional-schemas] for the schema
 merge model.
 
 ### `CompositeEngine`
@@ -224,7 +224,7 @@ type ValidateConfig struct {
 | `ParameterOverrides`       | `nil`                    | Override template parameter values during resolution. Keys are parameter logical IDs.                                                                                    |
 | `PseudoParameterOverrides` | `nil` (all unset)        | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                                                       |
 | `Strict`                   | `false`                  | When `true`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                                                        |
-| `DisableBuiltinRules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated.                                |
+| `DisableBuiltinRules`      | `false`                  | When `true`, all built-in rules (schema validation, Step Functions, Metadata Context, and engine rules) are skipped; only custom and Guard rules are evaluated.                                |
 
 ### RuleFilterConfig
 
@@ -233,7 +233,7 @@ Both `Include` and `Exclude` use this structure. All fields are additive - a rul
 ```go
 type RuleFilterConfig struct {
     IDs           []string             // exact rule IDs, e.g. ["E3012", "W3010"]
-    Categories    []string             // category names, e.g. ["security", "best_practices"]
+    Categories    []string             // display names, e.g. ["Security", "Best Practice"]
     IDRanges      []IdRange            // numeric ranges, e.g. IdRange{Prefix: "E", Start: 3000, End: 3099}
     IDPatterns    []string             // regex patterns matched against rule IDs
     ResourceIDs   []ResourceIdFilter   // a rule (or every rule) on a logical resource ID
@@ -254,9 +254,9 @@ The `Service` is matched verbatim against the `service-provider::service-name` p
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `ResourceIDs` dimension matches only diagnostics attributed to a resource; `LogicalIDs` additionally matches
-diagnostics on parameters, outputs, mappings, conditions, and template rules (for resource diagnostics the two carry
-the same value). A non-nil `EntityType` scopes a `LogicalIdFilter` to entities of one type, so `MyThing` as an
-`EntityTypeParameter` is matched without touching a same-named entity of another type.
+diagnostics on parameters, outputs, mappings, metadata, conditions, and template rules. For resource diagnostics, the
+two dimensions carry the same value. A non-nil `EntityType` scopes a `LogicalIdFilter` to entities of one type, so
+`MyThing` as an `EntityTypeParameter` is matched without touching a same-named entity of another type.
 
 ### PseudoParameterOverrides
 
@@ -304,9 +304,10 @@ defer model.Destroy()
 
 ## SchemaValidator
 
-Runs schema validation independently from the rule engines. Checks each resource against the compiled CloudFormation
-provider schemas and produces `FATAL`-severity diagnostics for structural violations. The optional constructor argument
-is the same `SchemaValidatorConfig` accepted by `EngineConfig`; passing `nil` uses only the bundled schemas.
+Runs schema validation independently from the rule engines. Checks each resource against the compiled
+CloudFormation provider schemas and produces Fatal structural diagnostics plus schema-derived Error/Warn/Info findings.
+The optional constructor argument is the same `SchemaValidatorConfig` accepted by `EngineConfig`; passing `nil` uses
+only the bundled schemas.
 
 ```go
 validator, err := cfnvalidate.NewSchemaValidator(nil)
@@ -320,7 +321,7 @@ diagnostics, err := validator.Validate(templateBytes, nil)
 | Method                                      | Returns                     | Description                                                                                                   |
 |---------------------------------------------|-----------------------------|---------------------------------------------------------------------------------------------------------------|
 | `cfnvalidate.NewSchemaValidator(config)`    | `(*SchemaValidator, error)` | Constructs a validator; a `nil` `*SchemaValidatorConfig` uses only the bundled schemas                        |
-| `Validate(template []byte, region *string)` | `([]Diagnostic, error)`     | Schema diagnostics at `STANDARD` detail - the enrichment fields are nil. A `nil` region defaults to `"us-east-1"`. |
+| `Validate(template []byte, region *string)` | `([]Diagnostic, error)`     | Schema diagnostics at `STANDARD` detail - the enrichment fields are nil. A `nil` region validates against the union of all regions. |
 | `ListRules()`                               | `([]RuleInfo, error)`       | Schema rule metadata                                                                                          |
 | `SchemaCount()`                             | `uint32`                    | Number of compiled provider schemas                                                                           |
 | `Destroy()`                                 | -                           | Releases the validator's off-heap memory; the validator must not be used afterwards                           |
@@ -383,7 +384,7 @@ The result is an `*AWSCLICommandValidation`:
 | `Template`       | `[]byte` - the exact template bytes that were validated (the caller's `TemplateBody` unchanged, or the synthesized JSON); nil when skipped                         |
 
 The full contract - the adapter catalog, all-or-nothing mapping, and which rules are dropped for synthesized state -
-is documented in [validation-engine/API.md](../validation-engine/API.md#validating-an-aws-cli-command).
+is documented in [validation-engine/API.md][aws-cli-validation].
 
 ## Report Types
 
@@ -396,7 +397,7 @@ returned as a report with `StatusError` and an `F1101` diagnostic; only infrastr
 ```go
 type ValidationReport struct {
     FilePath    string
-    Status      ReportStatus         // OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
+    Status      ReportStatus         // OK, ANALYSIS_INCOMPLETE (may omit findings), or ERROR (parse failure)
     Version     string
     Metadata    ReportMetadata
     Performance PerformanceMetrics
@@ -409,11 +410,12 @@ Every finding is a `Diagnostic` (see [Diagnostic](#diagnostic)). Its enrichment 
 `ExpectedConstraint`, `ResolutionSource`, etc.) - are populated only at `DetailLevel` `DETAILED` (the default);
 validating at `STANDARD` leaves them nil, keeping the base diagnostic fields.
 
-`Metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned and rules
-evaluated, the strict flag and severity threshold used, and optional budget-exhaustion records. Each budget-exhaustion
-record retains a stable machine-readable kind and also includes a human-readable description sentence, the numeric
-limit, and whether that specific exhaustion makes analysis incomplete. `requiredPropertyCombinations` is context-only,
-so its `AnalysisIncomplete` value is `false` and the report can remain `StatusOK`.
+`Metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned, and the
+registered-rule count after category exclusions. It also records the strict flag, severity threshold, and optional
+budget-exhaustion records. Each record retains a stable machine-readable kind and also includes a human-readable
+description sentence, the numeric limit, and whether that specific exhaustion makes analysis incomplete.
+`requiredPropertyCombinations` is context-only, so its `AnalysisIncomplete` value is `false` and the report can
+remain `StatusOK`.
 
 ### Diagnostic
 
@@ -456,3 +458,7 @@ type Entity struct {
 `Severity`, `RuleOrigin`, `DetailLevel`, and `ReportStatus` are string types with named constants
 (`cfnvalidate.SeverityWarn`, `cfnvalidate.RuleOriginGuard`, `cfnvalidate.DetailLevelStandard`, `cfnvalidate.StatusOK`,
 ...).
+
+[custom-rules]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/CUSTOM_RULES.md
+[additional-schemas]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#additional-resource-provider-schemas
+[aws-cli-validation]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#validating-an-aws-cli-command

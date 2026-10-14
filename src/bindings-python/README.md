@@ -9,7 +9,7 @@ best-practice findings before deployment - in your editor, build, service, or CI
   second.
 - **Self-contained** - each platform wheel bundles its matching native library.
 
-All types are importable from the top-level `cloudformation_validate` package.
+The main entry points and most supporting types are importable from the top-level `cloudformation_validate` package.
 
 ## Installation
 
@@ -38,8 +38,9 @@ Each diagnostic identifies the rule, severity, affected entity and property, and
 [Diagnostic](#diagnostic).
 
 Engines are expensive to construct (rules compile once) and cheap to reuse - create one engine and validate many
-templates. Every fallible call raises `ValidationError` on failure; internal panics are caught at the FFI boundary and
-surface as the same exception, never a process abort. `version()` returns the version of the bundled validation core.
+templates. Validation-core failures raise `ValidationError`; local file I/O and Python argument validation raise
+standard Python exceptions. Internal panics are caught at the FFI boundary and surface as `ValidationError`, never a
+process abort. `version()` returns the version of the bundled validation core.
 
 A template is passed as a `Template`: a file path (`str` or `os.PathLike`, read from disk; the path is used for
 diagnostic source locations), raw `bytes`, or a `TemplateContent` carrying `str` text or `bytes` already in memory
@@ -119,7 +120,8 @@ def file_to_additional_schema_source(path, type_name=None) -> AdditionalSchemaSo
 
 Each rule is an `ExternalRuleSource` - `name` identifies the rule in diagnostics and `content` is the full rule source
 text. Use `file_to_external_rule_source(path)` to load one from disk (the same pattern as passing a template path to
-`validate_template`), or construct an `ExternalRuleSource(name, content)` when you already have the rule text in memory.
+`validate_template`), or construct `ExternalRuleSource(name=..., content=...)` when you already have the rule text in
+memory.
 Each additional schema is an `AdditionalSchemaSource` - a complete resource provider schema JSON plus an optional
 `type_name` that may be omitted when the schema JSON contains its own `typeName`;
 `file_to_additional_schema_source(path)` loads one from disk. Additional schemas extend the bundled schemas or register
@@ -144,8 +146,8 @@ engine = CelEngine(
 )
 ```
 
-See [Custom Rules](../CUSTOM_RULES.md) for the Rego, CEL, and Guard rule formats and
-[Additional Resource Provider Schemas](../validation-engine/API.md#additional-resource-provider-schemas) for the schema
+See [Custom Rules][custom-rules] for the Rego, CEL, and Guard rule formats and
+[Additional Resource Provider Schemas][additional-schemas] for the schema
 merge model.
 
 ### `CompositeEngine`
@@ -224,7 +226,7 @@ class ValidateConfig:
 | `parameter_overrides`        | `{}`                     | Override template parameter values during resolution. Keys are parameter logical IDs.                                                                                    |
 | `pseudo_parameter_overrides` | all `None`               | Override CloudFormation pseudo-parameters (`AWS::AccountId`, `AWS::Region`, etc.).                                                                                       |
 | `strict`                     | `False`                  | When `True`, `WARN`-severity diagnostics are upgraded to `ERROR`.                                                                                                        |
-| `disable_builtin_rules`      | `False`                  | When `True`, all built-in rules (schema validation, Step Functions, engine rules) are skipped; only custom and Guard rules are evaluated.                                |
+| `disable_builtin_rules`      | `False`                  | When `True`, all built-in rules (schema validation, Step Functions, Metadata Context, and engine rules) are skipped; only custom and Guard rules are evaluated.                                |
 
 ### RuleFilterConfig
 
@@ -234,7 +236,7 @@ Both `include` and `exclude` use this structure. All fields are additive - a rul
 @dataclass
 class RuleFilterConfig:
     ids: list[str] = []                             # exact rule IDs, e.g. ["E3012", "W3010"]
-    categories: list[str] = []                      # category names, e.g. ["security", "best_practices"]
+    categories: list[str] = []                      # display names, e.g. ["Security", "Best Practice"]
     id_ranges: list[IdRange] = []                   # numeric ranges, e.g. IdRange(prefix="E", start=3000, end=3099)
     id_patterns: list[str] = []                     # regex patterns matched against rule IDs
     resource_ids: list[ResourceIdFilter] = []       # a rule (or every rule) on a logical resource ID
@@ -258,9 +260,9 @@ The `service` is matched verbatim against the `service-provider::service-name` p
 two `::`-delimited segments (e.g. `AWS::AutoScaling` in `AWS::AutoScaling::LaunchConfiguration`).
 
 The `resource_ids` dimension matches only diagnostics attributed to a resource; `logical_ids` additionally matches
-diagnostics on parameters, outputs, mappings, conditions, and template rules (for resource diagnostics the two carry
-the same value). A non-`None` `entity_type` scopes a `LogicalIdFilter` to entities of one type, so `MyThing` as a
-`PARAMETER` is matched without touching a same-named entity of another type.
+diagnostics on parameters, outputs, mappings, metadata, conditions, and template rules. For resource diagnostics, the
+two dimensions carry the same value. A non-`None` `entity_type` scopes a `LogicalIdFilter` to entities of one type, so
+`MyThing` as a `PARAMETER` is matched without touching a same-named entity of another type.
 
 ### PseudoParameterOverrides
 
@@ -303,9 +305,10 @@ in_memory = TemplateModel(TemplateContent("Resources: {}"))
 
 ## SchemaValidator
 
-Runs schema validation independently from the rule engines. Checks each resource against the compiled CloudFormation
-provider schemas and produces `FATAL`-severity diagnostics for structural violations. The optional constructor argument
-is the same `SchemaValidatorConfig` accepted by `EngineConfig`; omitting it uses only the bundled schemas.
+Runs schema validation independently from the rule engines. Checks each resource against the compiled
+CloudFormation provider schemas and produces Fatal structural diagnostics plus schema-derived Error/Warn/Info findings.
+The optional constructor argument is the same `SchemaValidatorConfig` accepted by `EngineConfig`; omitting it uses
+only the bundled schemas.
 
 ```python
 validator = SchemaValidator()
@@ -315,7 +318,7 @@ diagnostics = validator.validate("template.yaml")
 | Method                                | Returns            | Description                                                                                                     |
 |---------------------------------------|--------------------|-----------------------------------------------------------------------------------------------------------------|
 | `SchemaValidator(schema_config=None)` | `SchemaValidator`  | Constructs a validator; `None` uses only the bundled schemas                                                    |
-| `validate(template, region=None)`     | `list[Diagnostic]` | Schema diagnostics at `STANDARD` detail - the enrichment fields are absent. `region` defaults to `"us-east-1"`. |
+| `validate(template, region=None)`     | `list[Diagnostic]` | Schema diagnostics at `STANDARD` detail - the enrichment fields are absent. An omitted `region` validates against the union of all regions. |
 | `list_rules()`                        | `list[RuleInfo]`   | Schema rule metadata                                                                                            |
 | `schema_count()`                      | `int`              | Number of compiled provider schemas                                                                             |
 
@@ -357,10 +360,10 @@ class AwsCliCommand:
 
 - `service_name` is matched case-insensitively. Signing names, endpoint aliases, and ARN prefixes are never resolved;
   translate an SDK's service identity first.
-- `parameters` accepts nested mappings and sequences, `str`, `int`, `float`, `bool`, `None`, `bytes`, and
-  `datetime.datetime` (serialized as ISO 8601) - the same values used by botocore request dictionaries. Any other value
-  is carried as an explicit unsupported marker, and because synthesis is all-or-nothing the request is then skipped
-  with a reason naming the offending parameter - no parameter is ever silently dropped.
+- `parameters` accepts nested mappings, lists, and tuples; `str`, `int`, `float`, `bool`, `None`, `bytes`, `bytearray`,
+  `memoryview`, and `datetime.datetime` (serialized as ISO 8601) - the same values used by botocore request
+  dictionaries. Any other value is carried as an explicit unsupported marker. Because synthesis is all-or-nothing, the
+  request is then skipped with a reason naming the offending parameter - no parameter is ever silently dropped.
 
 The result is an `AwsCliCommandValidation`:
 
@@ -375,7 +378,7 @@ The result is an `AwsCliCommandValidation`:
 | `template`        | `bytes \| None` - the exact template bytes that were validated (the caller's `TemplateBody` unchanged, or the synthesized JSON); `None` when skipped               |
 
 The full contract - the adapter catalog, all-or-nothing mapping, and which rules are dropped for synthesized state -
-is documented in [validation-engine/API.md](../validation-engine/API.md#validating-an-aws-cli-command).
+is documented in [validation-engine/API.md][aws-cli-validation].
 
 ## Report Types
 
@@ -388,7 +391,7 @@ is documented in [validation-engine/API.md](../validation-engine/API.md#validati
 @dataclass
 class ValidationReport:
     file_path: str
-    status: ReportStatus  # OK, ANALYSIS_INCOMPLETE (findings may be omitted), or ERROR (pipeline failure)
+    status: ReportStatus  # OK, ANALYSIS_INCOMPLETE (may omit findings), or ERROR (parse failure)
     version: str
     metadata: ReportMetadata
     performance: PerformanceMetrics
@@ -400,11 +403,12 @@ Every finding is a `Diagnostic` (see [Diagnostic](#diagnostic)). Its enrichment 
 `expected_constraint`, `resolution_source`, etc.) - are populated only at `detail_level` `DETAILED` (the default);
 validating at `STANDARD` leaves them `None`, keeping the base diagnostic fields.
 
-`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned and rules
-evaluated, the strict flag and severity threshold used, and optional budget-exhaustion records. Each budget-exhaustion
-record retains a stable machine-readable kind and also includes a human-readable description sentence, the numeric
-limit, and whether that specific exhaustion makes analysis incomplete. `requiredPropertyCombinations` is context-only,
-so its `analysis_incomplete` value is `False` and the report can remain `ReportStatus.OK`.
+`metadata` carries the summary counts, the number of suppressed diagnostics, the resources scanned, and the
+registered-rule count after category exclusions. It also records the strict flag, severity threshold, and optional
+budget-exhaustion records. Each record retains a stable machine-readable kind and also includes a human-readable
+description sentence, the numeric limit, and whether that specific exhaustion makes analysis incomplete.
+`requiredPropertyCombinations` is context-only, so its `analysis_incomplete` value is `False` and the report can
+remain `ReportStatus.OK`.
 
 ### Diagnostic
 
@@ -445,3 +449,7 @@ class EntityType(enum.Enum):
 
 `Severity`, `RuleOrigin`, `DetailLevel`, and `ReportStatus` are `enum.Enum` classes; use `.name` for the string form
 (`Severity.WARN.name == "WARN"`).
+
+[custom-rules]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/CUSTOM_RULES.md
+[additional-schemas]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#additional-resource-provider-schemas
+[aws-cli-validation]: https://github.com/aws-cloudformation/cloudformation-validate/blob/main/src/validation-engine/API.md#validating-an-aws-cli-command

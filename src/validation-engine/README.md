@@ -1,10 +1,10 @@
 # validation-engine
 
 Defines the `ValidationEngine` trait and orchestrates the full validation pipeline: schema validation → engine rule
-evaluation → Step Functions validation → diagnostic enrichment → filtering → report assembly. Engine-agnostic - any
-engine ([rego-engine](../rego-engine/README.md), [cel-engine](../cel-engine/README.md),
-[composite-engine](../composite-engine/README.md)) implements the trait and plugs
-into this pipeline.
+evaluation → Step Functions and Metadata Context validation → diagnostic enrichment → filtering → report assembly. The
+pipeline is engine-agnostic: any engine ([rego-engine](../rego-engine/README.md),
+[cel-engine](../cel-engine/README.md), [composite-engine](../composite-engine/README.md)) implements the trait and
+plugs into this pipeline.
 
 See [API.md](API.md) for usage examples and public API reference.
 
@@ -13,13 +13,12 @@ See [API.md](API.md) for usage examples and public API reference.
 ```
   bytes ──▶ SemanticModel ──▶ validate()
                                  │
-                    ┌────────────┼────────────────────────┐
-                    ▼            ▼                        ▼
-             SchemaValidator  engine.evaluate_rules()  step_functions
-             (Fatal schema    (Error/Warn/Info         ::validate_all
-              violations)      lint rules)              _state_machines()
-                    │            │                        │
-                    └────────────┼────────────────────────┘
+                                 ├── SchemaValidator (Fatal + schema-derived Error/Warn/Info)
+                                 ├── engine.evaluate_rules() (built-in + custom rules)
+                                 ├── step_functions::validate_all_state_machines()
+                                 ├── context_check::check_context()
+                                 └── model diagnostics
+                                 │
                                  ▼
                     merge + enrich + filter + report
                                  │
@@ -46,16 +45,17 @@ the [SemanticModel](../template-model/README.md). The orchestration pipeline han
 
 ## Pipeline
 
-1. **Schema validation** - Fatal-severity diagnostics for structural violations.
-2. **Engine rule evaluation** - Error/Warning/Info diagnostics from lint rules.
+1. **Schema validation** - Fatal structural diagnostics plus schema-derived Error/Warn/Info findings.
+2. **Engine rule evaluation** - Built-in and custom rule diagnostics.
 3. **Step Functions validation** - Validates `AWS::StepFunctions::StateMachine` definitions (rule `E3601`): StartAt
    references, state types, required fields, JSONata mode restrictions, recursive into Parallel/Map.
-4. **Model diagnostics** - Parse-time diagnostics (duplicate keys, cycles, structure errors).
-5. **Enrichment** - Adds section, phase, rule description. For `Detailed` level, attaches resolved property values
-   and schema constraints as context.
-6. **Finalization** - Applies include/exclude filters, severity gating, strict mode (Warn→Error), sorts by source
-   location, deduplicates.
-7. **Report assembly** - Severity counts, metadata, per-phase performance metrics.
+4. **Metadata Context validation** - Validates `com.aws.cloudformation.Context` blocks and reports missing context.
+5. **Model diagnostics** - Parse-time diagnostics (duplicate keys, cycles, structure errors).
+6. **Enrichment** - Backfills locations and entities at every detail level. At `Detailed`, also adds phase, rule
+   description, resolved property values, and schema constraints as context.
+7. **Finalization** - Applies strict mode (Warn→Error), include/exclude filters, and severity gating; then sorts by
+   severity, rule number/ID, and source location before deduplicating.
+8. **Report assembly** - Severity counts, metadata, per-phase performance metrics.
 
 **Parse error handling**: When `validate_bytes_with_path` encounters a parse failure, it creates a synthetic `F1101`
 diagnostic and returns a `ValidationReport` with `status=Error` rather than returning `Err`.
