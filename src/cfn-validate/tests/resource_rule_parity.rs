@@ -2557,3 +2557,404 @@ fn route53_recordset_group_checks_expand_members_independently() {
             && finding.contains("not a valid IPv4 address")
     }));
 }
+
+#[test]
+fn sqs_event_source_timeout_reports_every_reachable_defaulted_scenario() {
+    let template = include_str!("../../resources/templates/bad/E3505_conditional_service_defaults.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3505"]);
+    let cel_findings = selected_findings(&cel, template, &["E3505"]);
+
+    assert_eq!(rego_findings, cel_findings, "timeout diagnostics must be identical across engines");
+    assert_eq!(rego_findings.len(), 8, "every distinct reachable violation must be reported: {rego_findings:?}");
+    for (queue, visibility, timeout) in [
+        ("QueueAtOneSecond", 1, 3),
+        ("QueueAtOneSecond", 1, 60),
+        ("QueueAtServiceDefault", 30, 60),
+        ("QueueAtServiceDefault", 30, 90),
+        ("QueueWithConditionalTimeout", 10, 60),
+        ("QueueWithConditionalProperties", 30, 60),
+        ("QueueWithConditionalTransform", 10, 60),
+        ("QueueWithNoValue", 30, 60),
+    ] {
+        let message =
+            format!("Queue visibility timeout ({visibility}) is less than Function timeout ({timeout}) seconds");
+        assert!(
+            rego_findings.iter().any(|finding| finding.contains(queue) && finding.contains(&message)),
+            "missing {queue} scenario {visibility} < {timeout}: {rego_findings:?}"
+        );
+    }
+}
+
+#[test]
+fn sqs_event_source_timeout_checks_parameters_only_after_override() {
+    let template = include_str!("../../resources/templates/good/E3505_unresolved_dynamic_and_covering.yaml");
+    let (rego, cel) = engines();
+    let rego_unresolved = selected_findings(&rego, template, &["E3505"]);
+    let cel_unresolved = selected_findings(&cel, template, &["E3505"]);
+    assert_eq!(rego_unresolved, cel_unresolved, "unresolved timeout handling must match across engines");
+    assert!(rego_unresolved.is_empty(), "deployment-time parameter values must be skipped: {rego_unresolved:?}");
+
+    let config = ValidateConfig {
+        parameter_overrides: [
+            ("QueueTimeout".into(), "10".into()),
+            ("FunctionTimeout".into(), "60".into()),
+            ("FunctionTimeoutWithDefault".into(), "60".into()),
+        ]
+        .into_iter()
+        .collect(),
+        ..Default::default()
+    };
+    let rego_overridden = selected_findings_with_config(&rego, template, &["E3505"], config.clone());
+    let cel_overridden = selected_findings_with_config(&cel, template, &["E3505"], config);
+    assert_eq!(rego_overridden, cel_overridden, "parameter override diagnostics must match across engines");
+    assert_eq!(rego_overridden.len(), 3, "each invalid fixed deployment value must be reported: {rego_overridden:?}");
+    for queue in ["UnresolvedQueue", "QueueAtOneSecond", "QueueAtTwentySeconds"] {
+        assert!(
+            rego_overridden.iter().any(|finding| finding.contains(queue)),
+            "missing override finding for {queue}: {rego_overridden:?}"
+        );
+    }
+}
+
+#[test]
+fn sqs_event_source_timeout_skips_mutually_exclusive_resources() {
+    let template = r#"
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues: [production, development]
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+  IsDevelopment: !Equals [!Ref Stage, development]
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Condition: IsProduction
+    Properties:
+      VisibilityTimeout: 10
+  Function:
+    Type: AWS::Lambda::Function
+    Condition: IsDevelopment
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code: {ZipFile: "def handler(event, context): pass"}
+  Mapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Condition: IsProduction
+    Properties:
+      FunctionName: !Ref Function
+      EventSourceArn: !GetAtt Queue.Arn
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3505"]);
+    let cel_findings = selected_findings(&cel, template, &["E3505"]);
+
+    assert_eq!(rego_findings, cel_findings, "resource-condition reachability must match across engines");
+    assert!(
+        rego_findings.is_empty(),
+        "mutually exclusive resources cannot form a timeout violation: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn sqs_event_source_timeout_reports_jointly_reachable_conditioned_resources() {
+    let template = r#"
+Conditions:
+  IsProduction: !Equals [!Ref AWS::Region, us-east-1]
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Condition: IsProduction
+    Properties:
+      VisibilityTimeout: 10
+  Function:
+    Type: AWS::Lambda::Function
+    Condition: IsProduction
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code: {ZipFile: "def handler(event, context): pass"}
+  Mapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Condition: IsProduction
+    Properties:
+      FunctionName: !Ref Function
+      EventSourceArn: !GetAtt Queue.Arn
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3505"]);
+    let cel_findings = selected_findings(&cel, template, &["E3505"]);
+
+    assert_eq!(rego_findings, cel_findings, "resource-condition reachability must match across engines");
+    assert_eq!(rego_findings.len(), 1, "the coexisting invalid resources must be reported: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Queue|Properties.VisibilityTimeout|"));
+}
+
+#[test]
+fn sqs_event_source_timeout_skips_only_macro_owned_scenarios() {
+    let template = r#"
+Parameters:
+  Stage:
+    Type: String
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+Resources:
+  CoveringQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - DelaySeconds: 0
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters: {Location: s3://example-bucket/queue-properties.yaml}
+      - VisibilityTimeout: 900
+  InvalidQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - DelaySeconds: 0
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters: {Location: s3://example-bucket/queue-properties.yaml}
+      - VisibilityTimeout: 10
+  ResourceMacroQueue:
+    Type: AWS::SQS::Queue
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters: {Location: s3://example-bucket/queue-resource.yaml}
+  SiblingMacroQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 0
+      Fn::Transform:
+        Name: AWS::Include
+        Parameters: {Location: s3://example-bucket/queue-properties.yaml}
+  MappingMacroQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 10
+  QueueAtOneSecond:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 1
+  FunctionAtSixtySeconds:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code: {ZipFile: "def handler(event, context): pass"}
+  ResourceMacroFunction:
+    Type: AWS::Lambda::Function
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters: {Location: s3://example-bucket/function-resource.yaml}
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code: {ZipFile: "def handler(event, context): pass"}
+  ConditionalMacroFunction:
+    Type: AWS::Lambda::Function
+    Properties: !If
+      - IsProduction
+      - Fn::Transform:
+          Name: AWS::Include
+          Parameters: {Location: s3://example-bucket/function-properties.yaml}
+      - Runtime: python3.12
+        Handler: index.handler
+        Timeout: 1
+        Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+        Code: {ZipFile: "def handler(event, context): pass"}
+  CoveringMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt CoveringQueue.Arn
+  InvalidMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt InvalidQueue.Arn
+  ResourceMacroMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt ResourceMacroQueue.Arn
+  SiblingMacroQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt SiblingMacroQueue.Arn
+  FunctionMacroMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref ConditionalMacroFunction
+      EventSourceArn: !GetAtt QueueAtOneSecond.Arn
+  ResourceMacroFunctionMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref ResourceMacroFunction
+      EventSourceArn: !GetAtt QueueAtOneSecond.Arn
+  ResourceMacroOwnedMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters: {Location: s3://example-bucket/mapping-resource.yaml}
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt MappingMacroQueue.Arn
+  PropertyMacroOwnedMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt MappingMacroQueue.Arn
+      Fn::Transform:
+        Name: AWS::Include
+        Parameters: {Location: s3://example-bucket/mapping-properties.yaml}
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3505"]);
+    let cel_findings = selected_findings(&cel, template, &["E3505"]);
+
+    assert_eq!(rego_findings, cel_findings, "macro scenario handling must match across engines");
+    assert_eq!(rego_findings.len(), 1, "only the known invalid sibling branch must be reported: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|InvalidQueue|Properties.VisibilityTimeout|"));
+    assert!(rego_findings[0].contains("timeout (10) is less than Function timeout (60)"));
+}
+
+#[test]
+fn sqs_event_source_timeout_deduplicates_identical_mappings() {
+    let template = r#"
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 10
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code: {ZipFile: "def handler(event, context): pass"}
+  FirstMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref Function
+      EventSourceArn: !GetAtt Queue.Arn
+  DuplicateMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !GetAtt Function.Arn
+      EventSourceArn: !GetAtt Queue.Arn
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3505"]);
+    let cel_findings = selected_findings(&cel, template, &["E3505"]);
+
+    assert_eq!(rego_findings, cel_findings, "duplicate handling must match across engines");
+    assert_eq!(rego_findings.len(), 1, "identical mappings must produce one timeout finding: {rego_findings:?}");
+    assert!(rego_findings[0].contains("|Queue|Properties.VisibilityTimeout|"));
+}
+
+#[test]
+fn sqs_event_source_timeout_parameter_override_selects_reachable_branch() {
+    let template = r#"
+Parameters:
+  Stage:
+    Type: String
+    AllowedValues: [production, development]
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: !If [IsProduction, 10, 900]
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code: {ZipFile: "def handler(event, context): pass"}
+  Mapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref Function
+      EventSourceArn: !GetAtt Queue.Arn
+"#;
+    let production_config = ValidateConfig {
+        parameter_overrides: [("Stage".into(), "production".into())].into_iter().collect(),
+        ..Default::default()
+    };
+    let development_config = ValidateConfig {
+        parameter_overrides: [("Stage".into(), "development".into())].into_iter().collect(),
+        ..Default::default()
+    };
+    let (rego, cel) = engines();
+    let rego_production = selected_findings_with_config(&rego, template, &["E3505"], production_config.clone());
+    let cel_production = selected_findings_with_config(&cel, template, &["E3505"], production_config);
+    let rego_development = selected_findings_with_config(&rego, template, &["E3505"], development_config.clone());
+    let cel_development = selected_findings_with_config(&cel, template, &["E3505"], development_config);
+
+    assert_eq!(rego_production, cel_production, "production override diagnostics must match across engines");
+    assert_eq!(rego_production.len(), 1, "the production branch violates the function timeout");
+    assert_eq!(rego_development, cel_development, "development override diagnostics must match across engines");
+    assert!(rego_development.is_empty(), "the development branch covers the function timeout");
+}
+
+#[test]
+fn sqs_event_source_timeout_keeps_ssm_parameter_conditions_unresolved() {
+    let template = r#"
+Parameters:
+  Stage:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /application/stage
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: !If [IsProduction, 10, 900]
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code: {ZipFile: "def handler(event, context): pass"}
+  Mapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref Function
+      EventSourceArn: !GetAtt Queue.Arn
+"#;
+    let config = ValidateConfig {
+        parameter_overrides: [("Stage".into(), "/application/stage".into())].into_iter().collect(),
+        ..Default::default()
+    };
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_config(&rego, template, &["E3505"], config.clone());
+    let cel_findings = selected_findings_with_config(&cel, template, &["E3505"], config);
+
+    assert_eq!(rego_findings, cel_findings, "SSM-backed condition handling must match across engines");
+    assert_eq!(
+        rego_findings.len(),
+        1,
+        "the override is a lookup name, so the production branch remains reachable: {rego_findings:?}"
+    );
+}

@@ -1102,7 +1102,9 @@ pub(crate) fn build_context(
             }
         }
         "E3505" => {
-            if let Some(v) = resolve_val("Properties.VisibilityTimeout") {
+            if !model.has_unresolved_scenario(rid, "Properties.VisibilityTimeout")
+                && let Some(v) = unambiguous_val("Properties.VisibilityTimeout").filter(|value| !value.is_null())
+            {
                 extra.insert("visibility_timeout".into(), v.into());
             }
         }
@@ -2547,6 +2549,45 @@ Resources:
         let ctx = build_context("E3012", Some("Bucket"), "Properties.BucketName", &model)
             .expect("E3012 with property path should return context");
         assert!(ctx.actual_value.is_some(), "context should have actual_value");
+    }
+
+    #[test]
+    fn build_context_e3505_includes_unambiguous_visibility_timeout() {
+        let model = SemanticModel::from_bytes(
+            b"Resources:\n  Queue:\n    Type: AWS::SQS::Queue\n    Properties:\n      VisibilityTimeout: 10\n",
+        )
+        .expect("model with literal visibility timeout");
+        let context = build_context("E3505", Some("Queue"), "Properties.VisibilityTimeout", &model)
+            .expect("literal visibility timeout should produce context");
+        assert_eq!(
+            context.extra.as_ref().and_then(|extra| extra.get("visibility_timeout")).and_then(|value| value.as_i64()),
+            Some(10)
+        );
+    }
+
+    #[test]
+    fn build_context_e3505_omits_conditionally_absent_visibility_timeout() {
+        let model = SemanticModel::from_bytes(
+            br#"
+Parameters:
+  Stage:
+    Type: String
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - VisibilityTimeout: 900
+      - DelaySeconds: 0
+"#,
+        )
+        .expect("model with conditionally absent visibility timeout");
+        assert!(
+            build_context("E3505", Some("Queue"), "Properties.VisibilityTimeout", &model).is_none(),
+            "a branch-specific value must not contradict a default-valued diagnostic"
+        );
     }
 
     #[test]

@@ -4360,6 +4360,963 @@
       }
     ]
   },
+  "bad/E3505_conditional_service_defaults.yaml": {
+    "filePath": "bad/E3505_conditional_service_defaults.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 15,
+      "counts": {
+        "fatal": 0,
+        "errors": 8,
+        "warnings": 0,
+        "informational": 39,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (1) is less than Function timeout (3) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtOneSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 24,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "visibility_timeout": 1
+          }
+        }
+      },
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (1) is less than Function timeout (60) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtOneSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 11,
+        "startColumn": 7,
+        "endLine": 11,
+        "endColumn": 24,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT",
+        "context": {
+          "extra": {
+            "visibility_timeout": 1
+          }
+        }
+      },
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (30) is less than Function timeout (60) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtServiceDefault",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 27,
+        "startColumn": 3,
+        "endLine": 27,
+        "endColumn": 24,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (30) is less than Function timeout (90) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtServiceDefault",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 27,
+        "startColumn": 3,
+        "endLine": 27,
+        "endColumn": 24,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (10) is less than Function timeout (60) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTimeout",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 52,
+        "startColumn": 7,
+        "endLine": 52,
+        "endColumn": 24,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (30) is less than Function timeout (60) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 70,
+        "startColumn": 5,
+        "endLine": 70,
+        "endColumn": 15,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (10) is less than Function timeout (60) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTransform",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 82,
+        "startColumn": 5,
+        "endLine": 82,
+        "endColumn": 15,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3505",
+        "severity": "ERROR",
+        "message": "Queue visibility timeout (30) is less than Function timeout (60) seconds",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.VisibilityTimeout",
+        "suggestedFix": "Set the SQS VisibilityTimeout to at least the Lambda function Timeout",
+        "category": "Resource",
+        "startLine": 98,
+        "startColumn": 7,
+        "endLine": 98,
+        "endColumn": 24,
+        "ruleDescription": "Validate SQS VisibilityTimeout is greater than a function's Timeout",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtOneSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 19,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtOneSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 3,
+        "endLine": 8,
+        "endColumn": 19,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtServiceDefault",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 3,
+        "endLine": 27,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtServiceDefault",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 3,
+        "endLine": 27,
+        "endColumn": 24,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTimeout",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 3,
+        "endLine": 49,
+        "endColumn": 30,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTimeout",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 3,
+        "endLine": 49,
+        "endColumn": 30,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 68,
+        "startColumn": 3,
+        "endLine": 68,
+        "endColumn": 33,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 68,
+        "startColumn": 3,
+        "endLine": 68,
+        "endColumn": 33,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTransform",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 80,
+        "startColumn": 3,
+        "endLine": 80,
+        "endColumn": 32,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTransform",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 80,
+        "startColumn": 3,
+        "endLine": 80,
+        "endColumn": 32,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 95,
+        "startColumn": 3,
+        "endLine": 95,
+        "endColumn": 19,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "category": "Best Practice",
+        "startLine": 95,
+        "startColumn": 3,
+        "endLine": 95,
+        "endColumn": 19,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtOneSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueAtServiceDefault",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 3,
+        "endLine": 27,
+        "endColumn": 24,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTimeout",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 70,
+        "startColumn": 5,
+        "endLine": 70,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithConditionalTransform",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 82,
+        "startColumn": 5,
+        "endLine": 82,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3013",
+        "severity": "INFO",
+        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "QueueWithNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties",
+        "category": "Best Practice",
+        "startLine": 97,
+        "startColumn": 5,
+        "endLine": 97,
+        "endColumn": 15,
+        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'EventSourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalNoValueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.EventSourceArn",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt QueueAtOneSecond.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'EventSourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalPropertiesFunctionMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.EventSourceArn",
+        "category": "Best Practice",
+        "startLine": 47,
+        "startColumn": 7,
+        "endLine": 47,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt QueueAtServiceDefault.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'EventSourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalQueueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.EventSourceArn",
+        "category": "Best Practice",
+        "startLine": 66,
+        "startColumn": 7,
+        "endLine": 66,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt QueueWithConditionalTimeout.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'EventSourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalPropertiesQueueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.EventSourceArn",
+        "category": "Best Practice",
+        "startLine": 78,
+        "startColumn": 7,
+        "endLine": 78,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt QueueWithConditionalProperties.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'EventSourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalTransformQueueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.EventSourceArn",
+        "category": "Best Practice",
+        "startLine": 93,
+        "startColumn": 7,
+        "endLine": 93,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt QueueWithConditionalTransform.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'EventSourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueNoValueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.EventSourceArn",
+        "category": "Best Practice",
+        "startLine": 103,
+        "startColumn": 7,
+        "endLine": 103,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt QueueWithNoValue.Arn"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'QueueAtOneSecond' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueAtOneSecond",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FunctionWithConditionalNoValue' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FunctionWithConditionalNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 14,
+        "startColumn": 5,
+        "endLine": 14,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalNoValueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalNoValueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 5,
+        "endLine": 23,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'QueueAtServiceDefault' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueAtServiceDefault",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 3,
+        "endLine": 27,
+        "endColumn": 24,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FunctionWithConditionalProperties' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FunctionWithConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 5,
+        "endLine": 31,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalPropertiesFunctionMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalPropertiesFunctionMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 45,
+        "startColumn": 5,
+        "endLine": 45,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'QueueWithConditionalTimeout' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueWithConditionalTimeout",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FunctionAtSixtySeconds' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FunctionAtSixtySeconds",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 55,
+        "startColumn": 5,
+        "endLine": 55,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalQueueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 64,
+        "startColumn": 5,
+        "endLine": 64,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'QueueWithConditionalProperties' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueWithConditionalProperties",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 70,
+        "startColumn": 5,
+        "endLine": 70,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalPropertiesQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalPropertiesQueueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 76,
+        "startColumn": 5,
+        "endLine": 76,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'QueueWithConditionalTransform' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueWithConditionalTransform",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 82,
+        "startColumn": 5,
+        "endLine": 82,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalTransformQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalTransformQueueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 91,
+        "startColumn": 5,
+        "endLine": 91,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'QueueWithNoValue' of type 'AWS::SQS::Queue' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueWithNoValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::SQS::Queue"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 97,
+        "startColumn": 5,
+        "endLine": 97,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'QueueNoValueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "QueueNoValueMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::EventSourceMapping"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 101,
+        "startColumn": 5,
+        "endLine": 101,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E3505_sqs_default_visibility_timeout.yaml": {
     "filePath": "bad/E3505_sqs_default_visibility_timeout.yaml",
     "status": "OK",
@@ -20787,65 +21744,6 @@
           "logicalId": "DDBTable",
           "entityType": "Resource",
           "resourceType": "AWS::DynamoDB::Table"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/ecr_policy_no_statement.yaml": {
-    "filePath": "bad/ecr_policy_no_statement.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 0,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E3513",
-        "severity": "ERROR",
-        "message": "ECR repository policy must have a Statement property",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Repo",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECR::Repository"
-        },
-        "propertyPath": "Properties.RepositoryPolicyText",
-        "suggestedFix": "Add a Statement array to the RepositoryPolicyText",
-        "category": "Resource",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 27,
-        "ruleDescription": "Validate ECR repository policy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Repo' of type 'AWS::ECR::Repository' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Repo",
-          "entityType": "Resource",
-          "resourceType": "AWS::ECR::Repository"
         },
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",

@@ -121,6 +121,22 @@ Resources:
     }
 
     #[test]
+    fn e3505_conditional_service_defaults_report_every_reachable_timeout_violation() {
+        let ids = validate_file("bad/E3505_conditional_service_defaults.yaml");
+        let timeout_violations = ids.iter().filter(|rule_id| rule_id.as_str() == "E3505").count();
+        assert_eq!(
+            timeout_violations, 8,
+            "Expected eight distinct conditional/default timeout violations, got: {ids:?}"
+        );
+    }
+
+    #[test]
+    fn unresolved_dynamic_and_covering_timeouts_do_not_trigger_e3505() {
+        let ids = validate_file("good/E3505_unresolved_dynamic_and_covering.yaml");
+        assert!(!ids.contains(&"E3505".to_string()), "Expected no E3505, got: {ids:?}");
+    }
+
+    #[test]
     fn iam_notaction_triggers_w2512() {
         let ids = validate_file("bad/iam_wildcard_all_types.yaml");
         let w2512 = ids.iter().filter(|id| *id == "W2512").count();

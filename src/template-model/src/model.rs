@@ -123,9 +123,9 @@ pub struct ResolvedResource {
     pub metadata: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
-    /// True when the entire `Properties` block is a non-map intrinsic (e.g.
-    /// `Properties: !Ref AWS::NoValue`) whose effective property set is only known
-    /// at deploy time, as distinct from a resource that simply declares no properties.
+    /// True when a resource-level macro or a non-map `Properties` intrinsic can
+    /// determine the effective property set only at deploy time, as distinct from
+    /// a resource that simply declares no properties.
     pub properties_dynamic: bool,
     pub diagnostics: ResourceDiagnostics,
 }
@@ -534,6 +534,7 @@ impl SemanticModel {
             &parameters,
             &config.pseudo_parameters,
             &mappings,
+            &config.parameters,
             Arc::clone(&budget_tracker),
         );
 
@@ -3076,7 +3077,7 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
     };
 
     let mut properties = HashMap::new();
-    let mut properties_dynamic = false;
+    let mut properties_dynamic = entries.iter().any(|(key, _)| key == FN_TRANSFORM);
     if let Some((_, props_ref)) = entries.iter().find(|(k, _)| k == KEY_PROPERTIES) {
         if let Some(prop_entries) = arena.as_map(*props_ref) {
             for (key, val_ref) in prop_entries {

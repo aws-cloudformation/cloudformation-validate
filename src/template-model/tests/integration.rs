@@ -1318,6 +1318,10 @@ Resources:
         resource_shape_findings.is_empty(),
         "valid resource macros must not be rejected: {resource_shape_findings:?}"
     );
+    assert!(
+        model.resources.get("Bucket").is_some_and(|resource| resource.properties_dynamic),
+        "a resource-level macro can supply or replace Properties"
+    );
 }
 
 #[test]

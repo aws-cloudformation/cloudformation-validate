@@ -1,4 +1,111 @@
 {
+  "good/core/config_parameters.yaml": {
+    "filePath": "good/core/config_parameters.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Resources section must exist and be non-empty",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 8,
+        "startColumn": 1,
+        "endLine": 8,
+        "endColumn": 10,
+        "ruleDescription": "Resources section must exist and be non-empty",
+        "phase": "SCHEMA"
+      }
+    ]
+  },
+  "good/core/directives.yaml": {
+    "filePath": "good/core/directives.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 3,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::KMS::Key"
+        },
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MyKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::KMS::Key"
+        },
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 8,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MyKey' of type 'AWS::KMS::Key' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MyKey",
+          "entityType": "Resource",
+          "resourceType": "AWS::KMS::Key"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 8,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/core/resource_attributes.yaml": {
     "filePath": "good/core/resource_attributes.yaml",
     "status": "OK",
@@ -8,7 +115,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 11,
+        "informational": 10,
         "debug": 0
       },
       "suppressed": 0,
@@ -202,26 +309,6 @@
         "startLine": 60,
         "startColumn": 5,
         "endLine": 60,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'BucketWithTransform' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BucketWithTransform",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 81,
-        "startColumn": 5,
-        "endLine": 81,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -20376,266 +20463,5 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": []
-  },
-  "good/resources/properties/exclusive.yaml": {
-    "filePath": "good/resources/properties/exclusive.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3020",
-        "severity": "FATAL",
-        "message": "'Dimensions' should not be included with 'Metrics'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Alarm",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudWatch::Alarm"
-        },
-        "propertyPath": "Properties.Dimensions",
-        "category": "Schema",
-        "startLine": 17,
-        "startColumn": 7,
-        "endLine": 17,
-        "endColumn": 17,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
-        "ruleDescription": "Mutually exclusive properties",
-        "phase": "SCHEMA",
-        "context": {
-          "property": "Dimensions"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'SourceSecurityGroupId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Ingress",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroupIngress"
-        },
-        "propertyPath": "Properties.SourceSecurityGroupId",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 7,
-        "endLine": 5,
-        "endColumn": 28,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CidrIp' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Ingress",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroupIngress"
-        },
-        "propertyPath": "Properties.CidrIp",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 13,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'IpProtocol' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Ingress",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroupIngress"
-        },
-        "propertyPath": "Properties.IpProtocol",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 17,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'GroupId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Ingress",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::SecurityGroupIngress"
-        },
-        "propertyPath": "Properties.GroupId",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'AlarmName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Alarm",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudWatch::Alarm"
-        },
-        "propertyPath": "Properties.AlarmName",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-cloudwatch.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Alarm' of type 'AWS::CloudWatch::Alarm' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Alarm",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudWatch::Alarm"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 11,
-        "startColumn": 5,
-        "endLine": 11,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/resources/properties/hard_coded_arn_properties.yaml": {
-    "filePath": "good/resources/properties/hard_coded_arn_properties.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 4,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 3,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Authorizer",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Authorizer"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Bucket' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::BucketPolicy"
-        },
-        "propertyPath": "Properties.Bucket",
-        "category": "Best Practice",
-        "startLine": 20,
-        "startColumn": 7,
-        "endLine": 20,
-        "endColumn": 13,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Stack' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Stack",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 5,
-        "endLine": 13,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
   }
 }

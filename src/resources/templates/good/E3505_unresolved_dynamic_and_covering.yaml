@@ -1,0 +1,153 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  Stage:
+    Type: String
+  QueueTimeout:
+    Type: Number
+  FunctionTimeout:
+    Type: Number
+  FunctionTimeoutWithDefault:
+    Type: Number
+    Default: 60
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+Resources:
+  DynamicQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      Fn::Transform:
+        Name: AWS::Include
+        Parameters:
+          Location: s3://example-bucket/queue-properties.yaml
+  ConditionalDynamicQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://example-bucket/queue-properties.yaml
+      - VisibilityTimeout: 900
+  UnresolvedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: !Ref QueueTimeout
+  QueueAtOneSecond:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 1
+  QueueAtTwentySeconds:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 20
+  QueueAtTwoSeconds:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 2
+  CoveringConditionalQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - VisibilityTimeout: 900
+      - VisibilityTimeout: 600
+  CorrelatedQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: !If [IsProduction, 900, 10]
+
+  FunctionAtSixtySeconds:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 60
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: "def handler(event, context): pass"
+  FunctionWithUnresolvedTimeout:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: !Ref FunctionTimeout
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: "def handler(event, context): pass"
+  FunctionWithDefaultedParameter:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: !Ref FunctionTimeoutWithDefault
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: "def handler(event, context): pass"
+  CorrelatedFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: !If [IsProduction, 600, 5]
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: "def handler(event, context): pass"
+  FunctionAtOneSecond:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 1
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/role
+      Code:
+        ZipFile: "def handler(event, context): pass"
+  FunctionVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref FunctionAtOneSecond
+  FunctionAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref FunctionAtOneSecond
+      FunctionVersion: !GetAtt FunctionVersion.Version
+      Name: live
+
+  DynamicQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt DynamicQueue.Arn
+  ConditionalDynamicQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt ConditionalDynamicQueue.Arn
+  UnresolvedQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt UnresolvedQueue.Arn
+  UnresolvedFunctionMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionWithUnresolvedTimeout
+      EventSourceArn: !GetAtt QueueAtOneSecond.Arn
+  DefaultedParameterMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionWithDefaultedParameter
+      EventSourceArn: !GetAtt QueueAtTwentySeconds.Arn
+  CoveringConditionalMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAtSixtySeconds
+      EventSourceArn: !GetAtt CoveringConditionalQueue.Arn
+  CorrelatedMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref CorrelatedFunction
+      EventSourceArn: !GetAtt CorrelatedQueue.Arn
+  AliasMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref FunctionAlias
+      EventSourceArn: !GetAtt QueueAtTwoSeconds.Arn
