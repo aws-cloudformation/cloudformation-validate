@@ -397,7 +397,7 @@ impl RegoEngine {
         // shares, layered with this engine's overlays; resolving it here keeps the
         // parse off the first template without giving the engine its own copy.
         let getatt = getatt_data_with_overlays(overlay_catalog)?;
-        crate::builtins::register_all(&mut rego, schema_metadata, getatt)?;
+        crate::builtins::register_all(&mut rego, Arc::clone(&schema_metadata), getatt)?;
 
         // External-only construction advertises no built-in rules; their
         // metadata belongs to the engine that owns the built-in policies.
@@ -993,7 +993,7 @@ Resources:
 Transform: AWS::Serverless-2016-10-31
 "#;
 
-    fn eval_builtin_policy(rego_source: &str, rule_id: &str) -> Vec<Diagnostic> {
+    fn eval_builtin_policy_result(rego_source: &str) -> Result<Vec<Diagnostic>, validation_engine::ValidationError> {
         let config = EngineConfig {
             custom_rules: vec![ExternalRuleSource { name: "builtin_test.rego".into(), content: rego_source.into() }],
             guard_rules: vec![],
@@ -1001,8 +1001,11 @@ Transform: AWS::Serverless-2016-10-31
         };
         let engine = RegoEngine::new(config).unwrap();
         let model = make_model_from_yaml(BUILTIN_TEST_TEMPLATE);
-        let diags = engine.evaluate_rules(&model, &ValidateConfig::default()).unwrap();
-        diags.into_iter().filter(|d| d.rule_id == rule_id).collect()
+        engine.evaluate_rules(&model, &ValidateConfig::default())
+    }
+
+    fn eval_builtin_policy(rego_source: &str, rule_id: &str) -> Vec<Diagnostic> {
+        eval_builtin_policy_result(rego_source).unwrap().into_iter().filter(|d| d.rule_id == rule_id).collect()
     }
 
     #[test]
@@ -1508,6 +1511,25 @@ violation contains v if {
         );
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].message, "full diag");
+    }
+
+    #[test]
+    fn builtin_make_diag_at_source_conditional_rejects_non_object_conditions() {
+        let evaluation = eval_builtin_policy_result(
+            r#"
+package builtin_test
+import rego.v1
+violation contains make_diag_at_source_conditional(
+    "B_BAD_CONDITIONS", "error", "MyBucket", "BucketName", "BucketName",
+    "bad conditions", "", ["not-an-object"]
+) if {
+    true
+}
+"#,
+        );
+
+        let error = evaluation.expect_err("a non-object condition scenario must fail evaluation");
+        assert!(error.to_string().contains("condition scenario must be an object"));
     }
 
     #[test]

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use template_model::SemanticModel;
 use template_model::SourceSpan;
-use template_model::consts::KEY_DEPENDS_ON;
+use template_model::consts::{FN_IF, KEY_DEPENDS_ON, KEY_PROPERTIES};
 use template_model::resolver::ResolvedValue;
 use validation_engine::make_resource_diagnostic;
 
@@ -125,7 +125,8 @@ fn eval_unreachable_if_branches(ctx: &EvalContext) -> Vec<Diagnostic> {
             None => vec![],
         };
         for (prop_key, prop_val) in &res.properties {
-            let path_prefix = format!("Properties.{}", prop_key);
+            let path_prefix =
+                if prop_key == FN_IF { KEY_PROPERTIES.to_string() } else { format!("{}.{}", KEY_PROPERTIES, prop_key) };
             find_unreachable_branches(&mut out, m, name, prop_val, &path_prefix, &base_assumptions);
         }
     }

@@ -2,77 +2,31 @@ package resources
 
 import rego.v1
 
-# E3024/E3003: Tag Key is null (from AWS::NoValue) or missing
-violation contains make_diag_full("E3024", "ERROR", name,
-    "Properties.Tags",
+violation contains make_diag_at_source_conditional("E3024", "ERROR", name,
+    property_path,
+    source_path,
     "'Key' is a required property",
     "Tag Key cannot be null or AWS::NoValue",
-    "") if {
+    scenario.conditions,
+) if {
     cfn_rule_active("E3024")
     some name, res in input.resources
-    tags := object.get(res.properties, "Tags", null)
-    is_array(tags)
-    some tag in tags
-    is_object(tag)
-    # Tag has Value but Key is null or missing
-    object.get(tag, "Value", null) != null
-    key_val := object.get(tag, "Key", "__missing__")
-    key_val in {null, "__missing__"}
+    "Tags" in schema_properties(res.resourceType)
+    some scenario in list_object_missing_required_field_scenarios(name, "Properties.Tags", "Key", "Value")
+    property_path := sprintf("Properties.Tags.%d", [scenario.index])
+    source_path := scenario_source_path(name, property_path, scenario.conditions)
 }
 
-violation contains make_diag_full("E3003", "ERROR", name,
+violation contains make_diag_at_source_conditional("E3024", "ERROR", name,
     "Properties.Tags",
-    "'Key' is a required property",
-    "Tag Key cannot be null or AWS::NoValue",
-    "") if {
-    cfn_rule_active("E3003")
+    source_path,
+    "Tag keys must be unique",
+    "Use a different Key for each tag",
+    conditions,
+) if {
+    cfn_rule_active("E3024")
     some name, res in input.resources
-    tags := object.get(res.properties, "Tags", null)
-    is_array(tags)
-    some tag in tags
-    is_object(tag)
-    object.get(tag, "Value", null) != null
-    key_val := object.get(tag, "Key", "__missing__")
-    key_val in {null, "__missing__"}
-}
-
-# E3003: Required properties missing in Fn::If false branch for CloudFront
-# When DefaultCacheBehavior is conditional and the false branch is {},
-# required sub-properties are missing.
-violation contains make_diag_full("E3003", "ERROR", name,
-    "Properties.DistributionConfig",
-    "'DefaultCacheBehavior' is a required property",
-    "Add DefaultCacheBehavior to the Fn::If branch",
-    "") if {
-    cfn_rule_active("E3003")
-    some name in resources_of_type("AWS::CloudFront::Distribution")
-    some scenario in resolve_scenarios(name, "Properties.DistributionConfig.DefaultCacheBehavior")
-    scenario.value == null
-    is_satisfiable(scenario.conditions)
-}
-
-violation contains make_diag_full("E3003", "ERROR", name,
-    "Properties.DistributionConfig.DefaultCacheBehavior.Fn::If.2",
-    "'TargetOriginId' is a required property",
-    "Add TargetOriginId to the DefaultCacheBehavior",
-    "") if {
-    cfn_rule_active("E3003")
-    some name in resources_of_type("AWS::CloudFront::Distribution")
-    some scenario in resolve_scenarios(name, "Properties.DistributionConfig.DefaultCacheBehavior")
-    is_object(scenario.value)
-    is_satisfiable(scenario.conditions)
-    not object.get(scenario.value, "TargetOriginId", null) != null
-}
-
-violation contains make_diag_full("E3003", "ERROR", name,
-    "Properties.DistributionConfig.DefaultCacheBehavior.Fn::If.2",
-    "'ViewerProtocolPolicy' is a required property",
-    "Add ViewerProtocolPolicy to the DefaultCacheBehavior",
-    "") if {
-    cfn_rule_active("E3003")
-    some name in resources_of_type("AWS::CloudFront::Distribution")
-    some scenario in resolve_scenarios(name, "Properties.DistributionConfig.DefaultCacheBehavior")
-    is_object(scenario.value)
-    is_satisfiable(scenario.conditions)
-    not object.get(scenario.value, "ViewerProtocolPolicy", null) != null
+    "Tags" in schema_properties(res.resourceType)
+    conditions := duplicate_object_field_value_scenario(name, "Properties.Tags", "Key")
+    source_path := scenario_source_path(name, "Properties.Tags", conditions)
 }

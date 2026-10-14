@@ -5,10 +5,10 @@
 //! (schema validator, rule engines) through the `SemanticModel`.
 
 use crate::consts::{
-    MAX_ENUM_EXPANSION, MAX_FINGERPRINT_DEPTH, MAX_PARAM_COMBINATIONS, MAX_REQUIRED_PROPERTY_COMBINATIONS,
-    MAX_RESOLVE_DEPTH, MAX_SAT_ITERATIONS, MAX_SCENARIO_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH,
-    MAX_SCHEMA_SCENARIO_ASSIGNMENTS, MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS, MAX_TOTAL_SAT_ITERATIONS,
-    MAX_TOTAL_SCENARIO_COMBINATIONS,
+    MAX_COMPLETE_SCENARIO_PRODUCT, MAX_ENUM_EXPANSION, MAX_FINGERPRINT_DEPTH, MAX_PARAM_COMBINATIONS,
+    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_RESOLVE_DEPTH, MAX_SAT_ITERATIONS, MAX_SCENARIO_COMBINATIONS,
+    MAX_SCHEMA_MATCH_DEPTH, MAX_SCHEMA_SCENARIO_ASSIGNMENTS, MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS,
+    MAX_TOTAL_SAT_ITERATIONS, MAX_TOTAL_SCENARIO_COMBINATIONS,
 };
 use std::collections::BTreeSet;
 use std::sync::Mutex;
@@ -27,6 +27,8 @@ pub enum BudgetKind {
     EnumExpansion,
     /// Per-value scenario-combination expansion.
     ScenarioCombinationsPerValue,
+    /// Joint list/map scenario products replaced by an alternative-covering set.
+    ScenarioProductCovering,
     /// Cumulative scenario-combination work across all values.
     ScenarioCombinationsTotal,
     /// Condition parameter-space pre-filter.
@@ -55,6 +57,7 @@ impl BudgetKind {
             Self::ResolverDepth => MAX_RESOLVE_DEPTH as u64,
             Self::EnumExpansion => MAX_ENUM_EXPANSION as u64,
             Self::ScenarioCombinationsPerValue => MAX_SCENARIO_COMBINATIONS as u64,
+            Self::ScenarioProductCovering => MAX_COMPLETE_SCENARIO_PRODUCT as u64,
             Self::ScenarioCombinationsTotal => MAX_TOTAL_SCENARIO_COMBINATIONS,
             Self::ConditionParameterCombinations => MAX_PARAM_COMBINATIONS,
             Self::ConditionSatIterationsPerQuery => MAX_SAT_ITERATIONS,
@@ -80,6 +83,7 @@ impl BudgetKind {
             Self::ResolverDepth => "resolverDepth",
             Self::EnumExpansion => "enumExpansion",
             Self::ScenarioCombinationsPerValue => "scenarioCombinationsPerValue",
+            Self::ScenarioProductCovering => "scenarioProductCovering",
             Self::ScenarioCombinationsTotal => "scenarioCombinationsTotal",
             Self::ConditionParameterCombinations => "conditionParameterCombinations",
             Self::ConditionSatIterationsPerQuery => "conditionSatIterationsPerQuery",
@@ -100,6 +104,9 @@ impl BudgetKind {
             Self::EnumExpansion => "Resolving a value produced more possible values than the supported limit.",
             Self::ScenarioCombinationsPerValue => {
                 "Resolving a value produced more conditional scenarios than the supported limit."
+            }
+            Self::ScenarioProductCovering => {
+                "Resolving a container replaced its joint conditional scenarios with an alternative-covering set."
             }
             Self::ScenarioCombinationsTotal => {
                 "Resolving the template produced more conditional scenarios than the supported cumulative limit."

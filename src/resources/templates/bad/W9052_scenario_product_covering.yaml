@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Joint container scenarios above the full-product limit report incomplete analysis
+Parameters:
+  PCA: {Type: String, AllowedValues: ['t', 'f']}
+  PCB: {Type: String, AllowedValues: ['t', 'f']}
+  PCF: {Type: String, AllowedValues: ['t', 'f']}
+  PC02: {Type: String, AllowedValues: ['t', 'f']}
+  PC03: {Type: String, AllowedValues: ['t', 'f']}
+  PC04: {Type: String, AllowedValues: ['t', 'f']}
+  PC05: {Type: String, AllowedValues: ['t', 'f']}
+  PC06: {Type: String, AllowedValues: ['t', 'f']}
+  PC07: {Type: String, AllowedValues: ['t', 'f']}
+  PC08: {Type: String, AllowedValues: ['t', 'f']}
+  PC09: {Type: String, AllowedValues: ['t', 'f']}
+  PC10: {Type: String, AllowedValues: ['t', 'f']}
+  PC11: {Type: String, AllowedValues: ['t', 'f']}
+  PC12: {Type: String, AllowedValues: ['t', 'f']}
+Conditions:
+  CA: !Equals [!Ref PCA, 't']
+  CB: !Equals [!Ref PCB, 't']
+  CF: !Equals [!Ref PCF, 't']
+  C02: !Equals [!Ref PC02, 't']
+  C03: !Equals [!Ref PC03, 't']
+  C04: !Equals [!Ref PC04, 't']
+  C05: !Equals [!Ref PC05, 't']
+  C06: !Equals [!Ref PC06, 't']
+  C07: !Equals [!Ref PC07, 't']
+  C08: !Equals [!Ref PC08, 't']
+  C09: !Equals [!Ref PC09, 't']
+  C10: !Equals [!Ref PC10, 't']
+  C11: !Equals [!Ref PC11, 't']
+  C12: !Equals [!Ref PC12, 't']
+Resources:
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: !If [CF, [EC2], [FARGATE]]
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '512'
+      ContainerDefinitions:
+        - Name: c0
+          Image: image
+          Essential: true
+          LogConfiguration:
+            LogDriver: !If [CA, !If [CB, awslogs, syslog], awslogs]
+        - {Name: !If [CF, c1a, c1b], Image: image}
+        - {Name: !If [C02, c2a, c2b], Image: image}
+        - {Name: !If [C03, c3a, c3b], Image: image}
+        - {Name: !If [C04, c4a, c4b], Image: image}
+        - {Name: !If [C05, c5a, c5b], Image: image}
+        - {Name: !If [C06, c6a, c6b], Image: image}
+        - {Name: !If [C07, c7a, c7b], Image: image}
+        - {Name: !If [C08, c8a, c8b], Image: image}
+        - {Name: !If [C09, c9a, c9b], Image: image}
+        - {Name: !If [C10, c10a, c10b], Image: image}
+        - {Name: !If [C11, c11a, c11b], Image: image}
+        - {Name: !If [C12, c12a, c12b], Image: image}

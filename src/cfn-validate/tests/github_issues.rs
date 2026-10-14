@@ -990,11 +990,12 @@ fn issue_185_no_w3030_on_number_parameter_default() {
 }
 
 /// Issue #185 (positive boundary): a genuinely invalid retention value coming
-/// through the same Number-parameter path must still fire W3030 - the numeric
-/// equality fix must not silence real enum violations.
+/// through the same Number-parameter path must still produce a warning. Because
+/// the value is caller-overridable, W1030 owns the candidate check and W3030
+/// must not duplicate it at the resource property.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/185
 #[test]
-fn issue_185_w3030_still_fires_on_invalid_retention_via_parameter() {
+fn issue_185_w1030_replaces_w3030_for_invalid_parameter_default() {
     const TEMPLATE: &[u8] = br#"
 AWSTemplateFormatVersion: "2010-09-09"
 Parameters:
@@ -1010,8 +1011,9 @@ Resources:
     DeletionPolicy: Retain
 "#;
     let diags = validate_all_bytes(TEMPLATE);
-    assert_fires_with_severity(&diags, "W3030", Severity::Warn);
-    assert_count(&diags, "W3030", 1);
+    assert_fires_with_severity(&diags, "W1030", Severity::Warn);
+    assert_count(&diags, "W1030", 1);
+    assert_absent(&diags, "W3030");
 }
 
 /// Issue #183: W3663 must not fire when a Lambda Permission's literal SourceArn

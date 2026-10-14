@@ -342,6 +342,9 @@ pub(crate) fn validate(
     let t_eval = Instant::now();
     let engine_diags = engine.evaluate_rules(&model, &config)?;
     all_diagnostics.extend(engine_diags);
+    if !config.disable_builtin_rules {
+        all_diagnostics.extend(schema_validator.parameter_default_constraint_diagnostics(&model));
+    }
     let eval_metric = phase_metric(t_eval);
 
     let t_post = Instant::now();

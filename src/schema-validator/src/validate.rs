@@ -4,7 +4,7 @@ use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, res
 use rules::format_rule_for_format;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, LazyLock};
 use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string, coerce_value, scalar_eq};
 use template_model::conditions::Satisfiability;
@@ -13,17 +13,20 @@ use template_model::consts::{
     MAX_COMPLETE_SCENARIO_PRODUCT, MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCENARIO_PRODUCT_NODES,
     MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH, MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
     MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS as MAX_GROUP_SCENARIO_MERGE_ATTEMPTS, PARAM_TYPE_COMMA_DELIMITED_LIST,
-    PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
+    PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, PSEUDO_NO_VALUE, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
 };
 use template_model::member_presence::{ContainerMember, MemberPresence, classify_members, extend_assignment};
 use template_model::message::{render_str_list, render_value, render_value_list};
 use template_model::model::ResolvedResource;
 use template_model::region_enums;
-use template_model::resolved_value::{collect_scenarios, contains_dynamic_resolved, is_resolved_null};
+use template_model::resolved_value::{
+    collect_scenarios_with_covering, contains_dynamic_resolved, effective_path_from_scenario_source_path,
+    is_resolved_null,
+};
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
-    BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern,
-    is_custom_resource_type, resolved_value_to_json,
+    BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, PSEUDO_PARAMETERS, SECURITY_GROUP_NAME_PATTERN, SemanticModel,
+    compile_pattern, is_custom_resource_type, resolved_value_to_json,
 };
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
@@ -91,6 +94,18 @@ fn condition_context_matches_scenario(
     is_satisfiable(m, &combined)
 }
 
+fn source_path_matches_effective_property(source_path: &str, prop_path: &str) -> bool {
+    let Some(effective_path) = effective_path_from_scenario_source_path(source_path) else {
+        return false;
+    };
+    let candidate_segments: Vec<&str> = effective_path.split('.').collect();
+    let property_segments: Vec<&str> = prop_path.split('.').collect();
+    candidate_segments.len() >= property_segments.len()
+        && property_segments.iter().zip(candidate_segments).all(|(property, candidate)| {
+            property == &candidate || (*property == "{}" && candidate.parse::<usize>().is_ok())
+        })
+}
+
 /// Whether the authored value at `prop_path` reads a caller-overridable template
 /// parameter in the current condition scenario. Reference edges retain nested
 /// intrinsic paths and branch assumptions, so a parameter in one `Fn::If`
@@ -101,10 +116,26 @@ fn value_depends_on_parameter_in_scenario(
     prop_path: &str,
     scenario: &HashMap<String, bool>,
 ) -> bool {
-    let descendant_prefix = format!("{prop_path}.");
     m.graph.outgoing_edges(rid).any(|edge| {
-        (edge.source_path == prop_path || edge.source_path.starts_with(&descendant_prefix))
+        let is_unresolved_template_parameter =
+            m.parameters.contains_key(&edge.target) && !m.parameter_has_override(&edge.target);
+        let is_pseudo_parameter = edge.target != PSEUDO_NO_VALUE && PSEUDO_PARAMETERS.contains(&edge.target.as_str());
+        source_path_matches_effective_property(&edge.source_path, prop_path)
+            && (is_unresolved_template_parameter || is_pseudo_parameter)
+            && condition_context_matches_scenario(m, edge.condition_context.as_deref(), scenario)
+    })
+}
+
+fn value_depends_on_overridable_template_parameter_in_scenario(
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    scenario: &HashMap<String, bool>,
+) -> bool {
+    m.graph.outgoing_edges(rid).any(|edge| {
+        source_path_matches_effective_property(&edge.source_path, prop_path)
             && m.parameters.contains_key(&edge.target)
+            && !m.parameter_has_override(&edge.target)
             && condition_context_matches_scenario(m, edge.condition_context.as_deref(), scenario)
     })
 }
@@ -116,7 +147,9 @@ fn defer_value_constraints(
     val: &serde_json::Value,
     scenario: &HashMap<String, bool>,
 ) -> bool {
-    if value_depends_on_parameter_in_scenario(m, rid, prop_path, scenario) {
+    if m.scenario_uses_pseudo_parameter(rid, prop_path, scenario)
+        || value_depends_on_parameter_in_scenario(m, rid, prop_path, scenario)
+    {
         return true;
     }
 
@@ -440,7 +473,17 @@ fn descend<'a>(
     let Some(rest) = rest else {
         return Some(resolved);
     };
+    let mut segments = rest.splitn(2, '.');
+    let next = segments.next()?;
+    let remaining = segments.next().filter(|value| !value.is_empty());
+    let enters_array_item = next == "{}" || next.parse::<usize>().is_ok();
     match resolved {
+        Cow::Borrowed(schema) if enters_array_item => descend(schema.items.as_deref()?.resolve(defs), remaining, defs),
+        Cow::Owned(schema) if enters_array_item => {
+            let item = *schema.items?;
+            let resolved_item = item.resolve(defs).into_owned();
+            descend(Cow::Owned(resolved_item), remaining, defs)
+        }
         Cow::Borrowed(schema) => find_prop_schema(rest, &schema.properties, defs),
         Cow::Owned(schema) => {
             find_prop_schema(rest, &schema.properties, defs).map(|found| Cow::Owned(found.into_owned()))
@@ -468,7 +511,7 @@ fn find_prop_schema<'a>(
     None
 }
 
-fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<Cow<'a, PropSchema>> {
+pub(crate) fn find_prop_schema_deep<'a>(path: &str, schema: &'a CompiledSchema) -> Option<Cow<'a, PropSchema>> {
     if let Some(ps) = find_prop_schema(path, &schema.properties, &schema.definitions) {
         return Some(ps);
     }
@@ -719,49 +762,6 @@ fn collect_condition_property_names(condition: &ConditionSchema, names: &mut BTr
     if let Some(negated) = &condition.not {
         collect_condition_property_names(negated, names);
     }
-}
-
-fn validate_object_keys(
-    out: &mut Vec<Diagnostic>,
-    m: &Arc<SemanticModel>,
-    rid: &str,
-    rtype: &str,
-    schema_props: &HashMap<String, PropSchema>,
-    defs: &HashMap<String, PropSchema>,
-    required: &[String],
-    additional_properties: Option<bool>,
-    pattern_props: &HashMap<String, PropSchema>,
-    dep_req: &HashMap<String, Vec<String>>,
-    dep_excl: &HashMap<String, Vec<String>>,
-    req_or: &[String],
-    req_xor: &[String],
-    all_of: &[SubSchema],
-    any_of: &[SubSchema],
-    one_of: &[SubSchema],
-    actual_keys: &[String],
-    base_path: &str,
-) {
-    validate_object_keys_inner(
-        out,
-        m,
-        rid,
-        rtype,
-        schema_props,
-        defs,
-        required,
-        additional_properties,
-        pattern_props,
-        dep_req,
-        dep_excl,
-        req_or,
-        req_xor,
-        all_of,
-        any_of,
-        one_of,
-        actual_keys,
-        base_path,
-        None,
-    )
 }
 
 fn validate_required_groups(
@@ -1426,32 +1426,48 @@ fn validate_object_keys_inner(
     }
 }
 
-/// Enumerate object key-sets visible at `prop_path`, one per condition
-/// scenario. Returns at least one entry. When the value is not
-/// condition-branching, returns a single entry with an empty scenario map.
-/// When branches expose different keys, each branch contributes a distinct
-/// entry annotated with the condition assumptions that select it.
+/// Returns the present keys of one resolved object scenario.
+fn resolved_object_keys(value: &ResolvedValue) -> Option<Vec<String>> {
+    let mut keys: Vec<String> = match value {
+        ResolvedValue::Map { entries } => {
+            if entries.len() == 1 && is_intrinsic_key(&entries[0].key) {
+                return None;
+            }
+            entries.iter().filter(|entry| !is_resolved_null(&entry.value)).map(|entry| entry.key.clone()).collect()
+        }
+        ResolvedValue::Concrete { value } if is_unresolved_intrinsic(value) => return None,
+        ResolvedValue::Concrete { value } => value
+            .as_object()?
+            .iter()
+            .filter(|(_, property_value)| !property_value.is_null())
+            .map(|(property_name, _)| property_name.clone())
+            .collect(),
+        _ => return None,
+    };
+    keys.sort();
+    Some(keys)
+}
+
+/// Enumerates object key sets visible at `prop_path`, with the condition
+/// assumptions that select each distinct set.
 fn object_key_scenarios(
     m: &Arc<SemanticModel>,
     rid: &str,
     prop_path: &str,
 ) -> Vec<(Vec<String>, HashMap<String, bool>)> {
     let mut out: Vec<(Vec<String>, HashMap<String, bool>)> = Vec::new();
-    for (val, conds) in m.resolve_scenarios_json(rid, prop_path) {
-        if !is_satisfiable(m, &conds) {
+    for (value, conditions) in m.resolve_scenarios_shared(rid, prop_path).iter() {
+        if !is_satisfiable(m, conditions) {
             continue;
         }
-        let Some(obj) = val.as_object() else {
-            continue;
-        };
-        let mut keys: Vec<String> = obj.keys().cloned().collect();
-        keys.sort();
-        out.push((keys, conds));
+        if let Some(keys) = resolved_object_keys(value) {
+            out.push((keys, conditions.clone()));
+        }
     }
     // Deduplicate scenarios that produce the same key set - when both
     // branches of a condition have identical keys, the condition does not
     // affect key validation, so a single unconditioned entry suffices.
-    let mut seen_keysets: HashMap<Vec<String>, HashMap<String, bool>> = HashMap::new();
+    let mut seen_keysets: BTreeMap<Vec<String>, HashMap<String, bool>> = BTreeMap::new();
     for (keys, conds) in out.drain(..) {
         seen_keysets
             .entry(keys)
@@ -3276,7 +3292,7 @@ fn validate_prop(
         // property-level mismatch is reported once, as a single observable error.
         let mut emitted_type_errors: HashSet<(&str, &str)> = HashSet::new();
         for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;
             }
             // Skip unresolved/malformed intrinsics - already validated by structure rules
@@ -3338,7 +3354,10 @@ fn validate_prop(
         // any region is accepted rather than only the platform default).
         let regional = store.region_enums().allowed_values(rtype, prop_name, region);
         for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
+            if !is_satisfiable(m, conds)
+                || val.is_null()
+                || value_depends_on_overridable_template_parameter_in_scenario(m, rid, prop_path, conds)
+            {
                 continue;
             }
             let matches = if let Some(regional_vals) = &regional {
@@ -3373,7 +3392,10 @@ fn validate_prop(
 
     if !schema.enum_case_insensitive.is_empty() {
         for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
+            if !is_satisfiable(m, conds)
+                || val.is_null()
+                || value_depends_on_overridable_template_parameter_in_scenario(m, rid, prop_path, conds)
+            {
                 continue;
             }
             if !enum_matches_case_insensitive(val, &schema.enum_case_insensitive) {
@@ -3419,7 +3441,7 @@ fn validate_prop(
 
     if let Some(ref cv) = schema.const_value {
         for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
+            if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
                 continue;
             }
             if !scalar_eq(val, cv) {
@@ -3445,16 +3467,16 @@ fn validate_prop(
         // are covered by the Warning-level intrinsic rules rather than this Fatal
         // pattern check, so skip both parameter-sourced and intrinsic-sourced
         // values here.
-        let from_param = m.is_from_parameter(rid, prop_path) || m.is_from_intrinsic(rid, prop_path);
         for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
+            if !is_satisfiable(m, conds)
+                || val.is_null()
+                || m.is_from_intrinsic(rid, prop_path)
+                || defer_value_constraints(m, rid, prop_path, val, conds)
+            {
                 continue;
             }
             if let Some(s) = coerce_to_string(val) {
                 if s.contains("{{") && s.contains("resolve") {
-                    continue;
-                }
-                if from_param {
                     continue;
                 }
                 if !re.is_match(&s) {
@@ -3477,7 +3499,7 @@ fn validate_prop(
     }
 
     for (val, conds) in &scenarios {
-        if !is_satisfiable(m, conds) || val.is_null() {
+        if !is_satisfiable(m, conds) || val.is_null() || defer_value_constraints(m, rid, prop_path, val, conds) {
             continue;
         }
         let Some(n) = coerce_to_number(val) else {
@@ -3558,17 +3580,17 @@ fn validate_prop(
     }
 
     if schema.min_length.is_some() || schema.max_length.is_some() {
-        let from_param = m.is_from_parameter(rid, prop_path) || m.is_from_intrinsic(rid, prop_path);
         for (val, conds) in &scenarios {
-            if !is_satisfiable(m, conds) || val.is_null() {
+            if !is_satisfiable(m, conds)
+                || val.is_null()
+                || m.is_from_intrinsic(rid, prop_path)
+                || defer_value_constraints(m, rid, prop_path, val, conds)
+            {
                 continue;
             }
             let Some(s) = coerce_to_string(val) else {
                 continue;
             };
-            if from_param {
-                continue;
-            }
             let len = s.chars().count() as u64;
             if let Some(max) = schema.max_length
                 && len > max
@@ -3615,16 +3637,17 @@ fn validate_prop(
         || !schema.if_then_else.is_empty()
         || schema.additional_properties.is_some();
     if has_nested_constraints {
+        validate_nested_required_properties(out, m, rid, prop_path, &schema.required);
         let nested_keys = collect_keys_deep(m, rid, prop_path);
         if !nested_keys.is_empty() {
-            validate_object_keys(
+            validate_object_keys_inner(
                 out,
                 m,
                 rid,
                 rtype,
                 &schema.properties,
                 defs,
-                &schema.required,
+                &[],
                 schema.additional_properties,
                 &schema.pattern_properties,
                 &schema.dependent_required,
@@ -3636,11 +3659,8 @@ fn validate_prop(
                 &schema.one_of,
                 &nested_keys,
                 prop_path,
+                None,
             );
-            // Property-level if/then/else on an object property: evaluate the
-            // condition against the nested keys and enforce the selected branch
-            // - in full for an overlay-stated conditional, dependencies-only
-            // for a bundled one (see `IfThenElse::enforce_full_branch`).
             for ite in &schema.if_then_else {
                 let matches = condition_matches_at(&ite.condition, &nested_keys, m, rid, defs, prop_path);
                 let sub = if matches { &ite.then_schema } else { &ite.else_schema };
@@ -3653,27 +3673,22 @@ fn validate_prop(
                 }
             }
         } else if !matches!(m.resolve_deep(rid, prop_path), Some(ResolvedValue::Conditional { .. })) {
-            // An empty concrete object has no collected keys, but its object
-            // constraints and composition branches still need evaluation.
-            //
-            // The `Conditional` guard skips properties that are an `Fn::If`:
-            // there the branch-aware required-property rule owns the check and
-            // anchors the diagnostic at the branch path (`<prop>.Fn::If.<idx>`),
-            // so reporting here too would duplicate that finding at the
-            // un-qualified property path.
+            // Conditional objects have no single concrete key set for this fallback;
+            // required children were handled above and composition keeps its own
+            // condition-assignment analysis.
             for (val, _conds) in m.resolve_scenarios_shared(rid, prop_path).iter() {
-                if let ResolvedValue::Concrete { value } = &val
+                if let ResolvedValue::Concrete { value } = val
                     && let Some(obj) = value.as_object()
                 {
                     let keys: Vec<String> = obj.keys().cloned().collect();
-                    validate_object_keys(
+                    validate_object_keys_inner(
                         out,
                         m,
                         rid,
                         rtype,
                         &schema.properties,
                         defs,
-                        &schema.required,
+                        &[],
                         schema.additional_properties,
                         &schema.pattern_properties,
                         &schema.dependent_required,
@@ -3685,6 +3700,7 @@ fn validate_prop(
                         &schema.one_of,
                         &keys,
                         prop_path,
+                        None,
                     );
                 }
             }
@@ -4059,6 +4075,9 @@ fn validate_member_uniqueness(
     if alternative_groups.was_incomplete {
         m.record_budget_exhaustion(BudgetKind::SchemaScenarioAssignments);
     }
+    if alternative_groups.used_covering {
+        m.record_budget_exhaustion(BudgetKind::ScenarioProductCovering);
+    }
     match duplicate_member_witness(m, &alternative_groups.groups) {
         WitnessSearch::Found(witness) => out.push(build_diagnostic_conditional(
             "F3037",
@@ -4079,6 +4098,7 @@ fn validate_member_uniqueness(
 struct EqualValueAlternativeGroups {
     groups: Vec<Vec<MemberAlternative>>,
     was_incomplete: bool,
+    used_covering: bool,
 }
 
 /// One member's concrete surviving value under one condition assignment.
@@ -4099,6 +4119,7 @@ fn equal_value_alternative_groups(
     let mut groups: HashMap<String, Vec<MemberAlternative>> = HashMap::new();
     let mut value_order = Vec::new();
     let mut was_incomplete = false;
+    let mut used_covering = false;
     for (member_index, member) in members.iter().enumerate() {
         if member.presence == MemberPresence::Never {
             continue;
@@ -4107,7 +4128,13 @@ fn equal_value_alternative_groups(
             was_incomplete = true;
         }
         let mut scenarios = Vec::new();
-        if collect_scenarios(member.value, outer_conditions, MAX_GROUP_PROPERTY_SCENARIOS, &mut scenarios) {
+        if collect_scenarios_with_covering(
+            member.value,
+            outer_conditions,
+            MAX_GROUP_PROPERTY_SCENARIOS,
+            &mut scenarios,
+            &mut used_covering,
+        ) {
             was_incomplete = true;
         }
         let mut seen = HashSet::new();
@@ -4132,6 +4159,7 @@ fn equal_value_alternative_groups(
     EqualValueAlternativeGroups {
         groups: value_order.iter().filter_map(|value_identity| groups.remove(value_identity)).collect(),
         was_incomplete,
+        used_covering,
     }
 }
 
@@ -4365,40 +4393,6 @@ fn validate_array_item_constraints(
     }
 }
 
-fn collect_keys_deep(m: &Arc<SemanticModel>, rid: &str, path: &str) -> Vec<String> {
-    let mut keys = HashSet::new();
-    match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
-        Some(ResolvedValue::Map { entries }) => {
-            if entries.len() == 1 && is_intrinsic_key(&entries[0].key) {
-                return Vec::new();
-            }
-            for e in &entries {
-                keys.insert(e.key.clone());
-            }
-        }
-        Some(ResolvedValue::Concrete { value: ref v }) if is_unresolved_intrinsic(v) => return Vec::new(),
-        Some(ResolvedValue::Concrete { value: ref v }) if v.is_object() => {
-            for k in v.as_object().unwrap().keys() {
-                keys.insert(k.clone());
-            }
-        }
-        _ => {}
-    }
-    if keys.is_empty() {
-        for (val, conds) in &m.resolve_scenarios_json(rid, path) {
-            if !is_satisfiable(m, conds) || val.is_null() || is_unresolved_intrinsic(val) {
-                continue;
-            }
-            if let Some(obj) = val.as_object() {
-                for k in obj.keys() {
-                    keys.insert(k.clone());
-                }
-            }
-        }
-    }
-    keys.into_iter().collect()
-}
-
 fn type_matches(val: &serde_json::Value, pt: &PropType) -> bool {
     match pt {
         PropType::Single(s) => single_type(val, s),
@@ -4451,6 +4445,106 @@ fn check_required_not_null(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>, ri
             ));
         }
     }
+}
+
+fn validate_nested_required_properties(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    base_path: &str,
+    required: &[String],
+) {
+    for required_property in required {
+        for (parent, parent_conditions) in outer_resolved_scenarios(m, rid, base_path) {
+            if !is_satisfiable(m, &parent_conditions)
+                || !scenario_consistent_with_filter(m, &parent_conditions)
+                || is_resolved_null(&parent)
+            {
+                continue;
+            }
+            let child = match &parent {
+                ResolvedValue::Map { entries } => {
+                    entries.iter().find(|entry| entry.key == *required_property).map(|entry| entry.value.clone())
+                }
+                ResolvedValue::Concrete { value } => {
+                    let Some(properties) = value.as_object() else {
+                        continue;
+                    };
+                    properties
+                        .get(required_property)
+                        .cloned()
+                        .map(|value| ResolvedValue::Concrete { value: value.into() })
+                }
+                _ => continue,
+            };
+            let Some(child) = child else {
+                out.push(build_diagnostic_conditional(
+                    "F3003",
+                    &format!("'{}' is a required property", required_property),
+                    m,
+                    rid,
+                    base_path,
+                    Some(&format!("Add the required property '{}'", required_property)),
+                    condition_map(&parent_conditions),
+                ));
+                continue;
+            };
+            let mut child_scenarios = Vec::new();
+            collect_outer_resolved_scenarios(&child, &parent_conditions, &mut child_scenarios);
+            for (value, conditions) in child_scenarios {
+                if is_satisfiable(m, &conditions)
+                    && scenario_consistent_with_filter(m, &conditions)
+                    && is_resolved_null(&value)
+                {
+                    out.push(build_diagnostic_conditional(
+                        "F3003",
+                        &format!("'{}' is a required property", required_property),
+                        m,
+                        rid,
+                        base_path,
+                        Some(&format!("Add the required property '{}'", required_property)),
+                        condition_map(&conditions),
+                    ));
+                }
+            }
+        }
+    }
+}
+
+fn collect_keys_deep(m: &Arc<SemanticModel>, rid: &str, path: &str) -> Vec<String> {
+    let mut keys = HashSet::new();
+    match m.resolve_deep(rid, path).or_else(|| m.resolve(rid, path).cloned()) {
+        Some(ResolvedValue::Map { entries }) => {
+            if entries.len() == 1 && is_intrinsic_key(&entries[0].key) {
+                return Vec::new();
+            }
+            for entry in &entries {
+                keys.insert(entry.key.clone());
+            }
+        }
+        Some(ResolvedValue::Concrete { value }) if is_unresolved_intrinsic(&value) => return Vec::new(),
+        Some(ResolvedValue::Concrete { value }) if value.is_object() => {
+            if let Some(properties) = value.as_object() {
+                for property in properties.keys() {
+                    keys.insert(property.clone());
+                }
+            }
+        }
+        _ => {}
+    }
+    if keys.is_empty() {
+        for (value, conditions) in &m.resolve_scenarios_json(rid, path) {
+            if !is_satisfiable(m, conditions) || value.is_null() || is_unresolved_intrinsic(value) {
+                continue;
+            }
+            if let Some(properties) = value.as_object() {
+                for property in properties.keys() {
+                    keys.insert(property.clone());
+                }
+            }
+        }
+    }
+    keys.into_iter().collect()
 }
 
 fn is_satisfiable(m: &Arc<SemanticModel>, conds: &HashMap<String, bool>) -> bool {
@@ -5026,16 +5120,14 @@ fn validate_format(
     };
 
     for (val, conds) in scenarios {
-        if !is_satisfiable(m, conds) || val.is_null() {
+        if !is_satisfiable(m, conds)
+            || val.is_null()
+            || m.is_from_intrinsic(rid, prop_path)
+            || defer_value_constraints(m, rid, prop_path, val, conds)
+        {
             continue;
         }
         if let Some(s) = coerce_to_string(val) {
-            if s.contains("${") && m.is_from_intrinsic(rid, prop_path) {
-                continue;
-            }
-            if m.is_from_parameter(rid, prop_path) {
-                continue;
-            }
             if ec2_resolves_ssm_image_alias(m, rid, prop_path, format, &s) {
                 continue;
             }
@@ -5760,7 +5852,15 @@ fn build_diagnostic_conditional(
     fix: Option<&str>,
     conds: Option<HashMap<String, bool>>,
 ) -> Diagnostic {
-    let span = if rid.is_empty() { resolve_section_span(rule_id, m.as_ref()) } else { m.resource_span(rid, prop) };
+    let span = if rid.is_empty() {
+        resolve_section_span(rule_id, m.as_ref())
+    } else {
+        let source_path = conds
+            .as_ref()
+            .and_then(|conditions| m.scenario_source_path(rid, prop, conditions))
+            .unwrap_or_else(|| prop.to_string());
+        m.resource_span(rid, &source_path)
+    };
     RegisteredDiagnostic::new(rule_id, msg)
         .resource(rid, m.resources.get(rid).map(|r| r.resource_type.clone()))
         .property_path(prop)
