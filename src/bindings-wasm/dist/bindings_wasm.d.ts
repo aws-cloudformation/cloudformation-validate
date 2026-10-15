@@ -485,9 +485,9 @@ export interface ResolvedResource {
     metadata?: JsonValue;
     properties: Record<string, ResolvedValue>;
     /**
-     * True when the entire `Properties` block is a non-map intrinsic (e.g.
-     * `Properties: !Ref AWS::NoValue`) whose effective property set is only known
-     * at deploy time, as distinct from a resource that simply declares no properties.
+     * True when a resource-level macro or a non-map `Properties` intrinsic can
+     * determine the effective property set only at deploy time, as distinct from
+     * a resource that simply declares no properties.
      */
     propertiesDynamic: boolean;
     diagnostics: ResourceDiagnostics;
