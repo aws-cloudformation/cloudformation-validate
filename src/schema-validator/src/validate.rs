@@ -991,6 +991,10 @@ fn compatible_alternative_witness(
     None
 }
 
+fn assignment_uses_only_defined_conditions(m: &Arc<SemanticModel>, assignment: &HashMap<String, bool>) -> bool {
+    assignment.keys().all(|condition| m.conditions.get(condition).is_some())
+}
+
 /// A Fatal diagnostic requires an exact satisfiable witness. The condition
 /// solver's ordinary boolean API intentionally maps budget exhaustion to
 /// `true`; the tri-state API lets proof-producing validation decline to emit
@@ -998,6 +1002,9 @@ fn compatible_alternative_witness(
 fn assignment_is_proven_satisfiable(m: &Arc<SemanticModel>, assignment: &HashMap<String, bool>) -> bool {
     if assignment.is_empty() {
         return true;
+    }
+    if !assignment_uses_only_defined_conditions(m, assignment) {
+        return false;
     }
     let assumptions: Vec<(String, bool)> = assignment.iter().map(|(name, value)| (name.clone(), *value)).collect();
     matches!(m.conditions.satisfiability(&assumptions), Satisfiability::Satisfiable)
@@ -4551,7 +4558,8 @@ fn is_satisfiable(m: &Arc<SemanticModel>, conds: &HashMap<String, bool>) -> bool
     if conds.is_empty() {
         return true;
     }
-    m.conditions.is_satisfiable(&conds.iter().map(|(k, v)| (k.clone(), *v)).collect::<Vec<_>>())
+    assignment_uses_only_defined_conditions(m, conds)
+        && m.conditions.is_satisfiable(&conds.iter().map(|(k, v)| (k.clone(), *v)).collect::<Vec<_>>())
 }
 
 fn condition_map(conds: &HashMap<String, bool>) -> Option<HashMap<String, bool>> {
