@@ -14,7 +14,7 @@ pub use aws_cli::{
 pub use engine::{
     CompositeEngineConfig, DIAGNOSTIC_SOURCE_PATH_FIELD, EngineConfig, EngineType, ExternalRuleSource, ValidateConfig,
     ValidationEngine, ValidationError, build_rule_list, catch_panics, extract_diagnostics,
-    extract_diagnostics_from_value, make_resource_diagnostic, make_resource_diagnostic_at_source,
+    extract_diagnostics_from_value, make_resource_diagnostic, make_resource_diagnostic_at_source, panic_message,
     semantic_model_to_input_json, validate_bytes_with_path, validate_catching_panics,
 };
 pub use guard::{GUARD_CATEGORY_PREFIX, GuardRuleSet};
