@@ -798,6 +798,151 @@ Resources:
 }
 
 #[test]
+fn dynamic_properties_do_not_imply_missing_retention_period() {
+    let template = r#"
+Parameters:
+  Stage:
+    Type: String
+  RetentionDays:
+    Type: Number
+Conditions:
+  IsProduction: !Equals [!Ref Stage, production]
+  IsNotProduction: !Not [!Condition IsProduction]
+Resources:
+  DynamicPropertiesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      Fn::Transform:
+        Name: AWS::Include
+        Parameters:
+          Location: s3://example-bucket/queue-properties.yaml
+  SiblingTransformQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: example-queue
+      Fn::Transform:
+        Name: AWS::Include
+        Parameters:
+          Location: s3://example-bucket/queue-properties.yaml
+  ResourceTransformQueue:
+    Type: AWS::SQS::Queue
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: s3://example-bucket/queue-resource.yaml
+  NoValuePropertiesQueue:
+    Type: AWS::SQS::Queue
+    Properties: !Ref AWS::NoValue
+  NestedTransformQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      Tags:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://example-bucket/queue-tags.yaml
+  DynamicRetentionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: !Ref RetentionDays
+  ConditionalSetQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - MessageRetentionPeriod: 1209600
+      - MessageRetentionPeriod: 60
+  ConditionalMacroOrSetQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://example-bucket/production-queue-properties.yaml
+      - MessageRetentionPeriod: 60
+  ConditionalMacroOnlyQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://example-bucket/production-queue-properties.yaml
+      - Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://example-bucket/development-queue-properties.yaml
+  ConditionalRetentionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: !If [IsProduction, 1209600, !Ref AWS::NoValue]
+  ResourceConditionAllowsAbsenceQueue:
+    Type: AWS::SQS::Queue
+    Condition: IsProduction
+    Properties:
+      MessageRetentionPeriod: !If [IsProduction, !Ref AWS::NoValue, 60]
+  ResourceConditionExcludesAbsenceQueue:
+    Type: AWS::SQS::Queue
+    Condition: IsProduction
+    Properties:
+      MessageRetentionPeriod: !If [IsProduction, 60, !Ref AWS::NoValue]
+  CorrelatedConditionsExcludeAbsenceQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: !If
+        - IsProduction
+        - 1209600
+        - !If [IsNotProduction, 60, !Ref AWS::NoValue]
+  ConditionalTransformQueue:
+    Type: AWS::SQS::Queue
+    Properties: !If
+      - IsProduction
+      - Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://example-bucket/queue-properties.yaml
+      - VisibilityTimeout: 900
+  ConcreteQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: concrete-queue
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["I3013"]);
+    let cel_findings = selected_findings(&cel, template, &["I3013"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings.len(),
+        5,
+        "only known reachable missing retention periods are reported: {rego_findings:?}"
+    );
+    for resource in [
+        "ConcreteQueue",
+        "ConditionalRetentionQueue",
+        "ConditionalTransformQueue",
+        "NestedTransformQueue",
+        "ResourceConditionAllowsAbsenceQueue",
+    ] {
+        assert!(rego_findings.iter().any(|finding| finding.contains(&format!("|{resource}|Properties|"))));
+    }
+    for resource in [
+        "ConditionalMacroOnlyQueue",
+        "ConditionalMacroOrSetQueue",
+        "ConditionalSetQueue",
+        "CorrelatedConditionsExcludeAbsenceQueue",
+        "DynamicPropertiesQueue",
+        "DynamicRetentionQueue",
+        "NoValuePropertiesQueue",
+        "ResourceConditionExcludesAbsenceQueue",
+        "ResourceTransformQueue",
+        "SiblingTransformQueue",
+    ] {
+        assert!(rego_findings.iter().all(|finding| !finding.contains(&format!("|{resource}|"))));
+    }
+}
+
+#[test]
 fn omitted_dynamodb_billing_mode_requires_provisioned_throughput() {
     let template = r#"
 Resources:

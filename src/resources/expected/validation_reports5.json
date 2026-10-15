@@ -28891,7 +28891,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 55,
+        "informational": 54,
         "debug": 0
       },
       "suppressed": 0,
@@ -29185,25 +29185,6 @@
         "endLine": 53,
         "endColumn": 18,
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3013",
-        "severity": "INFO",
-        "message": "'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "DynamicQueue",
-          "entityType": "Resource",
-          "resourceType": "AWS::SQS::Queue"
-        },
-        "propertyPath": "Properties",
-        "category": "Best Practice",
-        "startLine": 17,
-        "startColumn": 5,
-        "endLine": 17,
-        "endColumn": 15,
-        "ruleDescription": "Check resources with auto expiring content have explicit retention period",
         "phase": "LINT"
       },
       {

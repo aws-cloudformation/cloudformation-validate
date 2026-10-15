@@ -638,22 +638,9 @@ fn eval_retention_period_rules(ctx: &EvalContext) -> Vec<Diagnostic> {
             // anchored on the properties object, so report only the first missing
             // one - emitting one per missing property would over-report a single
             // underlying concern.
-            let first_missing = required_props.iter().find(|prop| {
-                let key_present = m
-                    .resources
-                    .get(resource_name.as_str())
-                    .map(|r| r.properties.contains_key(prop.as_str()))
-                    .unwrap_or(false);
-                // The property is only "set" if it resolves to a real value in
-                // every satisfiable scenario. A value supplied through
-                // `Fn::If [cond, X, AWS::NoValue]` is absent in the NoValue
-                // branch, so the retention period can still lapse - the reference
-                // linter flags that, and treating mere key presence as "set" would
-                // miss it.
-                let path = format!("Properties.{}", prop);
-                let scenarios = m.resolve_scenarios_json(resource_name.as_str(), &path);
-                !key_present || scenarios.is_empty() || scenarios.iter().any(|(val, _)| val.is_null())
-            });
+            let first_missing = required_props
+                .iter()
+                .find(|property| !m.property_absence_scenarios(resource_name, property).is_empty());
             if let Some(prop) = first_missing {
                 out.push(make_resource_diagnostic("I3013",
                     &format!("'{}' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)", prop),
