@@ -97,6 +97,33 @@ Resources:
 }
 
 #[test]
+fn undefined_inline_condition_does_not_create_required_property_cascade() {
+    let template = r#"
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags:
+        - Fn::If:
+            - MissingCondition
+            - WrongKey: Environment
+              WrongValue: production
+            - !Ref AWS::NoValue
+"#;
+
+    let diagnostics = validate_with_parity(template);
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "E1028"),
+        "the undefined condition must retain its syntax diagnostic"
+    );
+    assert!(
+        diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "F3003"),
+        "an undeclared condition cannot provide a reachable required-property scenario"
+    );
+}
+
+#[test]
 fn unrelated_resource_shape_defects_still_participate_in_primary_identifier_checks() {
     let template = r#"
 AWSTemplateFormatVersion: '2010-09-09'
