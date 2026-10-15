@@ -15,15 +15,22 @@ class WasmCelEngine {
      * @returns {string}
      */
     engineName() {
-        let deferred1_0;
-        let deferred1_1;
+        let deferred2_0;
+        let deferred2_1;
         try {
             const ret = wasm.wasmcelengine_engineName(this.__wbg_ptr);
-            deferred1_0 = ret[0];
-            deferred1_1 = ret[1];
-            return getStringFromWasm0(ret[0], ret[1]);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0;
+                len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
         } finally {
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
         }
     }
     /**
@@ -95,15 +102,22 @@ class WasmCompositeEngine {
      * @returns {string}
      */
     engineName() {
-        let deferred1_0;
-        let deferred1_1;
+        let deferred2_0;
+        let deferred2_1;
         try {
             const ret = wasm.wasmcompositeengine_engineName(this.__wbg_ptr);
-            deferred1_0 = ret[0];
-            deferred1_1 = ret[1];
-            return getStringFromWasm0(ret[0], ret[1]);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0;
+                len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
         } finally {
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
         }
     }
     /**
@@ -175,15 +189,22 @@ class WasmRegoEngine {
      * @returns {string}
      */
     engineName() {
-        let deferred1_0;
-        let deferred1_1;
+        let deferred2_0;
+        let deferred2_1;
         try {
             const ret = wasm.wasmregoengine_engineName(this.__wbg_ptr);
-            deferred1_0 = ret[0];
-            deferred1_1 = ret[1];
-            return getStringFromWasm0(ret[0], ret[1]);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0;
+                len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
         } finally {
-            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
         }
     }
     /**
@@ -278,7 +299,10 @@ class WasmSchemaValidator {
      */
     schemaCount() {
         const ret = wasm.wasmschemavalidator_schemaCount(this.__wbg_ptr);
-        return ret >>> 0;
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] >>> 0;
     }
     /**
      * @param {WasmSemanticModel} model
@@ -331,6 +355,9 @@ class WasmSemanticModel {
      */
     description() {
         const ret = wasm.wasmsemanticmodel_description(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
         let v1;
         if (ret[0] !== 0) {
             v1 = getStringFromWasm0(ret[0], ret[1]).slice();
@@ -343,6 +370,9 @@ class WasmSemanticModel {
      */
     formatVersion() {
         const ret = wasm.wasmsemanticmodel_formatVersion(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
         let v1;
         if (ret[0] !== 0) {
             v1 = getStringFromWasm0(ret[0], ret[1]).slice();
@@ -430,24 +460,53 @@ class WasmSemanticModel {
 if (Symbol.dispose) WasmSemanticModel.prototype[Symbol.dispose] = WasmSemanticModel.prototype.free;
 exports.WasmSemanticModel = WasmSemanticModel;
 
+/**
+ * Number of export bodies that were entered and never returned. The host
+ * reads it after a failed call to tell a returned error from an interrupted
+ * call that left the instance inconsistent.
+ * @returns {number}
+ */
+function activeCalls() {
+    const ret = wasm.activeCalls();
+    return ret >>> 0;
+}
+exports.activeCalls = activeCalls;
+
 function init() {
     wasm.init();
 }
 exports.init = init;
 
 /**
+ * Registers the host callback that receives panic messages. A panic still
+ * traps the instance; the callback only lets the host report why.
+ * @param {(message: string) => void} listener
+ */
+function setPanicListener(listener) {
+    wasm.setPanicListener(listener);
+}
+exports.setPanicListener = setPanicListener;
+
+/**
  * @returns {string}
  */
 function version() {
-    let deferred1_0;
-    let deferred1_1;
+    let deferred2_0;
+    let deferred2_1;
     try {
         const ret = wasm.version();
-        deferred1_0 = ret[0];
-        deferred1_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
+        var ptr1 = ret[0];
+        var len1 = ret[1];
+        if (ret[3]) {
+            ptr1 = 0;
+            len1 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred2_0 = ptr1;
+        deferred2_1 = len1;
+        return getStringFromWasm0(ptr1, len1);
     } finally {
-        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
     }
 }
 exports.version = version;
@@ -536,6 +595,12 @@ function __wbg_get_imports() {
         },
         __wbg___wbindgen_throw_344f42d3211c4765: function (arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
+        },
+        __wbg_call_774748efc4f5502f: function () {
+            return handleError(function (arg0, arg1, arg2, arg3) {
+                const ret = arg0.call(arg1, getStringFromWasm0(arg2, arg3));
+                return ret;
+            }, arguments);
         },
         __wbg_call_8a2dd23819f8a60a: function () {
             return handleError(function (arg0, arg1) {
