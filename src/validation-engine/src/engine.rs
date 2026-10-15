@@ -515,6 +515,16 @@ pub fn validate_bytes_with_path(
     config: ValidateConfig,
     file_path: String,
 ) -> Result<ValidationReport, ValidationError> {
+    validate_catching_panics(|| validate_bytes_with_path_inner(engine, schema_validator, bytes, config, file_path))
+}
+
+fn validate_bytes_with_path_inner(
+    engine: &dyn ValidationEngine,
+    schema_validator: &SchemaValidator,
+    bytes: &[u8],
+    config: ValidateConfig,
+    file_path: String,
+) -> Result<ValidationReport, ValidationError> {
     let total_start = Instant::now();
     let result = match SemanticModel::parse(
         bytes,
@@ -613,7 +623,9 @@ pub fn semantic_model_to_input_json(model: &SemanticModel) -> Result<serde_json:
     })
 }
 
-fn panic_message(payload: &(dyn Any + Send)) -> String {
+/// Message carried by a panic payload, shared by every boundary that reports
+/// panics (the unwind guard here and the WebAssembly panic hook).
+pub fn panic_message(payload: &(dyn Any + Send)) -> String {
     if let Some(message) = payload.downcast_ref::<&str>() {
         (*message).to_string()
     } else if let Some(message) = payload.downcast_ref::<String>() {
@@ -3467,15 +3479,13 @@ Resources:
     fn engine_panic_is_caught_as_error_never_as_diagnostic() {
         let schema_validator = SchemaValidator::default();
         let engine = ExplodingEngine::new(Explosion::Panic);
-        let result = validate_catching_panics(|| {
-            validate_bytes_with_path(
-                &engine,
-                &schema_validator,
-                WELL_FORMED_TEMPLATE,
-                ValidateConfig::default(),
-                "inline".to_string(),
-            )
-        });
+        let result = validate_bytes_with_path(
+            &engine,
+            &schema_validator,
+            WELL_FORMED_TEMPLATE,
+            ValidateConfig::default(),
+            "inline".to_string(),
+        );
         match result {
             Err(ValidationError::Engine(message)) => assert!(
                 message.contains("Internal validation error")

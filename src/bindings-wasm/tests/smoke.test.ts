@@ -1222,3 +1222,48 @@ describe('deprecated validateStandard and validateDetailed', () => {
         expect(filtered.diagnostics.length).toBeLessThan(unfiltered.diagnostics.length);
     });
 });
+
+describe('WASM lifecycle boundary', () => {
+    it('emits a literal CommonJS bridge dependency for bundlers', () => {
+        const wrapperSource = fs.readFileSync(path.resolve(__dirname, '../dist/index.js'), 'utf8');
+
+        expect(wrapperSource).toMatch(/require\(['"]\.\/bindings_wasm['"]\)/);
+    });
+
+    it('rejects accessor-backed configuration before entering WASM and keeps the engine usable', () => {
+        const engine = new CelEngine();
+        const config = Object.create(null);
+        Object.defineProperty(config, 'include', {
+            enumerable: true,
+            get() {
+                throw new TypeError('config getter must not run inside WASM');
+            },
+        });
+
+        expect(() => engine.validateTemplate(new TemplateContent('Resources: {}'), config)).toThrow(
+            'validation config.include must be a value property',
+        );
+        expect(engine.validateTemplate(new TemplateContent('Resources: {}')).status).toBe('OK');
+        engine.free();
+    });
+
+    it('validates every template byte when a Uint8Array shadows its length', () => {
+        const templateText = 'Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n';
+        const shadowedLength = new TextEncoder().encode(templateText);
+        Object.defineProperty(shadowedLength, 'length', { value: 1 });
+
+        const report = CEL.validateTemplate(new TemplateContent(shadowedLength));
+
+        expect(report.metadata.resourcesScanned).toBe(1);
+        expect(report.diagnostics).toEqual(CEL.validateTemplate(new TemplateContent(templateText)).diagnostics);
+        expect(CEL.validateTemplate(new TemplateContent('Resources: {}')).status).toBe('OK');
+    });
+
+    it('makes free idempotent and rejects use after free without entering WASM', () => {
+        const engine = new CelEngine();
+        engine.free();
+        engine.free();
+
+        expect(() => engine.listRules()).toThrow('CelEngine has been freed');
+    });
+});
