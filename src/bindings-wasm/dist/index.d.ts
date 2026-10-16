@@ -227,7 +227,7 @@ export interface SchemaValidatorConfig {
     additionalSchemas?: SchemaSource[];
 }
 export declare class TemplateModel {
-    private readonly inner;
+    private readonly owned;
     constructor(template: Template);
     resources(): Record<string, ResolvedResource>;
     parameters(): Record<string, ParameterInfo>;
@@ -241,7 +241,8 @@ export declare class TemplateModel {
     free(): void;
 }
 export declare class SchemaValidator {
-    private readonly inner;
+    private readonly instance;
+    private readonly owned;
     constructor(config?: SchemaValidatorConfig);
     listRules(): RuleInfo[];
     schemaCount(): number;
