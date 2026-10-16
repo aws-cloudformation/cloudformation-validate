@@ -20124,6 +20124,62 @@
       {
         "ruleId": "F3017",
         "severity": "FATAL",
+        "message": "Value is not valid under any of the 2 anyOf schemas for AWS::AppStream::ImageBuilder (0 branches matched; at least one is required). Required property combinations: ['ImageArn'] or ['ImageName']. Branch failures: branch 1: 'ImageName' is a required property; branch 2: 'ImageArn' is a required property.",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NoImage",
+          "entityType": "Resource",
+          "resourceType": "AWS::AppStream::ImageBuilder"
+        },
+        "propertyPath": "Properties",
+        "category": "Schema",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Value not valid under anyOf",
+        "phase": "SCHEMA",
+        "context": {
+          "expectedConstraint": "at least one anyOf branch",
+          "extra": {
+            "branchCount": 2,
+            "branchFailures": [
+              {
+                "branch": 1,
+                "reasons": [
+                  {
+                    "message": "'ImageName' is a required property",
+                    "propertyPath": "Properties"
+                  }
+                ]
+              },
+              {
+                "branch": 2,
+                "reasons": [
+                  {
+                    "message": "'ImageArn' is a required property",
+                    "propertyPath": "Properties"
+                  }
+                ]
+              }
+            ],
+            "compositionKind": "anyOf",
+            "matchCount": 0,
+            "matchOutcome": "zeroMatches",
+            "validPropertyCombinations": [
+              [
+                "ImageArn"
+              ],
+              [
+                "ImageName"
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "F3017",
+        "severity": "FATAL",
         "message": "Value is not valid under any of the 5 anyOf schemas for AWS::EC2::Volume (0 branches matched; at least one is required). Required property combinations: ['AvailabilityZone', 'Size'] or ['AvailabilityZone', 'SnapshotId'] or ['AvailabilityZoneId', 'Size'] or ['AvailabilityZoneId', 'SnapshotId'] or ['SourceVolumeId']. Branch failures: branch 1: 'AvailabilityZone' is a required property, 'Size' is a required property; branch 2: 'AvailabilityZone' is a required property, 'SnapshotId' is a required property; branch 3: 'AvailabilityZoneId' is a required property, 'Size' is a required property; branch 4: 'AvailabilityZoneId' is a required property, 'SnapshotId' is a required property; branch 5: 'SourceVolumeId' is a required property.",
         "source": "SCHEMA",
         "entity": {
@@ -20229,62 +20285,6 @@
               ],
               [
                 "SourceVolumeId"
-              ]
-            ]
-          }
-        }
-      },
-      {
-        "ruleId": "F3018",
-        "severity": "FATAL",
-        "message": "Value is not valid under any of the 2 oneOf schemas for AWS::AppStream::ImageBuilder (0 branches matched; exactly one is required). Required property combinations: ['ImageArn'] or ['ImageName']. Branch failures: branch 1: 'ImageName' is a required property; branch 2: 'ImageArn' is a required property.",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "NoImage",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppStream::ImageBuilder"
-        },
-        "propertyPath": "Properties",
-        "category": "Schema",
-        "startLine": 6,
-        "startColumn": 5,
-        "endLine": 6,
-        "endColumn": 15,
-        "ruleDescription": "Value not valid under oneOf",
-        "phase": "SCHEMA",
-        "context": {
-          "expectedConstraint": "exactly one oneOf branch",
-          "extra": {
-            "branchCount": 2,
-            "branchFailures": [
-              {
-                "branch": 1,
-                "reasons": [
-                  {
-                    "message": "'ImageName' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              },
-              {
-                "branch": 2,
-                "reasons": [
-                  {
-                    "message": "'ImageArn' is a required property",
-                    "propertyPath": "Properties"
-                  }
-                ]
-              }
-            ],
-            "compositionKind": "oneOf",
-            "matchCount": 0,
-            "matchOutcome": "zeroMatches",
-            "validPropertyCombinations": [
-              [
-                "ImageArn"
-              ],
-              [
-                "ImageName"
               ]
             ]
           }
