@@ -379,6 +379,9 @@
     "AWS::DAX::ParameterGroup": [
       "ParameterGroupName"
     ],
+    "AWS::DAX::SubnetGroup": [
+      "SubnetGroupName"
+    ],
     "AWS::DMS::EventSubscription": [
       "SubscriptionName"
     ],
@@ -709,6 +712,11 @@
     "AWS::Glue::SecurityConfiguration": [
       "Name"
     ],
+    "AWS::Glue::Table": [
+      "CatalogId",
+      "DatabaseName",
+      "Name"
+    ],
     "AWS::Glue::TableOptimizer": [
       "TableName",
       "DatabaseName",
@@ -852,9 +860,6 @@
     ],
     "AWS::IoTAnalytics::Pipeline": [
       "PipelineName"
-    ],
-    "AWS::IoTEvents::AlarmModel": [
-      "AlarmModelName"
     ],
     "AWS::IoTEvents::DetectorModel": [
       "DetectorModelName"
@@ -1087,6 +1092,9 @@
     "AWS::MediaConnect::FlowVpcInterface": [
       "FlowArn",
       "Name"
+    ],
+    "AWS::MediaConvert::CertificateAssociation": [
+      "Arn"
     ],
     "AWS::MediaConvert::JobTemplate": [
       "Name"

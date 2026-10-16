@@ -1,10 +1,10 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-10-06 18:00:15  
+> Generated: 2026-10-16 17:44:05  
 > Engine: **composite**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
-> Templates compared: **694**  
+> Templates compared: **732**  
 
 ## Terminology
 
@@ -22,1614 +22,29 @@
 
 | Metric | Value |
 |--------|------:|
-| True Positives | 4149 |
-| False Positives (engine bugs) | 80 |
-| Engine Extra (correct, cfn-lint gap) | 8578 |
-| False Negatives (engine misses) | 1153 |
-| Precision | 98.11% |
-| Recall | 78.25% |
-| F1 | 87.06% |
-| Unique rules detected | 247 |
-| Perfect templates | 136/694 |
+| True Positives | 5177 |
+| False Positives (engine bugs) | 321 |
+| Engine Extra (correct, cfn-lint gap) | 8897 |
+| False Negatives (engine misses) | 404 |
+| Precision | 94.16% |
+| Recall | 92.76% |
+| F1 | 93.46% |
+| Unique rules detected | 255 |
+| Perfect templates | 446/732 |
 | Location mismatches (matched pairs) | 9 |
 
 ### By Severity
 
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
-| Fatal | 466 | 13 | 82 | 142 | 97.29% | 76.64% |
-| Error | 894 | 55 | 15 | 150 | 94.20% | 85.63% |
-| Warning | 2098 | 0 | 378 | 63 | 100.00% | 97.08% |
-| Info | 691 | 12 | 8103 | 798 | 98.29% | 46.41% |
+| Fatal | 477 | 15 | 81 | 140 | 96.95% | 77.31% |
+| Error | 924 | 62 | 15 | 157 | 93.71% | 85.48% |
+| Warning | 2160 | 12 | 388 | 65 | 99.45% | 97.08% |
+| Info | 1616 | 232 | 8413 | 42 | 87.45% | 97.47% |
 
-## False Negatives - 1153 missed findings across 94 rules
+## False Negatives - 404 missed findings across 99 rules
 
 These are diagnostics cfn-lint expects but the engine does not report.
-
-### I4010 - 791 missed - Template or architecture-relevant resource has no Context block
-
-- **I4010** `MyBucket` → `Resources.MyBucket` L3 in `bad_E1050_dynamic_ref_malformed_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** `Instance` → `Resources.Instance` L6 in `bad_E1150_network_interfaces_groupset_multi_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Instance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'wh
-- **I4010** → `Metadata` L1 in `bad_E2530_I2530_snapstart_sourced_tables_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RecommendedJava` → `Resources.RecommendedJava` L3 in `bad_E2530_I2530_snapstart_sourced_tables_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RecommendedJava (AWS::Lambda::Function), ExcludedJava8 (AWS::Lambda::Function), NotRecommendedDotNet (AWS::La
-- **I4010** → `Metadata` L1 in `bad_E3019_four_way_group_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `A` → `Resources.A` L6 in `bad_E3019_four_way_group_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: A (AWS::S3::Bucket), B (AWS::S3::Bucket), C (AWS::S3::Bucket), D (AWS::S3::Bucket). For each listed resource,
-- **I4010** → `Metadata` L1 in `bad_E3019_identity_reference_forms_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RefBucket` → `Resources.RefBucket` L9 in `bad_E3019_identity_reference_forms_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RefBucket (AWS::S3::Bucket), SubBucket (AWS::S3::Bucket), ExplicitSubBucket (AWS::S3::Bucket), JoinBucket (AW
-- **I4010** → `Metadata` L1 in `bad_E3022_equivalent_subnet_forms_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DirectRef` → `Resources.DirectRef` L6 in `bad_E3022_equivalent_subnet_forms_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DirectRef (AWS::EC2::SubnetRouteTableAssociation), ImplicitSub (AWS::EC2::SubnetRouteTableAssociation), Expli
-- **I4010** → `Metadata` L1 in `bad_E3023_conditional_record_items_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Standalone` → `Resources.Standalone` L9 in `bad_E3023_conditional_record_items_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Standalone (AWS::Route53::RecordSet), Group (AWS::Route53::RecordSetGroup). For each listed resource, add Met
-- **I4010** → `Metadata` L1 in `bad_E3031_cognito_user_pool_domain_pattern_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `UserPool` → `Resources.UserPool` L8 in `bad_E3031_cognito_user_pool_domain_pattern_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: UserPool (AWS::Cognito::UserPool), PrefixLeadingHyphen (AWS::Cognito::UserPoolDomain), PrefixTrailingHyphen (
-- **I4010** → `Metadata` L1 in `bad_E3032_E3002_E3689_conditional_constraints_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TableWithLsiSingleKey` → `Resources.TableWithLsiSingleKey` L9 in `bad_E3032_E3002_E3689_conditional_constraints_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TableWithLsiSingleKey (AWS::DynamoDB::Table), GlobalTableWithLsiSingleKey (AWS::DynamoDB::GlobalTable), Clust
-- **I4010** `Domain` → `Resources.Domain` L3 in `bad_E3512_opensearch_access_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Domain (AWS::OpenSearchService::Domain). For each listed resource, add Metadata.com.aws.cloudformation.Contex
-- **I4010** `Function` → `Resources.Function` L3 in `bad_E3663_reserved_environment_keys_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `LoadBalancer` → `Resources.LoadBalancer` L3 in `bad_E3679_classic_elb_listener_index_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LoadBalancer (AWS::ElasticLoadBalancing::LoadBalancer). For each listed resource, add Metadata.com.aws.cloudf
-- **I4010** → `Metadata` L1 in `bad_E3680_alb_fewer_than_two_subnets_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L6 in `bad_E3680_alb_fewer_than_two_subnets_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), SubnetA (AWS::EC2::Subnet), AlbDefaultTypeOneSubnet (AWS::ElasticLoadBalancingV2::LoadBa
-- **I4010** → `Metadata` L1 in `bad_E3699_authorizer_literal_and_param_rest_api_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RestApi1` → `Resources.RestApi1` L12 in `bad_E3699_authorizer_literal_and_param_rest_api_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RestApi1 (AWS::ApiGateway::RestApi), AuthorizerLiteral (AWS::ApiGateway::Authorizer), MethodRefLiteralMismatc
-- **I4010** → `Metadata` L1 in `bad_E3699_method_authorizer_rest_api_mismatch_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RestApiA` → `Resources.RestApiA` L8 in `bad_E3699_method_authorizer_rest_api_mismatch_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RestApiA (AWS::ApiGateway::RestApi), RestApiB (AWS::ApiGateway::RestApi), AuthorizerB (AWS::ApiGateway::Autho
-- **I4010** → `Metadata` L1 in `bad_E3717_E3718_E3719_E3723_conditional_constraints_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `FunctionRole` → `Resources.FunctionRole` L6 in `bad_E3717_E3718_E3719_E3723_conditional_constraints_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FunctionRole (AWS::IAM::Role), TimeoutWithoutCapacityProvider (AWS::Lambda::Function), RestApi (AWS::ApiGatew
-- **I4010** `MyBucket` → `Resources.MyBucket` L16 in `bad_E8007_condition_undefined_in_expr_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** `Mystery` → `Resources.Mystery` L8 in `bad_E9001_unknown_resource_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Mystery (AWS::Mystery::DoesNotExist). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** → `Metadata` L1 in `bad_E9002_inverted_port_range_egress_and_standalone_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L7 in `bad_E9002_inverted_port_range_egress_and_standalone_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), SecurityGroup (AWS::EC2::SecurityGroup), StandaloneIngressInverted (AWS::EC2::SecurityGr
-- **I4010** `MyBucket` → `Resources.MyBucket` L15 in `bad_E9106_condition_cycle_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** `Bucket` → `Resources.Bucket` L8 in `bad_F2002_ssm_parameter_type_invalid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `bad_F3006_invalid_aws_namespaces_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BadServerless` → `Resources.BadServerless` L11 in `bad_F3006_invalid_aws_namespaces_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BadServerless (AWS::Serverless::NotARealType), BadCloudFormation (AWS::CloudFormation::NotARealType), MidStri
-- **I4010** `MissingTemplateSourceInOneWorld` → `Resources.MissingTemplateSourceInOneWorld` L5 in `bad_F3018_conditional_required_novalue_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MissingTemplateSourceInOneWorld (AWS::CloudFormation::StackSet). For each listed resource, add Metadata.com.a
-- **I4010** → `Metadata` L1 in `bad_F6101_getatt_ref_typed_object_attribute_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Database` → `Resources.Database` L10 in `bad_F6101_getatt_ref_typed_object_attribute_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Database (AWS::RDS::DBInstance), Parameter (AWS::SSM::Parameter). For each listed resource, add Metadata.com.
-- **I4010** → `Metadata` L1 in `bad_I3100_previous_generation_sourced_routes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `GlobalCache` → `Resources.GlobalCache` L3 in `bad_I3100_previous_generation_sourced_routes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: GlobalCache (AWS::ElastiCache::GlobalReplicationGroup), Fleet (AWS::EC2::EC2Fleet), SpotFleet (AWS::EC2::Spot
-- **I4010** → `Metadata` L1 in `bad_I9001_conditional_create_only_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `VpcWithConditionalCreateOnly` → `Resources.VpcWithConditionalCreateOnly` L5 in `bad_I9001_conditional_create_only_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: VpcWithConditionalCreateOnly (AWS::EC2::VPC), VpcControl (AWS::EC2::VPC). For each listed resource, add Metad
-- **I4010** `MyBucket` → `Resources.MyBucket` L3 in `bad_W1019_sub_unused_key_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** `Bucket` → `Resources.Bucket` L24 in `bad_W1028_allowedvalues_excludes_literal_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `MyConnection` → `Resources.MyConnection` L3 in `bad_W1051_secretsmanager_at_arn_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyConnection (AWS::DMS::Endpoint). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set
-- **I4010** `MyBucket` → `Resources.MyBucket` L3 in `bad_W1053_dynref_spaces_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** `MyFunction` → `Resources.MyFunction` L3 in `bad_W1054_raw_pseudo_param_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFunction (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `bad_W2501_nested_password_W1011_exact_path_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Directory` → `Resources.Directory` L7 in `bad_W2501_nested_password_W1011_exact_path_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Directory (AWS::AppStream::DirectoryConfig), User (AWS::IAM::User). For each listed resource, add Metadata.co
-- **I4010** → `Metadata` L1 in `bad_W3010_full_coverage_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Asg` → `Resources.Asg` L5 in `bad_W3010_full_coverage_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Asg (AWS::AutoScaling::AutoScalingGroup), Host (AWS::EC2::Host), Instance (AWS::EC2::Instance), Lt (AWS::EC2:
-- **I4010** `ComputeEnvironment` → `Resources.ComputeEnvironment` L10 in `bad_W3030_enum_case_insensitive_mismatch_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ComputeEnvironment (AWS::Batch::ComputeEnvironment). For each listed resource, add Metadata.com.aws.cloudform
-- **I4010** → `Metadata` L1 in `bad_W3660_api_gateway_body_mixing_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Api` → `Resources.Api` L3 in `bad_W3660_api_gateway_body_mixing_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Api (AWS::ApiGateway::RestApi), Method (AWS::ApiGateway::Method), Model (AWS::ApiGateway::Model), Resource (A
-- **I4010** `Fleet` → `Resources.Fleet` L3 in `bad_W3671_spotfleet_ebs_iops_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fleet (AWS::EC2::SpotFleet). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** → `Metadata` L1 in `bad_W3687_ports_ignored_by_protocol_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L6 in `bad_W3687_ports_ignored_by_protocol_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), SecurityGroup (AWS::EC2::SecurityGroup), StandaloneIngressEsp (AWS::EC2::SecurityGroupIn
-- **I4010** `Bucket` → `Resources.Bucket` L12 in `bad_W9006_every_allowed_value_too_long_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Task` → `Resources.Task` L3 in `bad_W9007_duplicate_objects_different_key_order_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Task (AWS::ECS::TaskDefinition). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `Bucket` → `Resources.Bucket` L11 in `bad_W9053_equivalent_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `AuroraDB` → `Resources.AuroraDB` L3 in `bad_aurora_with_allocated_storage_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AuroraDB (AWS::RDS::DBInstance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `Dist` → `Resources.Dist` L3 in `bad_cloudfront_bad_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Dist (AWS::CloudFront::Distribution). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `Distribution` → `Resources.Distribution` L3 in `bad_cloudfront_bad_origin_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Distribution (AWS::CloudFront::Distribution). For each listed resource, add Metadata.com.aws.cloudformation.C
-- **I4010** `Pipeline` → `Resources.Pipeline` L3 in `bad_codepipeline_bad_artifact_counts_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Pipeline (AWS::CodePipeline::Pipeline). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `Pipeline` → `Resources.Pipeline` L3 in `bad_codepipeline_bad_artifacts_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Pipeline (AWS::CodePipeline::Pipeline). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `DummyBucket` → `Resources.DummyBucket` L35 in `bad_conditions_condition_functions_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DummyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'wh
-- **I4010** `myInstance` → `Resources.myInstance` L13 in `bad_conditions_properties_fn_if_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `bad_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `EC2Instance` → `Resources.EC2Instance` L53 in `bad_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: EC2Instance (AWS::EC2::Instance), MountPoint (AWS::EC2::VolumeAttachment), NewVolume (AWS::EC2::Volume), Clou
-- **I4010** → `Metadata` L1 in `bad_core_E3001_resource_shape_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `NumericType` → `Resources.NumericType` L9 in `bad_core_E3001_resource_shape_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NumericType (42), UnknownAttribute (AWS::S3::Bucket), BadConditionType (AWS::S3::Bucket), BadDependsOnType (A
-- **I4010** → `Metadata` L1 in `bad_core_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `mySubnet` → `Resources.mySubnet` L21 in `bad_core_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySubnet (AWS::EC2::Subnet), myInstance1 (AWS::EC2::Instance), myInstance2 (AWS::EC2::Instance), myInstance3 
-- **I4010** `myTable` → `Resources.myTable` L12 in `bad_core_config_configure_e3012_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** → `Metadata` L1 in `bad_core_directives_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myBucketPass` → `Resources.myBucketPass` L5 in `bad_core_directives_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myBucketPass (AWS::S3::Bucket), myBucketFail (AWS::S3::Bucket), myBucketFirstAndLastPass (AWS::S3::Bucket), m
-- **I4010** → `Metadata` L1 in `bad_core_mandatory_checks_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myBucketPass` → `Resources.myBucketPass` L5 in `bad_core_mandatory_checks_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myBucketPass (AWS::S3::Bucket), myBucketFail (AWS::S3::Bucket), myBucketFirstAndLastPass (AWS::S3::Bucket), m
-- **I4010** → `Metadata` L1 in `bad_core_resource_attributes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `StandardVersion` → `Resources.StandardVersion` L3 in `bad_core_resource_attributes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StandardVersion (AWS::S3::Bucket), ScalarCreationPolicy (AWS::AutoScaling::AutoScalingGroup), ScalarUpdatePol
-- **I4010** `Bucket` → `Resources.Bucket` L7 in `bad_core_sections_not_objects_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `bad_cross_resource_task10_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BadASG` → `Resources.BadASG` L5 in `bad_cross_resource_task10_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BadASG (AWS::AutoScaling::AutoScalingGroup), LC (AWS::AutoScaling::LaunchConfiguration), BadListener (AWS::El
-- **I4010** `Domain` → `Resources.Domain` L3 in `bad_deprecated_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Domain (AWS::SDB::Domain). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' t
-- **I4010** → `Metadata` L1 in `bad_duplicate_primary_id_multi_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BucketA` → `Resources.BucketA` L8 in `bad_duplicate_primary_id_multi_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BucketA (AWS::S3::Bucket), BucketB (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudfor
-- **I4010** → `Metadata` L1 in `bad_duplicate_primary_id_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BucketA` → `Resources.BucketA` L3 in `bad_duplicate_primary_id_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BucketA (AWS::S3::Bucket), BucketB (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudfor
-- **I4010** `BadTable` → `Resources.BadTable` L3 in `bad_dynamodb_attribute_mismatch_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BadTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `ProdTable` → `Resources.ProdTable` L3 in `bad_dynamodb_prod_no_kms_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ProdTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `DDBTable` → `Resources.DDBTable` L3 in `bad_dynamodb_provisioned_no_throughput_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DDBTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `Repo` → `Resources.Repo` L3 in `bad_ecr_policy_no_statement_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Repo (AWS::ECR::Repository). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** `Task` → `Resources.Task` L3 in `bad_ecs_awsvpc_port_mismatch_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Task (AWS::ECS::TaskDefinition). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `bad_ecs_dynamic_port_no_traffic_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskDef` → `Resources.TaskDef` L3 in `bad_ecs_dynamic_port_no_traffic_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition), TargetGroup (AWS::ElasticLoadBalancingV2::TargetGroup), Service (AWS::ECS
-- **I4010** → `Metadata` L1 in `bad_ecs_fargate_mismatch_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskDef` → `Resources.TaskDef` L3 in `bad_ecs_fargate_mismatch_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition), Service (AWS::ECS::Service). For each listed resource, add Metadata.com.a
-- **I4010** → `Metadata` L1 in `bad_ecs_role_no_boundary_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskRole` → `Resources.TaskRole` L3 in `bad_ecs_role_no_boundary_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskRole (AWS::IAM::Role), ExecRole (AWS::IAM::Role), TaskDef (AWS::ECS::TaskDefinition). For each listed res
-- **I4010** `Listener` → `Resources.Listener` L3 in `bad_elb_http_443_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Listener (AWS::ElasticLoadBalancingV2::Listener). For each listed resource, add Metadata.com.aws.cloudformati
-- **I4010** `R` → `Resources.R` L9 in `bad_equals_wrong_arity_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: R (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to the 
-- **I4010** `TaskDef` → `Resources.TaskDef` L3 in `bad_fargate_bad_cpu_memory_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `bad_fargate_daemon_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `FargateDaemon` → `Resources.FargateDaemon` L3 in `bad_fargate_daemon_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FargateDaemon (AWS::ECS::Service), TaskDef (AWS::ECS::TaskDefinition), Cluster (AWS::ECS::Cluster). For each 
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_findinmap_bad_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `myTable` → `Resources.myTable` L6 in `bad_formatters_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `myInstance` → `Resources.myInstance` L6 in `bad_functions_base64_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `Topic` → `Resources.Topic` L11 in `bad_functions_findinmap_default_value_no_transform_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** `Cluster` → `Resources.Cluster` L8 in `bad_functions_findinmap_enhanced_invalid_key_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Cluster (AWS::ECS::Cluster). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** → `Metadata` L1 in `bad_functions_get_stack_output_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Topic1` → `Resources.Topic1` L4 in `bad_functions_get_stack_output_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic1 (AWS::SNS::Topic), Topic2 (AWS::SNS::Topic), Topic3 (AWS::SNS::Topic), Topic4 (AWS::SNS::Topic). For e
-- **I4010** → `Metadata` L1 in `bad_functions_get_stack_output_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Topic1` → `Resources.Topic1` L4 in `bad_functions_get_stack_output_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic1 (AWS::SNS::Topic), Topic2 (AWS::SNS::Topic), Topic3 (AWS::SNS::Topic), Topic4 (AWS::SNS::Topic), Topic
-- **I4010** → `Metadata` L1 in `bad_functions_getaz_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `mySubnet1` → `Resources.mySubnet1` L10 in `bad_functions_getaz_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySubnet1 (AWS::EC2::Subnet), mySubnet2 (AWS::EC2::Subnet), mySubnet3 (AWS::EC2::Subnet). For each listed res
-- **I4010** `subnet` → `Resources.subnet` L6 in `bad_functions_import_value_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: subnet (AWS::EC2::Subnet). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' t
-- **I4010** → `Metadata` L1 in `bad_functions_join_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myInstance` → `Resources.myInstance` L6 in `bad_functions_join_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance), myInstance2 (AWS::EC2::Instance). For each listed resource, add Metadata.com
-- **I4010** `Queue` → `Resources.Queue` L10 in `bad_functions_length_no_transform_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Queue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `bad_functions_ref_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `mySecurityGroupVpc1` → `Resources.mySecurityGroupVpc1` L8 in `bad_functions_ref_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySecurityGroupVpc1 (AWS::EC2::SecurityGroup), mySecurityGroupVpc2 (AWS::EC2::SecurityGroup), MyEC2Instance (
-- **I4010** → `Metadata` L1 in `bad_functions_relationship_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LambdaExecutionRole` → `Resources.LambdaExecutionRole` L11 in `bad_functions_relationship_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaExecutionRole (AWS::IAM::Role), InstanceProfile (AWS::IAM::InstanceProfile), AMIIDLookup (AWS::Lambda::
-- **I4010** → `Metadata` L1 in `bad_functions_select_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myInstance` → `Resources.myInstance` L6 in `bad_functions_select_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance), myInstance1 (AWS::EC2::Instance), myInstance2 (AWS::EC2::Instance), myInstan
-- **I4010** → `Metadata` L1 in `bad_functions_sub_needed_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myInstance` → `Resources.myInstance` L8 in `bad_functions_sub_needed_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance), mySnsTopic (AWS::SNS::Topic), TestBadStateMachine1 (AWS::StepFunctions::Stat
-- **I4010** `Topic` → `Resources.Topic` L7 in `bad_functions_tojsonstring_no_transform_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `bad_generic_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyEC2Instance1` → `Resources.MyEC2Instance1` L23 in `bad_generic_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyEC2Instance1 (AWS::EC2::Instance1), myIamProfile (AWS::IAM::Role), myIamProfile2 (AWS::IAM::Role), myIamPro
-- **I4010** → `Metadata` L1 in `bad_getatt_object_attribute_member_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L9 in `bad_getatt_object_attribute_member_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), Param (AWS::SSM::Parameter). For each listed resource, add Metadata.com.aws.cloudfo
-- **I4010** → `Metadata` L1 in `bad_hard_coded_arn_properties_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `S3BadBucket` → `Resources.S3BadBucket` L3 in `bad_hard_coded_arn_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: S3BadBucket (AWS::S3::Bucket), SampleRole (AWS::IAM::Role), SampleBadIAMPolicy1 (AWS::IAM::ManagedPolicy), Sa
-- **I4010** → `Metadata` L1 in `bad_hardcoded_partition_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_hardcoded_partition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), Topic (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformat
-- **I4010** → `Metadata` L1 in `bad_iam_ref_with_path_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Role` → `Resources.Role` L3 in `bad_iam_ref_with_path_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Role (AWS::IAM::Role), Project (AWS::CodeBuild::Project). For each listed resource, add Metadata.com.aws.clou
-- **I4010** → `Metadata` L1 in `bad_iam_wildcard_all_types_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `WildcardUser` → `Resources.WildcardUser` L3 in `bad_iam_wildcard_all_types_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WildcardUser (AWS::IAM::User), WildcardGroup (AWS::IAM::Group), WildcardManagedPolicy (AWS::IAM::ManagedPolic
-- **I4010** `R` → `Resources.R` L8 in `bad_if_wrong_arity_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: R (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to the 
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_invalid_deletion_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `R` → `Resources.R` L6 in `bad_invalid_mapping_structure_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: R (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to the 
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_invalid_update_replace_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `RDSOptionGroup` → `Resources.RDSOptionGroup` L3 in `bad_issues_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RDSOptionGroup (AWS::RDS::OptionGroup). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `Fn` → `Resources.Fn` L8 in `bad_lambda_image_handler_intrinsic_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** `Func` → `Resources.Func` L3 in `bad_lambda_no_snapstart_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Func (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `SnapStartFunc` → `Resources.SnapStartFunc` L3 in `bad_lambda_snapstart_bad_runtime_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SnapStartFunc (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `Func` → `Resources.Func` L3 in `bad_lambda_snapstart_no_version_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Func (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** → `Metadata` L1 in `bad_lambda_sqs_timeout_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Queue` → `Resources.Queue` L3 in `bad_lambda_sqs_timeout_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Queue (AWS::SQS::Queue), Func (AWS::Lambda::Function), ESM (AWS::Lambda::EventSourceMapping). For each listed
-- **I4010** `Func` → `Resources.Func` L3 in `bad_lambda_zip_no_handler_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Func (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `LambdaFn` → `Resources.LambdaFn` L3 in `bad_lambda_zipfile_java_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaFn (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** → `Metadata` L1 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ConditionalInvalidDeletion` → `Resources.ConditionalInvalidDeletion` L15 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ConditionalInvalidDeletion (AWS::S3::Bucket), ConditionalInvalidUpdate (AWS::S3::Bucket), BothBranchesInvalid
-- **I4010** → `Metadata` L1 in `bad_lifecycle_policy_shapes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ListPolicies` → `Resources.ListPolicies` L16 in `bad_lifecycle_policy_shapes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ListPolicies (AWS::S3::Bucket), ObjectPolicies (AWS::S3::Bucket), CreationRootRef (AWS::CloudFormation::WaitC
-- **I4010** → `Metadata` L1 in `bad_limit_numbers_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Resource1` → `Resources.Resource1` L405 in `bad_limit_numbers_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Resource1 (AWS::SNS::Topic), Resource2 (AWS::SNS::Topic), Resource3 (AWS::SNS::Topic), Resource4 (AWS::SNS::T
-- **I4010** → `Metadata` L1 in `bad_limit_size_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Resource1` → `Resources.Resource1` L4 in `bad_limit_size_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Resource1 (AWS::EC2::Instance), Resource2 (AWS::EC2::Instance), Resource3 (AWS::EC2::Instance), Resource4 (AW
-- **I4010** `mySubnet` → `Resources.mySubnet` L15 in `bad_mappings_used_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySubnet (AWS::EC2::Subnet). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** → `Metadata` L1 in `bad_noecho_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SNSTopicWithSecretNameInRef` → `Resources.SNSTopicWithSecretNameInRef` L8 in `bad_noecho_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SNSTopicWithSecretNameInRef (AWS::SNS::Topic), SNSTopicWithSecretNameInSub (AWS::SNS::Topic). For each listed
-- **I4010** → `Metadata` L1 in `bad_opensearch_instance_type_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BadDomain` → `Resources.BadDomain` L4 in `bad_opensearch_instance_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BadDomain (AWS::OpenSearchService::Domain), ValidDomain (AWS::OpenSearchService::Domain). For each listed res
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_output_invalid_references_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_output_invalid_targets_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Queue` → `Resources.Queue` L13 in `bad_output_value_not_string_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Queue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `bad_override_complete_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myS3Bucket` → `Resources.myS3Bucket` L6 in `bad_override_complete_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myS3Bucket (AWS::S3::Bucket), untaggedInstance (AWS::EC2::Instance), VPC (AWS::EC2::VPC), mySpotFleet (AWS::E
-- **I4010** → `Metadata` L1 in `bad_override_exclude_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myGameLift` → `Resources.myGameLift` L6 in `bad_override_exclude_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myGameLift (AWS::GameLift::Alias), myS3Bucket (AWS::S3::Bucket), mySnsTopic (AWS::SNS::Topic). For each liste
-- **I4010** → `Metadata` L1 in `bad_override_include_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myVpc1` → `Resources.myVpc1` L6 in `bad_override_include_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myVpc1 (AWS::EC2::VPC), myS3Bucket (AWS::S3::Bucket), mySnsTopic (AWS::SNS::Topic). For each listed resource,
-- **I4010** `myS3Bucket` → `Resources.myS3Bucket` L6 in `bad_override_required_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myS3Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `Bucket` → `Resources.Bucket` L24 in `bad_param_constraints_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `R` → `Resources.R` L10 in `bad_param_number_default_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: R (AWS::CloudFormation::WaitConditionHandle). For each listed resource, add Metadata.com.aws.cloudformation.C
-- **I4010** `WaitHandle` → `Resources.WaitHandle` L40 in `bad_parameters_F2012_cdl_default_split_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WaitHandle (AWS::CloudFormation::WaitConditionHandle). For each listed resource, add Metadata.com.aws.cloudfo
-- **I4010** `IamPipeline` → `Resources.IamPipeline` L60 in `bad_parameters_configuration_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IamPipeline (AWS::CloudFormation::Stack). For each listed resource, add Metadata.com.aws.cloudformation.Conte
-- **I4010** `Pipeline` → `Resources.Pipeline` L3 in `bad_pipeline_no_source_first_stage_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Pipeline (AWS::CodePipeline::Pipeline). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `Instance` → `Resources.Instance` L3 in `bad_previous_gen_instance_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Instance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'wh
-- **I4010** → `Metadata` L1 in `bad_previous_generation_instances_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Domain` → `Resources.Domain` L2 in `bad_previous_generation_instances_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Domain (AWS::Elasticsearch::Domain), Instance (AWS::EC2::Instance), DBInstance (AWS::RDS::DBInstance), CacheC
-- **I4010** → `Metadata` L1 in `bad_properties_ebs_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyEC2Instance` → `Resources.MyEC2Instance` L6 in `bad_properties_ebs_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyEC2Instance (AWS::EC2::Instance), MyEC2Instance3 (AWS::EC2::Instance), MyLaunchConfig (AWS::AutoScaling::La
-- **I4010** → `Metadata` L1 in `bad_properties_password_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyDB` → `Resources.MyDB` L16 in `bad_properties_password_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyDB (AWS::RDS::DBInstance), MyNewDB (AWS::RDS::DBInstance), myThirdDb (AWS::RDS::DBInstance). For each liste
-- **I4010** → `Metadata` L1 in `bad_properties_rt_association_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PublicSubnetRouteTableAssociation1` → `Resources.PublicSubnetRouteTableAssociation1` L22 in `bad_properties_rt_association_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PublicSubnetRouteTableAssociation1 (AWS::EC2::SubnetRouteTableAssociation), PrivateSubnetRouteTableAssociatio
-- **I4010** → `Metadata` L1 in `bad_properties_sg_ingress_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `mySecurityGroupNonVpc` → `Resources.mySecurityGroupNonVpc` L20 in `bad_properties_sg_ingress_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySecurityGroupNonVpc (AWS::EC2::SecurityGroup), mySecurityGroupVpc (AWS::EC2::SecurityGroup), SecurityGroupR
-- **I4010** `Cluster` → `Resources.Cluster` L5 in `bad_rds_dbclusterinstanceclass_invalid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Cluster (AWS::RDS::DBCluster). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'wh
-- **I4010** `Db` → `Resources.Db` L5 in `bad_rds_dbinstanceclass_mixed_case_engine_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Db (AWS::RDS::DBInstance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' t
-- **I4010** `Database` → `Resources.Database` L3 in `bad_rds_public_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Database (AWS::RDS::DBInstance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `bad_redshift_internet_accessible_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Subnet1` → `Resources.Subnet1` L3 in `bad_redshift_internet_accessible_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Subnet1 (AWS::EC2::Subnet), VPC (AWS::EC2::VPC), RedshiftSubnetGroup (AWS::Redshift::ClusterSubnetGroup), Rou
-- **I4010** → `Metadata` L1 in `bad_refs_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyEC2Instance` → `Resources.MyEC2Instance` L4 in `bad_refs_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyEC2Instance (AWS::EC2::Instance), AnotherInstance (AWS::EC2::Instance). For each listed resource, add Metad
-- **I4010** `Policy` → `Resources.Policy` L3 in `bad_resource_policy_no_statement_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Policy (AWS::KMS::Key). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to t
-- **I4010** `BackupPlan` → `Resources.BackupPlan` L4 in `bad_resources_backup_test_backup_plan_lifecycle_rule_yml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BackupPlan (AWS::Backup::BackupPlan). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** → `Metadata` L1 in `bad_resources_circular_dependency_2_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Resource` → `Resources.Resource` L2 in `bad_resources_circular_dependency_2_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Resource (AWS::SNS::Topic), Resource2 (AWS::SNS::Topic), Resource3 (AWS::SNS::Topic), Resource4 (AWS::SNS::To
-- **I4010** → `Metadata` L1 in `bad_resources_circular_dependency_dependson_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Resource` → `Resources.Resource` L4 in `bad_resources_circular_dependency_dependson_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Resource (AWS::SNS::Topic), Resource2 (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloud
-- **I4010** → `Metadata` L1 in `bad_resources_circular_dependency_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `mySecurityGroupVpc1` → `Resources.mySecurityGroupVpc1` L23 in `bad_resources_circular_dependency_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySecurityGroupVpc1 (AWS::EC2::SecurityGroup), mySecurityGroupVpc2 (AWS::EC2::SecurityGroup), mySecurityGroup
-- **I4010** → `Metadata` L1 in `bad_resources_cloudformation_stacks_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `StackNormal` → `Resources.StackNormal` L6 in `bad_resources_cloudformation_stacks_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StackNormal (AWS::CloudFormation::Stack), Stack3 (AWS::CloudFormation::Stack). For each listed resource, add 
-- **I4010** `CloudFrontDistribution` → `Resources.CloudFrontDistribution` L3 in `bad_resources_cloudfront_invalid_aliases_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CloudFrontDistribution (AWS::CloudFront::Distribution). For each listed resource, add Metadata.com.aws.cloudf
-- **I4010** `TestPipeline` → `Resources.TestPipeline` L5 in `bad_resources_codepipeline_stages_second_stage_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TestPipeline (AWS::CodePipeline::Pipeline). For each listed resource, add Metadata.com.aws.cloudformation.Con
-- **I4010** `MyCognitoUserPool` → `Resources.MyCognitoUserPool` L3 in `bad_resources_cognito_userpool_tag_is_list_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyCognitoUserPool (AWS::Cognito::UserPool). For each listed resource, add Metadata.com.aws.cloudformation.Con
-- **I4010** `MyBucket` → `Resources.MyBucket` L3 in `bad_resources_creation_policy_unsupported_e3055_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** → `Metadata` L1 in `bad_resources_deletionpolicy_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PolicyList` → `Resources.PolicyList` L10 in `bad_resources_deletionpolicy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PolicyList (AWS::RDS::DBInstance), MadeUpPolicy (AWS::RDS::DBInstance), MyIAMUser (AWS::IAM::User), Unsupport
-- **I4010** → `Metadata` L1 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DDBTableTransformAttributeDefinitions` → `Resources.DDBTableTransformAttributeDefinitions` L7 in `bad_resources_dynamodb_attributes_transform_e3639_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DDBTableTransformAttributeDefinitions (AWS::DynamoDB::Table), DDBTableTransformKeySchema (AWS::DynamoDB::Tabl
-- **I4010** → `Metadata` L1 in `bad_resources_dynamodb_conditional_scenarios_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MissingDefaultThroughput` → `Resources.MissingDefaultThroughput` L10 in `bad_resources_dynamodb_conditional_scenarios_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MissingDefaultThroughput (AWS::DynamoDB::Table), ConditionalGSI (AWS::DynamoDB::Table), ConditionalLSI (AWS::
-- **I4010** → `Metadata` L1 in `bad_resources_dynamodb_provisioned_throughput_e3639_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ExplicitProvisioned` → `Resources.ExplicitProvisioned` L8 in `bad_resources_dynamodb_provisioned_throughput_e3639_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ExplicitProvisioned (AWS::DynamoDB::Table), DefaultProvisioned (AWS::DynamoDB::Table), NullThroughput (AWS::D
-- **I4010** `dynamoDBTable` → `Resources.dynamoDBTable` L4 in `bad_resources_dynamodb_undefined_attribute_definition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: dynamoDBTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `dynamoDBTable` → `Resources.dynamoDBTable` L4 in `bad_resources_dynamodb_unused_attribute_definition_1_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: dynamoDBTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `dynamoDBTable` → `Resources.dynamoDBTable` L4 in `bad_resources_dynamodb_unused_attribute_definition_2_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: dynamoDBTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** → `Metadata` L1 in `bad_resources_ecs_fargate_conditional_properties_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PlacementInFargateBranch` → `Resources.PlacementInFargateBranch` L13 in `bad_resources_ecs_fargate_conditional_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PlacementInFargateBranch (AWS::ECS::TaskDefinition), InvalidDriverInFargateBranch (AWS::ECS::TaskDefinition).
-- **I4010** → `Metadata` L1 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ScientificCpuNotation` → `Resources.ScientificCpuNotation` L3 in `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ScientificCpuNotation (AWS::ECS::TaskDefinition), ScientificMemoryNotation (AWS::ECS::TaskDefinition), Leadin
-- **I4010** → `Metadata` L1 in `bad_resources_ecs_fargate_properties_e3048_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `FargateMissingAll` → `Resources.FargateMissingAll` L8 in `bad_resources_ecs_fargate_properties_e3048_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FargateMissingAll (AWS::ECS::TaskDefinition), FargateWrongNetworkMode (AWS::ECS::TaskDefinition), FargateInva
-- **I4010** → `Metadata` L1 in `bad_resources_ecs_fargate_task_sizes_e3047_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `EightVcpuInvalidStep` → `Resources.EightVcpuInvalidStep` L5 in `bad_resources_ecs_fargate_task_sizes_e3047_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: EightVcpuInvalidStep (AWS::ECS::TaskDefinition), SixteenVcpuInvalidStep (AWS::ECS::TaskDefinition), ThirtyTwo
-- **I4010** → `Metadata` L1 in `bad_resources_elasticache_cache_cluster_failover_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyParameterGroup` → `Resources.MyParameterGroup` L10 in `bad_resources_elasticache_cache_cluster_failover_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyParameterGroup (AWS::ElastiCache::ParameterGroup), MyClusterParameterGroup (AWS::ElastiCache::ParameterGrou
-- **I4010** → `Metadata` L1 in `bad_resources_iam_iam_policy_conditional_policies_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RoleConditionalPolicies` → `Resources.RoleConditionalPolicies` L16 in `bad_resources_iam_iam_policy_conditional_policies_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RoleConditionalPolicies (AWS::IAM::Role), RoleNotActionConditional (AWS::IAM::Role), PolicySingleStatement (A
-- **I4010** → `Metadata` L1 in `bad_resources_iam_iam_policy_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rIamRole` → `Resources.rIamRole` L6 in `bad_resources_iam_iam_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rIamRole (AWS::IAM::Role), rIamUser (AWS::IAM::ManagedPolicy). For each listed resource, add Metadata.com.aws
-- **I4010** `SomeManagedPolicy` → `Resources.SomeManagedPolicy` L11 in `bad_resources_iam_identity_policy_conditional_novalue_e3510_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SomeManagedPolicy (AWS::IAM::ManagedPolicy). For each listed resource, add Metadata.com.aws.cloudformation.Co
-- **I4010** → `Metadata` L1 in `bad_resources_iam_identity_policy_e3510_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PolicyDuplicateSid` → `Resources.PolicyDuplicateSid` L25 in `bad_resources_iam_identity_policy_e3510_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PolicyDuplicateSid (AWS::IAM::ManagedPolicy), PolicyBadIdAndCondition (AWS::IAM::RolePolicy), PolicyDynamicAc
-- **I4010** `WildcardServicePolicy` → `Resources.WildcardServicePolicy` L5 in `bad_resources_iam_identity_policy_wildcard_service_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WildcardServicePolicy (AWS::IAM::ManagedPolicy). For each listed resource, add Metadata.com.aws.cloudformatio
-- **I4010** `IamUser` → `Resources.IamUser` L4 in `bad_resources_iam_instanceprofile_roles_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IamUser (AWS::IAM::InstanceProfile). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** `SomeManagedPolicy` → `Resources.SomeManagedPolicy` L4 in `bad_resources_iam_managed_policy_description_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SomeManagedPolicy (AWS::IAM::ManagedPolicy). For each listed resource, add Metadata.com.aws.cloudformation.Co
-- **I4010** → `Metadata` L1 in `bad_resources_iam_ref_with_path_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `CodeBuildProject` → `Resources.CodeBuildProject` L4 in `bad_resources_iam_ref_with_path_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CodeBuildProject (AWS::CodeBuild::Project), CodeBuildRole (AWS::IAM::Role), CodeBuildVPC (AWS::EC2::VPC), Cod
-- **I4010** → `Metadata` L1 in `bad_resources_iam_resource_policy_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ecr1` → `Resources.ecr1` L4 in `bad_resources_iam_resource_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ecr1 (AWS::ECR::Repository), ecr2 (AWS::ECR::Repository). For each listed resource, add Metadata.com.aws.clou
-- **I4010** → `Metadata` L1 in `bad_resources_lambda_function_property_value_limits_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myLambdaFunction` → `Resources.myLambdaFunction` L6 in `bad_resources_lambda_function_property_value_limits_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myLambdaFunction (AWS::Lambda::Function), myLambdaFunction2 (AWS::Lambda::Function), myLambdaFunction3 (AWS::
-- **I4010** → `Metadata` L1 in `bad_resources_lambda_required_properties_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Function1` → `Resources.Function1` L4 in `bad_resources_lambda_required_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function1 (AWS::Lambda::Function), Function2 (AWS::Lambda::Function), Function3 (AWS::Lambda::Function). For 
-- **I4010** → `Metadata` L1 in `bad_resources_name_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `my.Instance` → `Resources.my.Instance` L3 in `bad_resources_name_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: my.Instance (AWS::EC2::Instance), my_Instance (AWS::EC2::Instance). For each listed resource, add Metadata.co
-- **I4010** → `Metadata` L1 in `bad_resources_primary_identifiers_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RootRole` → `Resources.RootRole` L5 in `bad_resources_primary_identifiers_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RootRole (AWS::IAM::Role), RootRole2 (AWS::IAM::Role), RootRole3 (AWS::IAM::Role), RootRole4 (AWS::IAM::Role)
-- **I4010** `CustomResource4` → `Resources.CustomResource4` L2 in `bad_resources_properties_custom_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CustomResource4 (Custom::SpecifiedCustomResource). For each listed resource, add Metadata.com.aws.cloudformat
-- **I4010** → `Metadata` L1 in `bad_resources_properties_list_duplicates_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `IamGroup` → `Resources.IamGroup` L11 in `bad_resources_properties_list_duplicates_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IamGroup (AWS::IAM::Group), IamGroupWithConditions (AWS::IAM::Group), IamGroupWithNestedConditions (AWS::IAM:
-- **I4010** → `Metadata` L1 in `bad_resources_properties_primitive_types_map_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ExampleLambda` → `Resources.ExampleLambda` L5 in `bad_resources_properties_primitive_types_map_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ExampleLambda (AWS::Lambda::Function), ExampleLambda1 (AWS::Lambda::Function). For each listed resource, add 
-- **I4010** → `Metadata` L1 in `bad_resources_properties_string_size_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myRepository` → `Resources.myRepository` L4 in `bad_resources_properties_string_size_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myRepository (AWS::CodeCommit::Repository), myRepository2 (AWS::CodeCommit::Repository), CloudWatchAlarm (AWS
-- **I4010** `SampleLambda` → `Resources.SampleLambda` L4 in `bad_resources_properties_templated_code_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SampleLambda (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** → `Metadata` L1 in `bad_resources_rds_instance_sizes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DBInstance1` → `Resources.DBInstance1` L10 in `bad_resources_rds_instance_sizes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DBInstance1 (AWS::RDS::DBInstance), DBInstance2 (AWS::RDS::DBInstance), DBInstance3 (AWS::RDS::DBInstance), D
-- **I4010** `JoinedUsername` → `Resources.JoinedUsername` L3 in `bad_resources_rds_not_enum_master_username_join_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: JoinedUsername (AWS::RDS::DBCluster). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `MyDB` → `Resources.MyDB` L3 in `bad_resources_rds_not_enum_master_username_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyDB (AWS::RDS::DBCluster). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** → `Metadata` L1 in `bad_resources_s3_access-control-obsolete_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket1` → `Resources.Bucket1` L3 in `bad_resources_s3_access-control-obsolete_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket1 (AWS::S3::Bucket), Bucket2 (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudfor
-- **I4010** `MyTopic` → `Resources.MyTopic` L4 in `bad_resources_sns_topic_name_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTopic (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' t
-- **I4010** `Name` → `Resources.Name` L5 in `bad_resources_uniqueNames_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Name (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to t
-- **I4010** `MyBucket` → `Resources.MyBucket` L3 in `bad_resources_update_policy_unsupported_e3016_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** → `Metadata` L1 in `bad_resources_updatereplacepolicy_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PolicyList` → `Resources.PolicyList` L10 in `bad_resources_updatereplacepolicy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PolicyList (AWS::RDS::DBInstance), MadeUpPolicy (AWS::RDS::DBInstance), MyIAMUser (AWS::IAM::User), Unsupport
-- **I4010** → `Metadata` L1 in `bad_route53_conditional_record_arrays_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `StandaloneInvalidTrue` → `Resources.StandaloneInvalidTrue` L12 in `bad_route53_conditional_record_arrays_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StandaloneInvalidTrue (AWS::Route53::RecordSet), StandaloneInvalidFalse (AWS::Route53::RecordSet), Standalone
-- **I4010** → `Metadata` L1 in `bad_route53_conditional_scenarios_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `AliasConflictFirst` → `Resources.AliasConflictFirst` L10 in `bad_route53_conditional_scenarios_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AliasConflictFirst (AWS::Route53::RecordSet), AliasConflictSecond (AWS::Route53::RecordSet), ConditionalInval
-- **I4010** → `Metadata` L1 in `bad_route53_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyHostedZone` → `Resources.MyHostedZone` L16 in `bad_route53_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyHostedZone (AWS::Route53::HostedZone), MyTXTRecordSet (AWS::Route53::RecordSet), MyARecordSet (AWS::Route53
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_s3_tiering_bad_days_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `bad_sagemaker_instance_types_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MonitoringSchedule` → `Resources.MonitoringSchedule` L4 in `bad_sagemaker_instance_types_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MonitoringSchedule (AWS::SageMaker::MonitoringSchedule), ModelQualityJobDefinition (AWS::SageMaker::ModelQual
-- **I4010** `MyApi` → `Resources.MyApi` L3 in `bad_sam_api_missing_stagename_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyApi (AWS::Serverless::Api). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `MyConn` → `Resources.MyConn` L3 in `bad_sam_connector_missing_destination_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyConn (AWS::Serverless::Connector). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** `MyConn` → `Resources.MyConn` L3 in `bad_sam_connector_missing_source_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyConn (AWS::Serverless::Connector). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_autopublishalias_invalid_name_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_capacityprovider_with_vpcconfig_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_deploymentpreference_without_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_dlq_invalid_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_dlq_missing_targetarn_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_functionscaling_without_capacityprovider_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_image_with_handler_runtime_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_packagetype_invalid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_provisioned_concurrency_without_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_url_config_missing_authtype_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_versiondeletionpolicy_without_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_zip_missing_runtime_handler_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_zip_with_imageuri_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L4 in `bad_sam_globals_not_dict_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L5 in `bad_sam_globals_section_not_dict_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L6 in `bad_sam_globals_unknown_property_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L6 in `bad_sam_globals_unknown_section_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `MyApi` → `Resources.MyApi` L3 in `bad_sam_graphqlapi_missing_auth_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyApi (AWS::Serverless::GraphQLApi). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** `Layer` → `Resources.Layer` L3 in `bad_sam_layerversion_invalid_compatible_architectures_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Layer (AWS::Serverless::LayerVersion). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `Layer` → `Resources.Layer` L3 in `bad_sam_layerversion_invalid_retention_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Layer (AWS::Serverless::LayerVersion). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `MyTable` → `Resources.MyTable` L3 in `bad_sam_simpletable_primarykey_invalid_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTable (AWS::Serverless::SimpleTable). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `MyTable` → `Resources.MyTable` L3 in `bad_sam_simpletable_primarykey_missing_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTable (AWS::Serverless::SimpleTable). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `MySM` → `Resources.MySM` L3 in `bad_sam_statemachine_both_definitions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MySM (AWS::Serverless::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `MySM` → `Resources.MySM` L3 in `bad_sam_statemachine_no_definition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MySM (AWS::Serverless::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `MyFn` → `Resources.MyFn` L3 in `bad_sam_transform_bogus_name_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `MyFn` → `Resources.MyFn` L3 in `bad_sam_transform_wrong_date_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_schema_additional_props_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `bad_schema_composition_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `NoImage` → `Resources.NoImage` L4 in `bad_schema_composition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NoImage (AWS::AppStream::ImageBuilder), NoAZ (AWS::EC2::Volume). For each listed resource, add Metadata.com.a
-- **I4010** `Bucket` → `Resources.Bucket` L9 in `bad_schema_conditional_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_schema_enum_violation_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Instance` → `Resources.Instance` L3 in `bad_schema_format_violation_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Instance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'wh
-- **I4010** → `Metadata` L1 in `bad_schema_lifecycle_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ShutdownResource` → `Resources.ShutdownResource` L4 in `bad_schema_lifecycle_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ShutdownResource (AWS::CodeStar::GitHubRepository), SunsetResource (AWS::AppMesh::Mesh), MaintenanceResource 
-- **I4010** `Queue` → `Resources.Queue` L3 in `bad_schema_numeric_bounds_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Queue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `bad_schema_property_constraints_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PatternBucket` → `Resources.PatternBucket` L3 in `bad_schema_property_constraints_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PatternBucket (AWS::S3::Bucket), ReadOnlyProp (AWS::ACMPCA::Certificate), DeprecatedProp (AWS::Athena::WorkGr
-- **I4010** `Policy` → `Resources.Policy` L11 in `bad_schema_required_xor_conditional_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Policy (AWS::ApplicationAutoScaling::ScalingPolicy). For each listed resource, add Metadata.com.aws.cloudform
-- **I4010** `Lambda` → `Resources.Lambda` L3 in `bad_schema_string_length_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Lambda (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** → `Metadata` L1 in `bad_schema_structural_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `AlarmBothStats` → `Resources.AlarmBothStats` L4 in `bad_schema_structural_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AlarmBothStats (AWS::CloudWatch::Alarm), SubnetNoCidr (AWS::EC2::Subnet), ScalingPolicyBothIds (AWS::Applicat
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_schema_type_mismatch_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Profile` → `Resources.Profile` L3 in `bad_schema_unique_items_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Profile (AWS::IAM::InstanceProfile). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** `CertAuth` → `Resources.CertAuth` L4 in `bad_schema_write_only_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CertAuth (AWS::ACMPCA::CertificateAuthorityActivation). For each listed resource, add Metadata.com.aws.cloudf
-- **I4010** `OpenSSH` → `Resources.OpenSSH` L3 in `bad_security_issues_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: OpenSSH (AWS::EC2::SecurityGroup). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set
-- **I4010** `SG` → `Resources.SG` L3 in `bad_sg_bad_port_range_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SG (AWS::EC2::SecurityGroup). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `OpenSG` → `Resources.OpenSG` L3 in `bad_sg_open_egress_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: OpenSG (AWS::EC2::SecurityGroup). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `Bucket` → `Resources.Bucket` L6 in `bad_simple_sub_param_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Topic` → `Resources.Topic` L3 in `bad_sns_cross_account_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `bad_some_logs_stream_lambda_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `FunctionA` → `Resources.FunctionA` L16 in `bad_some_logs_stream_lambda_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FunctionA (AWS::Serverless::Function), FunctionB (AWS::Serverless::Function), FunctionC (AWS::Serverless::Fun
-- **I4010** `FifoQueue` → `Resources.FifoQueue` L3 in `bad_sqs_fifo_no_suffix_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FifoQueue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** → `Metadata` L1 in `bad_sqs_fifo_standard_dlq_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DLQ` → `Resources.DLQ` L3 in `bad_sqs_fifo_standard_dlq_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DLQ (AWS::SQS::Queue), MainQueue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudforma
-- **I4010** `Doc` → `Resources.Doc` L3 in `bad_ssm_document_invalid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Doc (AWS::SSM::Document). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `SM` → `Resources.SM` L3 in `bad_stepfunctions_bad_start_at_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SM (AWS::StepFunctions::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `StateMachine` → `Resources.StateMachine` L3 in `bad_stepfunctions_invalid_state_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StateMachine (AWS::StepFunctions::StateMachine). For each listed resource, add Metadata.com.aws.cloudformatio
-- **I4010** `Bucket` → `Resources.Bucket` L6 in `bad_sub_needed_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `bad_sub_nested_intrinsic_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `bad_sub_nested_intrinsic_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), OtherBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloud
-- **I4010** → `Metadata` L1 in `bad_subnet_outside_vpc_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `VPC` → `Resources.VPC` L3 in `bad_subnet_outside_vpc_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: VPC (AWS::EC2::VPC), SubnetOutside (AWS::EC2::Subnet). For each listed resource, add Metadata.com.aws.cloudfo
-- **I4010** → `Metadata` L1 in `bad_subnet_overlap_multi_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `VPC` → `Resources.VPC` L8 in `bad_subnet_overlap_multi_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: VPC (AWS::EC2::VPC), SubnetA (AWS::EC2::Subnet), SubnetB (AWS::EC2::Subnet), SubnetC (AWS::EC2::Subnet), Subn
-- **I4010** → `Metadata` L1 in `bad_subnet_overlap_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `VPC` → `Resources.VPC` L3 in `bad_subnet_overlap_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: VPC (AWS::EC2::VPC), SubnetA (AWS::EC2::Subnet), SubnetB (AWS::EC2::Subnet). For each listed resource, add Me
-- **I4010** `Bucket` → `Resources.Bucket` L6 in `bad_templates_description_object_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Bucket` → `Resources.Bucket` L10 in `bad_templates_transform_invalid_entries_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `bad_transform_auto_publish_alias_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SkillFunctionExtraItems` → `Resources.SkillFunctionExtraItems` L14 in `bad_transform_auto_publish_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SkillFunctionExtraItems (AWS::Serverless::Function), SkillFunctionNotRef (AWS::Serverless::Function). For eac
-- **I4010** `MyApi` → `Resources.MyApi` L7 in `bad_transform_no_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyApi (AWS::Serverless::Api). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `ProcessorFunction` → `Resources.ProcessorFunction` L4 in `bad_transform_serverless_auto_publish_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ProcessorFunction (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.
-- **I4010** `R` → `Resources.R` L3 in `bad_undefined_condition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: R (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to the 
-- **I4010** `R` → `Resources.R` L3 in `bad_unique_items_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: R (AWS::CloudFormation::WaitConditionHandle). For each listed resource, add Metadata.com.aws.cloudformation.C
-- **I4010** → `Metadata` L1 in `bad_unknown_properties_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `FakeResource` → `Resources.FakeResource` L3 in `bad_unknown_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FakeResource (AWS::Fake::NonExistent), BadBucket (AWS::S3::Bucket). For each listed resource, add Metadata.co
-- **I4010** `Flow` → `Resources.Flow` L8 in `gh-issues_issue-144_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Flow (AWS::MediaConnect::Flow). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `MyLambda` → `Resources.MyLambda` L10 in `gh-issues_issue-183_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyLambda (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `AuroraInstance` → `Resources.AuroraInstance` L2 in `gh-issues_issue-184_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AuroraInstance (AWS::RDS::DBInstance). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `CLBA83A883E` → `Resources.CLBA83A883E` L3 in `gh-issues_issue-186-clb_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CLBA83A883E (AWS::ElasticLoadBalancing::LoadBalancer). For each listed resource, add Metadata.com.aws.cloudfo
-- **I4010** `ImagePipeline7DDDE57F` → `Resources.ImagePipeline7DDDE57F` L14 in `gh-issues_issue-186-imagebuilder_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ImagePipeline7DDDE57F (AWS::ImageBuilder::ImagePipeline). For each listed resource, add Metadata.com.aws.clou
-- **I4010** `Topic` → `Resources.Topic` L11 in `gh-issues_issue-194_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `gh-issues_issue-226_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PingSecurityGroup` → `Resources.PingSecurityGroup` L8 in `gh-issues_issue-226_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PingSecurityGroup (AWS::EC2::SecurityGroup), InvertedRangeSecurityGroup (AWS::EC2::SecurityGroup). For each l
-- **I4010** → `Metadata` L1 in `gh-issues_issue-235_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Cluster` → `Resources.Cluster` L24 in `gh-issues_issue-235_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Cluster (AWS::RDS::DBCluster), MissingEncryption (AWS::RDS::DBInstance), KmsKeyWithoutEncryption (AWS::RDS::D
-- **I4010** → `Metadata` L1 in `gh-issues_issue-246_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Distribution` → `Resources.Distribution` L3 in `gh-issues_issue-246_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Distribution (AWS::CloudFront::Distribution), HttpsAlias (AWS::Route53::RecordSet). For each listed resource,
-- **I4010** `ALB` → `Resources.ALB` L3 in `gh-issues_issue-247_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ALB (AWS::ElasticLoadBalancingV2::LoadBalancer). For each listed resource, add Metadata.com.aws.cloudformatio
-- **I4010** → `Metadata` L1 in `gh-issues_issue-264_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `EIP` → `Resources.EIP` L6 in `gh-issues_issue-264_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: EIP (AWS::EC2::EIP), AGetAtt (AWS::Route53::RecordSet), AResourceRef (AWS::Route53::RecordSet), AaaaGetAtt (A
-- **I4010** `Function` → `Resources.Function` L3 in `gh-issues_issue-278_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `LaunchTemplate` → `Resources.LaunchTemplate` L2 in `gh-issues_issue-339_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LaunchTemplate (AWS::EC2::LaunchTemplate). For each listed resource, add Metadata.com.aws.cloudformation.Cont
-- **I4010** `NotAnImageSlot` → `Resources.NotAnImageSlot` L6 in `gh-issues_issue-34-w2506-overfire_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NotAnImageSlot (Custom::Thing). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** → `Metadata` L1 in `gh-issues_issue-34_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Instance` → `Resources.Instance` L13 in `gh-issues_issue-34_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Instance (AWS::EC2::Instance), Instance2 (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws
-- **I4010** `CfnBucket` → `Resources.CfnBucket` L2 in `gh-issues_issue-357_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CfnBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** `ScheduledRule` → `Resources.ScheduledRule` L2 in `gh-issues_issue-35_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ScheduledRule (AWS::Events::Rule). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set
-- **I4010** `TaskDef` → `Resources.TaskDef` L8 in `gh-issues_issue-36_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `gh-issues_issue-37_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyLaunchConfig` → `Resources.MyLaunchConfig` L3 in `gh-issues_issue-37_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyLaunchConfig (AWS::AutoScaling::LaunchConfiguration), MyAsg (AWS::AutoScaling::AutoScalingGroup). For each 
-- **I4010** `Memory` → `Resources.Memory` L3 in `gh-issues_issue-38_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Memory (AWS::BedrockAgentCore::Memory). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** → `Metadata` L1 in `gh-issues_issue-39_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `VPCB9E5F0B4` → `Resources.VPCB9E5F0B4` L3 in `gh-issues_issue-39_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: VPCB9E5F0B4 (AWS::EC2::VPC), VPCEcrEndpointSecurityGroup50ED8BA4 (AWS::EC2::SecurityGroup). For each listed r
-- **I4010** → `Metadata` L1 in `gh-issues_issue-40_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `EksCluster` → `Resources.EksCluster` L2 in `gh-issues_issue-40_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: EksCluster (AWS::EKS::Cluster), DaxConcrete (AWS::DAX::Cluster), DaxRef (AWS::DAX::Cluster). For each listed 
-- **I4010** `MyFunction` → `Resources.MyFunction` L3 in `gh-issues_issue-41_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFunction (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `gh-issues_issue-42-if_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskDef` → `Resources.TaskDef` L15 in `gh-issues_issue-42-if_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition), TargetGroup (AWS::ElasticLoadBalancingV2::TargetGroup), Service (AWS::ECS
-- **I4010** → `Metadata` L1 in `gh-issues_issue-42-ref_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskDef` → `Resources.TaskDef` L10 in `gh-issues_issue-42-ref_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition), TargetGroup (AWS::ElasticLoadBalancingV2::TargetGroup), Service (AWS::ECS
-- **I4010** → `Metadata` L1 in `gh-issues_issue-42_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskDef` → `Resources.TaskDef` L3 in `gh-issues_issue-42_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition), TargetGroup (AWS::ElasticLoadBalancingV2::TargetGroup), Service (AWS::ECS
-- **I4010** → `Metadata` L1 in `gh-issues_issue-44_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Pipeline` → `Resources.Pipeline` L3 in `gh-issues_issue-44_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Pipeline (AWS::CodePipeline::Pipeline), PipelineRole (AWS::IAM::Role). For each listed resource, add Metadata
-- **I4010** `interfaceVpcEndpoint89C99945` → `Resources.interfaceVpcEndpoint89C99945` L3 in `gh-issues_issue-45_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: interfaceVpcEndpoint89C99945 (AWS::EC2::VPCEndpoint). For each listed resource, add Metadata.com.aws.cloudfor
-- **I4010** → `Metadata` L1 in `gh-issues_issue-46_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ClusterEB0386A7` → `Resources.ClusterEB0386A7` L4 in `gh-issues_issue-46_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ClusterEB0386A7 (AWS::EKS::Cluster), ClusterKubectlProviderHandler2E05C68A (AWS::Lambda::Function). For each 
-- **I4010** `MyFunction` → `Resources.MyFunction` L3 in `gh-issues_issue-47_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFunction (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `gh-issues_issue-49_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `EsDomain` → `Resources.EsDomain` L2 in `gh-issues_issue-49_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: EsDomain (AWS::Elasticsearch::Domain), DocDbInstance (AWS::DocDB::DBInstance), Ec2Instance (AWS::EC2::Instanc
-- **I4010** `MyFunctionServiceRole` → `Resources.MyFunctionServiceRole` L6 in `gh-issues_issue-50_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFunctionServiceRole (AWS::IAM::Role). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `Nodegroup` → `Resources.Nodegroup` L3 in `gh-issues_issue-52_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Nodegroup (AWS::EKS::Nodegroup). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `gh-issues_issue-53_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `UserVpcFAC913E5` → `Resources.UserVpcFAC913E5` L3 in `gh-issues_issue-53_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: UserVpcFAC913E5 (AWS::EC2::VPC), UserVpcPublicSubnet1Subnet7A3A7B5D (AWS::EC2::Subnet), UserVpcPublicSubnet1R
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `gh-issues_issue-54-bare_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `gh-issues_issue-54-with-ownership_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `gh-issues_issue-54_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Bucket` → `Resources.Bucket` L10 in `gh-issues_issue-55_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `WeakConsumer` → `Resources.WeakConsumer` L3 in `gh-issues_issue-56_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WeakConsumer (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9` → `Resources.AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9` L3 in `gh-issues_issue-57_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AReallyAwesomeDistributionWithAMemorableNameThatIWillNeverForget046C0FA9 (AWS::CloudFront::Distribution). For
-- **I4010** `Resource` → `Resources.Resource` L3 in `gh-issues_issue-61_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Resource (AWS::EC2::Volume). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** `Canary` → `Resources.Canary` L3 in `gh-issues_issue-62_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Canary (AWS::Synthetics::Canary). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `Topic` → `Resources.Topic` L27 in `gh-issues_issue-63_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic (AWS::SNS::Topic). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** `MyLambda` → `Resources.MyLambda` L3 in `gh-issues_issue-65_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyLambda (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `PromAlarm` → `Resources.PromAlarm` L3 in `gh-issues_issue-67_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PromAlarm (AWS::CloudWatch::Alarm). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `gh-issues_issue-68_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyFunc` → `Resources.MyFunc` L4 in `gh-issues_issue-68_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFunc (AWS::Lambda::Function), FutureNodeFunc (AWS::Lambda::Function). For each listed resource, add Metadat
-- **I4010** `Profile` → `Resources.Profile` L3 in `gh-issues_issue-69_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Profile (AWS::IAM::InstanceProfile). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** → `Metadata` L1 in `good_E3019_identity_no_false_positive_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BucketA` → `Resources.BucketA` L11 in `good_E3019_identity_no_false_positive_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BucketA (AWS::S3::Bucket), BucketB (AWS::S3::Bucket), CompoundSub (AWS::S3::Bucket), ConditionalLeft (AWS::S3
-- **I4010** → `Metadata` L1 in `good_E3022_multi_element_join_distinct_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MultiElementJoinA` → `Resources.MultiElementJoinA` L6 in `good_E3022_multi_element_join_distinct_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MultiElementJoinA (AWS::EC2::SubnetRouteTableAssociation), MultiElementJoinB (AWS::EC2::SubnetRouteTableAssoc
-- **I4010** → `Metadata` L1 in `good_E3031_cognito_user_pool_domain_pattern_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `UserPool` → `Resources.UserPool` L9 in `good_E3031_cognito_user_pool_domain_pattern_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: UserPool (AWS::Cognito::UserPool), HostedUiPrefix (AWS::Cognito::UserPoolDomain), SingleCharacterPrefix (AWS:
-- **I4010** `Function` → `Resources.Function` L3 in `good_E3663_custom_environment_key_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** → `Metadata` L1 in `good_E3680_alb_subnet_counts_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L14 in `good_E3680_alb_subnet_counts_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), SubnetA (AWS::EC2::Subnet), SubnetB (AWS::EC2::Subnet), AlbTwoSubnets (AWS::ElasticLoadB
-- **I4010** → `Metadata` L1 in `good_E9002_port_range_exemptions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L7 in `good_E9002_port_range_exemptions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), SecurityGroup (AWS::EC2::SecurityGroup), StandaloneIngressIcmpTypeCode (AWS::EC2::Securi
-- **I4010** `KubectlHandlerRole` → `Resources.KubectlHandlerRole` L18 in `good_W1028_pseudo_param_branches_reachable_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: KubectlHandlerRole (AWS::IAM::Role). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** → `Metadata` L1 in `good_W3010_getazs_not_flagged_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Elb` → `Resources.Elb` L5 in `good_W3010_getazs_not_flagged_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Elb (AWS::ElasticLoadBalancing::LoadBalancer), Subnet (AWS::EC2::Subnet). For each listed resource, add Metad
-- **I4010** → `Metadata` L1 in `good_apigateway_method_authorizer_same_rest_api_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RestApi1` → `Resources.RestApi1` L10 in `good_apigateway_method_authorizer_same_rest_api_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RestApi1 (AWS::ApiGateway::RestApi), Authorizer1 (AWS::ApiGateway::Authorizer), Method1 (AWS::ApiGateway::Met
-- **I4010** `AuroraDB` → `Resources.AuroraDB` L3 in `good_aurora_dbinstance_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AuroraDB (AWS::RDS::DBInstance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `good_both_forms_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BucketShort` → `Resources.BucketShort` L17 in `good_both_forms_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BucketShort (AWS::S3::Bucket), BucketLong (AWS::S3::Bucket), WithGetAtt (Custom::IntrinsicTest), WithJoin (Cu
-- **I4010** `Bucket` → `Resources.Bucket` L11 in `good_cdk_bootstrap_version_rule_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Distribution` → `Resources.Distribution` L3 in `good_cloudfront_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Distribution (AWS::CloudFront::Distribution). For each listed resource, add Metadata.com.aws.cloudformation.C
-- **I4010** `Pipeline` → `Resources.Pipeline` L3 in `good_codepipeline_artifact_counts_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Pipeline (AWS::CodePipeline::Pipeline). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** → `Metadata` L1 in `good_complex_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L23 in `good_complex_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), Database (AWS::RDS::DBInstance), DevBucket (AWS::S3::Bucket). For each listed resou
-- **I4010** → `Metadata` L1 in `good_conditional_constraints_composite_keys_and_monitoring_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TableWithLsiCompositeKey` → `Resources.TableWithLsiCompositeKey` L8 in `good_conditional_constraints_composite_keys_and_monitoring_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TableWithLsiCompositeKey (AWS::DynamoDB::Table), TableWithoutIndexesSimpleKey (AWS::DynamoDB::Table), GlobalT
-- **I4010** → `Metadata` L1 in `good_conditional_constraints_within_limits_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `FunctionRole` → `Resources.FunctionRole` L9 in `good_conditional_constraints_within_limits_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FunctionRole (AWS::IAM::Role), TimeoutAtTheLimit (AWS::Lambda::Function), ManagedInstancesLongTimeout (AWS::L
-- **I4010** `Bucket` → `Resources.Bucket` L11 in `good_conditions_and_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `good_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myInstance` → `Resources.myInstance` L25 in `good_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance), CloudFrontDistribution (AWS::CloudFront::Distribution). For each listed reso
-- **I4010** → `Metadata` L1 in `good_core_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `mySubnet` → `Resources.mySubnet` L21 in `good_core_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySubnet (AWS::EC2::Subnet), myInstance1 (AWS::EC2::Instance), myInstance2 (AWS::EC2::Instance), myInstance3 
-- **I4010** `myTable` → `Resources.myTable` L6 in `good_core_config_default_e3012_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `MyKey` → `Resources.MyKey` L4 in `good_core_directives_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyKey (AWS::KMS::Key). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to th
-- **I4010** → `Metadata` L1 in `good_core_resource_attributes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `CommonCfnAttributes` → `Resources.CommonCfnAttributes` L17 in `good_core_resource_attributes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CommonCfnAttributes (AWS::S3::Bucket), DependsOnSingleString (AWS::S3::Bucket), DependsOnList (AWS::S3::Bucke
-- **I4010** → `Metadata` L1 in `good_custom_is-defined_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LambdaExecutionRole` → `Resources.LambdaExecutionRole` L8 in `good_custom_is-defined_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaExecutionRole (AWS::IAM::Role), LambdaFunctionTestDefinedArray (AWS::Lambda::Function), LambdaFunctionT
-- **I4010** → `Metadata` L1 in `good_custom_is-not-defined_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LambdaExecutionRole` → `Resources.LambdaExecutionRole` L5 in `good_custom_is-not-defined_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaExecutionRole (AWS::IAM::Role), LambdaFunctionTestNotDefinedFromParent (AWS::Lambda::Function), LambdaF
-- **I4010** → `Metadata` L1 in `good_custom_numeric-inequalities-large_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LambdaExecutionRole` → `Resources.LambdaExecutionRole` L6 in `good_custom_numeric-inequalities-large_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaExecutionRole (AWS::IAM::Role), TimeoutInNumericsFunction (AWS::Lambda::Function), TimeoutInStringFunct
-- **I4010** → `Metadata` L1 in `good_custom_numeric-inequalities-small_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LambdaExecutionRole` → `Resources.LambdaExecutionRole` L6 in `good_custom_numeric-inequalities-small_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaExecutionRole (AWS::IAM::Role), TimeoutInNumericsFunction (AWS::Lambda::Function), TimeoutInStringFunct
-- **I4010** `Queue` → `Resources.Queue` L6 in `good_decode_yaml11_scalars_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Queue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `good_deletion_policies_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `good_deletion_policies_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), DB (AWS::RDS::DBInstance). For each listed resource, add Metadata.com.aws.cloudform
-- **I4010** `DDBTable` → `Resources.DDBTable` L3 in `good_dynamodb_provisioned_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DDBTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `GoodTable` → `Resources.GoodTable` L3 in `good_dynamodb_valid_attributes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: GoodTable (AWS::DynamoDB::Table). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `Task` → `Resources.Task` L3 in `good_ecs_awsvpc_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Task (AWS::ECS::TaskDefinition). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `good_ecs_fargate_ddb_valid_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ValidFargate` → `Resources.ValidFargate` L8 in `good_ecs_fargate_ddb_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ValidFargate (AWS::ECS::TaskDefinition), ValidFargateSplunk (AWS::ECS::TaskDefinition), NonFargateTask (AWS::
-- **I4010** → `Metadata` L1 in `good_ecs_fargate_decimal_units_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `QuarterVcpuDecimal` → `Resources.QuarterVcpuDecimal` L3 in `good_ecs_fargate_decimal_units_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: QuarterVcpuDecimal (AWS::ECS::TaskDefinition), HalfVcpuDecimal (AWS::ECS::TaskDefinition), DecimalEquivalent 
-- **I4010** → `Metadata` L1 in `good_ecs_fargate_units_and_sizes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `QuarterVcpuHalfGb` → `Resources.QuarterVcpuHalfGb` L5 in `good_ecs_fargate_units_and_sizes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: QuarterVcpuHalfGb (AWS::ECS::TaskDefinition), EightVcpuSixtyGb (AWS::ECS::TaskDefinition), SixteenVcpuFortyGb
-- **I4010** `TaskDef` → `Resources.TaskDef` L3 in `good_ecs_fargate_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `good_ecs_fargate_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskDef` → `Resources.TaskDef` L3 in `good_ecs_fargate_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition), Service (AWS::ECS::Service). For each listed resource, add Metadata.com.a
-- **I4010** `ELB` → `Resources.ELB` L5 in `good_elb_https_empty_sslcertificateid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ELB (AWS::ElasticLoadBalancing::LoadBalancer). For each listed resource, add Metadata.com.aws.cloudformation.
-- **I4010** → `Metadata` L1 in `good_enum_case_insensitive_casing_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LowercaseType` → `Resources.LowercaseType` L10 in `good_enum_case_insensitive_casing_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LowercaseType (AWS::Batch::ComputeEnvironment), MixedCaseType (AWS::Batch::ComputeEnvironment). For each list
-- **I4010** → `Metadata` L1 in `good_functions_dynamic_reference_embedded_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Sg` → `Resources.Sg` L8 in `good_functions_dynamic_reference_embedded_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Sg (AWS::EC2::SecurityGroup), Bucket (AWS::S3::Bucket), ScheduledRule (AWS::Events::Rule), Instance (AWS::EC2
-- **I4010** → `Metadata` L1 in `good_functions_findinmap_default_value_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Cluster0` → `Resources.Cluster0` L11 in `good_functions_findinmap_default_value_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Cluster0 (AWS::ECS::Cluster), Cluster1 (AWS::ECS::Cluster), Cluster2 (AWS::ECS::Cluster), Cluster3 (AWS::ECS:
-- **I4010** → `Metadata` L1 in `good_functions_findinmap_enhanced_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Mesh` → `Resources.Mesh` L20 in `good_functions_findinmap_enhanced_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Mesh (AWS::AppMesh::Mesh), Mesh2 (AWS::AppMesh::Mesh), Cluster (AWS::ECS::Cluster), Queue (AWS::SQS::Queue), 
-- **I4010** → `Metadata` L1 in `good_functions_findinmap_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myInstance1` → `Resources.myInstance1` L11 in `good_functions_findinmap_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance1 (AWS::EC2::Instance), myInstance2 (AWS::EC2::Instance), myInstance3 (AWS::EC2::Instance). For eac
-- **I4010** → `Metadata` L1 in `good_functions_foreach_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `S3BucketA` → `Resources.S3BucketA` L14 in `good_functions_foreach_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: S3BucketA (AWS::S3::Bucket), S3BucketB (AWS::S3::Bucket), S3BucketC (AWS::S3::Bucket). For each listed resour
-- **I4010** → `Metadata` L1 in `good_functions_get_stack_output_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Topic1` → `Resources.Topic1` L13 in `good_functions_get_stack_output_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Topic1 (AWS::SNS::Topic), Topic2 (AWS::SNS::Topic), Topic3 (AWS::SNS::Topic), Topic4 (AWS::SNS::Topic), Topic
-- **I4010** → `Metadata` L1 in `good_functions_relationship_conditions_sam_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ConfigApplication` → `Resources.ConfigApplication` L23 in `good_functions_relationship_conditions_sam_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ConfigApplication (AWS::AppConfig::Application), ConfigEnvironment (AWS::AppConfig::Environment), FunctionC (
-- **I4010** → `Metadata` L1 in `good_functions_relationship_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LambdaExecutionRole` → `Resources.LambdaExecutionRole` L11 in `good_functions_relationship_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaExecutionRole (AWS::IAM::Role), InstanceProfile (AWS::IAM::InstanceProfile), AMIIDLookup (AWS::Lambda::
-- **I4010** → `Metadata` L1 in `good_functions_select_string_index_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SubnetA` → `Resources.SubnetA` L7 in `good_functions_select_string_index_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SubnetA (AWS::EC2::Subnet), SubnetB (AWS::EC2::Subnet), Vpc (AWS::EC2::VPC). For each listed resource, add Me
-- **I4010** `TestRole` → `Resources.TestRole` L7 in `good_functions_sub_needed_custom_excludes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TestRole (AWS::IAM::Role). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' t
-- **I4010** `APICommonCodeLayer` → `Resources.APICommonCodeLayer` L17 in `good_functions_sub_needed_transform_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: APICommonCodeLayer (AWS::Serverless::LayerVersion). For each listed resource, add Metadata.com.aws.cloudforma
-- **I4010** → `Metadata` L1 in `good_functions_sub_needed_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Key` → `Resources.Key` L82 in `good_functions_sub_needed_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Key (AWS::ApiGateway::ApiKey), GreetingRequest (AWS::ApiGateway::Method), IOTPolicies (AWS::IoT::Policy), Tes
-- **I4010** → `Metadata` L1 in `good_functions_sub_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myInstance` → `Resources.myInstance` L19 in `good_functions_sub_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance), mySubStack (AWS::CloudFormation::Stack), myCustomResource (Custom::Test), my
-- **I4010** → `Metadata` L1 in `good_generic_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RootRole` → `Resources.RootRole` L33 in `good_generic_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RootRole (AWS::IAM::Role), RootInstanceProfile (AWS::IAM::InstanceProfile), MyEC2Instance (AWS::EC2::Instance
-- **I4010** → `Metadata` L1 in `good_getatt_provisioned_product_outputs_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ProvisionedProduct` → `Resources.ProvisionedProduct` L6 in `good_getatt_provisioned_product_outputs_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ProvisionedProduct (AWS::ServiceCatalog::CloudFormationProvisionedProduct), Topic (AWS::SNS::Topic). For each
-- **I4010** → `Metadata` L1 in `good_getatt_ref_typed_nested_attribute_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Database` → `Resources.Database` L6 in `good_getatt_ref_typed_nested_attribute_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Database (AWS::RDS::DBInstance), Parameter (AWS::SSM::Parameter). For each listed resource, add Metadata.com.
-- **I4010** → `Metadata` L1 in `good_getazs_resolves_current_regions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SubnetApEast2` → `Resources.SubnetApEast2` L7 in `good_getazs_resolves_current_regions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SubnetApEast2 (AWS::EC2::Subnet), SubnetMxCentral1 (AWS::EC2::Subnet). For each listed resource, add Metadata
-- **I4010** `ProdBucket` → `Resources.ProdBucket` L22 in `good_good_conditions_valid_refs_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ProdBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** → `Metadata` L1 in `good_iam_intrinsic_resource_arns_schema_valid_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RoleInlinePolicy` → `Resources.RoleInlinePolicy` L14 in `good_iam_intrinsic_resource_arns_schema_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RoleInlinePolicy (AWS::IAM::Role), PolicyWithSubResource (AWS::IAM::ManagedPolicy), PolicyWithRefResource (AW
-- **I4010** `SomeBucket` → `Resources.SomeBucket` L10 in `good_iam_intrinsic_resource_arns_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SomeBucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `Role` → `Resources.Role` L16 in `good_iam_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Role (AWS::IAM::Role). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to th
-- **I4010** → `Metadata` L1 in `good_kms_key_identifier_forms_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TopicKeyId` → `Resources.TopicKeyId` L4 in `good_kms_key_identifier_forms_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TopicKeyId (AWS::SNS::Topic), TopicKeyArn (AWS::SNS::Topic), TopicAliasName (AWS::SNS::Topic), TopicAliasArn 
-- **I4010** `SnapStartFunc` → `Resources.SnapStartFunc` L3 in `good_lambda_snapstart_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SnapStartFunc (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `LambdaFn` → `Resources.LambdaFn` L3 in `good_lambda_zipfile_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaFn (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** → `Metadata` L1 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `CreationPolicyObject` → `Resources.CreationPolicyObject` L26 in `good_lifecycle_intrinsic_scenarios_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CreationPolicyObject (AWS::CloudFormation::WaitCondition), ConditionalCreationPolicy (AWS::CloudFormation::Wa
-- **I4010** `mySubnet` → `Resources.mySubnet` L18 in `good_mappings_used_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: mySubnet (AWS::EC2::Subnet). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** `R` → `Resources.R` L9 in `good_mappings_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: R (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to the 
-- **I4010** `IamPipeline` → `Resources.IamPipeline` L5 in `good_minimal_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IamPipeline (AWS::CloudFormation::Stack). For each listed resource, add Metadata.com.aws.cloudformation.Conte
-- **I4010** `OtherResource` → `Resources.OtherResource` L8 in `good_modules_minimal_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: OtherResource (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `Instance` → `Resources.Instance` L2 in `good_neptune_valid_instanceclass_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Instance (AWS::Neptune::DBInstance). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
-- **I4010** → `Metadata` L1 in `good_no_value_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rParameterGroup` → `Resources.rParameterGroup` L56 in `good_no_value_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rParameterGroup (AWS::RDS::DBParameterGroup), rDBSubnetGroup (AWS::RDS::DBSubnetGroup), rDBPassword (Custom::
-- **I4010** `Cluster` → `Resources.Cluster` L6 in `good_no_w3010_on_unlisted_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Cluster (AWS::DocDB::DBCluster). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `Queue` → `Resources.Queue` L17 in `good_output_value_string_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Queue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to 
-- **I4010** → `Metadata` L1 in `good_override_complete_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myS3Bucket` → `Resources.myS3Bucket` L6 in `good_override_complete_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myS3Bucket (AWS::S3::Bucket), untaggedInstance (AWS::EC2::Instance), VPC (AWS::EC2::VPC). For each listed res
-- **I4010** `myS3Bucket` → `Resources.myS3Bucket` L6 in `good_override_required_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myS3Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `Bucket` → `Resources.Bucket` L15 in `good_param_constraints_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `WaitHandle` → `Resources.WaitHandle` L43 in `good_parameters_F2012_cdl_default_split_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WaitHandle (AWS::CloudFormation::WaitConditionHandle). For each listed resource, add Metadata.com.aws.cloudfo
-- **I4010** → `Metadata` L1 in `good_parameters_not_used_parameters_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SomeLambda` → `Resources.SomeLambda` L8 in `good_parameters_not_used_parameters_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SomeLambda (AWS::Serverless::Function), LaunchConfiguration (AWS::AutoScaling::LaunchConfiguration). For each
-- **I4010** `WaitConditionHandle` → `Resources.WaitConditionHandle` L58 in `good_parameters_used_transform_language_extension_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WaitConditionHandle (AWS::CloudFormation::WaitConditionHandle). For each listed resource, add Metadata.com.aw
-- **I4010** `MyAPI` → `Resources.MyAPI` L13 in `good_parameters_used_transform_removed_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyAPI (AWS::Serverless::Api). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** → `Metadata` L1 in `good_parameters_used_transforms_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SomeLambda` → `Resources.SomeLambda` L14 in `good_parameters_used_transforms_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SomeLambda (AWS::Serverless::Function), LaunchConfiguration (AWS::AutoScaling::LaunchConfiguration). For each
-- **I4010** → `Metadata` L1 in `good_properties_ec2_vpc_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myVpc1` → `Resources.myVpc1` L29 in `good_properties_ec2_vpc_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myVpc1 (AWS::EC2::VPC), myVpc2 (AWS::EC2::VPC), myVpc3 (AWS::EC2::VPC), myVpc4 (AWS::EC2::VPC), myVpc5 (AWS::
-- **I4010** → `Metadata` L1 in `good_properties_rt_association_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `AppSubnetPublicRouteTableAssociation` → `Resources.AppSubnetPublicRouteTableAssociation` L27 in `good_properties_rt_association_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AppSubnetPublicRouteTableAssociation (AWS::EC2::SubnetRouteTableAssociation), AppSubnetPrivateRouteTableAssoc
-- **I4010** → `Metadata` L1 in `good_redshift_private_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Subnet1` → `Resources.Subnet1` L3 in `good_redshift_private_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Subnet1 (AWS::EC2::Subnet), VPC (AWS::EC2::VPC), RedshiftSubnetGroup (AWS::Redshift::ClusterSubnetGroup), Rou
-- **I4010** `Cluster` → `Resources.Cluster` L2 in `good_redshift_valid_nodetype_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Cluster (AWS::Redshift::Cluster). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 
-- **I4010** `Pool` → `Resources.Pool` L9 in `good_region_conditional_resource_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Pool (AWS::DeviceFarm::DevicePool). For each listed resource, add Metadata.com.aws.cloudformation.Context. Se
-- **I4010** → `Metadata` L1 in `good_resources_backup_test_backup_plan_lifecycle_rule_yml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `BackupPlanWithValidLifecycle` → `Resources.BackupPlanWithValidLifecycle` L4 in `good_resources_backup_test_backup_plan_lifecycle_rule_yml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: BackupPlanWithValidLifecycle (AWS::Backup::BackupPlan), BackupPlanWithIrrelevantLifecycle (AWS::Backup::Backu
-- **I4010** `NestedStack` → `Resources.NestedStack` L4 in `good_resources_cloudformation_nested_stack_dynamic_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NestedStack (AWS::CloudFormation::Stack). For each listed resource, add Metadata.com.aws.cloudformation.Conte
-- **I4010** → `Metadata` L1 in `good_resources_cloudformation_stacks_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `StackNormal` → `Resources.StackNormal` L5 in `good_resources_cloudformation_stacks_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StackNormal (AWS::CloudFormation::Stack), StackIsWebUrl (AWS::CloudFormation::Stack), StackUrlIsObject (AWS::
-- **I4010** `CloudFrontDistribution` → `Resources.CloudFrontDistribution` L3 in `good_resources_cloudfront_aliases_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CloudFrontDistribution (AWS::CloudFront::Distribution). For each listed resource, add Metadata.com.aws.cloudf
-- **I4010** `TestPipeline` → `Resources.TestPipeline` L5 in `good_resources_codepipeline_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TestPipeline (AWS::CodePipeline::Pipeline). For each listed resource, add Metadata.com.aws.cloudformation.Con
-- **I4010** `MyCognitoUserPool` → `Resources.MyCognitoUserPool` L3 in `good_resources_cognito_userpool_tag_is_string_map_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyCognitoUserPool (AWS::Cognito::UserPool). For each listed resource, add Metadata.com.aws.cloudformation.Con
-- **I4010** → `Metadata` L1 in `good_resources_deletionpolicy_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `WaitHandleRef` → `Resources.WaitHandleRef` L14 in `good_resources_deletionpolicy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WaitHandleRef (AWS::CloudFormation::WaitConditionHandle), WaitHandle (AWS::CloudFormation::WaitConditionHandl
-- **I4010** → `Metadata` L1 in `good_resources_dynamodb_attributes_transform_object_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DDBTableTransformAttributeDefinitions` → `Resources.DDBTableTransformAttributeDefinitions` L4 in `good_resources_dynamodb_attributes_transform_object_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DDBTableTransformAttributeDefinitions (AWS::DynamoDB::Table), DDBTableTransformKeySchema (AWS::DynamoDB::Tabl
-- **I4010** → `Metadata` L1 in `good_resources_dynamodb_attributes_transform_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DDBTableTransformAttributeDefinitions` → `Resources.DDBTableTransformAttributeDefinitions` L7 in `good_resources_dynamodb_attributes_transform_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DDBTableTransformAttributeDefinitions (AWS::DynamoDB::Table), DDBTableTransformKeySchema (AWS::DynamoDB::Tabl
-- **I4010** → `Metadata` L1 in `good_resources_dynamodb_attributes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DDBTable1` → `Resources.DDBTable1` L6 in `good_resources_dynamodb_attributes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DDBTable1 (AWS::DynamoDB::Table), DDBTable2 (AWS::DynamoDB::Table). For each listed resource, add Metadata.co
-- **I4010** → `Metadata` L1 in `good_resources_dynamodb_conditional_scenarios_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `CorrelatedBilling` → `Resources.CorrelatedBilling` L9 in `good_resources_dynamodb_conditional_scenarios_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CorrelatedBilling (AWS::DynamoDB::Table), CorrelatedIndex (AWS::DynamoDB::Table). For each listed resource, a
-- **I4010** `CorrelatedTask` → `Resources.CorrelatedTask` L13 in `good_resources_ecs_fargate_conditional_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CorrelatedTask (AWS::ECS::TaskDefinition). For each listed resource, add Metadata.com.aws.cloudformation.Cont
-- **I4010** → `Metadata` L1 in `good_resources_elasticache_cache_cluster_failover_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyParameterGroup` → `Resources.MyParameterGroup` L15 in `good_resources_elasticache_cache_cluster_failover_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyParameterGroup (AWS::ElastiCache::ParameterGroup), MyClusterParameterGroup (AWS::ElastiCache::ParameterGrou
-- **I4010** → `Metadata` L1 in `good_resources_iam_iam_policy_conditional_policies_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RoleNoValueBranch` → `Resources.RoleNoValueBranch` L15 in `good_resources_iam_iam_policy_conditional_policies_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RoleNoValueBranch (AWS::IAM::Role), DenyNotAction (AWS::IAM::ManagedPolicy). For each listed resource, add Me
-- **I4010** `WildcardPartitionPolicy` → `Resources.WildcardPartitionPolicy` L5 in `good_resources_iam_identity_policy_wildcard_partition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WildcardPartitionPolicy (AWS::IAM::ManagedPolicy). For each listed resource, add Metadata.com.aws.cloudformat
-- **I4010** → `Metadata` L1 in `good_resources_iam_instance_profile_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `IAMInstanceProfile` → `Resources.IAMInstanceProfile` L3 in `good_resources_iam_instance_profile_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IAMInstanceProfile (AWS::CloudFormation::Stack), Instance (AWS::CloudFormation::Stack). For each listed resou
-- **I4010** `SomeManagedPolicy` → `Resources.SomeManagedPolicy` L4 in `good_resources_iam_managed_policy_description_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SomeManagedPolicy (AWS::IAM::ManagedPolicy). For each listed resource, add Metadata.com.aws.cloudformation.Co
-- **I4010** `SomeManagedPolicy` → `Resources.SomeManagedPolicy` L11 in `good_resources_iam_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SomeManagedPolicy (AWS::IAM::ManagedPolicy). For each listed resource, add Metadata.com.aws.cloudformation.Co
-- **I4010** → `Metadata` L1 in `good_resources_iam_ref_with_path_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `CodeBuildProject` → `Resources.CodeBuildProject` L4 in `good_resources_iam_ref_with_path_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CodeBuildProject (AWS::CodeBuild::Project), CodeBuildRole (AWS::IAM::Role), CodeBuildVPC (AWS::EC2::VPC), Cod
-- **I4010** `Ecr` → `Resources.Ecr` L4 in `good_resources_iam_resource_policy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Ecr (AWS::ECR::Repository). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' 
-- **I4010** → `Metadata` L1 in `good_resources_lambda_required_properties_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Function1` → `Resources.Function1` L4 in `good_resources_lambda_required_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function1 (AWS::Lambda::Function), Function2 (AWS::Lambda::Function), Function3 (AWS::Lambda::Function). For 
-- **I4010** `myInstance` → `Resources.myInstance` L3 in `good_resources_name_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myInstance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `good_resources_primary_identifiers_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `RootRole` → `Resources.RootRole` L5 in `good_resources_primary_identifiers_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: RootRole (AWS::IAM::Role), RootRole3 (AWS::IAM::Role), RootRole4 (AWS::IAM::Role), Bucket1 (AWS::S3::Bucket),
-- **I4010** `TESTROLE` → `Resources.TESTROLE` L5 in `good_resources_properties_allowed_pattern_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TESTROLE (AWS::IAM::Role). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' t
-- **I4010** `CustomResource4` → `Resources.CustomResource4` L2 in `good_resources_properties_custom_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CustomResource4 (Custom::SpecifiedCustomResource). For each listed resource, add Metadata.com.aws.cloudformat
-- **I4010** → `Metadata` L1 in `good_resources_properties_exclusive_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Ingress` → `Resources.Ingress` L2 in `good_resources_properties_exclusive_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Ingress (AWS::EC2::SecurityGroupIngress), Alarm (AWS::CloudWatch::Alarm). For each listed resource, add Metad
-- **I4010** → `Metadata` L1 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `S3BadBucket` → `Resources.S3BadBucket` L8 in `good_resources_properties_hard_coded_arn_properties_sam_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: S3BadBucket (AWS::S3::Bucket), SampleRole (AWS::IAM::Role), SampleBadIAMPolicy1 (AWS::IAM::ManagedPolicy), Sa
-- **I4010** → `Metadata` L1 in `good_resources_properties_hard_coded_arn_properties_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Authorizer` → `Resources.Authorizer` L2 in `good_resources_properties_hard_coded_arn_properties_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Authorizer (AWS::ApiGateway::Authorizer), Stack (AWS::CloudFormation::Stack), Policy (AWS::IAM::ManagedPolicy
-- **I4010** → `Metadata` L1 in `good_resources_properties_list_duplicates_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `IamRole` → `Resources.IamRole` L13 in `good_resources_properties_list_duplicates_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IamRole (AWS::IAM::Role), IamRoleWithConditions (AWS::IAM::Role), IamRoleWithNestedConditions (AWS::IAM::Role
-- **I4010** → `Metadata` L1 in `good_resources_properties_password_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyDB` → `Resources.MyDB` L15 in `good_resources_properties_password_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyDB (AWS::RDS::DBInstance), myNewDb (AWS::RDS::DBInstance), myThirdDb (AWS::RDS::DBInstance), MyIAMUser (AWS
-- **I4010** `myRepository` → `Resources.myRepository` L4 in `good_resources_properties_string_size_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myRepository (AWS::CodeCommit::Repository). For each listed resource, add Metadata.com.aws.cloudformation.Con
-- **I4010** `Function` → `Resources.Function` L3 in `good_resources_properties_templated_code_sam_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function (AWS::Serverless::Application). For each listed resource, add Metadata.com.aws.cloudformation.Contex
-- **I4010** → `Metadata` L1 in `good_resources_properties_templated_code_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `AppSync` → `Resources.AppSync` L2 in `good_resources_properties_templated_code_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AppSync (AWS::AppSync::GraphQLApi), AppSyncSchema (AWS::AppSync::GraphQLSchema). For each listed resource, ad
-- **I4010** → `Metadata` L1 in `good_resources_rds_instance_sizes_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DBInstance1` → `Resources.DBInstance1` L10 in `good_resources_rds_instance_sizes_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DBInstance1 (AWS::RDS::DBInstance), DBInstance2 (AWS::RDS::DBInstance), DBInstance3 (AWS::RDS::DBInstance), D
-- **I4010** `ParameterUsername` → `Resources.ParameterUsername` L7 in `good_resources_rds_not_enum_master_username_parameter_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ParameterUsername (AWS::RDS::DBCluster). For each listed resource, add Metadata.com.aws.cloudformation.Contex
-- **I4010** → `Metadata` L1 in `good_resources_s3_access-control-obsolete_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket1` → `Resources.Bucket1` L3 in `good_resources_s3_access-control-obsolete_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket1 (AWS::S3::Bucket), Bucket2 (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudfor
-- **I4010** → `Metadata` L1 in `good_resources_update_policy_supported_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyASG` → `Resources.MyASG` L3 in `good_resources_update_policy_supported_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyASG (AWS::AutoScaling::AutoScalingGroup), LaunchConfig (AWS::AutoScaling::LaunchConfiguration), MyAlias (AW
-- **I4010** → `Metadata` L1 in `good_resources_updatereplacepolicy_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `WaitHandleRef` → `Resources.WaitHandleRef` L14 in `good_resources_updatereplacepolicy_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WaitHandleRef (AWS::CloudFormation::WaitConditionHandle), WaitHandle (AWS::CloudFormation::WaitConditionHandl
-- **I4010** → `Metadata` L1 in `good_route53_conditional_record_arrays_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `StandaloneBothBranchesValid` → `Resources.StandaloneBothBranchesValid` L10 in `good_route53_conditional_record_arrays_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StandaloneBothBranchesValid (AWS::Route53::RecordSet), StandaloneUnreachableInvalid (AWS::Route53::RecordSet)
-- **I4010** → `Metadata` L1 in `good_route53_conditional_record_items_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Standalone` → `Resources.Standalone` L9 in `good_route53_conditional_record_items_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Standalone (AWS::Route53::RecordSet), Group (AWS::Route53::RecordSetGroup). For each listed resource, add Met
-- **I4010** → `Metadata` L1 in `good_route53_conditional_scenarios_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ConditionalProperties` → `Resources.ConditionalProperties` L11 in `good_route53_conditional_scenarios_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ConditionalProperties (AWS::Route53::RecordSet), MutuallyExclusiveConditions (AWS::Route53::RecordSet), Condi
-- **I4010** `MyApi` → `Resources.MyApi` L3 in `good_sam_api_stagename_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyApi (AWS::Serverless::Api). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** → `Metadata` L1 in `good_sam_connector_valid_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyTopic` → `Resources.MyTopic` L3 in `good_sam_connector_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTopic (AWS::SNS::Topic), MyFn (AWS::Serverless::Function), MyConn (AWS::Serverless::Connector). For each li
-- **I4010** `Fn` → `Resources.Fn` L3 in `good_sam_function_deploymentpreference_with_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `good_sam_function_dlq_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `good_sam_function_image_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `good_sam_function_provisioned_concurrency_with_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L7 in `good_sam_function_runtime_handler_via_globals_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `good_sam_function_url_config_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L3 in `good_sam_function_zip_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L17 in `good_sam_globals_all_valid_sections_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** `Fn` → `Resources.Fn` L4 in `good_sam_globals_empty_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
-- **I4010** → `Metadata` L1 in `good_sam_implicit_alias_ref_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyFn` → `Resources.MyFn` L3 in `good_sam_implicit_alias_ref_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFn (AWS::Serverless::Function), AliasParam (AWS::SSM::Parameter). For each listed resource, add Metadata.co
-- **I4010** → `Metadata` L1 in `good_sam_implicit_httpapi_ref_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyFn` → `Resources.MyFn` L3 in `good_sam_implicit_httpapi_ref_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFn (AWS::Serverless::Function), ApiIdParam (AWS::SSM::Parameter), ApiSubParam (AWS::SSM::Parameter). For ea
-- **I4010** → `Metadata` L1 in `good_sam_implicit_restapi_stage_ref_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyFn` → `Resources.MyFn` L3 in `good_sam_implicit_restapi_stage_ref_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFn (AWS::Serverless::Function), StageParam (AWS::SSM::Parameter). For each listed resource, add Metadata.co
-- **I4010** → `Metadata` L1 in `good_sam_implicit_role_getatt_dependson_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyFn` → `Resources.MyFn` L3 in `good_sam_implicit_role_getatt_dependson_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFn (AWS::Serverless::Function), RoleArnParam (AWS::SSM::Parameter), RoleRefParam (AWS::SSM::Parameter). For
-- **I4010** `Layer` → `Resources.Layer` L3 in `good_sam_layerversion_valid_retention_and_arch_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Layer (AWS::Serverless::LayerVersion). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `MyTable` → `Resources.MyTable` L3 in `good_sam_simpletable_no_primarykey_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTable (AWS::Serverless::SimpleTable). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `MyTable` → `Resources.MyTable` L3 in `good_sam_simpletable_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTable (AWS::Serverless::SimpleTable). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** `MySM` → `Resources.MySM` L3 in `good_sam_statemachine_definition_only_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MySM (AWS::Serverless::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `Policy` → `Resources.Policy` L12 in `good_schema_required_xor_resource_condition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Policy (AWS::ApplicationAutoScaling::ScalingPolicy). For each listed resource, add Metadata.com.aws.cloudform
-- **I4010** `MyReport` → `Resources.MyReport` L2 in `good_schema_resource_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyReport (Initech::TPS::Report). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `good_schema_valid_resources_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L3 in `good_schema_valid_resources_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), Role (AWS::IAM::Role). For each listed resource, add Metadata.com.aws.cloudformatio
-- **I4010** → `Metadata` L1 in `good_sg_icmpv6_type_code_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L7 in `good_sg_icmpv6_type_code_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), SecurityGroup (AWS::EC2::SecurityGroup), StandaloneIngressIcmpv6 (AWS::EC2::SecurityGrou
-- **I4010** `Bucket` → `Resources.Bucket` L6 in `good_simple_sub_prefix_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `good_some_logs_stream_lambda_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `FunctionA` → `Resources.FunctionA` L16 in `good_some_logs_stream_lambda_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FunctionA (AWS::Serverless::Function), FunctionB (AWS::Serverless::Function), FunctionC (AWS::Serverless::Fun
-- **I4010** `FifoQueue` → `Resources.FifoQueue` L3 in `good_sqs_fifo_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: FifoQueue (AWS::SQS::Queue). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why'
-- **I4010** `Doc` → `Resources.Doc` L3 in `good_ssm_document_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Doc (AWS::SSM::Document). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `Bucket` → `Resources.Bucket` L8 in `good_ssm_parameter_name_type_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** `ConditionalTemplateSource` → `Resources.ConditionalTemplateSource` L5 in `good_stackset_conditional_template_source_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ConditionalTemplateSource (AWS::CloudFormation::StackSet). For each listed resource, add Metadata.com.aws.clo
-- **I4010** `SM` → `Resources.SM` L3 in `good_stepfunctions_valid_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SM (AWS::StepFunctions::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** → `Metadata` L1 in `good_string_length_unknowable_values_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest` → `Resources.NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest` L10 in `good_string_length_unknowable_values_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NameProviderWithADeliberatelyLongLogicalIdentifierForThisTest (AWS::SNS::Topic), JoinedFromAReference (AWS::S
-- **I4010** `Bucket` → `Resources.Bucket` L6 in `good_sub_not_needed_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `good_transform_applications_location_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `App1` → `Resources.App1` L3 in `good_transform_applications_location_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: App1 (AWS::Serverless::Application), App2 (AWS::Serverless::Application). For each listed resource, add Metad
-- **I4010** → `Metadata` L1 in `good_transform_auto_publish_alias_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SkillFunction` → `Resources.SkillFunction` L20 in `good_transform_auto_publish_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SkillFunction (AWS::Serverless::Function), SkillFunction2 (AWS::Serverless::Function). For each listed resour
-- **I4010** `LambdaFunction` → `Resources.LambdaFunction` L10 in `good_transform_auto_publish_code_sha256_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LambdaFunction (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Con
-- **I4010** `Function` → `Resources.Function` L16 in `good_transform_function_use_s3_uri_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `HelloWorldFunction` → `Resources.HelloWorldFunction` L4 in `good_transform_function_using_image_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: HelloWorldFunction (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation
-- **I4010** `Bucket` → `Resources.Bucket` L11 in `good_transform_include_object_form_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' to
-- **I4010** → `Metadata` L1 in `good_transform_language_extension_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `WaitHandleRef` → `Resources.WaitHandleRef` L37 in `good_transform_language_extension_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WaitHandleRef (AWS::CloudFormation::WaitConditionHandle), WaitHandle (AWS::CloudFormation::WaitConditionHandl
-- **I4010** `Function` → `Resources.Function` L14 in `good_transform_list_transform_many_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
-- **I4010** `SkillFunction` → `Resources.SkillFunction` L7 in `good_transform_list_transform_not_sam_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SkillFunction (AWS::Lambda::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context.
-- **I4010** `SkillFunction` → `Resources.SkillFunction` L15 in `good_transform_list_transform_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SkillFunction (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Cont
-- **I4010** → `Metadata` L1 in `good_transform_serverless_api_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myFunction` → `Resources.myFunction` L5 in `good_transform_serverless_api_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myFunction (AWS::Serverless::Function), myApi (AWS::Serverless::Api). For each listed resource, add Metadata.
-- **I4010** → `Metadata` L1 in `good_transform_serverless_auto_publish_alias_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `LiteralAliasFunction` → `Resources.LiteralAliasFunction` L8 in `good_transform_serverless_auto_publish_alias_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LiteralAliasFunction (AWS::Serverless::Function), ParameterAliasFunction (AWS::Serverless::Function). For eac
-- **I4010** → `Metadata` L1 in `good_transform_serverless_function_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `myApi` → `Resources.myApi` L5 in `good_transform_serverless_function_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myApi (AWS::Serverless::Api), myFunction (AWS::Serverless::Function), myBucket (AWS::S3::Bucket). For each li
-- **I4010** `myFunction` → `Resources.myFunction` L10 in `good_transform_serverless_globals_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: myFunction (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context
-- **I4010** → `Metadata` L1 in `good_transform_serverless_ignore_globals_supported_runtime_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `IgnoredFunction` → `Resources.IgnoredFunction` L9 in `good_transform_serverless_ignore_globals_supported_runtime_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IgnoredFunction (AWS::Serverless::Function), SelectiveIgnoreFunction (AWS::Serverless::Function), InheritsGlo
-- **I4010** → `Metadata` L1 in `good_transform_serverless_ignore_globals_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `IgnoredFunction` → `Resources.IgnoredFunction` L9 in `good_transform_serverless_ignore_globals_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IgnoredFunction (AWS::Serverless::Function), SelectiveIgnoreFunction (AWS::Serverless::Function), InheritsGlo
-- **I4010** `StateMachine` → `Resources.StateMachine` L3 in `good_transform_step_function_local_definition_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StateMachine (AWS::Serverless::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.C
-- **I4010** → `Metadata` L1 in `good_transform_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyServerlessFunctionLogicalID` → `Resources.MyServerlessFunctionLogicalID` L5 in `good_transform_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyServerlessFunctionLogicalID (AWS::Serverless::Function), ExampleLayer (AWS::Serverless::LayerVersion), AppN
-- **I4010** → `Metadata` L1 in `good_unique_items_deploy_time_values_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `StackOutputSubnets` → `Resources.StackOutputSubnets` L10 in `good_unique_items_deploy_time_values_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: StackOutputSubnets (AWS::RDS::DBSubnetGroup), ImportedSubnets (AWS::RDS::DBSubnetGroup), SelectedSubnets (AWS
-- **I4010** → `Metadata` L1 in `good_unknown_resource_types_ignored_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PrivateRegistryType` → `Resources.PrivateRegistryType` L9 in `good_unknown_resource_types_ignored_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PrivateRegistryType (Initech::TPS::Report), UnbundledAmznType (AMZN::Internal::UnbundledType), HookShapedType
-- **I4010** → `Metadata` L1 in `good_vpc_subnets_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyVPC` → `Resources.MyVPC` L3 in `good_vpc_subnets_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyVPC (AWS::EC2::VPC), SubnetA (AWS::EC2::Subnet), SubnetB (AWS::EC2::Subnet), SecurityGroup (AWS::EC2::Secur
-- **I4010** `Subnet` → `Resources.Subnet` L3 in `integration_availability-zones_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Subnet (AWS::EC2::Subnet). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why' t
-- **I4010** → `Metadata` L1 in `integration_aws-dynamodb-table_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `KMS` → `Resources.KMS` L3 in `integration_aws-dynamodb-table_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: KMS (AWS::KMS::Key), Table1 (AWS::DynamoDB::Table), Table2 (AWS::DynamoDB::Table), Table3 (AWS::DynamoDB::Tab
-- **I4010** → `Metadata` L1 in `integration_aws-ec2-instance_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `NetworkInterface` → `Resources.NetworkInterface` L2 in `integration_aws-ec2-instance_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NetworkInterface (AWS::EC2::NetworkInterface), Instance (AWS::EC2::Instance). For each listed resource, add M
-- **I4010** `LaunchTemplate` → `Resources.LaunchTemplate` L2 in `integration_aws-ec2-launchtemplate_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: LaunchTemplate (AWS::EC2::LaunchTemplate). For each listed resource, add Metadata.com.aws.cloudformation.Cont
-- **I4010** `NetworkInterface` → `Resources.NetworkInterface` L7 in `integration_aws-ec2-networkinterface_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NetworkInterface (AWS::EC2::NetworkInterface). For each listed resource, add Metadata.com.aws.cloudformation.
-- **I4010** → `Metadata` L1 in `integration_aws-ec2-subnet_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Subnet1` → `Resources.Subnet1` L5 in `integration_aws-ec2-subnet_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Subnet1 (AWS::EC2::Subnet), Subnet2 (AWS::EC2::Subnet), Subnet3 (AWS::EC2::Subnet), Subnet4 (AWS::EC2::Subnet
-- **I4010** → `Metadata` L1 in `integration_aws-lambda-function_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Function` → `Resources.Function` L2 in `integration_aws-lambda-function_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Function (AWS::Lambda::Function), Role (AWS::IAM::Role). For each listed resource, add Metadata.com.aws.cloud
-- **I4010** → `Metadata` L1 in `integration_cfn-gather_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `TaskDef` → `Resources.TaskDef` L4 in `integration_cfn-gather_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: TaskDef (AWS::ECS::TaskDefinition), FargateService (AWS::ECS::Service), AwsvpcTaskDef (AWS::ECS::TaskDefiniti
-- **I4010** → `Metadata` L1 in `integration_custom-resources_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `KmsKey` → `Resources.KmsKey` L2 in `integration_custom-resources_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: KmsKey (AWS::KMS::Key), CustomResource (AWS::CloudFormation::CustomResource). For each listed resource, add M
-- **I4010** → `Metadata` L1 in `integration_deployment-file-template_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L21 in `integration_deployment-file-template_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), Subnet1 (AWS::EC2::Subnet), MyInstance (AWS::EC2::Instance). For each listed resource, a
-- **I4010** → `Metadata` L1 in `integration_dynamic-references_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `SESEventSourceMapping` → `Resources.SESEventSourceMapping` L4 in `integration_dynamic-references_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SESEventSourceMapping (AWS::Lambda::EventSourceMapping), SESEventSourceMappingBadDynamicReference (AWS::Lambd
-- **I4010** → `Metadata` L1 in `integration_formats_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Vpc` → `Resources.Vpc` L8 in `integration_formats_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Vpc (AWS::EC2::VPC), Subnet (AWS::EC2::Subnet), SecurityGroup (AWS::EC2::SecurityGroup), Instance1 (AWS::EC2:
-- **I4010** → `Metadata` L1 in `integration_get-stack-output_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ValidTopic` → `Resources.ValidTopic` L13 in `integration_get-stack-output_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ValidTopic (AWS::SNS::Topic), ValidJoin (AWS::SNS::Topic), ValidIf (AWS::SNS::Topic), InvalidMissing (AWS::SN
-- **I4010** → `Metadata` L1 in `integration_getatt-types_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `CapacityReservation` → `Resources.CapacityReservation` L7 in `integration_getatt-types_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: CapacityReservation (AWS::EC2::CapacityReservation), SsmParameter (AWS::SSM::Parameter), DocDBCluster (AWS::D
-- **I4010** → `Metadata` L1 in `integration_ref-no-value_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `IamRole1` → `Resources.IamRole1` L7 in `integration_ref-no-value_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: IamRole1 (AWS::IAM::Role), IamRole2 (AWS::IAM::Role), IamRole3 (AWS::IAM::Role), CloudFront1 (AWS::CloudFront
-- **I4010** → `Metadata` L1 in `integration_ref-types_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Cluster` → `Resources.Cluster` L7 in `integration_ref-types_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Cluster (AWS::ECS::Cluster), FargateExecutionRole (AWS::IAM::Role), FargateTaskRole (AWS::IAM::Role), Vpc (AW
-- **I4010** `MyInstance` → `Resources.MyInstance` L9 in `integration_resources-cloudformation-init_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyInstance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** → `Metadata` L1 in `issues_sam_w_conditions_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DeniedPolicies` → `Resources.DeniedPolicies` L115 in `issues_sam_w_conditions_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DeniedPolicies (AWS::IAM::ManagedPolicy), LogMonitoringPolicy (AWS::IAM::ManagedPolicy), TenantInfoReadPolicy
-- **I4010** → `Metadata` L10 in `lsp_comprehensive_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `VPC` → `Resources.VPC` L359 in `lsp_comprehensive_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: VPC (AWS::EC2::VPC), PublicSubnet (AWS::EC2::Subnet), WebSecurityGroup (AWS::EC2::SecurityGroup), BastionSecu
-- **I4010** → `Metadata` L10 in `lsp_comprehensive_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `VPC` → `Resources.VPC` L139 in `lsp_comprehensive_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: VPC (AWS::EC2::VPC), PublicSubnet (AWS::EC2::Subnet), WebSecurityGroup (AWS::EC2::SecurityGroup), BastionSecu
-- **I4010** → `Metadata` L1 in `lsp_condition-usage_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ProductionBucket` → `Resources.ProductionBucket` L54 in `lsp_condition-usage_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ProductionBucket (AWS::S3::Bucket), DevelopmentBucket (AWS::S3::Bucket), Database (AWS::RDS::DBInstance), Con
-- **I4010** → `Metadata` L1 in `lsp_condition-usage_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ProductionBucket` → `Resources.ProductionBucket` L52 in `lsp_condition-usage_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ProductionBucket (AWS::S3::Bucket), DevelopmentBucket (AWS::S3::Bucket), Database (AWS::RDS::DBInstance), Con
-- **I4010** → `Metadata` L1 in `lsp_constants_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L16 in `lsp_constants_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), PersonalS3 (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudf
-- **I4010** → `Metadata` L1 in `lsp_constants_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket` → `Resources.Bucket` L12 in `lsp_constants_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket (AWS::S3::Bucket), PersonalS3 (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudf
-- **I4010** → `Metadata` L1 in `lsp_parameter_usage_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket1` → `Resources.Bucket1` L29 in `lsp_parameter_usage_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket1 (AWS::S3::Bucket), Bucket2 (AWS::S3::Bucket), Bucket3 (AWS::S3::Bucket), Bucket4 (AWS::S3::Bucket), B
-- **I4010** → `Metadata` L1 in `lsp_parameter_usage_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `Bucket1` → `Resources.Bucket1` L25 in `lsp_parameter_usage_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Bucket1 (AWS::S3::Bucket), Bucket2 (AWS::S3::Bucket), Bucket3 (AWS::S3::Bucket), Bucket4 (AWS::S3::Bucket), B
-- **I4010** `MyS3Bucket` → `Resources.MyS3Bucket` L4 in `lsp_simple_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyS3Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** `MyS3Bucket` → `Resources.MyS3Bucket` L3 in `lsp_simple_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyS3Bucket (AWS::S3::Bucket). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
-- **I4010** → `Metadata` L1 in `lsp_test-template_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MyFunction` → `Resources.MyFunction` L2 in `lsp_test-template_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyFunction (AWS::Serverless::Function), MyApi (AWS::Serverless::Api). For each listed resource, add Metadata.
-- **I4010** → `Metadata` L1 in `public_lambda-poller_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PollerFunctionIamRole` → `Resources.PollerFunctionIamRole` L18 in `public_lambda-poller_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PollerFunctionIamRole (AWS::IAM::Role), PollerFunction (AWS::Lambda::Function), PollerEventRuleIamRole (AWS::
-- **I4010** → `Metadata` L1 in `public_lambda-poller_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `PollerFunctionIamRole` → `Resources.PollerFunctionIamRole` L15 in `public_lambda-poller_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: PollerFunctionIamRole (AWS::IAM::Role), PollerFunction (AWS::Lambda::Function), PollerEventRuleIamRole (AWS::
-- **I4010** `DBCluster` → `Resources.DBCluster` L18 in `public_rds-cluster_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DBCluster (AWS::RDS::DBCluster). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set '
-- **I4010** `WatchmakerInstance` → `Resources.WatchmakerInstance` L566 in `public_watchmaker_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: WatchmakerInstance (AWS::EC2::Instance). For each listed resource, add Metadata.com.aws.cloudformation.Contex
-- **I4010** → `Metadata` L26 in `quickstart_cis_benchmark_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `MasterConfigRole` → `Resources.MasterConfigRole` L76 in `quickstart_cis_benchmark_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MasterConfigRole (AWS::IAM::Role), FunctiontForEvaluateCisBenchmarkingPreconditions (AWS::Lambda::Function), 
-- **I4010** → `Metadata` L4 in `quickstart_config-rules_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rConfigRuleForSSH` → `Resources.rConfigRuleForSSH` L45 in `quickstart_config-rules_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rConfigRuleForSSH (AWS::Config::ConfigRule), rConfigRuleForRequiredTags (AWS::Config::ConfigRule), rConfigRul
-- **I4010** → `Metadata` L4 in `quickstart_iam_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rSysAdminRole` → `Resources.rSysAdminRole` L22 in `quickstart_iam_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rSysAdminRole (AWS::IAM::Role), rSysAdminProfile (AWS::IAM::InstanceProfile), rSysAdmin (AWS::IAM::Group), rS
-- **I4010** → `Metadata` L4 in `quickstart_nat-instance_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rEipNat` → `Resources.rEipNat` L69 in `quickstart_nat-instance_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rEipNat (AWS::EC2::EIP), rNatInstanceEni (AWS::EC2::NetworkInterface), rNatInstance (AWS::EC2::Instance), Ass
-- **I4010** → `Metadata` L37 in `quickstart_nist_application_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rAutoScalingConfigApp` → `Resources.rAutoScalingConfigApp` L218 in `quickstart_nist_application_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rAutoScalingConfigApp (AWS::AutoScaling::LaunchConfiguration), rAutoScalingConfigWeb (AWS::AutoScaling::Launc
-- **I4010** → `Metadata` L14 in `quickstart_nist_config_rules_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rAMIComplianceFunction` → `Resources.rAMIComplianceFunction` L33 in `quickstart_nist_config_rules_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rAMIComplianceFunction (AWS::Lambda::Function), rCloudTrailValidationFunction (AWS::Lambda::Function), rConfi
-- **I4010** → `Metadata` L121 in `quickstart_nist_high_main_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `ApplicationTemplate` → `Resources.ApplicationTemplate` L276 in `quickstart_nist_high_main_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ApplicationTemplate (AWS::CloudFormation::Stack), ConfigRulesTemplate (AWS::CloudFormation::Stack), IamTempla
-- **I4010** → `Metadata` L5 in `quickstart_nist_iam_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rIAMAdminGroup` → `Resources.rIAMAdminGroup` L33 in `quickstart_nist_iam_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rIAMAdminGroup (AWS::IAM::Group), rIAMAdminPolicy (AWS::IAM::ManagedPolicy), rIAMAdminProfile (AWS::IAM::Inst
-- **I4010** → `Metadata` L12 in `quickstart_nist_logging_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rArchiveLogsBucket` → `Resources.rArchiveLogsBucket` L41 in `quickstart_nist_logging_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rArchiveLogsBucket (AWS::S3::Bucket), rCloudTrailBucket (AWS::S3::Bucket), rCloudTrailChange (AWS::Logs::Metr
-- **I4010** → `Metadata` L106 in `quickstart_nist_vpc_management_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `AssociaterEIPProdBastion` → `Resources.AssociaterEIPProdBastion` L302 in `quickstart_nist_vpc_management_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AssociaterEIPProdBastion (AWS::EC2::EIPAssociation), rDHCPOptionsAssocMgmt (AWS::EC2::VPCDHCPOptionsAssociati
-- **I4010** → `Metadata` L13 in `quickstart_nist_vpc_production_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rAppPrivateSubnetA` → `Resources.rAppPrivateSubnetA` L178 in `quickstart_nist_vpc_production_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rAppPrivateSubnetA (AWS::EC2::Subnet), rAppPrivateSubnetAssociationA (AWS::EC2::SubnetRouteTableAssociation),
-- **I4010** → `Metadata` L4 in `quickstart_openshift_master_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `OpenShiftStack` → `Resources.OpenShiftStack` L184 in `quickstart_openshift_master_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: OpenShiftStack (AWS::CloudFormation::Stack), VPCStack (AWS::CloudFormation::Stack). For each listed resource,
-- **I4010** → `Metadata` L28 in `quickstart_openshift_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `AnsibleConfigServer` → `Resources.AnsibleConfigServer` L279 in `quickstart_openshift_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: AnsibleConfigServer (AWS::EC2::Instance), ContainerAccessELB (AWS::ElasticLoadBalancing::LoadBalancer), GetRS
-- **I4010** → `Metadata` L1 in `quickstart_test_yaml`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rParameterGroup` → `Resources.rParameterGroup` L56 in `quickstart_test_yaml`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rParameterGroup (AWS::RDS::DBParameterGroup), rDBSubnetGroup (AWS::RDS::DBSubnetGroup), rDBPassword (Custom::
-- **I4010** → `Metadata` L4 in `quickstart_vpc-management_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `rVPCManagement` → `Resources.rVPCManagement` L339 in `quickstart_vpc-management_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: rVPCManagement (AWS::EC2::VPC), rIGWManagement (AWS::EC2::InternetGateway), rGWAttachmentMgmtIGW (AWS::EC2::V
-- **I4010** → `Metadata` L4 in `quickstart_vpc_json`
-  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
-- **I4010** `DHCPOptions` → `Resources.DHCPOptions` L481 in `quickstart_vpc_json`
-  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: DHCPOptions (AWS::EC2::DHCPOptions), VPC (AWS::EC2::VPC), VPCDHCPOptionsAssociation (AWS::EC2::VPCDHCPOptions
 
 ### F3003 - 61 missed - Required Resource properties are missing
 
@@ -1756,61 +171,72 @@ These are diagnostics cfn-lint expects but the engine does not report.
 - **F3003** (cfn-lint: E3003) `MyApi` → `Properties` L8 in `lsp_test-template_yaml`
   > 'StageName' is a required property
 
-### W1030 - 13 missed - Validate the values that come from a Ref function
+### I4010 - 32 missed - Template or architecture-relevant resource has no Context block
 
-- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
-  > {'Ref': 'BucketNameChoice'} is longer than 63 when 'Ref' is resolved
-- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
-  > {'Ref': 'BucketNameChoice'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Ref' is resolved
-- **W1030** `StackIdPolicies` → `DeletionPolicy.Ref` L34 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > {'Ref': 'AWS::StackId'} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate'] when 'Ref' is resolved
-- **W1030** `StackIdPolicies` → `UpdateReplacePolicy.Ref` L35 in `bad_lifecycle_conditional_invalid_policies_yaml`
-  > {'Ref': 'AWS::StackId'} is not one of ['Delete', 'Retain'] when 'Ref' is resolved
-- **W1030** `PolicyDynamicActionBadEffect` → `Properties.PolicyDocument.Statement.0.Action.Ref` L82 in `bad_resources_iam_identity_policy_e3510_yaml`
-  > 'arn' is not one of ['a2c', 'a4b', 'access-analyzer', 'account', 'account-access', 'acm', 'acm-pca', 'aco-automation', 'action-recommendations', 'activate', 'agent-registry', 'agentaccess-mcp', 'aidev
-- **W1030** `ParameterUsername` → `Properties.MasterUsername.Ref` L13 in `good_resources_rds_not_enum_master_username_parameter_yaml`
-  > {'Ref': 'DatabaseUser'} should not be valid under {'enum': [{'Ref': 'DatabaseUser'}]} when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.GroupSet.0.Ref` L82 in `quickstart_nat-instance_json`
-  > {'Ref': 'pSecurityGroupSSHFromVpc'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.GroupSet.1.Ref` L84 in `quickstart_nat-instance_json`
-  > {'Ref': 'pSecurityGroupVpcNat'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
-  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
-- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
-  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
-- **W1030** → `Parameters.pSecurityAlarmTopic.Default` L198 in `quickstart_nist_application_yaml`
-  > {'Ref': 'pSecurityAlarmTopic'} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved at 'Resources/rPostProcInstanceRole/Properties/Policies
-- **W1030** `rAutoScalingConfigApp` → `Properties.KeyName.Ref` L383 in `quickstart_nist_application_yaml`
-  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
-- **W1030** `rAutoScalingConfigWeb` → `Properties.KeyName.Ref` L515 in `quickstart_nist_application_yaml`
-  > {'Ref': 'pEC2KeyPair'} is shorter than 1 when 'Ref' is resolved
-
-### W1031 - 12 missed - Validate the values that come from a Fn::Sub function
-
-- **W1031** `Bucket` → `Properties.BucketName.Fn::Sub` L6 in `bad_sub_nested_intrinsic_yaml`
-  > {'Fn::Sub': '${!GetAtt OtherBucket.Arn}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket` → `Properties.BucketName.Fn::Sub` L6 in `bad_sub_nested_intrinsic_yaml`
-  > {'Fn::Sub': '${!GetAtt OtherBucket.Arn}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket4` → `Properties.BucketName.Fn::Sub` L58 in `lsp_parameter_usage_json`
-  > {'Fn::Sub': 'Bucket-${Environment}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket4` → `Properties.BucketName.Fn::Sub` L58 in `lsp_parameter_usage_json`
-  > {'Fn::Sub': 'Bucket-${Environment}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L66 in `lsp_parameter_usage_json`
-  > {'Fn::Sub': 'Bucket-${AWS::Region}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L66 in `lsp_parameter_usage_json`
-  > {'Fn::Sub': 'Bucket-${AWS::Region}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L53 in `lsp_parameter_usage_yaml`
-  > {'Fn::Sub': 'Bucket5-${Environment}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L53 in `lsp_parameter_usage_yaml`
-  > {'Fn::Sub': 'Bucket5-${Environment}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket6` → `Properties.BucketName.Fn::Sub` L59 in `lsp_parameter_usage_yaml`
-  > {'Fn::Sub': 'Bucket6-${Environment}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket6` → `Properties.BucketName.Fn::Sub` L59 in `lsp_parameter_usage_yaml`
-  > {'Fn::Sub': 'Bucket6-${Environment}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket7` → `Properties.BucketName.Fn::Sub` L64 in `lsp_parameter_usage_yaml`
-  > {'Fn::Sub': 'Bucket-${AWS::Region}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
-- **W1031** `Bucket7` → `Properties.BucketName.Fn::Sub` L64 in `lsp_parameter_usage_yaml`
-  > {'Fn::Sub': 'Bucket-${AWS::Region}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
+- **I4010** `NumericType` → `Resources.NumericType` L9 in `bad_core_E3001_resource_shape_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: NumericType (42), UnknownAttribute (AWS::S3::Bucket), BadConditionType (AWS::S3::Bucket), BadDependsOnType (A
+- **I4010** `MyApi` → `Resources.MyApi` L3 in `bad_sam_api_missing_stagename_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyApi (AWS::Serverless::Api). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
+- **I4010** `MyConn` → `Resources.MyConn` L3 in `bad_sam_connector_missing_destination_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyConn (AWS::Serverless::Connector). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
+- **I4010** `MyConn` → `Resources.MyConn` L3 in `bad_sam_connector_missing_source_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyConn (AWS::Serverless::Connector). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_autopublishalias_invalid_name_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_capacityprovider_with_vpcconfig_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_deploymentpreference_without_alias_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_dlq_invalid_type_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_dlq_missing_targetarn_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_functionscaling_without_capacityprovider_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_image_with_handler_runtime_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_packagetype_invalid_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_provisioned_concurrency_without_alias_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_url_config_missing_authtype_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_versiondeletionpolicy_without_alias_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_zip_missing_runtime_handler_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L3 in `bad_sam_function_zip_with_imageuri_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L4 in `bad_sam_globals_not_dict_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L5 in `bad_sam_globals_section_not_dict_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L6 in `bad_sam_globals_unknown_property_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `Fn` → `Resources.Fn` L6 in `bad_sam_globals_unknown_section_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Fn (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'w
+- **I4010** `MyApi` → `Resources.MyApi` L3 in `bad_sam_graphqlapi_missing_auth_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyApi (AWS::Serverless::GraphQLApi). For each listed resource, add Metadata.com.aws.cloudformation.Context. S
+- **I4010** `Layer` → `Resources.Layer` L3 in `bad_sam_layerversion_invalid_compatible_architectures_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Layer (AWS::Serverless::LayerVersion). For each listed resource, add Metadata.com.aws.cloudformation.Context.
+- **I4010** `Layer` → `Resources.Layer` L3 in `bad_sam_layerversion_invalid_retention_policy_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: Layer (AWS::Serverless::LayerVersion). For each listed resource, add Metadata.com.aws.cloudformation.Context.
+- **I4010** `MyTable` → `Resources.MyTable` L3 in `bad_sam_simpletable_primarykey_invalid_type_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTable (AWS::Serverless::SimpleTable). For each listed resource, add Metadata.com.aws.cloudformation.Context
+- **I4010** `MyTable` → `Resources.MyTable` L3 in `bad_sam_simpletable_primarykey_missing_type_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyTable (AWS::Serverless::SimpleTable). For each listed resource, add Metadata.com.aws.cloudformation.Context
+- **I4010** `MySM` → `Resources.MySM` L3 in `bad_sam_statemachine_both_definitions_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MySM (AWS::Serverless::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
+- **I4010** `MySM` → `Resources.MySM` L3 in `bad_sam_statemachine_no_definition_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MySM (AWS::Serverless::StateMachine). For each listed resource, add Metadata.com.aws.cloudformation.Context. 
+- **I4010** → `Metadata` L1 in `bad_transform_auto_publish_alias_yaml`
+  > This template is missing a top-level Metadata.com.aws.cloudformation.Context block describing its architecture. Add top-level Metadata.com.aws.cloudformation.Context and set 'arch' to a concise summar
+- **I4010** `SkillFunctionExtraItems` → `Resources.SkillFunctionExtraItems` L14 in `bad_transform_auto_publish_alias_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: SkillFunctionExtraItems (AWS::Serverless::Function), SkillFunctionNotRef (AWS::Serverless::Function). For eac
+- **I4010** `MyApi` → `Resources.MyApi` L7 in `bad_transform_no_properties_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: MyApi (AWS::Serverless::Api). For each listed resource, add Metadata.com.aws.cloudformation.Context. Set 'why
+- **I4010** `ProcessorFunction` → `Resources.ProcessorFunction` L4 in `bad_transform_serverless_auto_publish_alias_yaml`
+  > These architecture-relevant resources are missing Metadata.com.aws.cloudformation.Context: ProcessorFunction (AWS::Serverless::Function). For each listed resource, add Metadata.com.aws.cloudformation.
 
 ### F3016 - 11 missed - Check DeletionPolicy values for Resources
 
@@ -1836,6 +262,31 @@ These are diagnostics cfn-lint expects but the engine does not report.
   > {'Fn::Join': ['t', ['Re', 'ain']]} is not of type 'string'
 - **F3016** (cfn-lint: E3035) `JoinPolicies` → `DeletionPolicy` L82 in `good_lifecycle_intrinsic_scenarios_yaml`
   > {'Fn::Join': ['t', ['Re', 'ain']]} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate']
+
+### W1030 - 11 missed - Validate the values that come from a Ref function
+
+- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
+  > {'Ref': 'BucketNameChoice'} is longer than 63 when 'Ref' is resolved
+- **W1030** `Bucket` → `Properties.BucketName.Ref` L14 in `bad_W9006_every_allowed_value_too_long_json`
+  > {'Ref': 'BucketNameChoice'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Ref' is resolved
+- **W1030** `StackIdPolicies` → `DeletionPolicy.Ref` L34 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > {'Ref': 'AWS::StackId'} is not one of ['Delete', 'Retain', 'RetainExceptOnCreate'] when 'Ref' is resolved
+- **W1030** `StackIdPolicies` → `UpdateReplacePolicy.Ref` L35 in `bad_lifecycle_conditional_invalid_policies_yaml`
+  > {'Ref': 'AWS::StackId'} is not one of ['Delete', 'Retain'] when 'Ref' is resolved
+- **W1030** `PolicyDynamicActionBadEffect` → `Properties.PolicyDocument.Statement.0.Action.Ref` L82 in `bad_resources_iam_identity_policy_e3510_yaml`
+  > 'arn' is not one of ['a2c', 'a4b', 'access-analyzer', 'account', 'account-access', 'acm', 'acm-pca', 'aco-automation', 'action-recommendations', 'activate', 'agent-registry', 'agentaccess-mcp', 'aidev
+- **W1030** `ParameterUsername` → `Properties.MasterUsername.Ref` L13 in `good_resources_rds_not_enum_master_username_parameter_yaml`
+  > {'Ref': 'DatabaseUser'} should not be valid under {'enum': [{'Ref': 'DatabaseUser'}]} when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.0.Ref` L82 in `quickstart_nat-instance_json`
+  > {'Ref': 'pSecurityGroupSSHFromVpc'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.GroupSet.1.Ref` L84 in `quickstart_nat-instance_json`
+  > {'Ref': 'pSecurityGroupVpcNat'} is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^[\\.\\-_\\/#A-Za-z0-9]{1,512}\\Z' when 'Ref' is resolved
+- **W1030** `rNatInstanceEni` → `Properties.SubnetId.Ref` L79 in `quickstart_nat-instance_json`
+  > {'Ref': 'pDMZSubnetA'} is not a 'AWS::EC2::Subnet.Id' with pattern '^subnet-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$' when 'Ref' is resolved
+- **W1030** → `Parameters.pSecurityAlarmTopic.Default` L198 in `quickstart_nist_application_yaml`
+  > {'Ref': 'pSecurityAlarmTopic'} does not match '^(arn:(aws[A-Za-z\\-]*?|\\*):[^:]+:[^:]*(:(?:\\d{12}|\\*|aws)?:.+|)|\\*)$' when 'Ref' is resolved at 'Resources/rPostProcInstanceRole/Properties/Policies
 
 ### F0018 - 10 missed - Check UpdateReplacePolicy values for Resources
 
@@ -1884,6 +335,27 @@ but found another document
 - **F0000** (cfn-lint: E0000) L12 in `bad_template_yaml`
   > did not find expected key
 
+### W1031 - 9 missed - Validate the values that come from a Fn::Sub function
+
+- **W1031** `Bucket` → `Properties.BucketName.Fn::Sub` L6 in `bad_sub_nested_intrinsic_yaml`
+  > {'Fn::Sub': '${!GetAtt OtherBucket.Arn}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket` → `Properties.BucketName.Fn::Sub` L6 in `bad_sub_nested_intrinsic_yaml`
+  > {'Fn::Sub': '${!GetAtt OtherBucket.Arn}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket4` → `Properties.BucketName.Fn::Sub` L58 in `lsp_parameter_usage_json`
+  > {'Fn::Sub': 'Bucket-${Environment}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L66 in `lsp_parameter_usage_json`
+  > {'Fn::Sub': 'Bucket-${AWS::Region}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L66 in `lsp_parameter_usage_json`
+  > {'Fn::Sub': 'Bucket-${AWS::Region}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket5` → `Properties.BucketName.Fn::Sub` L53 in `lsp_parameter_usage_yaml`
+  > {'Fn::Sub': 'Bucket5-${Environment}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket6` → `Properties.BucketName.Fn::Sub` L59 in `lsp_parameter_usage_yaml`
+  > {'Fn::Sub': 'Bucket6-${Environment}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket7` → `Properties.BucketName.Fn::Sub` L64 in `lsp_parameter_usage_yaml`
+  > {'Fn::Sub': 'Bucket-${AWS::Region}'} does not match '^([a-z0-9][a-z0-9.-]*[a-z0-9])?$' when 'Fn::Sub' is resolved
+- **W1031** `Bucket7` → `Properties.BucketName.Fn::Sub` L64 in `lsp_parameter_usage_yaml`
+  > {'Fn::Sub': 'Bucket-${AWS::Region}'} is not a 'AWS::S3::Bucket.Name' with pattern '^(?![.\\-])(?!.*\\.\\.)(?!.*\\-\\.)(?!.*\\.\\-)[a-z0-9.\\-]{3,63}(?<![.\\-])$' when 'Fn::Sub' is resolved
+
 ### E0002 - 8 missed - Error processing rule on the template
 
 - **E0002** L1 in `bad_core_E3001_resource_shape_yaml`
@@ -1906,21 +378,40 @@ but found another document
 ### E3043 - 8 missed - Validate parameters for in a nested stack
 
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "One" is not specified when condition "IsUsWest2" is True and when condition "IsUsEast1" is False
+  > Nested stack template parameter "One" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "Two" is not specified when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
+  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Nested stack template parameter "Two" is not specified when condition "IsUsWest2" is False and when condition "IsUsEast1" is True
+  > Nested stack template parameter "Two" is not specified when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsWest2" is False and when condition "IsUsEast1" is False
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is False
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsWest2" is True and when condition "IsUsEast1" is False
+  > Specified parameter "Three" doesn't exist in nested stack template when condition "IsUsEast1" is False and when condition "IsUsWest2" is True
 - **E3043** `Stack3` → `Properties.Parameters` L18 in `bad_resources_cloudformation_stacks_yaml`
-  > Specified parameter "Zero" doesn't exist in nested stack template when condition "IsUsWest2" is False and when condition "IsUsEast1" is True
+  > Specified parameter "Zero" doesn't exist in nested stack template when condition "IsUsEast1" is True and when condition "IsUsWest2" is False
 - **E3043** `StackNormal` → `Properties.Parameters` L10 in `bad_resources_cloudformation_stacks_yaml`
   > Nested stack template parameter "Two" is not specified at Resources/StackNormal/Properties/Parameters
 - **E3043** `StackNormal` → `Properties.Parameters.Three` L12 in `bad_resources_cloudformation_stacks_yaml`
   > Specified parameter "Three" doesn't exist in nested stack template at Resources/StackNormal/Properties/Parameters/Three
+
+### E3048 - 8 missed - Validate ECS Fargate tasks have required properties and values
+
+- **E3048** `Task` → `Properties.ContainerDefinitions.0.LogConfiguration.LogDriver` L46 in `bad_W9052_scenario_product_covering_yaml`
+  > 'syslog' is not one of ['awslogs', 'splunk', 'awsfirelens']
+- **E3048** `DecimalEquivalent` → `Properties.Cpu` L32 in `good_ecs_fargate_decimal_units_yaml`
+  > '2.0 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `HalfVcpuDecimal` → `Properties.Cpu` L20 in `good_ecs_fargate_decimal_units_yaml`
+  > '0.5 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `LeadingDecimalPointEquivalent` → `Properties.Cpu` L68 in `good_ecs_fargate_decimal_units_yaml`
+  > '.250 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `LeadingZeroEquivalent` → `Properties.Cpu` L56 in `good_ecs_fargate_decimal_units_yaml`
+  > '02 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `PlusDecimalEquivalent` → `Properties.Cpu` L44 in `good_ecs_fargate_decimal_units_yaml`
+  > '+2.0 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `QuarterVcpuDecimal` → `Properties.Cpu` L8 in `good_ecs_fargate_decimal_units_yaml`
+  > '0.25 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
+- **E3048** `TrailingDecimalPointEquivalent` → `Properties.Cpu` L80 in `good_ecs_fargate_decimal_units_yaml`
+  > '2. vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
 
 ### F2015 - 8 missed - Default value is within parameter constraints
 
@@ -1941,25 +432,6 @@ but found another document
 - **F2015** (cfn-lint: E2015) → `Parameters.myAllowedValue.Default` L18 in `bad_parameters_default_yaml`
   > Default should be a value within AllowedValues
 
-### F3012 - 8 missed - Check resource properties values
-
-- **F3012** (cfn-lint: E3012) `ExampleLambda` → `Properties.Environment.Variables` L14 in `bad_resources_properties_primitive_types_map_yaml`
-  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
-- **F3012** (cfn-lint: E3012) `ExampleLambda1` → `Properties.Environment.Variables.Fn::If.1` L34-37 in `bad_resources_properties_primitive_types_map_yaml`
-  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
-- **F3012** (cfn-lint: E3012) `myFunctionRole` → `Properties.KeySchema` L70 in `bad_transform_serverless_template_yaml`
-  > [{'AttributeName': 'String', 'KeyType': 'String'}] is not of type 'object', 'string'
-- **F3012** (cfn-lint: E3012) `DynamicProperties` → `Properties` L250 in `gh-issues_issue-235_yaml`
-  > '{{resolve:ssm:/rds/properties}}' is not of type object
-- **F3012** (cfn-lint: E3012) `MyAPI` → `Properties.EndpointConfiguration` L17 in `good_parameters_used_transform_removed_yaml`
-  > 'EDGE' is not of type 'object'
-- **F3012** (cfn-lint: E3012) `App2` → `Properties.Location` L10 in `good_transform_applications_location_yaml`
-  > {'ApplicationId': '1'} is not of type 'string'
-- **F3012** (cfn-lint: E3012) `CloudFront1` → `Properties.Ref` L39 in `integration_ref-no-value_yaml`
-  > {'Ref': 'AWS::NoValue'} is not of type object
-- **F3012** (cfn-lint: E3012) `IamRole2` → `Properties.Ref` L26 in `integration_ref-no-value_yaml`
-  > {'Ref': 'AWS::NoValue'} is not of type object
-
 ### E1021 - 7 missed - Base64 validation of parameters
 
 - **E1021** `myInstance` → `Properties.UserData.Fn::Base64.Fn::Join` L12 in `bad_functions_join_yaml`
@@ -1977,6 +449,23 @@ but found another document
 - **E1021** `LaunchConfiguration` → `Properties.UserData.Fn::Base64.Fn::Sub` L27 in `good_parameters_used_transforms_yaml`
   > {'Fn::Transform': {'Name': 'DynamicUserData'}} is not of type 'array', 'string'
 
+### E3023 - 7 missed - Validate Route53 RecordSets
+
+- **E3023** `CnameCountRecord` → `Properties.ResourceRecords` L69 in `bad_E3023_record_value_projection_covering_yaml`
+  > expected maximum item count: 1, found: 3
+- **E3023** `CnameCountRecord` → `Properties.ResourceRecords` L69 in `bad_E3023_record_value_projection_covering_yaml`
+  > expected maximum item count: 1, found: 4
+- **E3023** `CnameCountRecord` → `Properties.ResourceRecords` L69 in `bad_E3023_record_value_projection_covering_yaml`
+  > expected maximum item count: 1, found: 5
+- **E3023** `MyRecordSetGroup` → `Properties.RecordSets.6.ResourceRecords.0` L164 in `bad_route53_yaml`
+  > 'No valid domain name' does not match '^.*\\.acm-validations\\.aws\\.?$'
+- **E3023** `MyRecordSetGroup` → `Properties.RecordSets.6.ResourceRecords.0` L164 in `bad_route53_yaml`
+  > 'No valid domain name' does not match '^[a-zA-Z0-9\\!"\\#\\$\\%\\&\\\'\\(\\)\\*\\+\\,-\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~\\.]+$'
+- **E3023** `MyRecordSetGroup` → `Properties.RecordSets.6.ResourceRecords.0` L164 in `bad_route53_yaml`
+  > 'No valid domain name' is not valid under any of the given schemas
+- **E3023** `GroupUnreachableInvalid` → `Properties.RecordSets.Fn::If.2.0.ResourceRecords.0` L61 in `good_route53_conditional_record_arrays_yaml`
+  > 'unreachable-group-invalid' is not a 'ipv4'
+
 ### E3047 - 7 missed - Validate ECS Fargate tasks have the right combination of CPU and memory
 
 - **E3047** `DecimalEquivalent` → `Properties` L29 in `good_ecs_fargate_decimal_units_yaml`
@@ -1993,23 +482,6 @@ but found another document
   > Cpu '0.25 vCPU' is not compatible with memory '512'
 - **E3047** `TrailingDecimalPointEquivalent` → `Properties` L77 in `good_ecs_fargate_decimal_units_yaml`
   > Cpu '2. vCPU' is not compatible with memory '4. GB'
-
-### E3048 - 7 missed - Validate ECS Fargate tasks have required properties and values
-
-- **E3048** `DecimalEquivalent` → `Properties.Cpu` L32 in `good_ecs_fargate_decimal_units_yaml`
-  > '2.0 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
-- **E3048** `HalfVcpuDecimal` → `Properties.Cpu` L20 in `good_ecs_fargate_decimal_units_yaml`
-  > '0.5 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
-- **E3048** `LeadingDecimalPointEquivalent` → `Properties.Cpu` L68 in `good_ecs_fargate_decimal_units_yaml`
-  > '.250 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
-- **E3048** `LeadingZeroEquivalent` → `Properties.Cpu` L56 in `good_ecs_fargate_decimal_units_yaml`
-  > '02 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
-- **E3048** `PlusDecimalEquivalent` → `Properties.Cpu` L44 in `good_ecs_fargate_decimal_units_yaml`
-  > '+2.0 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
-- **E3048** `QuarterVcpuDecimal` → `Properties.Cpu` L8 in `good_ecs_fargate_decimal_units_yaml`
-  > '0.25 vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
-- **E3048** `TrailingDecimalPointEquivalent` → `Properties.Cpu` L80 in `good_ecs_fargate_decimal_units_yaml`
-  > '2. vCPU' does not match '^(\\.25|\\.5|1|2|4|8|16|32)\\s*(?i)vCpu$'
 
 ### W1001 - 7 missed - Ref/GetAtt to resource that is available when conditions are applied
 
@@ -2043,6 +515,21 @@ but found another document
 - **E3530** `TestRole` → `Properties.AssumeRolePolicyDocument.Statement.0.Principal.AWS.0` L17 in `good_functions_sub_needed_custom_excludes_yaml`
   > 'arn:aws:iam::${self:custom.config.masterAccount}:user/${self:custom.config.deploymentUser}' is not valid under any of the given schemas
 
+### F3012 - 6 missed - Check resource properties values
+
+- **F3012** (cfn-lint: E3012) `ExampleLambda` → `Properties.Environment.Variables` L14 in `bad_resources_properties_primitive_types_map_yaml`
+  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
+- **F3012** (cfn-lint: E3012) `ExampleLambda1` → `Properties.Environment.Variables.Fn::If.1` L34-37 in `bad_resources_properties_primitive_types_map_yaml`
+  > [{'Key': 'A', 'Value': 'B'}, {'C': 'd'}] is not of type 'object'
+- **F3012** (cfn-lint: E3012) `myFunctionRole` → `Properties.KeySchema` L70 in `bad_transform_serverless_template_yaml`
+  > [{'AttributeName': 'String', 'KeyType': 'String'}] is not of type 'object', 'string'
+- **F3012** (cfn-lint: E3012) `DynamicProperties` → `Properties` L250 in `gh-issues_issue-235_yaml`
+  > '{{resolve:ssm:/rds/properties}}' is not of type object
+- **F3012** (cfn-lint: E3012) `MyAPI` → `Properties.EndpointConfiguration` L17 in `good_parameters_used_transform_removed_yaml`
+  > 'EDGE' is not of type 'object'
+- **F3012** (cfn-lint: E3012) `App2` → `Properties.Location` L10 in `good_transform_applications_location_yaml`
+  > {'ApplicationId': '1'} is not of type 'string'
+
 ### F3014 - 6 missed - Validate only one of a set of required properties are specified
 
 - **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L46 in `bad_core_conditions_yaml`
@@ -2057,6 +544,21 @@ but found another document
   > Only one of ['ScalingTargetId', 'ResourceId'] is a required property
 - **F3014** (cfn-lint: E3014) `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
   > Only one of ['VirtualName', 'Ebs', 'NoDevice'] is a required property
+
+### I3013 - 6 missed - Check resources with auto expiring content have explicit retention period
+
+- **I3013** `QueueWithConditionalProperties` → `Properties.Fn::If.2` L73-74 in `bad_E3505_conditional_service_defaults_yaml`
+  > 'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **I3013** `MysqlBackupRetentionTooLong` → `Properties.BackupRetentionPeriod` L67 in `bad_E3717_E3718_E3719_E3723_conditional_constraints_yaml`
+  > 40 is greater than the maximum of 35 (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **I3013** `WholePropertiesCorrelated` → `Properties.Fn::If.2` L236-239 in `gh-issues_issue-235_yaml`
+  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **I3013** `WholePropertiesFalseEncryption` → `Properties.Fn::If.1` L243-245 in `gh-issues_issue-235_yaml`
+  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **I3013** `WholePropertiesFalseEncryption` → `Properties.Fn::If.2` L245-248 in `gh-issues_issue-235_yaml`
+  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **I3013** `CoveringConditionalQueue` → `Properties.Fn::If.2` L52-53 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > 'MessageRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
 
 ### W1036 - 6 missed - Validate the values that come from a Fn::GetAZs function
 
@@ -2212,17 +714,6 @@ but found another document
 - **E3001** `ImpossibleResourcePolicies` → `Resources.ImpossibleResourcePolicies` L96 in `good_lifecycle_intrinsic_scenarios_yaml`
   > Exception "When setting condition 'Never' to True" raised while validating 'cfnLint'
 
-### E3023 - 4 missed - Validate Route53 RecordSets
-
-- **E3023** `MyRecordSetGroup` → `Properties.RecordSets.6.ResourceRecords.0` L164 in `bad_route53_yaml`
-  > 'No valid domain name' does not match '^.*\\.acm-validations\\.aws\\.?$'
-- **E3023** `MyRecordSetGroup` → `Properties.RecordSets.6.ResourceRecords.0` L164 in `bad_route53_yaml`
-  > 'No valid domain name' does not match '^[a-zA-Z0-9\\!"\\#\\$\\%\\&\\\'\\(\\)\\*\\+\\,-\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~\\.]+$'
-- **E3023** `MyRecordSetGroup` → `Properties.RecordSets.6.ResourceRecords.0` L164 in `bad_route53_yaml`
-  > 'No valid domain name' is not valid under any of the given schemas
-- **E3023** `GroupUnreachableInvalid` → `Properties.RecordSets.Fn::If.2.0.ResourceRecords.0` L61 in `good_route53_conditional_record_arrays_yaml`
-  > 'unreachable-group-invalid' is not a 'ipv4'
-
 ### E3513 - 4 missed - Validate ECR repository policy
 
 - **E3513** `ecr1` → `Properties.RepositoryPolicyText.Statement.0.BadProperty` L16 in `bad_resources_iam_resource_policy_yaml`
@@ -2245,6 +736,17 @@ but found another document
 - **E3724** → `Globals.Function.CodeUri` L9 in `good_parameters_used_transforms_yaml`
   > {'Bucket': 'somebucket', 'Key': {'Fn::Sub': 'lambda/code/lambda-${Version}-shaded.jar'}} is not of type 'string'
 
+### F1020 - 4 missed - Ref validation of value
+
+- **F1020** (cfn-lint: E1020) `Bucket` → `Properties.BucketName` L11 in `bad_F2002_ssm_parameter_type_invalid_yaml`
+  > {'Ref': 'BadType'} is not of type 'string'
+- **F1020** (cfn-lint: E1020) → `Conditions.TagEnvironments.Fn::Not.0.Fn::Equals.1` L15 in `bad_conditions_equals_yaml`
+  > {'Ref': 'Environments'} is not of type 'string'
+- **F1020** (cfn-lint: E1020) `CreationRootRef` → `CreationPolicy` L30 in `bad_lifecycle_policy_shapes_yaml`
+  > {'Ref': 'Policy'} is not of type 'object'
+- **F1020** (cfn-lint: E1022) `AllHeaders` → `Properties.Value.Fn::Join.1.Fn::Split.1` L28-32 in `good_functions_split_get_stack_output_yaml`
+  > {'Fn::GetStackOutput': {'StackName': 'producer-stack', 'Region': 'us-east-1', 'OutputName': 'ExportedHeaders'}} is not of type 'string'
+
 ### F6101 - 4 missed - Validate that outputs values are a string
 
 - **F6101** (cfn-lint: E6101) → `Outputs.EdgeCaseOutput.Value.Fn::If.0` L251-256 in `lsp_condition-usage_yaml`
@@ -2256,16 +758,16 @@ but found another document
 - **F6101** (cfn-lint: E6101) → `Outputs.LogicalConditionalOutput.Value.Fn::If.0` L236-239 in `lsp_condition-usage_yaml`
   > {'Fn::And': [{'Condition': 'IsDevelopment'}, {'Condition': 'ShouldCreateDatabase'}]} is not one of ['IsProduction', 'IsDevelopment', 'ShouldCreateDatabase', 'IsProductionAndCreateDB', 'IsDevOrCreateDB
 
-### I3013 - 4 missed - Check resources with auto expiring content have explicit retention period
+### W2530 - 4 missed - Validate that SnapStart is properly configured
 
-- **I3013** `MysqlBackupRetentionTooLong` → `Properties.BackupRetentionPeriod` L67 in `bad_E3717_E3718_E3719_E3723_conditional_constraints_yaml`
-  > 40 is greater than the maximum of 35 (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `WholePropertiesCorrelated` → `Properties.Fn::If.2` L236-239 in `gh-issues_issue-235_yaml`
-  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `WholePropertiesFalseEncryption` → `Properties.Fn::If.1` L243-245 in `gh-issues_issue-235_yaml`
-  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
-- **I3013** `WholePropertiesFalseEncryption` → `Properties.Fn::If.2` L245-248 in `gh-issues_issue-235_yaml`
-  > 'BackupRetentionPeriod' is a required property (The default retention period will delete the data after a pre-defined time. Set an explicit values to avoid data loss on resource)
+- **W2530** `ApplyOnBranchExcludedByResourceCondition` → `Properties.SnapStart.ApplyOn.Fn::If.2` L38 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > 'SnapStart' is enabled but an 'AWS::Lambda::Version' resource is not attached
+- **W2530** `ExclusiveConditionsExcludeInnerBranch` → `Properties.SnapStart.Fn::If.1.ApplyOn.Fn::If.1` L63 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > 'SnapStart' is enabled but an 'AWS::Lambda::Version' resource is not attached
+- **W2530** `PropertiesBranchExcludedByResourceCondition` → `Properties.Fn::If.2.SnapStart.ApplyOn` L26 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > 'SnapStart' is enabled but an 'AWS::Lambda::Version' resource is not attached
+- **W2530** `RepeatedConditionExcludesInnerBranch` → `Properties.SnapStart.Fn::If.1.ApplyOn.Fn::If.2` L50 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > 'SnapStart' is enabled but an 'AWS::Lambda::Version' resource is not attached
 
 ### E1011 - 3 missed - FindInMap validation of configuration
 
@@ -2312,15 +814,6 @@ but found another document
 - **E9004** (cfn-lint: E1010) `SsmParameter` → `Properties.Value.Fn::GetAtt` L18 in `integration_getatt-types_yaml`
   > {'Fn::GetAtt': ['CapacityReservation', 'InstanceCount']} is not of type 'string'
 
-### F1020 - 3 missed - Ref validation of value
-
-- **F1020** (cfn-lint: E1020) `Bucket` → `Properties.BucketName` L11 in `bad_F2002_ssm_parameter_type_invalid_yaml`
-  > {'Ref': 'BadType'} is not of type 'string'
-- **F1020** (cfn-lint: E1020) → `Conditions.TagEnvironments.Fn::Not.0.Fn::Equals.1` L15 in `bad_conditions_equals_yaml`
-  > {'Ref': 'Environments'} is not of type 'string'
-- **F1020** (cfn-lint: E1020) `CreationRootRef` → `CreationPolicy` L30 in `bad_lifecycle_policy_shapes_yaml`
-  > {'Ref': 'Policy'} is not of type 'object'
-
 ### F3002 - 3 missed - Resource properties are invalid
 
 - **F3002** (cfn-lint: E3002) `MyDB` → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
@@ -2329,6 +822,15 @@ but found another document
   > Additional properties are not allowed ('NotARealProperty' was unexpected)
 - **F3002** (cfn-lint: E3002) `myFunctionRole` → `Properties.KeySchema.0.KeyType` L73 in `bad_transform_serverless_template_yaml`
   > 'HASH' was expected
+
+### F3018 - 3 missed - Check Properties that need only one of a list of properties
+
+- **F3018** (cfn-lint: E3018) `NoImage` → `Properties` L6 in `bad_schema_composition_yaml`
+  > {'InstanceType': 'stream.standard.medium', 'Name': 'test-builder'} is not valid under any of the given schemas
+- **F3018** (cfn-lint: E3018) `myFunctionRole` → `Properties.KeySchema` L70 in `bad_transform_serverless_template_yaml`
+  > [{'AttributeName': 'String', 'KeyType': 'String'}] is not valid under any of the given schemas
+- **F3018** (cfn-lint: E3018) `ConditionalTemplateSource` → `Properties` L7 in `good_stackset_conditional_template_source_yaml`
+  > {'StackSetName': 'conditional-template-source', 'PermissionModel': 'SELF_MANAGED', 'TemplateBody': {'Fn::If': ['UseInlineTemplate', '{"AWSTemplateFormatVersion":"2010-09-09","Resources":{}}', {'Ref': 
 
 ### I3510 - 3 missed - Validate statement resources match the actions
 
@@ -2354,6 +856,13 @@ but found another document
   > {'Fn::ImportValue': 'CidrBlock'} is not of type 'string'
 - **E1016** `subnet` → `Properties.VpcId.Fn::ImportValue` L13 in `bad_functions_import_value_yaml`
   > ['PrimaryRegion'] is not of type 'string'
+
+### E1017 - 2 missed - Select validation of parameters
+
+- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select.1` L21 in `bad_functions_select_yaml`
+  > 'Value1' is not of type 'array'
+- **E1017** `FirstHeader` → `Properties.Value.Fn::Select.1.Fn::Split.1` L41-44 in `good_functions_split_get_stack_output_yaml`
+  > {'Fn::GetStackOutput': {'StackName': 'producer-stack', 'OutputName': 'ExportedHeaders'}} is not of type 'string'
 
 ### E1161 - 2 missed - Validate S3 bucket name format
 
@@ -2425,20 +934,6 @@ but found another document
 - **F3017** (cfn-lint: E3017) `App2` → `Properties.Location` L10 in `good_transform_applications_location_yaml`
   > {'ApplicationId': '1'} is not valid under any of the given schemas
 
-### F3018 - 2 missed - Check Properties that need only one of a list of properties
-
-- **F3018** (cfn-lint: E3018) `myFunctionRole` → `Properties.KeySchema` L70 in `bad_transform_serverless_template_yaml`
-  > [{'AttributeName': 'String', 'KeyType': 'String'}] is not valid under any of the given schemas
-- **F3018** (cfn-lint: E3018) `ConditionalTemplateSource` → `Properties` L7 in `good_stackset_conditional_template_source_yaml`
-  > {'StackSetName': 'conditional-template-source', 'PermissionModel': 'SELF_MANAGED', 'TemplateBody': {'Fn::If': ['UseInlineTemplate', '{"AWSTemplateFormatVersion":"2010-09-09","Resources":{}}', {'Ref': 
-
-### F3037 - 2 missed - Check if a list has duplicate values
-
-- **F3037** (cfn-lint: E3037) `IamGroup` → `Properties.ManagedPolicyArns` L14 in `bad_resources_properties_list_duplicates_yaml`
-  > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
-- **F3037** (cfn-lint: E3037) `IamGroupWithConditions` → `Properties.ManagedPolicyArns` L22 in `bad_resources_properties_list_duplicates_yaml`
-  > ['arn:aws:iam::aws:policy/AdministratorPolicy', 'arn:aws:iam::aws:policy/AdministratorPolicy', {'Ref': 'IamPolicy'}, {'Ref': 'IamPolicy'}] has non-unique elements
-
 ### W2002 - 2 missed - Parameter type is not officially supported by CloudFormation
 
 - **W2002** → `Parameters.Unsupported.Type` L4 in `bad_F2002_unsupported_ssm_parameter_type_yaml`
@@ -2467,6 +962,13 @@ but found another document
 - **W3698** `myInstance2` → `Properties.BlockDeviceMappings.Fn::If.2.0.Fn::If.1.VirtualName` L48 in `good_core_conditions_yaml`
   > 'VirtualName' is ignored when 'Ebs' is specified
 
+### W4011 - 2 missed - Context block has no 'why'
+
+- **W4011** `ConditionalContextQueue` → `Metadata.com.aws.cloudformation.Context` L18 in `bad_W4012_resource_context_intrinsics_yaml`
+  > ConditionalContextQueue: Metadata.com.aws.cloudformation.Context has no 'why'. Add 'why': purpose + notable choices, telegraphic style (e.g. "buffer order events async; FIFO rejected (throughput > ord
+- **W4011** `IntrinsicFieldQueue` → `Metadata.com.aws.cloudformation.Context` L25 in `bad_W4012_resource_context_intrinsics_yaml`
+  > IntrinsicFieldQueue: Metadata.com.aws.cloudformation.Context has no 'why'. Add 'why': purpose + notable choices, telegraphic style (e.g. "buffer order events async; FIFO rejected (throughput > orderin
+
 ### E1002 - 1 missed - Validate if a template size is too large
 
 - **E1002** → `Template` L1 in `bad_limit_size_yaml`
@@ -2482,10 +984,10 @@ but found another document
 - **E1005** → `Transform.3.Name` L7 in `bad_templates_transform_invalid_entries_yaml`
   > ['AWS::Include'] is not of type 'string'
 
-### E1017 - 1 missed - Select validation of parameters
+### E1018 - 1 missed - Split validation of parameters
 
-- **E1017** `myInstance1` → `Properties.AvailabilityZone.Fn::Select.1` L21 in `bad_functions_select_yaml`
-  > 'Value1' is not of type 'array'
+- **E1018** `Bucket` → `Properties.CorsConfiguration.CorsRules.0.ExposedHeaders.Fn::Split.1` L16-19 in `good_functions_split_get_stack_output_yaml`
+  > {'Fn::GetStackOutput': {'StackName': 'producer-stack', 'OutputName': 'ExportedHeaders'}} is not of type 'string'
 
 ### E1041 - 1 missed - Check if Ref matches destination format
 
@@ -2496,11 +998,6 @@ but found another document
 
 - **E1150** `Ingress` → `Properties.GroupId` L8 in `good_resources_properties_exclusive_yaml`
   > 'sg-abc1234567' is not a 'AWS::EC2::SecurityGroup.Id' with pattern '^sg-([a-fA-F0-9]{8}|[a-fA-F0-9]{17})$'
-
-### E2529 - 1 missed - Check for SubscriptionFilters have beyond 5 attachments to a CloudWatch Log Group
-
-- **E2529** `LogSubscriptionFunction` → `Properties.Events.SubscriptionA3.Properties.LogGroupName` L71 in `bad_some_logs_stream_lambda_yaml`
-  > You can only have 5 Subscription Filters per CloudWatch Log Group
 
 ### E2533 - 1 missed - Check if Lambda Function Runtimes are updatable
 
@@ -2522,6 +1019,11 @@ but found another document
 - **E3039** `myFunctionRole` → `Properties` L68 in `bad_transform_serverless_template_yaml`
   > The set of Attributes in AttributeDefinitions: [] and KeySchemas: ['String'] must match at Resources/myFunctionRole/Properties
 
+### E3046 - 1 missed - Validate ECS task logging configuration for awslogs
+
+- **E3046** `Task` → `Properties.ContainerDefinitions.0.LogConfiguration` L45 in `bad_W9052_scenario_product_covering_yaml`
+  > 'Options' is a required property
+
 ### E3065 - 1 missed - Check if a list has more unique values than allowed
 
 - **E3065** `CloudWatchAlarm` → `Properties.AlarmActions` L15 in `bad_resources_properties_string_size_yaml`
@@ -2531,6 +1033,11 @@ but found another document
 
 - **E3504** `BackupPlan` → `Properties.BackupPlan.BackupPlanRule.0.Lifecycle.DeleteAfterDays` L17 in `bad_resources_backup_test_backup_plan_lifecycle_rule_yml`
   > DeleteAfterDays 30 must be at least 90 days after MoveToColdStorageAfterDays 7
+
+### E3505 - 1 missed - Validate SQS 'VisibilityTimeout' is greater than a function's 'Timeout'
+
+- **E3505** `DynamicQueue` → `Properties.VisibilityTimeout` L17 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Queue visibility timeout (30) is less than Function timeout (60) seconds
 
 ### E3512 - 1 missed - Validate resource based IAM polices
 
@@ -2617,6 +1124,11 @@ but found another document
 - **F3030** (cfn-lint: E3030) `Fn` → `Properties.PackageType` L6 in `bad_sam_function_packagetype_invalid_yaml`
   > 'Banana' is not one of ['Image', 'Zip']
 
+### I3037 - 1 missed - Check if a list that allows duplicates has any duplicates
+
+- **I3037** `EqualValues` → `Properties.Tags` L18 in `bad_E3024_duplicate_tag_keys_yaml`
+  > [{'Key': 'Environment', 'Value': 'production'}, {'Key': 'Environment', 'Value': 'production'}] has non-unique elements
+
 ### W2001 - 1 missed - Check if Parameters are Used
 
 - **W2001** → `Parameters.NullParameter` L34 in `bad_parameters_configuration_yaml`
@@ -2632,14 +1144,462 @@ but found another document
 - **W3705** `StageWithAbsolutePaths` → `Properties.MethodSettings.2` L88-90 in `good_conditional_constraints_within_limits_yaml`
   > MethodSettings entry has no effect without a setting property (LoggingLevel, MetricsEnabled, CachingEnabled, etc.)
 
+### W4012 - 1 missed - Context field does not match the schema
+
+- **W4012** `ConditionalMutabilityQueue` → `Metadata.com.aws.cloudformation.Context.mutability.Fn::If` L43 in `bad_W4012_resource_context_intrinsics_yaml`
+  > ConditionalMutabilityQueue: 'mutability.Fn::If' value '['IsProduction', {'QueueName': 'review-required'}, {'QueueName': 'free-to-tune'}]' is not a recognized value. Use one of the allowed values: must
+
 ### W6001 - 1 missed - Check Outputs using ImportValue
 
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives - 80 extra findings across 15 rules
+## False Positives - 321 extra findings across 27 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
+
+### I4010 - 220 extra - Template or architecture-relevant resource has no Context block
+
+- **I4010** → `Metadata` L4 in `bad_I4010_cdk_synthesized_missing_context_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `OrderQueue` (AWS::SQS::Queue) L5 in `bad_I4010_cdk_synthesized_missing_context_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: OrderQueue (AWS::SQS::Queue), OrderHandler (AWS::Lambda::Function).
+- **I4010** `UnknownAttribute` (AWS::S3::Bucket) L13 in `bad_core_E3001_resource_shape_yaml`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: UnknownAttribute (AWS::S3::Bucket), BadConditionType (AWS::S3::Bucket), BadDependsOnType (AWS::S3::Bucket), ValidResource (AWS::S3::B
+- **I4010** → `Metadata` L2 in `cdk_DemoStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `AppRole` (AWS::IAM::Role) L3 in `cdk_DemoStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: AppRole (AWS::IAM::Role), DataBucket (AWS::S3::Bucket), AppFunction (AWS::Lambda::Function), DataTable (AWS::DynamoDB::Table), AppSec
+- **I4010** → `Metadata` L2 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `AdminSecretB9452750` (AWS::SecretsManager::Secret) L3 in `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: AdminSecretB9452750 (AWS::SecretsManager::Secret), RabbitMqBrokerE7F26F68 (AWS::AmazonMQ::Broker), consumerlambdaFunctionServiceRole0
+- **I4010** → `Metadata` L2 in `cdk_amplify-console-app--AmplifyConsoleApp.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `testapp` (AWS::Amplify::App) L3 in `cdk_amplify-console-app--AmplifyConsoleApp.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: testapp (AWS::Amplify::App), MasterBranch (AWS::Amplify::Branch).
+- **I4010** → `Metadata` L2 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `items07D08F4B` (AWS::DynamoDB::Table) L3 in `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: items07D08F4B (AWS::DynamoDB::Table), getOneItemFunctionServiceRoleCFD54796 (AWS::IAM::Role), getOneItemFunctionE3257B22 (AWS::Lambda
+- **I4010** → `Metadata` L2 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `apigwasynclambdatable1075CD30` (AWS::DynamoDB::Table) L3 in `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: apigwasynclambdatable1075CD30 (AWS::DynamoDB::Table), apigwasynclambdafnServiceRole607675A2 (AWS::IAM::Role), apigwasynclambdafnAD625
+- **I4010** → `Metadata` L2 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `operationallambdaServiceRole14B56EA5` (AWS::IAM::Role) L3 in `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: operationallambdaServiceRole14B56EA5 (AWS::IAM::Role), operationallambdaFE43E13E (AWS::Lambda::Function), operationallambdaLogRetenti
+- **I4010** → `Metadata` L2 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF` (AWS::CloudFormation::Stack) L3 in `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: nestedstacklambdaNestedStacknestedstacklambdaNestedStackResource113B56AF (AWS::CloudFormation::Stack), lambdafunction1ServiceRoleA9EA
+- **I4010** → `Metadata` L2 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `nestedstackvpc4488A7AF` (AWS::EC2::VPC) L3 in `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: nestedstackvpc4488A7AF (AWS::EC2::VPC), nestedstackvpcpublicsubnet1Subnet1Subnet89E5486A (AWS::EC2::Subnet), nestedstackvpcpublicsubn
+- **I4010** → `Metadata` L2 in `cdk_api-websocket-lambda-dynamodb--chat-app.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `chatappapi` (AWS::ApiGatewayV2::Api) L3 in `cdk_api-websocket-lambda-dynamodb--chat-app.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: chatappapi (AWS::ApiGatewayV2::Api), chatappapitable5244EF8B (AWS::DynamoDB::Table), connectlambdaServiceRole04DCF570 (AWS::IAM::Role
+- **I4010** → `Metadata` L2 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `VPCB9E5F0B4` (AWS::EC2::VPC) L3 in `cdk_application-load-balancer--LoadBalancerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: VPCB9E5F0B4 (AWS::EC2::VPC), VPCPublicSubnet1SubnetB4246D30 (AWS::EC2::Subnet), VPCPublicSubnet1RouteTableFEE4B781 (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `CarTableA597893A` (AWS::DynamoDB::Table) L3 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: CarTableA597893A (AWS::DynamoDB::Table), DefectsTable2A57950B (AWS::DynamoDB::Table), CarApiE5E7ACF5 (AWS::AppSync::GraphQLApi), CarA
+- **I4010** → `Metadata` L2 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `AppSync2EventBridgeApi` (AWS::AppSync::GraphQLApi) L3 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: AppSync2EventBridgeApi (AWS::AppSync::GraphQLApi), AppSync2EventBridgeApiKey (AWS::AppSync::ApiKey), ItemsSchema (AWS::AppSync::Graph
+- **I4010** → `Metadata` L2 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `PostsApiCdk` (AWS::AppSync::GraphQLApi) L3 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: PostsApiCdk (AWS::AppSync::GraphQLApi), PostsApiKey (AWS::AppSync::ApiKey), PostsSchema (AWS::AppSync::GraphQLSchema), PostsDataSourc
+- **I4010** → `Metadata` L2 in `cdk_aspects--SampleStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Construct1StandardFunctionServiceRole716388BA` (AWS::IAM::Role) L3 in `cdk_aspects--SampleStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Construct1StandardFunctionServiceRole716388BA (AWS::IAM::Role), Construct1StandardFunctionD5361E84 (AWS::Lambda::Function), Construct
+- **I4010** `IncomingDataBucket3554D835` (AWS::S3::Bucket) L3 in `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: IncomingDataBucket3554D835 (AWS::S3::Bucket).
+- **I4010** → `Metadata` L2 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `VPCB9E5F0B4` (AWS::EC2::VPC) L3 in `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: VPCB9E5F0B4 (AWS::EC2::VPC), VPCPublicSubnet1SubnetB4246D30 (AWS::EC2::Subnet), VPCPublicSubnet1RouteTableFEE4B781 (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `VPCB9E5F0B4` (AWS::EC2::VPC) L3 in `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: VPCB9E5F0B4 (AWS::EC2::VPC), VPCPublicSubnet1SubnetB4246D30 (AWS::EC2::Subnet), VPCPublicSubnet1RouteTableFEE4B781 (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_backup-s3--AwsBackupS3Stack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `testBucketDF4D7D1A` (AWS::S3::Bucket) L3 in `cdk_backup-s3--AwsBackupS3Stack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: testBucketDF4D7D1A (AWS::S3::Bucket), Role1ABCC5F0 (AWS::IAM::Role), Vault23237E5B (AWS::Backup::BackupVault), demobackupplan32CA9462
+- **I4010** → `Metadata` L2 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `OpenMPRepositoryAB8BB3BC` (AWS::ECR::Repository) L3 in `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: OpenMPRepositoryAB8BB3BC (AWS::ECR::Repository), OpenMPVPCF5EF58EB (AWS::EC2::VPC), OpenMPVPCPublicSubnet1Subnet4888FED8 (AWS::EC2::S
+- **I4010** → `Metadata` L2 in `cdk_classic-load-balancer--LoadBalancerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `VPCB9E5F0B4` (AWS::EC2::VPC) L3 in `cdk_classic-load-balancer--LoadBalancerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: VPCB9E5F0B4 (AWS::EC2::VPC), VPCPublicSubnet1SubnetB4246D30 (AWS::EC2::Subnet), VPCPublicSubnet1RouteTableFEE4B781 (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `WebsiteBucket75C24D94` (AWS::S3::Bucket) L3 in `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: WebsiteBucket75C24D94 (AWS::S3::Bucket), WebsiteFilesAwsCliLayerE117CD16 (AWS::Lambda::LayerVersion), WebsiteFilesCustomResourceF8051
+- **I4010** → `Metadata` L2 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `repoBEC318EA` (AWS::CodeCommit::Repository) L3 in `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: repoBEC318EA (AWS::CodeCommit::Repository), repoCodepipelineBuildDeployStackBuildDeployPipeline2B279CCCmainEventRule3F24D1E0 (AWS::Ev
+- **I4010** → `Metadata` L2 in `cdk_cognito-api-lambda--CognitoProtectedApi.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `helloWorldFunctionServiceRole8475DBF0` (AWS::IAM::Role) L3 in `cdk_cognito-api-lambda--CognitoProtectedApi.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: helloWorldFunctionServiceRole8475DBF0 (AWS::IAM::Role), helloWorldFunction00C940B5 (AWS::Lambda::Function), helloWorldLambdaRestApi68
+- **I4010** → `Metadata` L2 in `cdk_custom-logical-names--MyStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyTopic86869434` (AWS::SNS::Topic) L3 in `cdk_custom-logical-names--MyStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyTopic86869434 (AWS::SNS::Topic), MyBucketF68F3FF0 (AWS::S3::Bucket).
+- **I4010** → `Metadata` L2 in `cdk_custom-resource--CustomResourceDemoStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `DemoResource5B5C546C` (AWS::CloudFormation::CustomResource) L137 in `cdk_custom-resource--CustomResourceDemoStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: DemoResource5B5C546C (AWS::CloudFormation::CustomResource), SingletonLambdaf7d4f7304ee111e89c2dfa7ae01bbebcServiceRoleFE9ABB04 (AWS::
+- **I4010** → `Metadata` L2 in `cdk_custom-resource-provider--CustomResourceDemoStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `DemoResourceResource1DB79ECAB` (AWS::CloudFormation::CustomResource) L163 in `cdk_custom-resource-provider--CustomResourceDemoStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: DemoResourceResource1DB79ECAB (AWS::CloudFormation::CustomResource), SingletonLambdaf7d4f7304ee111e89c2dfa7ae01bbebcServiceRoleFE9ABB
+- **I4010** → `Metadata` L2 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `ddbstreamtopic7821AF6E` (AWS::SNS::Topic) L3 in `cdk_ddb-stream-lambda-sns--DdbStreamStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: ddbstreamtopic7821AF6E (AWS::SNS::Topic), ddbstreaml2dlq5966ED66 (AWS::SQS::Queue), itemL2TableBAC64D83 (AWS::DynamoDB::Table), itemL
+- **I4010** → `Metadata` L3 in `cdk_ec2-instance--EC2Example.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `VPC61AD6880` (AWS::EC2::VPC) L4 in `cdk_ec2-instance--EC2Example.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: VPC61AD6880 (AWS::EC2::VPC), VPCServerPublicSubnet1SubnetF3987995 (AWS::EC2::Subnet), VPCServerPublicSubnet1RouteTable140320E2 (AWS::
+- **I4010** → `Metadata` L2 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Vpc8378EB38` (AWS::EC2::VPC) L3 in `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Vpc8378EB38 (AWS::EC2::VPC), VpcrdsSubnet1SubnetC2926CEA (AWS::EC2::Subnet), VpcrdsSubnet1RouteTableE62E4ED6 (AWS::EC2::RouteTable), 
+- **I4010** → `Metadata` L2 in `cdk_ecs-cluster--MyFirstEcsCluster.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyVpcF9F0CA6F` (AWS::EC2::VPC) L3 in `cdk_ecs-cluster--MyFirstEcsCluster.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyVpcF9F0CA6F (AWS::EC2::VPC), MyVpcPublicSubnet1SubnetF6608456 (AWS::EC2::Subnet), MyVpcPublicSubnet1RouteTableC46AB2F4 (AWS::EC2::R
+- **I4010** → `Metadata` L2 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Vpc8378EB38` (AWS::EC2::VPC) L3 in `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Vpc8378EB38 (AWS::EC2::VPC), VpcPublicSubnet1Subnet5C2D37C4 (AWS::EC2::Subnet), VpcPublicSubnet1RouteTable6C95E38E (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: LoadBalancerBE9EEC3A (AWS::ElasticLoadBalancingV2::LoadBalancer), LoadBalancerSecurityGroupA28D6DD7 (AWS::EC2::SecurityGroup).
+- **I4010** → `Metadata` L2 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TaskDefTaskRole1EDB4A67` (AWS::IAM::Role) L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TaskDefTaskRole1EDB4A67 (AWS::IAM::Role), TaskDef54694570 (AWS::ECS::TaskDefinition), ServiceD69D759B (AWS::ECS::Service), ServiceSec
+- **I4010** → `Metadata` L2 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `LoadBalancerBE9EEC3A` (AWS::ElasticLoadBalancingV2::LoadBalancer) L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: LoadBalancerBE9EEC3A (AWS::ElasticLoadBalancingV2::LoadBalancer), LoadBalancerSecurityGroupA28D6DD7 (AWS::EC2::SecurityGroup), LoadBa
+- **I4010** → `Metadata` L2 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TaskDefTaskRole1EDB4A67` (AWS::IAM::Role) L3 in `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TaskDefTaskRole1EDB4A67 (AWS::IAM::Role), TaskDef54694570 (AWS::ECS::TaskDefinition), ServiceD69D759B (AWS::ECS::Service), ServiceSec
+- **I4010** → `Metadata` L2 in `cdk_ecs-ecs-service-with-logging--Willkommen.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyVpcF9F0CA6F` (AWS::EC2::VPC) L3 in `cdk_ecs-ecs-service-with-logging--Willkommen.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyVpcF9F0CA6F (AWS::EC2::VPC), MyVpcPublicSubnet1SubnetF6608456 (AWS::EC2::Subnet), MyVpcPublicSubnet1RouteTableC46AB2F4 (AWS::EC2::R
+- **I4010** → `Metadata` L2 in `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Vpc8378EB38` (AWS::EC2::VPC) L3 in `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Vpc8378EB38 (AWS::EC2::VPC), VpcPublicSubnet1Subnet5C2D37C4 (AWS::EC2::Subnet), VpcPublicSubnet1RouteTable6C95E38E (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Vpc8378EB38` (AWS::EC2::VPC) L3 in `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Vpc8378EB38 (AWS::EC2::VPC), VpcPublicSubnet1Subnet5C2D37C4 (AWS::EC2::Subnet), VpcPublicSubnet1RouteTable6C95E38E (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyVpcF9F0CA6F` (AWS::EC2::VPC) L3 in `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyVpcF9F0CA6F (AWS::EC2::VPC), MyVpcPublicSubnet1SubnetF6608456 (AWS::EC2::Subnet), MyVpcPublicSubnet1RouteTableC46AB2F4 (AWS::EC2::R
+- **I4010** → `Metadata` L2 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Vpc8378EB38` (AWS::EC2::VPC) L3 in `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Vpc8378EB38 (AWS::EC2::VPC), VpcPublicSubnet1Subnet5C2D37C4 (AWS::EC2::Subnet), VpcPublicSubnet1RouteTable6C95E38E (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyVpcF9F0CA6F` (AWS::EC2::VPC) L3 in `cdk_ecs-fargate-service-with-logging--Willkommen.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyVpcF9F0CA6F (AWS::EC2::VPC), MyVpcPublicSubnet1SubnetF6608456 (AWS::EC2::Subnet), MyVpcPublicSubnet1RouteTableC46AB2F4 (AWS::EC2::R
+- **I4010** → `Metadata` L2 in `cdk_eventbridge-lambda--EventBridgeLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TopicBFC7AF6E` (AWS::SNS::Topic) L3 in `cdk_eventbridge-lambda--EventBridgeLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TopicBFC7AF6E (AWS::SNS::Topic), TopicTokenSubscription178F3F75E (AWS::SNS::Subscription), SingletonServiceRoleDDD815CD (AWS::IAM::Ro
+- **I4010** → `Metadata` L2 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `ProxyAPI32755B5A` (AWS::ApiGateway::RestApi) L3 in `cdk_http-proxy-apigateway--HttpProxy.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: ProxyAPI32755B5A (AWS::ApiGateway::RestApi), ProxyAPICloudWatchRoleB8A087D1 (AWS::IAM::Role), ProxyAPIAccount6FF8D716 (AWS::ApiGatewa
+- **I4010** → `Metadata` L2 in `cdk_imagebuilder--ImagebuilderStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `GitComponenet` (AWS::ImageBuilder::Component) L3 in `cdk_imagebuilder--ImagebuilderStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: GitComponenet (AWS::ImageBuilder::Component), NodejsComponenet (AWS::ImageBuilder::Component), DockerComponenet (AWS::ImageBuilder::C
+- **I4010** → `Metadata` L3 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Inspector2EnableDelegatedAdminAccountResourceInspector2EnableDelegatedAdminResourceRoleC8FD65F6` (AWS::IAM::Role) L4 in `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Inspector2EnableDelegatedAdminAccountResourceInspector2EnableDelegatedAdminResourceRoleC8FD65F6 (AWS::IAM::Role), Inspector2EnableDel
+- **I4010** → `Metadata` L3 in `cdk_inspector2--Inspector2EnableStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `EnableInspector2ResourceInspectorRole75753456` (AWS::IAM::Role) L4 in `cdk_inspector2--Inspector2EnableStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: EnableInspector2ResourceInspectorRole75753456 (AWS::IAM::Role), EnableInspector2ResourceInspector2EnableResource58B4E7AE (Custom::Ins
+- **I4010** → `Metadata` L3 in `cdk_inspector2--Inspector2MonitoringStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Inspector2MonitoringinitialScanRule902E013C` (AWS::Events::Rule) L4 in `cdk_inspector2--Inspector2MonitoringStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Inspector2MonitoringinitialScanRule902E013C (AWS::Events::Rule), Inspector2MonitoringfindingScanRuleC84833CE (AWS::Events::Rule), Ins
+- **I4010** → `Metadata` L2 in `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `SampleLambdaServiceRoleB1A8618F` (AWS::IAM::Role) L3 in `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: SampleLambdaServiceRoleB1A8618F (AWS::IAM::Role), SampleLambdaB2FF4FA1 (AWS::Lambda::Function), SampleLambdaLogRetentionE3451573 (Cus
+- **I4010** → `Metadata` L2 in `cdk_lambda-cron--LambdaCronExample.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `SingletonServiceRoleDDD815CD` (AWS::IAM::Role) L3 in `cdk_lambda-cron--LambdaCronExample.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: SingletonServiceRoleDDD815CD (AWS::IAM::Role), Singleton8C7B99F3 (AWS::Lambda::Function), Rule4C995B7F (AWS::Events::Rule).
+- **I4010** → `Metadata` L2 in `cdk_lambda-layer--LambdaLayerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `HelperLayer49ADCD6B` (AWS::Lambda::LayerVersion) L3 in `cdk_lambda-layer--LambdaLayerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: HelperLayer49ADCD6B (AWS::Lambda::LayerVersion), LambdaFunctionServiceRoleC555A460 (AWS::IAM::Role), LambdaFunctionBF21E41F (AWS::Lam
+- **I4010** → `Metadata` L3 in `cdk_lambda-manage-s3-event-notification--AStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `SampleQueue49AAAEFF` (AWS::SQS::Queue) L4 in `cdk_lambda-manage-s3-event-notification--AStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: SampleQueue49AAAEFF (AWS::SQS::Queue), SampleBucketNotification (AWS::CloudFormation::CustomResource).
+- **I4010** → `Metadata` L3 in `cdk_lambda-manage-s3-event-notification--BStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `SampleTopic5FE9B5DC` (AWS::SNS::Topic) L4 in `cdk_lambda-manage-s3-event-notification--BStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: SampleTopic5FE9B5DC (AWS::SNS::Topic), SampleBucketNotification (AWS::CloudFormation::CustomResource).
+- **I4010** → `Metadata` L3 in `cdk_lambda-manage-s3-event-notification--SharedStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `SampleBucket7F6F8160` (AWS::S3::Bucket) L4 in `cdk_lambda-manage-s3-event-notification--SharedStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: SampleBucket7F6F8160 (AWS::S3::Bucket), S3EventNotificationsLambdaServiceRoleD45D5063 (AWS::IAM::Role), S3EventNotificationsLambda20F
+- **I4010** → `Metadata` L2 in `cdk_my-widget-service--MyWidgetServiceStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `WidgetsWidgetStore0ED7FDB7` (AWS::S3::Bucket) L3 in `cdk_my-widget-service--MyWidgetServiceStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: WidgetsWidgetStore0ED7FDB7 (AWS::S3::Bucket), WidgetsWidgetHandlerServiceRole8C2B589C (AWS::IAM::Role), WidgetsWidgetHandler1BC9DB34 
+- **I4010** → `Metadata` L2 in `cdk_pat-the-big-fan--TheBigFanStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `theBigFanTopicF96567DE` (AWS::SNS::Topic) L3 in `cdk_pat-the-big-fan--TheBigFanStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: theBigFanTopicF96567DE (AWS::SNS::Topic), BigFanTopicStatusCreatedSubscriberQueue589E974E (AWS::SQS::Queue), BigFanTopicStatusCreated
+- **I4010** → `Metadata` L2 in `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `HitsFF5AF8CD` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: HitsFF5AF8CD (AWS::DynamoDB::Table), DynamoLambdaHandlerServiceRole4C867B01 (AWS::IAM::Role), DynamoLambdaHandlerFB6EB814 (AWS::Lambd
+- **I4010** → `Metadata` L2 in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `DestinedEventBus14820B65` (AWS::Events::EventBus) L3 in `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: DestinedEventBus14820B65 (AWS::Events::EventBus), theDestinedLambdaTopic8F2C8FB6 (AWS::SNS::Topic), destinedLambdaServiceRole87608B6F
+- **I4010** → `Metadata` L2 in `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TheDynamoStreamer641C5E5B` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TheDynamoStreamer641C5E5B (AWS::DynamoDB::Table), dynamoStreamSubscriberLambdaHandlerServiceRole70DB8A47 (AWS::IAM::Role), dynamoStre
+- **I4010** → `Metadata` L2 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `atmProducerLambdaServiceRoleEF3D6079` (AWS::IAM::Role) L3 in `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: atmProducerLambdaServiceRoleEF3D6079 (AWS::IAM::Role), atmProducerLambda71029F8F (AWS::Lambda::Function), atmConsumer1LambdaServiceRo
+- **I4010** → `Metadata` L2 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `CircuitBreaker4FAEA3DB` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: CircuitBreaker4FAEA3DB (AWS::DynamoDB::Table), WebserviceIntegrationLambdaHandlerServiceRole851361F8 (AWS::IAM::Role), WebserviceInte
+- **I4010** → `Metadata` L2 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TransformedDataB0572681` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TransformedDataB0572681 (AWS::DynamoDB::Table), LandingBucket23FE90FB (AWS::S3::Bucket), LandingBucketNotificationsEF1634C6 (Custom::
+- **I4010** → `Metadata` L2 in `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `CircuitBreakerTable02DAD2B8` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: CircuitBreakerTable02DAD2B8 (AWS::DynamoDB::Table), UnreliableLambdaHandlerServiceRole955A5CFD (AWS::IAM::Role), UnreliableLambdaHand
+- **I4010** → `Metadata` L2 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `BookingsB1C24132` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: BookingsB1C24132 (AWS::DynamoDB::Table), reserveFlightLambdaHandlerServiceRole985C586D (AWS::IAM::Role), reserveFlightLambdaHandler3C
+- **I4010** → `Metadata` L2 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Messages804FA4EB` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Messages804FA4EB (AWS::DynamoDB::Table), RDSPublishQueue2BEA1A7F (AWS::SQS::Queue), SQSPublishLambdaHandlerServiceRole4F9A1044 (AWS::
+- **I4010** → `Metadata` L2 in `cdk_pat-the-scheduled-lambda--TheScheduledLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `RequestTableC81DB378` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-scheduled-lambda--TheScheduledLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: RequestTableC81DB378 (AWS::DynamoDB::Table), scheduledLambdaServiceRoleB98DFEFD (AWS::IAM::Role), scheduledLambda8A84450D (AWS::Lambd
+- **I4010** → `Metadata` L2 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `ApiApiLogsRole90293F72` (AWS::IAM::Role) L3 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: ApiApiLogsRole90293F72 (AWS::IAM::Role), ApiF70053CD (AWS::AppSync::GraphQLApi), ApiSchema510EECD7 (AWS::AppSync::GraphQLSchema), Api
+- **I4010** → `Metadata` L2 in `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `HitsFF5AF8CD` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: HitsFF5AF8CD (AWS::DynamoDB::Table), DynamoLambdaHandlerServiceRole4C867B01 (AWS::IAM::Role), DynamoLambdaHandlerFB6EB814 (AWS::Lambd
+- **I4010** → `Metadata` L2 in `cdk_pat-the-state-machine--TheStateMachineStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `pineappleCheckLambdaHandlerServiceRoleFC4E3211` (AWS::IAM::Role) L3 in `cdk_pat-the-state-machine--TheStateMachineStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: pineappleCheckLambdaHandlerServiceRoleFC4E3211 (AWS::IAM::Role), pineappleCheckLambdaHandlerFDB742D5 (AWS::Lambda::Function), StateMa
+- **I4010** → `Metadata` L2 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `HelloWorldHandlerServiceRole56E6BFBA` (AWS::IAM::Role) L3 in `cdk_pat-the-waf-apigateway--APIGatewayStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: HelloWorldHandlerServiceRole56E6BFBA (AWS::IAM::Role), HelloWorldHandler30C22324 (AWS::Lambda::Function), WafGatewayAPI5BA7C2CE (AWS:
+- **I4010** → `Metadata` L2 in `cdk_pat-the-waf-apigateway--TheWafStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `WebACL` (AWS::WAFv2::WebACL) L3 in `cdk_pat-the-waf-apigateway--TheWafStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: WebACL (AWS::WAFv2::WebACL), WebACLAssociation (AWS::WAFv2::WebACLAssociation).
+- **I4010** → `Metadata` L2 in `cdk_pat-the-xray-tracer--TheXrayDynamoFlow.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `HitsFF5AF8CD` (AWS::DynamoDB::Table) L3 in `cdk_pat-the-xray-tracer--TheXrayDynamoFlow.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: HitsFF5AF8CD (AWS::DynamoDB::Table), DynamoLambdaHandlerServiceRole4C867B01 (AWS::IAM::Role), DynamoLambdaHandlerFB6EB814 (AWS::Lambd
+- **I4010** → `Metadata` L2 in `cdk_pat-the-xray-tracer--TheXrayHttpFlow.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `httpLambdaHandlerServiceRole01D49A7D` (AWS::IAM::Role) L3 in `cdk_pat-the-xray-tracer--TheXrayHttpFlow.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: httpLambdaHandlerServiceRole01D49A7D (AWS::IAM::Role), httpLambdaHandler66D9C9A8 (AWS::Lambda::Function), httpLambdaHandlerSNSTopicEE
+- **I4010** → `Metadata` L2 in `cdk_pat-the-xray-tracer--TheXraySQSFlow.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Queue4A7E3555` (AWS::SQS::Queue) L3 in `cdk_pat-the-xray-tracer--TheXraySQSFlow.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Queue4A7E3555 (AWS::SQS::Queue), sqsLambdaHandlerServiceRole2F57B7B5 (AWS::IAM::Role), sqsLambdaHandler0DD5DF9B (AWS::Lambda::Functio
+- **I4010** → `Metadata` L2 in `cdk_pat-the-xray-tracer--TheXraySnsFlow.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TheXRayTracerSnsTopicCCE2005E` (AWS::SNS::Topic) L3 in `cdk_pat-the-xray-tracer--TheXraySnsFlow.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TheXRayTracerSnsTopicCCE2005E (AWS::SNS::Topic), snsLambdaHandlerServiceRole7F428B88 (AWS::IAM::Role), snsLambdaHandlerE7B0ABE3 (AWS:
+- **I4010** → `Metadata` L2 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TheXRayTracerSnsFanOutTopicDE7E70F8` (AWS::SNS::Topic) L3 in `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TheXRayTracerSnsFanOutTopicDE7E70F8 (AWS::SNS::Topic), xrayTracerAPIA84CAE80 (AWS::ApiGateway::RestApi), xrayTracerAPICloudWatchRoleC
+- **I4010** → `Metadata` L2 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `ApiCorsLambdaServiceRole0DB39061` (AWS::IAM::Role) L3 in `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: ApiCorsLambdaServiceRole0DB39061 (AWS::IAM::Role), ApiCorsLambda5083F55F (AWS::Lambda::Function), ApiGatewayWithCors6DE4076F (AWS::Ap
+- **I4010** → `Metadata` L2 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `eventProducerLambdaServiceRoleD019EB99` (AWS::IAM::Role) L3 in `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: eventProducerLambdaServiceRoleD019EB99 (AWS::IAM::Role), eventProducerLambda100D549C (AWS::Lambda::Function), eventConsumer1LambdaSer
+- **I4010** → `Metadata` L2 in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `SQSQueue7674CD17` (AWS::SQS::Queue) L3 in `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: SQSQueue7674CD17 (AWS::SQS::Queue), RestAPIRoleA3B4EFA3 (AWS::IAM::Role), ApiGW45519054 (AWS::ApiGateway::RestApi), ApiGWCloudWatchRo
+- **I4010** → `Metadata` L2 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `logsbucketE18563D9` (AWS::S3::Bucket) L3 in `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: logsbucketE18563D9 (AWS::S3::Bucket), logsbucketAutoDeleteObjectsCustomResource3C028C9B (Custom::S3AutoDeleteObjects), CustomS3AutoDe
+- **I4010** → `Metadata` L2 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `CDKDataSyncS3AccessRole0C49AEBFA` (AWS::IAM::Role) L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: CDKDataSyncS3AccessRole0C49AEBFA (AWS::IAM::Role), CDKDataSyncS3Policy034C77CD2 (AWS::IAM::ManagedPolicy), CDKDataSyncS3AccessRole18E
+- **I4010** → `Metadata` L2 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `DataSyncS3Location0` (AWS::DataSync::LocationS3) L3 in `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: DataSyncS3Location0 (AWS::DataSync::LocationS3), DataSyncS3Location1 (AWS::DataSync::LocationS3), DataSyncS3toS3Task (AWS::DataSync::
+- **I4010** → `Metadata` L2 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `appasgInstanceSecurityGroup8B8185FA` (AWS::EC2::SecurityGroup) L3 in `cdk_py-docker-app-with-asg-alb--ASGStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: appasgInstanceSecurityGroup8B8185FA (AWS::EC2::SecurityGroup), appasgInstanceSecurityGroupfromASGStacksgalb85F2758980805783DB9D (AWS:
+- **I4010** → `Metadata` L2 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TheVPC92636AB0` (AWS::EC2::VPC) L3 in `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TheVPC92636AB0 (AWS::EC2::VPC), TheVPCPublicSubnet1Subnet770D4FF2 (AWS::EC2::Subnet), TheVPCPublicSubnet1RouteTable17DA183D (AWS::EC2
+- **I4010** → `Metadata` L2 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `sgrds6871B7A8` (AWS::EC2::SecurityGroup) L3 in `cdk_py-docker-app-with-asg-alb--RDSStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: sgrds6871B7A8 (AWS::EC2::SecurityGroup), RDSSubnetGroup3527AC04 (AWS::RDS::DBSubnetGroup), RDSSecret3683CA93 (AWS::SecretsManager::Se
+- **I4010** → `Metadata` L2 in `cdk_py-docker-app-with-asg-alb--StorageStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `efsstorage` (AWS::EFS::FileSystem) L3 in `cdk_py-docker-app-with-asg-alb--StorageStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: efsstorage (AWS::EFS::FileSystem), sgefs8B17F90D (AWS::EC2::SecurityGroup).
+- **I4010** → `Metadata` L2 in `cdk_py-dynamodb-lambda--dynamodb-lambda.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `demotable002BE91A` (AWS::DynamoDB::Table) L3 in `cdk_py-dynamodb-lambda--dynamodb-lambda.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: demotable002BE91A (AWS::DynamoDB::Table), producerlambdafunctionServiceRole5400FE21 (AWS::IAM::Role), producerlambdafunctionCE724CE7 
+- **I4010** → `Metadata` L2 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `VpcFromCDKAC02ED99` (AWS::EC2::VPC) L3 in `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: VpcFromCDKAC02ED99 (AWS::EC2::VPC), VpcFromCDKPublicSubnet1SubnetE7F939D2 (AWS::EC2::Subnet), VpcFromCDKPublicSubnet1RouteTable0BDD81
+- **I4010** → `Metadata` L2 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `ServiceConnectVPCD8B6F71D` (AWS::EC2::VPC) L3 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: ServiceConnectVPCD8B6F71D (AWS::EC2::VPC), ServiceConnectVPCPublicSubnet1Subnet2B93B79E (AWS::EC2::Subnet), ServiceConnectVPCPublicSu
+- **I4010** → `Metadata` L2 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `FrontendRepository7D714FA2` (AWS::ECR::Repository) L3 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: FrontendRepository7D714FA2 (AWS::ECR::Repository), BackendDataRepositoryD361813E (AWS::ECR::Repository), DeployFrontendImageCustomRes
+- **I4010** → `Metadata` L2 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `ECSCluster7D463CD4` (AWS::ECS::Cluster) L3 in `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: ECSCluster7D463CD4 (AWS::ECS::Cluster), ECSClusterDefaultServiceDiscoveryNamespace5AC2D2BE (AWS::ServiceDiscovery::PrivateDnsNamespac
+- **I4010** → `Metadata` L2 in `cdk_py-emr--emr-cluster.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `vpcA2121C38` (AWS::EC2::VPC) L3 in `cdk_py-emr--emr-cluster.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: vpcA2121C38 (AWS::EC2::VPC), vpcpublicSubnet1SubnetA635257E (AWS::EC2::Subnet), vpcpublicSubnet1RouteTableA38152FE (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_py-iotcore--CdkIotThingStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyCdkThing` (AWS::IoT::Thing) L3 in `cdk_py-iotcore--CdkIotThingStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyCdkThing (AWS::IoT::Thing), CdkThing001LambdaRoleD7EE5CD3 (AWS::IAM::Role), CertHandler220363A9 (AWS::Lambda::Function), CertHandle
+- **I4010** → `Metadata` L2 in `cdk_py-lambda-cron--LambdaCronExample.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `SingletonServiceRoleDDD815CD` (AWS::IAM::Role) L3 in `cdk_py-lambda-cron--LambdaCronExample.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: SingletonServiceRoleDDD815CD (AWS::IAM::Role), Singleton8C7B99F3 (AWS::Lambda::Function), Rule4C995B7F (AWS::Events::Rule).
+- **I4010** → `Metadata` L2 in `cdk_py-lambda-from-container--LambdaContainerFunctionStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `lambdaContainerFunctionServiceRole5E36DB3C` (AWS::IAM::Role) L3 in `cdk_py-lambda-from-container--LambdaContainerFunctionStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: lambdaContainerFunctionServiceRole5E36DB3C (AWS::IAM::Role), lambdaContainerFunction5815FD88 (AWS::Lambda::Function).
+- **I4010** → `Metadata` L2 in `cdk_py-lambda-layer--LambdaLayerExample.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `helperlayerC2FA2F58` (AWS::Lambda::LayerVersion) L3 in `cdk_py-lambda-layer--LambdaLayerExample.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: helperlayerC2FA2F58 (AWS::Lambda::LayerVersion), lambdafunctionServiceRole85538ADB (AWS::IAM::Role), lambdafunction45C982D3 (AWS::Lam
+- **I4010** → `Metadata` L2 in `cdk_py-stepfunctions--aws-stepfunctions-integ.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `submitLambdaServiceRole576DCA8F` (AWS::IAM::Role) L3 in `cdk_py-stepfunctions--aws-stepfunctions-integ.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: submitLambdaServiceRole576DCA8F (AWS::IAM::Role), submitLambda3C32AFD4 (AWS::Lambda::Function), statusLambdaServiceRoleD1132168 (AWS:
+- **I4010** → `Metadata` L2 in `cdk_py-url-shortener--urlshort-app.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TableCD117FA1` (AWS::DynamoDB::Table) L3 in `cdk_py-url-shortener--urlshort-app.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TableCD117FA1 (AWS::DynamoDB::Table), UrlShortenerFunctionServiceRole2FBF9CDA (AWS::IAM::Role), UrlShortenerFunctionB5E87AC1 (AWS::La
+- **I4010** → `Metadata` L2 in `cdk_py-url-shortener--urlshort-load-test.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `generatorcluster9804CB70` (AWS::ECS::Cluster) L3 in `cdk_py-url-shortener--urlshort-load-test.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: generatorcluster9804CB70 (AWS::ECS::Cluster), generatorPingTaskTaskRoleA4886BE8 (AWS::IAM::Role), generatorPingTask1D3C2E79 (AWS::ECS
+- **I4010** → `Metadata` L2 in `cdk_r53-resolver--R53ResolverStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `R53ResolverTestVPC9B993306` (AWS::EC2::VPC) L3 in `cdk_r53-resolver--R53ResolverStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: R53ResolverTestVPC9B993306 (AWS::EC2::VPC), R53ResolverTestVPCPrivateSubnet1Subnet5DBB6B2C (AWS::EC2::Subnet), R53ResolverTestVPCPriv
+- **I4010** → `Metadata` L2 in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Bucket83908E77` (AWS::S3::Bucket) L3 in `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Bucket83908E77 (AWS::S3::Bucket), BucketNotifications8F2E257D (Custom::S3BucketNotifications), Classifications0C921F6C (AWS::DynamoDB
+- **I4010** → `Metadata` L2 in `cdk_resource-overrides--resource-overrides.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Other34654A52` (AWS::S3::Bucket) L3 in `cdk_resource-overrides--resource-overrides.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Other34654A52 (AWS::S3::Bucket), MyBucketF68F3FF0 (AWS::S3::Bucketeer), VPCB9E5F0B4 (AWS::EC2::VPC), VPCPublicSubnet1SubnetB4246D30 (
+- **I4010** → `Metadata` L2 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `Vpc8378EB38` (AWS::EC2::VPC) L3 in `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Vpc8378EB38 (AWS::EC2::VPC), VpcPublicSubnet1Subnet5C2D37C4 (AWS::EC2::Subnet), VpcPublicSubnet1RouteTable6C95E38E (AWS::EC2::RouteTa
+- **I4010** → `Metadata` L2 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `examplebucketC9DFA43E` (AWS::S3::Bucket) L3 in `cdk_s3-object-lambda--S3ObjectLambdaStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: examplebucketC9DFA43E (AWS::S3::Bucket), retrieveTransformedObjectLambdaServiceRole27FF342E (AWS::IAM::Role), retrieveTransformedObje
+- **I4010** → `Metadata` L2 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `TimeWriterDocument` (AWS::SSM::Document) L3 in `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: TimeWriterDocument (AWS::SSM::Document), DocumentAssociation (AWS::SSM::Association), SSMDocumentTestVpc2979FA29 (AWS::EC2::VPC), SSM
+- **I4010** → `Metadata` L2 in `cdk_static-site-basic--MyStaticSite.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `StaticSiteBasicWebsiteBucket3BB70B77` (AWS::S3::Bucket) L3 in `cdk_static-site-basic--MyStaticSite.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: StaticSiteBasicWebsiteBucket3BB70B77 (AWS::S3::Bucket), StaticSiteBasicWebsiteBucketAutoDeleteObjectsCustomResource5B755EF0 (Custom::
+- **I4010** → `Metadata` L2 in `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyStateMachineRoleD59FFEBC` (AWS::IAM::Role) L15 in `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyStateMachineRoleD59FFEBC (AWS::IAM::Role), MyStateMachine6C968CA5 (AWS::StepFunctions::StateMachine), StepFuncApiE896FCA7 (AWS::Api
+- **I4010** → `Metadata` L2 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `CheckLambdaServiceRole74B86E23` (AWS::IAM::Role) L3 in `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: CheckLambdaServiceRole74B86E23 (AWS::IAM::Role), CheckLambda9CBBF9BA (AWS::Lambda::Function), SubmitLambdaServiceRole98C85C39 (AWS::I
+- **I4010** `Bucket` (AWS::S3::Bucket) L15 in `good_E9001_aws_cdk_metadata_yaml`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Bucket (AWS::S3::Bucket).
+- **I4010** `Instance` (AWS::EC2::Subnet) L4 in `good_resources_properties_az_cdk_yaml`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: Instance (AWS::EC2::Subnet).
+- **I4010** → `Metadata` L2 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `S3BadBucket` (AWS::S3::Bucket) L6 in `good_resources_properties_hard_coded_arn_properties_cdk_yaml`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: S3BadBucket (AWS::S3::Bucket), SampleRole (AWS::IAM::Role), SampleBadIAMPolicy1 (AWS::IAM::ManagedPolicy), SampleBadIAMPolicy2 (AWS::
 
 ### E0001 - 34 extra
 
@@ -2761,6 +1721,17 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E3022** `JoinRef` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L25 in `bad_E3022_equivalent_subnet_forms_yaml`
   > SubnetId in JoinRef is also associated with DirectRef, ImplicitSub, ExplicitSub
 
+### E3023 - 4 extra - Validate Route53 RecordSets
+
+- **E3023** `Record` (AWS::Route53::RecordSet) → `Properties.Name` L76 in `bad_E3023_cname_projection_covering_yaml`
+  > CNAME record Name 'example.com.' must not match HostedZoneName 'example.com.' exactly
+- **E3023** `AddressRecord` (AWS::Route53::RecordSet) → `Properties.ResourceRecords.1` L91 in `bad_E3023_record_value_projection_covering_yaml`
+  > 'not-an-ip' is not a valid IPv4 address for record type 'A'
+- **E3023** `AddressGroup` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords.1` L65 in `bad_E3023_recordsetgroup_projection_covering_yaml`
+  > 'not-an-ip' is not a valid IPv4 address for record type 'A'
+- **E3023** `CnameGroup` (AWS::Route53::RecordSetGroup) → `Properties.RecordSets.0.ResourceRecords` L42 in `bad_E3023_recordsetgroup_projection_covering_yaml`
+  > CNAME records must have at most 1 ResourceRecord
+
 ### E3055 - 4 extra - Check CreationPolicy values for Resources
 
 - **E3055** `CustomLifecyclePolicies` (Custom::Thing) → `CreationPolicy` L16 in `bad_core_resource_attributes_yaml`
@@ -2794,21 +1765,43 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F3016** `NoValuePoliciesWithoutTransform` (AWS::SQS::Queue) → `DeletionPolicy` L64 in `bad_lifecycle_policy_shapes_yaml`
   > DeletionPolicy must be one of Delete, Retain, RetainExceptOnCreate, got null
 
-### E3639 - 3 extra - When BillingMode is Provisioned you must specify ProvisionedThroughput
+### W2530 - 4 extra - Validate that SnapStart is properly configured
 
-- **E3639** `DDBTableTransformAttributeDefinitions` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L9 in `good_resources_dynamodb_attributes_transform_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DDBTableTransformBoth` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L31 in `good_resources_dynamodb_attributes_transform_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
-- **E3639** `DDBTableTransformKeySchema` (AWS::DynamoDB::Table) → `Properties.ProvisionedThroughput` L20 in `good_resources_dynamodb_attributes_transform_yaml`
-  > ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'
+- **W2530** `VersionInOtherEnvironment` (AWS::Lambda::Function) → `Properties.SnapStart.ApplyOn` L65 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > SnapStart is enabled but no AWS::Lambda::Version resource is attached
+- **W2530** `VersionNamesOtherFunctionWhenEnabled` (AWS::Lambda::Function) → `Properties.SnapStart.ApplyOn` L82 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > SnapStart is enabled but no AWS::Lambda::Version resource is attached
+- **W2530** `VersionOnlyDependsOnFunction` (AWS::Lambda::Function) → `Properties.SnapStart.ApplyOn` L32 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > SnapStart is enabled but no AWS::Lambda::Version resource is attached
+- **W2530** `VersionOnlyDescribesFunction` (AWS::Lambda::Function) → `Properties.SnapStart.ApplyOn` L48 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > SnapStart is enabled but no AWS::Lambda::Version resource is attached
 
-### E3029 - 2 extra - Validate Route53 record set aliases
+### E3029 - 3 extra - Validate Route53 record set aliases
 
+- **E3029** `Record` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L31 in `bad_E3029_alias_projection_covering_yaml`
+  > AliasTarget cannot be used with record type 'NS'
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'NS'
 - **E3029** `ConditionalInvalidAliasTypes` (AWS::Route53::RecordSet) → `Properties.AliasTarget` L48 in `bad_route53_conditional_scenarios_yaml`
   > AliasTarget cannot be used with record type 'SOA'
+
+### E3505 - 3 extra - Validate SQS 'VisibilityTimeout' is greater than a function's 'Timeout'
+
+- **E3505** `QueueAtOneSecond` (AWS::SQS::Queue) → `Properties.VisibilityTimeout` L11 in `bad_E3505_conditional_service_defaults_yaml`
+  > Queue visibility timeout (1) is less than Function timeout (60) seconds
+- **E3505** `QueueAtServiceDefault` (AWS::SQS::Queue) → `Properties.VisibilityTimeout` L27 in `bad_E3505_conditional_service_defaults_yaml`
+  > Queue visibility timeout (30) is less than Function timeout (90) seconds
+- **E3505** `QueueWithConditionalProperties` (AWS::SQS::Queue) → `Properties.VisibilityTimeout` L70 in `bad_E3505_conditional_service_defaults_yaml`
+  > Queue visibility timeout (30) is less than Function timeout (60) seconds
+
+### F3017 - 3 extra - Check Properties that need at least one of a list of properties
+
+- **F3017** `JoinedUsername` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L9 in `bad_resources_rds_not_enum_master_username_join_yaml`
+  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
+- **F3017** `MyDB` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
+  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
+- **F3017** `NoImage` (AWS::AppStream::ImageBuilder) → `Properties` L6 in `bad_schema_composition_yaml`
+  > Value is not valid under any of the 2 anyOf schemas for AWS::AppStream::ImageBuilder (0 branches matched; at least one is required). Required property combinations: ['ImageArn'] or ['ImageName']. Bran
 
 ### E3510 - 2 extra - Validate identity based IAM polices
 
@@ -2824,12 +1817,19 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **F2002** → `Parameters.mySsmParam.Type` L30 in `bad_parameters_configuration_yaml`
   > Parameter 'mySsmParam' has invalid Type 'AWS::SSM::Parameter::Value<Test>'
 
-### F3017 - 2 extra - Check Properties that need at least one of a list of properties
+### W1030 - 2 extra - Validate the values that come from a Ref function
 
-- **F3017** `JoinedUsername` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L9 in `bad_resources_rds_not_enum_master_username_join_yaml`
-  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
-- **F3017** `MyDB` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L7 in `bad_resources_rds_not_enum_master_username_yaml`
-  > 'rdsadmin' at 'MasterUsername' does not satisfy the composition branch constraint (none of ['rdsadmin']): 'rdsadmin' must not be one of ['rdsadmin']
+- **W1030** → `Parameters.BucketNameChoice.AllowedValues.0` L6 in `bad_W9006_every_allowed_value_too_long_json`
+  > {'Ref': 'BucketNameChoice'} AllowedValues entry 'this-allowed-value-is-deliberately-longer-than-the-sixty-three-character-limit' has length 78, above maximum 63 for property 'BucketName' when resolved
+- **W1030** → `Parameters.BucketNameChoice.AllowedValues.1` L7 in `bad_W9006_every_allowed_value_too_long_json`
+  > {'Ref': 'BucketNameChoice'} AllowedValues entry 'this-other-allowed-value-is-also-deliberately-longer-than-the-limit-for-buckets' has length 79, above maximum 63 for property 'BucketName' when resolve
+
+### W3689 - 2 extra
+
+- **W3689** `Cloned` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L25 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > 'MasterUsername' is ignored when SourceDBClusterIdentifier is present
+- **W3689** `Cloned` (AWS::RDS::DBCluster) → `Properties.StorageEncrypted` L26 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > 'StorageEncrypted' is ignored when SourceDBClusterIdentifier is present
 
 ### E1155 - 1 extra
 
@@ -2841,16 +1841,51 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
 - **E3001** `myBucketFirstAndLastPass` (AWS::S3::Bucket) L19 in `bad_core_directives_yaml`
   > Resource 'myBucketFirstAndLastPass' has invalid property 'BadProperty'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, 
 
+### E3024 - 1 extra - Validate tag configuration
+
+- **E3024** `ConditionalKey` (AWS::S3::Bucket) → `Properties.Tags` L39 in `bad_E3024_duplicate_tag_keys_yaml`
+  > Tag keys must be unique
+
+### E3048 - 1 extra - Validate ECS Fargate tasks have required properties and values
+
+- **E3048** `Task` (AWS::ECS::TaskDefinition) → `Properties` L69 in `bad_E3048_fargate_projection_covering_yaml`
+  > Fargate requires NetworkMode to be specified as 'awsvpc'
+
 ### F3012 - 1 extra - Check resource properties values
 
 - **F3012** `Parameter` (AWS::SSM::Parameter) → `Properties.Value` L28 in `bad_F6101_getatt_ref_typed_object_attribute_yaml`
   > GetAtt Database.Endpoint (AWS::RDS::DBInstance) returns 'object', but property expects 'string'
 
-## Engine Extra - 8578 correct findings across 43 rules
+### F3032 - 1 extra - Check if a array has between min and max number of values specified
+
+- **F3032** `Function` (AWS::Lambda::Function) → `Properties.VpcConfig.SubnetIds` L89 in `bad_F3032_whole_properties_item_cardinality_yaml`
+  > expected maximum item count: 16, found: 17
+
+### W1028 - 1 extra - Check Fn::If has a path that cannot be reached
+
+- **W1028** `ExclusiveConditionsExcludeInnerBranch` (AWS::Lambda::Function) → `Properties.SnapStart.Fn::If.1.ApplyOn.Fn::If.1` L63 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > ['Fn::If', 1] is not reachable. When setting condition 'IsUsWest2' to True
+
+### W2001 - 1 extra - Check if Parameters are Used
+
+- **W2001** → `Parameters.Environment` L4 in `bad_W4012_template_context_intrinsic_yaml`
+  > Parameter 'Environment' is not referenced anywhere in the template
+
+### W3688 - 1 extra
+
+- **W3688** `Restored` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L17 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > MasterUsername is ignored when SnapshotIdentifier is present
+
+### W4011 - 1 extra - Context block has no 'why'
+
+- **W4011** `OrderTopic` (AWS::SNS::Topic) → `Metadata.com.aws.cloudformation.Context` L31 in `bad_I4010_cdk_synthesized_missing_context_json`
+  > Metadata.com.aws.cloudformation.Context has no 'why' and no trust declaration with conf 'low'.
+
+## Engine Extra - 8897 correct findings across 45 rules
 
 These are correct diagnostics the engine reports that cfn-lint does not cover.
 
-### I9001 - 5662 findings
+### I9001 - 5829 findings
 
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `bad_E1050_dynamic_ref_malformed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
@@ -2896,9 +1931,27 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'RouteTableId' is create-only; updating it will cause resource replacement
 - **I9001** `JoinRef` (AWS::EC2::SubnetRouteTableAssociation) → `Properties.SubnetId` L25 in `bad_E3022_equivalent_subnet_forms_yaml`
   > Property 'SubnetId' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalList` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L13 in `bad_E3023_cname_conditional_record_counts_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
+- **I9001** `SingleRecordBranches` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L38 in `bad_E3023_cname_conditional_record_counts_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
+- **I9001** `Record` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L75 in `bad_E3023_cname_projection_covering_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `Group` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L21 in `bad_E3023_conditional_record_items_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `Standalone` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L12 in `bad_E3023_conditional_record_items_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
+- **I9001** `AddressRecord` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L85 in `bad_E3023_record_value_projection_covering_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
+- **I9001** `CnameCountRecord` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L65 in `bad_E3023_record_value_projection_covering_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
+- **I9001** `AddressGroup` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L58 in `bad_E3023_recordsetgroup_projection_covering_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
+- **I9001** `CnameGroup` (AWS::Route53::RecordSetGroup) → `Properties.HostedZoneName` L37 in `bad_E3023_recordsetgroup_projection_covering_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalValues` (AWS::DynamoDB::Table) → `Properties.KeySchema` L26 in `bad_E3024_duplicate_tag_keys_yaml`
+  > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Record` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L27 in `bad_E3029_alias_projection_covering_yaml`
   > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `CustomDomainLeadingHyphen` (AWS::Cognito::UserPoolDomain) → `Properties.Domain` L45 in `bad_E3031_cognito_user_pool_domain_pattern_yaml`
   > Property 'Domain' is create-only; updating it will cause resource replacement
@@ -2942,6 +1995,72 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'LocalSecondaryIndexes' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `TableWithLsiSingleKey` (AWS::DynamoDB::Table) → `Properties.KeySchema` L15 in `bad_E3032_E3002_E3689_conditional_constraints_yaml`
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L74 in `bad_E3048_fargate_projection_covering_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L71 in `bad_E3048_fargate_projection_covering_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.Memory` L72 in `bad_E3048_fargate_projection_covering_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L73 in `bad_E3048_fargate_projection_covering_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.PlacementConstraints` L78 in `bad_E3048_fargate_projection_covering_yaml`
+  > Property 'PlacementConstraints' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L70 in `bad_E3048_fargate_projection_covering_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `OutsideBothBlocks` (AWS::EC2::Subnet) → `Properties.CidrBlock` L25 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `OutsideBothBlocks` (AWS::EC2::Subnet) → `Properties.VpcId` L24 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `OutsideOnlyInProd` (AWS::EC2::Subnet) → `Properties.CidrBlock` L30 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `OutsideOnlyInProd` (AWS::EC2::Subnet) → `Properties.VpcId` L29 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `OutsidePlainVpc` (AWS::EC2::Subnet) → `Properties.CidrBlock` L39 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `OutsidePlainVpc` (AWS::EC2::Subnet) → `Properties.VpcId` L38 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `PlainVpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L34 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SecondaryBlock` (AWS::EC2::VPCCidrBlock) → `Properties.CidrBlock` L20 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SecondaryBlock` (AWS::EC2::VPCCidrBlock) → `Properties.VpcId` L19 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L15 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `CollidesInProd` (AWS::EC2::Subnet) → `Properties.CidrBlock` L27 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `CollidesInProd` (AWS::EC2::Subnet) → `Properties.VpcId` L26 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `ExistingA` (AWS::EC2::Subnet) → `Properties.CidrBlock` L32 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `ExistingA` (AWS::EC2::Subnet) → `Properties.VpcId` L31 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `ExistingB` (AWS::EC2::Subnet) → `Properties.CidrBlock` L37 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `ExistingB` (AWS::EC2::Subnet) → `Properties.VpcId` L36 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Fixed` (AWS::EC2::Subnet) → `Properties.CidrBlock` L22 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `Fixed` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L17 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalNoValueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L25 in `bad_E3505_conditional_service_defaults_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalPropertiesFunctionMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L47 in `bad_E3505_conditional_service_defaults_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalPropertiesQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L78 in `bad_E3505_conditional_service_defaults_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L66 in `bad_E3505_conditional_service_defaults_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalTransformQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L93 in `bad_E3505_conditional_service_defaults_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `QueueNoValueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L103 in `bad_E3505_conditional_service_defaults_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `ESM` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L19 in `bad_E3505_sqs_default_visibility_timeout_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Subnets` L11 in `bad_E3679_https_listener_beside_referenced_certificate_yaml`
+  > Property 'Subnets' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `AlbExplicitTypeOneSubnet` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L23 in `bad_E3680_alb_fewer_than_two_subnets_yaml`
   > Property 'Type' is create-only; updating it will cause resource replacement
 - **I9001** `AlbOneSubnetMapping` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L29 in `bad_E3680_alb_fewer_than_two_subnets_yaml`
@@ -3042,6 +2161,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Type' is create-only; updating it will cause resource replacement
 - **I9001** `SpotFleet` (AWS::EC2::SpotFleet) → `Properties.SpotFleetRequestConfigData.IamFleetRole` L21 in `bad_I3100_previous_generation_sourced_routes_yaml`
   > Property 'SpotFleetRequestConfigData.IamFleetRole' is create-only; updating it will cause resource replacement
+- **I9001** `OrdersTable` (AWS::DynamoDB::Table) → `Properties.KeySchema` L11 in `bad_I4010_context_missing_json`
+  > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `OrdersTable` (AWS::DynamoDB::Table) → `Properties.KeySchema` L13 in `bad_I4010_context_missing_yaml`
+  > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `VpcControl` (AWS::EC2::VPC) → `Properties.CidrBlock` L17 in `bad_I9001_conditional_create_only_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `VpcWithConditionalCreateOnly` (AWS::EC2::VPC) → `Properties.CidrBlock` L8 in `bad_I9001_conditional_create_only_yaml`
@@ -3052,12 +2175,36 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L27 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `AllowedValuesConsumers` (AWS::Lambda::Function) → `Properties.PackageType` L126 in `bad_W1030_parameter_default_constraints_yaml`
+  > Property 'PackageType' is create-only; updating it will cause resource replacement
+- **I9001** `ComposedConsumers` (AWS::Lambda::Function) → `Properties.PackageType` L135 in `bad_W1030_parameter_default_constraints_yaml`
+  > Property 'PackageType' is create-only; updating it will cause resource replacement
+- **I9001** `EmptyConditional` (AWS::Lambda::Function) → `Properties.FunctionName` L36 in `bad_W1030_parameter_default_constraints_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `Enum` (AWS::Lambda::Function) → `Properties.PackageType` L52 in `bad_W1030_parameter_default_constraints_yaml`
+  > Property 'PackageType' is create-only; updating it will cause resource replacement
+- **I9001** `Pattern` (AWS::Lambda::Function) → `Properties.FunctionName` L28 in `bad_W1030_parameter_default_constraints_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PatternSecondConsumer` (AWS::Lambda::Function) → `Properties.FunctionName` L76 in `bad_W1030_parameter_default_constraints_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `ValidControls` (AWS::Lambda::Function) → `Properties.FunctionName` L68 in `bad_W1030_parameter_default_constraints_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `MyBucket` (AWS::S3::Bucket) → `Properties.BucketName` L8 in `bad_W1053_dynref_spaces_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `MyFunction` (AWS::Lambda::Function) → `Properties.FunctionName` L6 in `bad_W1054_raw_pseudo_param_yaml`
   > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `Directory` (AWS::AppStream::DirectoryConfig) → `Properties.DirectoryName` L10 in `bad_W2501_nested_password_W1011_exact_path_yaml`
   > Property 'DirectoryName' is create-only; updating it will cause resource replacement
+- **I9001** `DescribedVersion` (AWS::Lambda::Version) → `Properties.Description` L53 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Property 'Description' is create-only; updating it will cause resource replacement
+- **I9001** `DescribedVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L52 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `DevOnlyVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L71 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `OrderedVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L37 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `SwitchedVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L86 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `Asg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.LaunchConfigurationName` L13 in `bad_W3010_full_coverage_yaml`
   > Property 'LaunchConfigurationName' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.AvailabilityZones` L45 in `bad_W3010_full_coverage_yaml`
@@ -3142,12 +2289,38 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ToPort' is create-only; updating it will cause resource replacement
 - **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L9 in `bad_W3687_ports_ignored_by_protocol_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `Cloned` (AWS::RDS::DBCluster) → `Properties.Engine` L23 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Cloned` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L25 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Cloned` (AWS::RDS::DBCluster) → `Properties.SourceDBClusterIdentifier` L24 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Property 'SourceDBClusterIdentifier' is create-only; updating it will cause resource replacement
+- **I9001** `Cloned` (AWS::RDS::DBCluster) → `Properties.StorageEncrypted` L26 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `Restored` (AWS::RDS::DBCluster) → `Properties.Engine` L15 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Restored` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L17 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Restored` (AWS::RDS::DBCluster) → `Properties.SnapshotIdentifier` L16 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Property 'SnapshotIdentifier' is create-only; updating it will cause resource replacement
+- **I9001** `LegacyTable` (AWS::DynamoDB::Table) → `Properties.KeySchema` L30 in `bad_W4011_context_missing_why_yaml`
+  > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L14 in `bad_W9006_every_allowed_value_too_long_json`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L6 in `bad_W9007_duplicate_objects_different_key_order_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
 - **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.PlacementConstraints` L10 in `bad_W9007_duplicate_objects_different_key_order_yaml`
   > Property 'PlacementConstraints' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L41 in `bad_W9052_scenario_product_covering_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L39 in `bad_W9052_scenario_product_covering_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.Memory` L40 in `bad_W9052_scenario_product_covering_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L38 in `bad_W9052_scenario_product_covering_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `Task` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L37 in `bad_W9052_scenario_product_covering_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
 - **I9001** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.DBClusterIdentifier` L7 in `bad_aurora_with_allocated_storage_yaml`
   > Property 'DBClusterIdentifier' is create-only; updating it will cause resource replacement
 - **I9001** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.Engine` L6 in `bad_aurora_with_allocated_storage_yaml`
@@ -6738,8 +5911,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `CarApiDefectsDataSourceEBF3B13F` (AWS::AppSync::DataSource) → `Properties.Name` L288 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `CarApiSchema8E4784D9` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L93 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
-  > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `CarTableA597893A` (AWS::DynamoDB::Table) → `Properties.KeySchema` L12 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `CarTableA597893A` (AWS::DynamoDB::Table) → `Properties.TableName` L22 in `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json`
@@ -6778,8 +5949,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `ItemsDataSource` (AWS::AppSync::DataSource) → `Properties.Name` L118 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `ItemsSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L30 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
-  > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `PutEventMutationResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L134 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `PutEventMutationResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L141 in `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json`
@@ -6810,8 +5979,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `PostsDataSource` (AWS::AppSync::DataSource) → `Properties.Name` L54 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'Name' is create-only; updating it will cause resource replacement
-- **I9001** `PostsSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L30 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
-  > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.ApiId` L114 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
   > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `SaveMutationResolver` (AWS::AppSync::Resolver) → `Properties.FieldName` L122 in `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json`
@@ -9482,8 +8649,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'FieldName' is create-only; updating it will cause resource replacement
 - **I9001** `ApiQuerygetLoyaltyLevelResolverC862DCEF` (AWS::AppSync::Resolver) → `Properties.TypeName` L416 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template_json`
   > Property 'TypeName' is create-only; updating it will cause resource replacement
-- **I9001** `ApiSchema510EECD7` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L59 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template_json`
-  > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `CustomerTable260DCC08` (AWS::DynamoDB::Table) → `Properties.KeySchema` L447 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template_json`
   > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `thesimplegraphqlserviceapikey` (AWS::AppSync::ApiKey) → `Properties.ApiId` L433 in `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template_json`
@@ -11264,6 +10429,32 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Domain' is create-only; updating it will cause resource replacement
 - **I9001** `SingleCharacterPrefix` (AWS::Cognito::UserPoolDomain) → `Properties.UserPoolId` L23 in `good_E3031_cognito_user_pool_domain_pattern_yaml`
   > Property 'UserPoolId' is create-only; updating it will cause resource replacement
+- **I9001** `ESMAtDefaultVisibility` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L28 in `good_E3505_sqs_default_visibility_timeout_covers_function_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `ESMWithDefaultTimeout` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L33 in `good_E3505_sqs_default_visibility_timeout_covers_function_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `AliasMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L153 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `ConditionalDynamicQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L123 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `CorrelatedMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L148 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `CoveringConditionalMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L143 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `DefaultedParameterMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L138 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `DynamicQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L118 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `FunctionAlias` (AWS::Lambda::Alias) → `Properties.FunctionName` L110 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `FunctionAlias` (AWS::Lambda::Alias) → `Properties.Name` L112 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'Name' is create-only; updating it will cause resource replacement
+- **I9001** `FunctionVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L106 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `UnresolvedFunctionMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L133 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
+- **I9001** `UnresolvedQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.EventSourceArn` L128 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Property 'EventSourceArn' is create-only; updating it will cause resource replacement
 - **I9001** `AlbSubnetsFromParameter` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L44 in `good_E3680_alb_subnet_counts_yaml`
   > Property 'Type' is create-only; updating it will cause resource replacement
 - **I9001** `AlbTwoSubnets` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Type` L31 in `good_E3680_alb_subnet_counts_yaml`
@@ -11322,6 +10513,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'ToPort' is create-only; updating it will cause resource replacement
 - **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L10 in `good_E9002_port_range_exemptions_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L7 in `good_F3031_pseudo_parameter_sub_yaml`
+  > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `PublishedElsewhereVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L153 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PublishedFromConditionalPropertiesVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L114 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PublishedFromMatchingFunctionNameBranchVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L168 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PublishedInMatchingConditionVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L132 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PublishedInUsEast1Version` (AWS::Lambda::Version) → `Properties.FunctionName` L148 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
+- **I9001** `PublishedThroughSubVersion` (AWS::Lambda::Version) → `Properties.FunctionName` L92 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Property 'FunctionName' is create-only; updating it will cause resource replacement
 - **I9001** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.AvailabilityZones` L8 in `good_W3010_getazs_not_flagged_yaml`
   > Property 'AvailabilityZones' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `Subnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZone` L18 in `good_W3010_getazs_not_flagged_yaml`
@@ -11660,6 +10865,54 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'NetworkMode' is create-only; updating it will cause resource replacement
 - **I9001** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L78 in `good_ecs_fargate_decimal_units_yaml`
   > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `JoinedTask` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L70 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `JoinedTask` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L66 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `JoinedTask` (AWS::ECS::TaskDefinition) → `Properties.Family` L65 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Family' is create-only; updating it will cause resource replacement
+- **I9001** `JoinedTask` (AWS::ECS::TaskDefinition) → `Properties.Memory` L67 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `JoinedTask` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L68 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `JoinedTask` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L69 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `MappedTask` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L58 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `MappedTask` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L54 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `MappedTask` (AWS::ECS::TaskDefinition) → `Properties.Family` L53 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Family' is create-only; updating it will cause resource replacement
+- **I9001** `MappedTask` (AWS::ECS::TaskDefinition) → `Properties.Memory` L55 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `MappedTask` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L56 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `MappedTask` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L57 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `TaskA` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L34 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `TaskA` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L30 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `TaskA` (AWS::ECS::TaskDefinition) → `Properties.Family` L29 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Family' is create-only; updating it will cause resource replacement
+- **I9001** `TaskA` (AWS::ECS::TaskDefinition) → `Properties.Memory` L31 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `TaskA` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L32 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `TaskA` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L33 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
+- **I9001** `TaskB` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L46 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
+- **I9001** `TaskB` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L42 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Cpu' is create-only; updating it will cause resource replacement
+- **I9001** `TaskB` (AWS::ECS::TaskDefinition) → `Properties.Family` L41 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Family' is create-only; updating it will cause resource replacement
+- **I9001** `TaskB` (AWS::ECS::TaskDefinition) → `Properties.Memory` L43 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'Memory' is create-only; updating it will cause resource replacement
+- **I9001** `TaskB` (AWS::ECS::TaskDefinition) → `Properties.NetworkMode` L44 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'NetworkMode' is create-only; updating it will cause resource replacement
+- **I9001** `TaskB` (AWS::ECS::TaskDefinition) → `Properties.RequiresCompatibilities` L45 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalRequiredProperties` (AWS::ECS::TaskDefinition) → `Properties.ContainerDefinitions` L114 in `good_ecs_fargate_units_and_sizes_yaml`
   > Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement
 - **I9001** `ConditionalRequiredProperties` (AWS::ECS::TaskDefinition) → `Properties.Cpu` L108 in `good_ecs_fargate_units_and_sizes_yaml`
@@ -11960,6 +11213,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `mySubnet` (AWS::EC2::Subnet) → `Properties.VpcId` L21 in `good_mappings_used_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `LegacyTable` (AWS::DynamoDB::Table) → `Properties.KeySchema` L38 in `good_metadata_context_complete_yaml`
+  > Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `rDBServerInstance` (AWS::RDS::DBInstance) → `Properties.AutoMinorVersionUpgrade` L128 in `good_no_value_yaml`
   > Property 'AutoMinorVersionUpgrade' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `rDBServerInstance` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L129 in `good_no_value_yaml`
@@ -12078,6 +11333,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'DBName' is create-only; updating it will cause resource replacement
 - **I9001** `Cluster` (AWS::Redshift::Cluster) → `Properties.MasterUsername` L7 in `good_redshift_valid_nodetype_yaml`
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L60 in `good_reference_values_are_not_literals_yaml`
+  > Property 'BackupRetentionPeriod' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.Engine` L54 in `good_reference_values_are_not_literals_yaml`
+  > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L57 in `good_reference_values_are_not_literals_yaml`
+  > Property 'MasterUsername' is create-only; updating it will cause resource replacement
+- **I9001** `Database` (AWS::RDS::DBInstance) → `Properties.StorageEncrypted` L59 in `good_reference_values_are_not_literals_yaml`
+  > Property 'StorageEncrypted' is create-only; updating it will cause resource replacement
+- **I9001** `FifoQueue` (AWS::SQS::Queue) → `Properties.FifoQueue` L24 in `good_reference_values_are_not_literals_yaml`
+  > Property 'FifoQueue' is create-only; updating it will cause resource replacement
+- **I9001** `FifoQueue` (AWS::SQS::Queue) → `Properties.QueueName` L25 in `good_reference_values_are_not_literals_yaml`
+  > Property 'QueueName' is create-only; updating it will cause resource replacement
+- **I9001** `Record` (AWS::Route53::RecordSet) → `Properties.HostedZoneName` L16 in `good_reference_values_are_not_literals_yaml`
+  > Property 'HostedZoneName' is create-only; updating it will cause resource replacement
 - **I9001** `Pool` (AWS::DeviceFarm::DevicePool) → `Properties.ProjectArn` L14 in `good_region_conditional_resource_type_yaml`
   > Property 'ProjectArn' is create-only; updating it will cause resource replacement
 - **I9001** `TestPipeline` (AWS::CodePipeline::Pipeline) → `Properties.Name` L8 in `good_resources_codepipeline_yaml`
@@ -12226,8 +11495,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `myThirdDb` (AWS::RDS::DBInstance) → `Properties.MasterUsername` L39 in `good_resources_properties_password_yaml`
   > Property 'MasterUsername' is create-only; updating it will cause resource replacement
-- **I9001** `AppSyncSchema` (AWS::AppSync::GraphQLSchema) → `Properties.ApiId` L10 in `good_resources_properties_templated_code_yaml`
-  > Property 'ApiId' is create-only; updating it will cause resource replacement
 - **I9001** `DBInstance1` (AWS::RDS::DBInstance) → `Properties.Engine` L14 in `good_resources_rds_instance_sizes_yaml`
   > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
 - **I9001** `DBInstance2` (AWS::RDS::DBInstance) → `Properties.Engine` L20 in `good_resources_rds_instance_sizes_yaml`
@@ -12362,6 +11629,50 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'BucketName' is create-only; updating it will cause resource replacement
 - **I9001** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L9 in `good_sub_not_needed_yaml`
   > Property 'BucketName' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetA1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L37 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetA1` (AWS::EC2::Subnet) → `Properties.VpcId` L36 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetA2ViaAttribute` (AWS::EC2::Subnet) → `Properties.CidrBlock` L53 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetA2ViaAttribute` (AWS::EC2::Subnet) → `Properties.VpcId` L52 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetB1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L45 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetB1` (AWS::EC2::Subnet) → `Properties.VpcId` L44 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetDevOrProd` (AWS::EC2::Subnet) → `Properties.CidrBlock` L77 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetDevOrProd` (AWS::EC2::Subnet) → `Properties.VpcId` L76 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetFromAttribute` (AWS::EC2::Subnet) → `Properties.CidrBlock` L85 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetFromAttribute` (AWS::EC2::Subnet) → `Properties.VpcId` L84 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetFromCidrFunction` (AWS::EC2::Subnet) → `Properties.CidrBlock` L101 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetFromCidrFunction` (AWS::EC2::Subnet) → `Properties.VpcId` L100 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetFromImport` (AWS::EC2::Subnet) → `Properties.CidrBlock` L93 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetFromImport` (AWS::EC2::Subnet) → `Properties.VpcId` L92 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetInSecondaryBlock` (AWS::EC2::Subnet) → `Properties.CidrBlock` L61 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetInSecondaryBlock` (AWS::EC2::Subnet) → `Properties.VpcId` L60 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetProdOrDev` (AWS::EC2::Subnet) → `Properties.CidrBlock` L69 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `SubnetProdOrDev` (AWS::EC2::Subnet) → `Properties.VpcId` L68 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `VpcA` (AWS::EC2::VPC) → `Properties.CidrBlock` L17 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `VpcASecondaryBlock` (AWS::EC2::VPCCidrBlock) → `Properties.CidrBlock` L32 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `VpcASecondaryBlock` (AWS::EC2::VPCCidrBlock) → `Properties.VpcId` L31 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `VpcB` (AWS::EC2::VPC) → `Properties.CidrBlock` L24 in `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.AvailabilityZoneId` L95 in `good_transform_language_extension_yaml`
   > Property 'AvailabilityZoneId' is create-only; updating it will cause resource replacement
 - **I9001** `MySubnet` (AWS::EC2::Subnet) → `Properties.CidrBlock` L94 in `good_transform_language_extension_yaml`
@@ -12374,6 +11685,64 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Property 'GroupDescription' is create-only; updating it will cause resource replacement
 - **I9001** `SecurityGroups` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L88 in `good_transform_language_extension_yaml`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Certificate` (AWS::CertificateManager::Certificate) → `Properties.DomainName` L89 in `good_unresolved_values_are_present_yaml`
+  > Property 'DomainName' is create-only; updating it will cause resource replacement
+- **I9001** `Cluster` (AWS::RDS::DBCluster) → `Properties.Engine` L42 in `good_unresolved_values_are_present_yaml`
+  > Property 'Engine' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `Cluster` (AWS::RDS::DBCluster) → `Properties.MasterUsername` L43 in `good_unresolved_values_are_present_yaml`
+  > Property 'MasterUsername' is conditionally create-only; updating it may cause resource replacement
+- **I9001** `EgressFromParameter` (AWS::EC2::SecurityGroupEgress) → `Properties.CidrIp` L83 in `good_unresolved_values_are_present_yaml`
+  > Property 'CidrIp' is create-only; updating it will cause resource replacement
+- **I9001** `EgressFromParameter` (AWS::EC2::SecurityGroupEgress) → `Properties.FromPort` L84 in `good_unresolved_values_are_present_yaml`
+  > Property 'FromPort' is create-only; updating it will cause resource replacement
+- **I9001** `EgressFromParameter` (AWS::EC2::SecurityGroupEgress) → `Properties.GroupId` L81 in `good_unresolved_values_are_present_yaml`
+  > Property 'GroupId' is create-only; updating it will cause resource replacement
+- **I9001** `EgressFromParameter` (AWS::EC2::SecurityGroupEgress) → `Properties.IpProtocol` L82 in `good_unresolved_values_are_present_yaml`
+  > Property 'IpProtocol' is create-only; updating it will cause resource replacement
+- **I9001** `EgressFromParameter` (AWS::EC2::SecurityGroupEgress) → `Properties.ToPort` L85 in `good_unresolved_values_are_present_yaml`
+  > Property 'ToPort' is create-only; updating it will cause resource replacement
+- **I9001** `HttpsListener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.LoadBalancerArn` L112 in `good_unresolved_values_are_present_yaml`
+  > Property 'LoadBalancerArn' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromAttribute` (AWS::EC2::SecurityGroupIngress) → `Properties.CidrIp` L67 in `good_unresolved_values_are_present_yaml`
+  > Property 'CidrIp' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromAttribute` (AWS::EC2::SecurityGroupIngress) → `Properties.FromPort` L68 in `good_unresolved_values_are_present_yaml`
+  > Property 'FromPort' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromAttribute` (AWS::EC2::SecurityGroupIngress) → `Properties.GroupId` L65 in `good_unresolved_values_are_present_yaml`
+  > Property 'GroupId' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromAttribute` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L66 in `good_unresolved_values_are_present_yaml`
+  > Property 'IpProtocol' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromAttribute` (AWS::EC2::SecurityGroupIngress) → `Properties.ToPort` L69 in `good_unresolved_values_are_present_yaml`
+  > Property 'ToPort' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromImport` (AWS::EC2::SecurityGroupIngress) → `Properties.CidrIp` L75 in `good_unresolved_values_are_present_yaml`
+  > Property 'CidrIp' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromImport` (AWS::EC2::SecurityGroupIngress) → `Properties.FromPort` L76 in `good_unresolved_values_are_present_yaml`
+  > Property 'FromPort' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromImport` (AWS::EC2::SecurityGroupIngress) → `Properties.GroupId` L73 in `good_unresolved_values_are_present_yaml`
+  > Property 'GroupId' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromImport` (AWS::EC2::SecurityGroupIngress) → `Properties.IpProtocol` L74 in `good_unresolved_values_are_present_yaml`
+  > Property 'IpProtocol' is create-only; updating it will cause resource replacement
+- **I9001** `IngressFromImport` (AWS::EC2::SecurityGroupIngress) → `Properties.ToPort` L77 in `good_unresolved_values_are_present_yaml`
+  > Property 'ToPort' is create-only; updating it will cause resource replacement
+- **I9001** `SecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L52 in `good_unresolved_values_are_present_yaml`
+  > Property 'GroupDescription' is create-only; updating it will cause resource replacement
+- **I9001** `SecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.VpcId` L53 in `good_unresolved_values_are_present_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.CidrBlock` L25 in `good_unresolved_values_are_present_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `Subnet1` (AWS::EC2::Subnet) → `Properties.VpcId` L24 in `good_unresolved_values_are_present_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Subnet2` (AWS::EC2::Subnet) → `Properties.CidrBlock` L33 in `good_unresolved_values_are_present_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
+- **I9001** `Subnet2` (AWS::EC2::Subnet) → `Properties.VpcId` L32 in `good_unresolved_values_are_present_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `TargetGroup` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Port` L104 in `good_unresolved_values_are_present_yaml`
+  > Property 'Port' is create-only; updating it will cause resource replacement
+- **I9001** `TargetGroup` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.Protocol` L105 in `good_unresolved_values_are_present_yaml`
+  > Property 'Protocol' is create-only; updating it will cause resource replacement
+- **I9001** `TargetGroup` (AWS::ElasticLoadBalancingV2::TargetGroup) → `Properties.VpcId` L103 in `good_unresolved_values_are_present_yaml`
+  > Property 'VpcId' is create-only; updating it will cause resource replacement
+- **I9001** `Vpc` (AWS::EC2::VPC) → `Properties.CidrBlock` L17 in `good_unresolved_values_are_present_yaml`
+  > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `MyVPC` (AWS::EC2::VPC) → `Properties.CidrBlock` L6 in `good_vpc_subnets_yaml`
   > Property 'CidrBlock' is create-only; updating it will cause resource replacement
 - **I9001** `SecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.GroupDescription` L25 in `good_vpc_subnets_yaml`
@@ -14177,7 +13546,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9001** `VPCGatewayAttachment` (AWS::EC2::VPCGatewayAttachment) → `Properties.VpcId` L558 in `quickstart_vpc_json`
   > Property 'VpcId' is create-only; updating it will cause resource replacement
 
-### I9040 - 2374 findings
+### I9040 - 2512 findings
 
 - **I9040** `Instance` (AWS::EC2::Instance) → `Properties.Tags` L8 in `bad_E1150_network_interfaces_groupset_multi_yaml`
   > Resource 'Instance' of type 'AWS::EC2::Instance' supports Tags but none are configured
@@ -14211,6 +13580,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'RefBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `SubBucket` (AWS::S3::Bucket) → `Properties.Tags` L14 in `bad_E3019_identity_reference_forms_yaml`
   > Resource 'SubBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `OtherTopic` (AWS::SNS::Topic) → `Properties.Tags` L94 in `bad_E3024_duplicate_tag_keys_yaml`
+  > Resource 'OtherTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `SourceTopic` (AWS::SNS::Topic) → `Properties.Tags` L92 in `bad_E3024_duplicate_tag_keys_yaml`
+  > Resource 'SourceTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured
 - **I9040** `ClusterIntervalWithoutMonitoringRole` (AWS::RDS::DBCluster) → `Properties.Tags` L65 in `bad_E3032_E3002_E3689_conditional_constraints_yaml`
   > Resource 'ClusterIntervalWithoutMonitoringRole' of type 'AWS::RDS::DBCluster' supports Tags but none are configured
 - **I9040** `ClusterMonitoringRoleWithoutInterval` (AWS::RDS::DBCluster) → `Properties.Tags` L57 in `bad_E3032_E3002_E3689_conditional_constraints_yaml`
@@ -14219,9 +13592,69 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'ClusterReservedMasterUsername' of type 'AWS::RDS::DBCluster' supports Tags but none are configured
 - **I9040** `TableWithLsiSingleKey` (AWS::DynamoDB::Table) → `Properties.Tags` L11 in `bad_E3032_E3002_E3689_conditional_constraints_yaml`
   > Resource 'TableWithLsiSingleKey' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `Task` (AWS::ECS::TaskDefinition) → `Properties.Tags` L69 in `bad_E3048_fargate_projection_covering_yaml`
+  > Resource 'Task' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `OutsideBothBlocks` (AWS::EC2::Subnet) → `Properties.Tags` L23 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Resource 'OutsideBothBlocks' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `OutsideOnlyInProd` (AWS::EC2::Subnet) → `Properties.Tags` L28 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Resource 'OutsideOnlyInProd' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `OutsidePlainVpc` (AWS::EC2::Subnet) → `Properties.Tags` L37 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Resource 'OutsidePlainVpc' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `PlainVpc` (AWS::EC2::VPC) → `Properties.Tags` L33 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Resource 'PlainVpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
+- **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L14 in `bad_E3059_subnet_outside_every_vpc_cidr_yaml`
+  > Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
+- **I9040** `CollidesInProd` (AWS::EC2::Subnet) → `Properties.Tags` L25 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Resource 'CollidesInProd' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `ExistingA` (AWS::EC2::Subnet) → `Properties.Tags` L30 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Resource 'ExistingA' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `ExistingB` (AWS::EC2::Subnet) → `Properties.Tags` L35 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Resource 'ExistingB' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `Fixed` (AWS::EC2::Subnet) → `Properties.Tags` L20 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Resource 'Fixed' of type 'AWS::EC2::Subnet' supports Tags but none are configured
+- **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L16 in `bad_E3060_subnet_overlap_in_one_branch_yaml`
+  > Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
+- **I9040** `ConditionalNoValueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L23 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'ConditionalNoValueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `ConditionalPropertiesFunctionMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L45 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'ConditionalPropertiesFunctionMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `ConditionalPropertiesQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L76 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'ConditionalPropertiesQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `ConditionalQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L64 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'ConditionalQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `ConditionalTransformQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L91 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'ConditionalTransformQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `FunctionAtSixtySeconds` (AWS::Lambda::Function) → `Properties.Tags` L55 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'FunctionAtSixtySeconds' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `FunctionWithConditionalNoValue` (AWS::Lambda::Function) → `Properties.Tags` L14 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'FunctionWithConditionalNoValue' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `FunctionWithConditionalProperties` (AWS::Lambda::Function) → `Properties.Tags` L31 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'FunctionWithConditionalProperties' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `QueueAtOneSecond` (AWS::SQS::Queue) → `Properties.Tags` L10 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'QueueAtOneSecond' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `QueueAtServiceDefault` (AWS::SQS::Queue) → `Properties.Tags` L27 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'QueueAtServiceDefault' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `QueueNoValueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L101 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'QueueNoValueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `QueueWithConditionalProperties` (AWS::SQS::Queue) → `Properties.Tags` L70 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'QueueWithConditionalProperties' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `QueueWithConditionalTimeout` (AWS::SQS::Queue) → `Properties.Tags` L51 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'QueueWithConditionalTimeout' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `QueueWithConditionalTransform` (AWS::SQS::Queue) → `Properties.Tags` L82 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'QueueWithConditionalTransform' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `QueueWithNoValue` (AWS::SQS::Queue) → `Properties.Tags` L97 in `bad_E3505_conditional_service_defaults_yaml`
+  > Resource 'QueueWithNoValue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `ESM` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L17 in `bad_E3505_sqs_default_visibility_timeout_yaml`
+  > Resource 'ESM' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `Func` (AWS::Lambda::Function) → `Properties.Tags` L7 in `bad_E3505_sqs_default_visibility_timeout_yaml`
+  > Resource 'Func' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Queue` (AWS::SQS::Queue) → `Properties.Tags` L3 in `bad_E3505_sqs_default_visibility_timeout_yaml`
+  > Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured
 - **I9040** `Domain` (AWS::OpenSearchService::Domain) → `Properties.Tags` L5 in `bad_E3512_opensearch_access_policy_yaml`
   > Resource 'Domain' of type 'AWS::OpenSearchService::Domain' supports Tags but none are configured
 - **I9040** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L5 in `bad_E3679_classic_elb_listener_index_yaml`
+  > Resource 'LoadBalancer' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured
+- **I9040** `LoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L10 in `bad_E3679_https_listener_beside_referenced_certificate_yaml`
   > Resource 'LoadBalancer' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured
 - **I9040** `AlbDefaultTypeOneSubnet` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L17 in `bad_E3680_alb_fewer_than_two_subnets_yaml`
   > Resource 'AlbDefaultTypeOneSubnet' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
@@ -14259,8 +13692,20 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `bad_F2002_ssm_parameter_type_invalid_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `ConditionalChild` (AWS::Lambda::Function) → `Properties.Tags` L16 in `bad_F3003_conditional_nested_required_yaml`
+  > Resource 'ConditionalChild' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ConditionalChildNoValueTrue` (AWS::Lambda::Function) → `Properties.Tags` L33 in `bad_F3003_conditional_nested_required_yaml`
+  > Resource 'ConditionalChildNoValueTrue' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ConditionalObject` (AWS::Lambda::Function) → `Properties.Tags` L8 in `bad_F3003_conditional_nested_required_yaml`
+  > Resource 'ConditionalObject' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `OptionalObjectControl` (AWS::Lambda::Function) → `Properties.Tags` L42 in `bad_F3003_conditional_nested_required_yaml`
+  > Resource 'OptionalObjectControl' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `UnconditionalNoValue` (AWS::Lambda::Function) → `Properties.Tags` L25 in `bad_F3003_conditional_nested_required_yaml`
+  > Resource 'UnconditionalNoValue' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `GoodFunction` (AWS::Serverless::Function) → `Properties.Tags` L27 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Resource 'GoodFunction' of type 'AWS::Serverless::Function' supports Tags but none are configured
+- **I9040** `Function` (AWS::Lambda::Function) → `Properties.Tags` L6 in `bad_F3012_novalue_container_type_yaml`
+  > Resource 'Function' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `MissingTemplateSourceInOneWorld` (AWS::CloudFormation::StackSet) → `Properties.Tags` L7 in `bad_F3018_conditional_required_novalue_yaml`
   > Resource 'MissingTemplateSourceInOneWorld' of type 'AWS::CloudFormation::StackSet' supports Tags but none are configured
 - **I9040** `InvalidLiteralName` (AWS::Logs::LogGroup) → `Properties.Tags` L7 in `bad_F3031_log_group_name_dollar_brace_yaml`
@@ -14273,10 +13718,62 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'GlobalCache' of type 'AWS::ElastiCache::GlobalReplicationGroup' supports Tags but none are configured
 - **I9040** `SpotFleet` (AWS::EC2::SpotFleet) → `Properties.Tags` L19 in `bad_I3100_previous_generation_sourced_routes_yaml`
   > Resource 'SpotFleet' of type 'AWS::EC2::SpotFleet' supports Tags but none are configured
+- **I9040** `OrderHandler` (AWS::Lambda::Function) → `Properties.Tags` L13 in `bad_I4010_cdk_synthesized_missing_context_json`
+  > Resource 'OrderHandler' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `OrderQueue` (AWS::SQS::Queue) → `Properties.Tags` L5 in `bad_I4010_cdk_synthesized_missing_context_json`
+  > Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `OrderTopic` (AWS::SNS::Topic) → `Properties.Tags` L27 in `bad_I4010_cdk_synthesized_missing_context_json`
+  > Resource 'OrderTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a` (AWS::Lambda::Function) → `Properties.Tags` L34 in `bad_I4010_context_missing_json`
+  > Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `OrderQueue` (AWS::SQS::Queue) → `Properties.Tags` L5 in `bad_I4010_context_missing_json`
+  > Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `OrdersTable` (AWS::DynamoDB::Table) → `Properties.Tags` L10 in `bad_I4010_context_missing_json`
+  > Resource 'OrdersTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `ServiceLogGroup` (AWS::Logs::LogGroup) → `Properties.Tags` L28 in `bad_I4010_context_missing_json`
+  > Resource 'ServiceLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
+- **I9040** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a` (AWS::Lambda::Function) → `Properties.Tags` L26 in `bad_I4010_context_missing_yaml`
+  > Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `OrderQueue` (AWS::SQS::Queue) → `Properties.Tags` L8 in `bad_I4010_context_missing_yaml`
+  > Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `OrdersTable` (AWS::DynamoDB::Table) → `Properties.Tags` L12 in `bad_I4010_context_missing_yaml`
+  > Resource 'OrdersTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `ServiceLogGroup` (AWS::Logs::LogGroup) → `Properties.Tags` L22 in `bad_I4010_context_missing_yaml`
+  > Resource 'ServiceLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
 - **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L5 in `bad_W1019_sub_unused_key_yaml`
   > Resource 'MyBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L26 in `bad_W1028_allowedvalues_excludes_literal_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L10 in `bad_W1028_whole_properties_nested_branch_yaml`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `AllowedValuesConsumers` (AWS::Lambda::Function) → `Properties.Tags` L125 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'AllowedValuesConsumers' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ComposedConsumers` (AWS::Lambda::Function) → `Properties.Tags` L134 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'ComposedConsumers' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ComposedNumberEnum` (AWS::Logs::LogGroup) → `Properties.Tags` L147 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'ComposedNumberEnum' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
+- **I9040** `ConditionalTagListParameter` (AWS::SNS::Topic) → `Properties.Tags` L113 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'ConditionalTagListParameter' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `DirectNumberEnum` (AWS::Logs::LogGroup) → `Properties.Tags` L143 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'DirectNumberEnum' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
+- **I9040** `EmptyConditional` (AWS::Lambda::Function) → `Properties.Tags` L35 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'EmptyConditional' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Enum` (AWS::Lambda::Function) → `Properties.Tags` L51 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'Enum' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Long` (AWS::Lambda::Function) → `Properties.Tags` L43 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'Long' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `NestedNumeric` (AWS::Lambda::Function) → `Properties.Tags` L83 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'NestedNumeric' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Numeric` (AWS::Lambda::Function) → `Properties.Tags` L59 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'Numeric' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Pattern` (AWS::Lambda::Function) → `Properties.Tags` L27 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'Pattern' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PatternSecondConsumer` (AWS::Lambda::Function) → `Properties.Tags` L75 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'PatternSecondConsumer' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ValidControls` (AWS::Lambda::Function) → `Properties.Tags` L67 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'ValidControls' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `WholePropertiesConditional` (AWS::Lambda::Function) → `Properties.Tags` L96 in `bad_W1030_parameter_default_constraints_yaml`
+  > Resource 'WholePropertiesConditional' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `MyConnection` (AWS::DMS::Endpoint) → `Properties.Tags` L5 in `bad_W1051_secretsmanager_at_arn_yaml`
   > Resource 'MyConnection' of type 'AWS::DMS::Endpoint' supports Tags but none are configured
 - **I9040** `MyBucket` (AWS::S3::Bucket) → `Properties.Tags` L5 in `bad_W1053_dynref_spaces_yaml`
@@ -14285,6 +13782,30 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'MyFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `User` (AWS::IAM::User) → `Properties.Tags` L18 in `bad_W2501_nested_password_W1011_exact_path_yaml`
   > Resource 'User' of type 'AWS::IAM::User' supports Tags but none are configured
+- **I9040** `ApplyOnBesideNoValue` (AWS::Lambda::Function) → `Properties.Tags` L66 in `bad_W2530_snapstart_conditional_apply_on_yaml`
+  > Resource 'ApplyOnBesideNoValue' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ApplyOnFalseBranch` (AWS::Lambda::Function) → `Properties.Tags` L55 in `bad_W2530_snapstart_conditional_apply_on_yaml`
+  > Resource 'ApplyOnFalseBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ApplyOnTrueBranch` (AWS::Lambda::Function) → `Properties.Tags` L44 in `bad_W2530_snapstart_conditional_apply_on_yaml`
+  > Resource 'ApplyOnTrueBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `EveryBranchEnables` (AWS::Lambda::Function) → `Properties.Tags` L90 in `bad_W2530_snapstart_conditional_apply_on_yaml`
+  > Resource 'EveryBranchEnables' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PropertiesFalseBranch` (AWS::Lambda::Function) → `Properties.Tags` L26 in `bad_W2530_snapstart_conditional_apply_on_yaml`
+  > Resource 'PropertiesFalseBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PropertiesTrueBranch` (AWS::Lambda::Function) → `Properties.Tags` L8 in `bad_W2530_snapstart_conditional_apply_on_yaml`
+  > Resource 'PropertiesTrueBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `SnapStartBesideNoValue` (AWS::Lambda::Function) → `Properties.Tags` L77 in `bad_W2530_snapstart_conditional_apply_on_yaml`
+  > Resource 'SnapStartBesideNoValue' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PublishedFunction` (AWS::Lambda::Function) → `Properties.Tags` L15 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Resource 'PublishedFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `VersionInOtherEnvironment` (AWS::Lambda::Function) → `Properties.Tags` L56 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Resource 'VersionInOtherEnvironment' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `VersionNamesOtherFunctionWhenEnabled` (AWS::Lambda::Function) → `Properties.Tags` L74 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Resource 'VersionNamesOtherFunctionWhenEnabled' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `VersionOnlyDependsOnFunction` (AWS::Lambda::Function) → `Properties.Tags` L24 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Resource 'VersionOnlyDependsOnFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `VersionOnlyDescribesFunction` (AWS::Lambda::Function) → `Properties.Tags` L40 in `bad_W2530_snapstart_version_not_coexisting_yaml`
+  > Resource 'VersionOnlyDescribesFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `Asg` (AWS::AutoScaling::AutoScalingGroup) → `Properties.Tags` L7 in `bad_W3010_full_coverage_yaml`
   > Resource 'Asg' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
 - **I9040** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L44 in `bad_W3010_full_coverage_yaml`
@@ -14309,9 +13830,37 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L8 in `bad_W3687_ports_ignored_by_protocol_yaml`
   > Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
+- **I9040** `Cloned` (AWS::RDS::DBCluster) → `Properties.Tags` L22 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Resource 'Cloned' of type 'AWS::RDS::DBCluster' supports Tags but none are configured
+- **I9040** `Restored` (AWS::RDS::DBCluster) → `Properties.Tags` L14 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
+  > Resource 'Restored' of type 'AWS::RDS::DBCluster' supports Tags but none are configured
+- **I9040** `LegacyTable` (AWS::DynamoDB::Table) → `Properties.Tags` L29 in `bad_W4011_context_missing_why_yaml`
+  > Resource 'LegacyTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `Notifier` (AWS::SNS::Topic) → `Properties.Tags` L18 in `bad_W4011_context_missing_why_yaml`
+  > Resource 'Notifier' of type 'AWS::SNS::Topic' supports Tags but none are configured
+- **I9040** `OrderQueue` (AWS::SQS::Queue) → `Properties.Tags` L11 in `bad_W4011_context_missing_why_yaml`
+  > Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `ServiceLogGroup` (AWS::Logs::LogGroup) → `Properties.Tags` L45 in `bad_W4011_context_missing_why_yaml`
+  > Resource 'ServiceLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L18 in `bad_W4012_context_schema_violation_yaml`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `Queue` (AWS::SQS::Queue) → `Properties.Tags` L22 in `bad_W4012_context_schema_violation_yaml`
+  > Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `ConditionalContextQueue` (AWS::SQS::Queue) → `Properties.Tags` L15 in `bad_W4012_resource_context_intrinsics_yaml`
+  > Resource 'ConditionalContextQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `ConditionalMutabilityQueue` (AWS::SQS::Queue) → `Properties.Tags` L38 in `bad_W4012_resource_context_intrinsics_yaml`
+  > Resource 'ConditionalMutabilityQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `IntrinsicFieldQueue` (AWS::SQS::Queue) → `Properties.Tags` L22 in `bad_W4012_resource_context_intrinsics_yaml`
+  > Resource 'IntrinsicFieldQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `SubMutabilityQueue` (AWS::SQS::Queue) → `Properties.Tags` L32 in `bad_W4012_resource_context_intrinsics_yaml`
+  > Resource 'SubMutabilityQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `Queue` (AWS::SQS::Queue) → `Properties.Tags` L13 in `bad_W4012_template_context_intrinsic_yaml`
+  > Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L14 in `bad_W9006_every_allowed_value_too_long_json`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `Task` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `bad_W9007_duplicate_objects_different_key_order_yaml`
+  > Resource 'Task' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `Task` (AWS::ECS::TaskDefinition) → `Properties.Tags` L36 in `bad_W9052_scenario_product_covering_yaml`
   > Resource 'Task' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L11 in `bad_W9053_equivalent_conditions_yaml`
   > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
@@ -17719,6 +17268,56 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'ConditionalLeft' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `ConditionalRight` (AWS::S3::Bucket) → `Properties.Tags` L29 in `good_E3019_identity_no_false_positive_yaml`
   > Resource 'ConditionalRight' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `ESMAtDefaultVisibility` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L26 in `good_E3505_sqs_default_visibility_timeout_covers_function_yaml`
+  > Resource 'ESMAtDefaultVisibility' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `ESMWithDefaultTimeout` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L31 in `good_E3505_sqs_default_visibility_timeout_covers_function_yaml`
+  > Resource 'ESMWithDefaultTimeout' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `FuncAtDefaultVisibility` (AWS::Lambda::Function) → `Properties.Tags` L7 in `good_E3505_sqs_default_visibility_timeout_covers_function_yaml`
+  > Resource 'FuncAtDefaultVisibility' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `FuncWithDefaultTimeout` (AWS::Lambda::Function) → `Properties.Tags` L17 in `good_E3505_sqs_default_visibility_timeout_covers_function_yaml`
+  > Resource 'FuncWithDefaultTimeout' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `Queue` (AWS::SQS::Queue) → `Properties.Tags` L3 in `good_E3505_sqs_default_visibility_timeout_covers_function_yaml`
+  > Resource 'Queue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `AliasMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L151 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'AliasMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `ConditionalDynamicQueue` (AWS::SQS::Queue) → `Properties.Tags` L24 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'ConditionalDynamicQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `ConditionalDynamicQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L121 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'ConditionalDynamicQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `CorrelatedFunction` (AWS::Lambda::Function) → `Properties.Tags` L87 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'CorrelatedFunction' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `CorrelatedMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L146 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'CorrelatedMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `CorrelatedQueue` (AWS::SQS::Queue) → `Properties.Tags` L55 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'CorrelatedQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `CoveringConditionalMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L141 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'CoveringConditionalMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `CoveringConditionalQueue` (AWS::SQS::Queue) → `Properties.Tags` L49 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'CoveringConditionalQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `DefaultedParameterMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L136 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'DefaultedParameterMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `DynamicQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L116 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'DynamicQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `FunctionAtOneSecond` (AWS::Lambda::Function) → `Properties.Tags` L96 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'FunctionAtOneSecond' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `FunctionAtSixtySeconds` (AWS::Lambda::Function) → `Properties.Tags` L60 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'FunctionAtSixtySeconds' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `FunctionWithDefaultedParameter` (AWS::Lambda::Function) → `Properties.Tags` L78 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'FunctionWithDefaultedParameter' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `FunctionWithUnresolvedTimeout` (AWS::Lambda::Function) → `Properties.Tags` L69 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'FunctionWithUnresolvedTimeout' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `QueueAtOneSecond` (AWS::SQS::Queue) → `Properties.Tags` L37 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'QueueAtOneSecond' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `QueueAtTwentySeconds` (AWS::SQS::Queue) → `Properties.Tags` L41 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'QueueAtTwentySeconds' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `QueueAtTwoSeconds` (AWS::SQS::Queue) → `Properties.Tags` L45 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'QueueAtTwoSeconds' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `UnresolvedFunctionMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L131 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'UnresolvedFunctionMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
+- **I9040** `UnresolvedQueue` (AWS::SQS::Queue) → `Properties.Tags` L33 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'UnresolvedQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `UnresolvedQueueMapping` (AWS::Lambda::EventSourceMapping) → `Properties.Tags` L126 in `good_E3505_unresolved_dynamic_and_covering_yaml`
+  > Resource 'UnresolvedQueueMapping' of type 'AWS::Lambda::EventSourceMapping' supports Tags but none are configured
 - **I9040** `AlbDefaultTypeTwoSubnetMappings` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L37 in `good_E3680_alb_subnet_counts_yaml`
   > Resource 'AlbDefaultTypeTwoSubnetMappings' of type 'AWS::ElasticLoadBalancingV2::LoadBalancer' supports Tags but none are configured
 - **I9040** `AlbSubnetsFromParameter` (AWS::ElasticLoadBalancingV2::LoadBalancer) → `Properties.Tags` L43 in `good_E3680_alb_subnet_counts_yaml`
@@ -17743,8 +17342,30 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L9 in `good_E9002_port_range_exemptions_yaml`
   > Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L6 in `good_F3031_pseudo_parameter_sub_yaml`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `KubectlHandlerRole` (AWS::IAM::Role) → `Properties.Tags` L20 in `good_W1028_pseudo_param_branches_reachable_yaml`
   > Resource 'KubectlHandlerRole' of type 'AWS::IAM::Role' supports Tags but none are configured
+- **I9040** `ApplyOnBranchExcludedByResourceCondition` (AWS::Lambda::Function) → `Properties.Tags` L30 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'ApplyOnBranchExcludedByResourceCondition' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `ExclusiveConditionsExcludeInnerBranch` (AWS::Lambda::Function) → `Properties.Tags` L54 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'ExclusiveConditionsExcludeInnerBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PropertiesBranchExcludedByResourceCondition` (AWS::Lambda::Function) → `Properties.Tags` L11 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'PropertiesBranchExcludedByResourceCondition' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PublishedFromConditionalProperties` (AWS::Lambda::Function) → `Properties.Tags` L95 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'PublishedFromConditionalProperties' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PublishedFromMatchingFunctionNameBranch` (AWS::Lambda::Function) → `Properties.Tags` L156 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'PublishedFromMatchingFunctionNameBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PublishedInEveryDeployment` (AWS::Lambda::Function) → `Properties.Tags` L135 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'PublishedInEveryDeployment' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PublishedInMatchingCondition` (AWS::Lambda::Function) → `Properties.Tags` L117 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'PublishedInMatchingCondition' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `PublishedThroughSub` (AWS::Lambda::Function) → `Properties.Tags` L80 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'PublishedThroughSub' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `RepeatedConditionExcludesInnerBranch` (AWS::Lambda::Function) → `Properties.Tags` L41 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'RepeatedConditionExcludesInnerBranch' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `SnapStartNoValueOrNone` (AWS::Lambda::Function) → `Properties.Tags` L67 in `good_W2530_snapstart_unreachable_or_published_yaml`
+  > Resource 'SnapStartNoValueOrNone' of type 'AWS::Lambda::Function' supports Tags but none are configured
 - **I9040** `Elb` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags` L7 in `good_W3010_getazs_not_flagged_yaml`
   > Resource 'Elb' of type 'AWS::ElasticLoadBalancing::LoadBalancer' supports Tags but none are configured
 - **I9040** `Subnet` (AWS::EC2::Subnet) → `Properties.Tags` L15 in `good_W3010_getazs_not_flagged_yaml`
@@ -17817,8 +17438,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'AutoScalingGroupWithPolicies' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured
 - **I9040** `BucketWithConnectors` (AWS::Serverless::Function) → `Properties.Tags` L94 in `good_core_resource_attributes_yaml`
   > Resource 'BucketWithConnectors' of type 'AWS::Serverless::Function' supports Tags but none are configured
-- **I9040** `BucketWithTransform` (AWS::S3::Bucket) → `Properties.Tags` L81 in `good_core_resource_attributes_yaml`
-  > Resource 'BucketWithTransform' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `CommonCfnAttributes` (AWS::S3::Bucket) → `Properties.Tags` L25 in `good_core_resource_attributes_yaml`
   > Resource 'CommonCfnAttributes' of type 'AWS::S3::Bucket' supports Tags but none are configured
 - **I9040** `DependsOnList` (AWS::S3::Bucket) → `Properties.Tags` L41 in `good_core_resource_attributes_yaml`
@@ -17913,6 +17532,14 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'QuarterVcpuDecimal' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `TrailingDecimalPointEquivalent` (AWS::ECS::TaskDefinition) → `Properties.Tags` L77 in `good_ecs_fargate_decimal_units_yaml`
   > Resource 'TrailingDecimalPointEquivalent' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `JoinedTask` (AWS::ECS::TaskDefinition) → `Properties.Tags` L64 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Resource 'JoinedTask' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `MappedTask` (AWS::ECS::TaskDefinition) → `Properties.Tags` L52 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Resource 'MappedTask' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `TaskA` (AWS::ECS::TaskDefinition) → `Properties.Tags` L28 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Resource 'TaskA' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
+- **I9040** `TaskB` (AWS::ECS::TaskDefinition) → `Properties.Tags` L40 in `good_ecs_fargate_parameterized_cpu_memory_yaml`
+  > Resource 'TaskB' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `TaskDef` (AWS::ECS::TaskDefinition) → `Properties.Tags` L5 in `good_ecs_fargate_valid_yaml`
   > Resource 'TaskDef' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured
 - **I9040** `Service` (AWS::ECS::Service) → `Properties.Tags` L18 in `good_ecs_fargate_yaml`
@@ -18003,6 +17630,12 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SubnetB' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `Vpc` (AWS::EC2::VPC) → `Properties.Tags` L27 in `good_functions_select_string_index_yaml`
   > Resource 'Vpc' of type 'AWS::EC2::VPC' supports Tags but none are configured
+- **I9040** `AllHeaders` (AWS::SSM::Parameter) → `Properties.Tags` L21 in `good_functions_split_get_stack_output_yaml`
+  > Resource 'AllHeaders' of type 'AWS::SSM::Parameter' supports Tags but none are configured
+- **I9040** `Bucket` (AWS::S3::Bucket) → `Properties.Tags` L6 in `good_functions_split_get_stack_output_yaml`
+  > Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `FirstHeader` (AWS::SSM::Parameter) → `Properties.Tags` L34 in `good_functions_split_get_stack_output_yaml`
+  > Resource 'FirstHeader' of type 'AWS::SSM::Parameter' supports Tags but none are configured
 - **I9040** `TestRole` (AWS::IAM::Role) → `Properties.Tags` L9 in `good_functions_sub_needed_custom_excludes_yaml`
   > Resource 'TestRole' of type 'AWS::IAM::Role' supports Tags but none are configured
 - **I9040** `IOTPolicies` (AWS::IoT::Policy) → `Properties.Tags` L120 in `good_functions_sub_needed_yaml`
@@ -18081,6 +17714,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'mySubnet' of type 'AWS::EC2::Subnet' supports Tags but none are configured
 - **I9040** `R` (AWS::S3::Bucket) → `Properties.Tags` L9 in `good_mappings_valid_yaml`
   > Resource 'R' of type 'AWS::S3::Bucket' supports Tags but none are configured
+- **I9040** `CustomResourceProviderframeworkonEvent` (AWS::Lambda::Function) → `Properties.Tags` L78 in `good_metadata_context_complete_yaml`
+  > Resource 'CustomResourceProviderframeworkonEvent' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `LegacyTable` (AWS::DynamoDB::Table) → `Properties.Tags` L37 in `good_metadata_context_complete_yaml`
+  > Resource 'LegacyTable' of type 'AWS::DynamoDB::Table' supports Tags but none are configured
+- **I9040** `LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a` (AWS::Lambda::Function) → `Properties.Tags` L70 in `good_metadata_context_complete_yaml`
+  > Resource 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a' of type 'AWS::Lambda::Function' supports Tags but none are configured
+- **I9040** `OrderQueue` (AWS::SQS::Queue) → `Properties.Tags` L18 in `good_metadata_context_complete_yaml`
+  > Resource 'OrderQueue' of type 'AWS::SQS::Queue' supports Tags but none are configured
+- **I9040** `ServiceLogGroup` (AWS::Logs::LogGroup) → `Properties.Tags` L66 in `good_metadata_context_complete_yaml`
+  > Resource 'ServiceLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured
 - **I9040** `IamPipeline` (AWS::CloudFormation::Stack) → `Properties.Tags` L9 in `good_minimal_yaml`
   > Resource 'IamPipeline' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured
 - **I9040** `OtherResource` (AWS::S3::Bucket) → `Properties.Tags` L8 in `good_modules_minimal_yaml`
@@ -18451,6 +18094,8 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Resource 'SelectedSubnets' of type 'AWS::RDS::DBSubnetGroup' supports Tags but none are configured
 - **I9040** `StackOutputSubnets` (AWS::RDS::DBSubnetGroup) → `Properties.Tags` L12 in `good_unique_items_deploy_time_values_json`
   > Resource 'StackOutputSubnets' of type 'AWS::RDS::DBSubnetGroup' supports Tags but none are configured
+- **I9040** `HttpsListener` (AWS::ElasticLoadBalancingV2::Listener) → `Properties.Tags` L111 in `good_unresolved_values_are_present_yaml`
+  > Resource 'HttpsListener' of type 'AWS::ElasticLoadBalancingV2::Listener' supports Tags but none are configured
 - **I9040** `SecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.Tags` L24 in `good_vpc_subnets_yaml`
   > Resource 'SecurityGroup' of type 'AWS::EC2::SecurityGroup' supports Tags but none are configured
 - **I9040** `SubnetA` (AWS::EC2::Subnet) → `Properties.Tags` L12 in `good_vpc_subnets_yaml`
@@ -18958,9 +18603,9 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 5 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `MyEC2Instance` (AWS::EC2::Instance) → `Properties.KeyName` L45 in `bad_generic_yaml`
   > 1 is not of type 'string' - automatically coerced (number to string)
-- **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.ConnectionDrainingPolicy.Enabled` L150 in `bad_generic_yaml`
+- **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.ConnectionDrainingPolicy.Enabled` L171 in `bad_generic_yaml`
   > 'true' is not of type 'boolean' - automatically coerced (string to boolean)
-- **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.ConnectionDrainingPolicy.Timeout` L150 in `bad_generic_yaml`
+- **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.ConnectionDrainingPolicy.Timeout` L172 in `bad_generic_yaml`
   > '60' is not of type 'integer' - automatically coerced (string to integer)
 - **W9003** `conditionLoadBalancer` (AWS::ElasticLoadBalancing::LoadBalancer) → `Properties.Tags.{}.Value` L150 in `bad_generic_yaml`
   > true is not of type 'string' - automatically coerced (boolean to string)
@@ -18998,7 +18643,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 32768 is not of type 'string' - automatically coerced (number to string)
 - **W9003** `ThirtyTwoVcpuUnsupportedTwoFortyGb` (AWS::ECS::TaskDefinition) → `Properties.Memory` L51 in `bad_resources_ecs_fargate_task_sizes_e3047_yaml`
   > 245760 is not of type 'string' - automatically coerced (number to string)
-- **W9003** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L12 in `bad_schema_conditional_type_yaml`
+- **W9003** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L14 in `bad_schema_conditional_type_yaml`
   > 12345 (from Fn::If on condition 'IsProd') is not of type 'string' - automatically coerced (number to string)
 - **W9003** `Bucket` (AWS::S3::Bucket) → `Properties.BucketName` L6 in `bad_schema_type_mismatch_yaml`
   > 12345 is not of type 'string' - automatically coerced (number to string)
@@ -19402,11 +19047,25 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **I9003** in `quickstart_vpc_json`
   > No region supplied; region-scoped instance/node types were validated against all regions. A value reported valid here may still be unavailable in your target region - pass a region to validate against
 
-### W9013 - 50 findings
+### W9013 - 57 findings
 
+- **W9013** `CustomResourceControl` (Custom::OpaqueTagPayload) L48 in `bad_E3024_duplicate_tag_keys_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `ConditionalChild` (AWS::Lambda::Function) L14 in `bad_F3003_conditional_nested_required_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `ConditionalChildNoValueTrue` (AWS::Lambda::Function) L31 in `bad_F3003_conditional_nested_required_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `ConditionalObject` (AWS::Lambda::Function) L6 in `bad_F3003_conditional_nested_required_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `OptionalObjectControl` (AWS::Lambda::Function) L40 in `bad_F3003_conditional_nested_required_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `UnconditionalNoValue` (AWS::Lambda::Function) L23 in `bad_F3003_conditional_nested_required_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `GoodCustom` (Custom::MyThing) L38 in `bad_F3006_invalid_aws_namespaces_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `GoodCustomResource` (AWS::CloudFormation::CustomResource) L31 in `bad_F3006_invalid_aws_namespaces_yaml`
+  > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
+- **W9013** `Function` (AWS::Lambda::Function) L4 in `bad_F3012_novalue_container_type_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
 - **W9013** `Pipeline` (AWS::CodePipeline::Pipeline) L3 in `bad_codepipeline_bad_artifacts_yaml`
   > Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter
@@ -19886,8 +19545,10 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **F2012** → `Parameters.CDLAllowedValues.Default` L62 in `good_parameters_default_yaml`
   > Parameter 'CDLAllowedValues' Default 'three' is not in AllowedValues ['one', 'two', 'three,four']
 
-### F3003 - 9 findings - Required Resource properties are missing
+### F3003 - 10 findings - Required Resource properties are missing
 
+- **F3003** `WholePropertiesConditional` (AWS::Lambda::Function) → `Properties` L96 in `bad_W1030_parameter_default_constraints_yaml`
+  > 'Runtime' is a required property (from extension)
 - **F3003** `BadValkey` (AWS::ElastiCache::ReplicationGroup) → `Properties` L69 in `bad_cross_resource_task10_yaml`
   > 'TransitEncryptionEnabled' is a required property (from extension)
 - **F3003** `DDBTable` (AWS::DynamoDB::Table) → `Properties` L5 in `bad_dynamodb_provisioned_no_throughput_yaml`
@@ -19906,6 +19567,23 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > 'ProvisionedThroughput' is a required property (from extension)
 - **F3003** `KmsKeyWithoutEncryption` (AWS::RDS::DBInstance) → `Properties` L37 in `gh-issues_issue-235_yaml`
   > 'StorageEncrypted' is a required property (from extension)
+
+### I9002 - 7 findings
+
+- **I9002** `Record` (AWS::Route53::RecordSet) → `Properties.TTL` L30 in `bad_E3029_alias_projection_covering_yaml`
+  > 'TTL' is ignored in this configuration (from extension)
+- **I9002** `MyAliasRecordSet` (AWS::Route53::RecordSet) → `Properties.TTL` L113 in `bad_route53_yaml`
+  > 'TTL' is ignored in this configuration (from extension)
+- **I9002** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
+  > 'BackupRetentionPeriod' is ignored in this configuration (from extension)
+- **I9002** `AuroraLongBackupRetention` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L98 in `good_conditional_constraints_within_limits_yaml`
+  > 'BackupRetentionPeriod' is ignored in this configuration (from extension)
+- **I9002** `ConditionalProperties` (AWS::Route53::RecordSet) → `Properties.TTL` L22 in `good_route53_conditional_scenarios_yaml`
+  > 'TTL' is ignored in this configuration (from extension)
+- **I9002** `LiteralNoValueAlias` (AWS::Route53::RecordSet) → `Properties.TTL` L65 in `good_route53_conditional_scenarios_yaml`
+  > 'TTL' is ignored in this configuration (from extension)
+- **I9002** `MutuallyExclusiveConditions` (AWS::Route53::RecordSet) → `Properties.TTL` L38 in `good_route53_conditional_scenarios_yaml`
+  > 'TTL' is ignored in this configuration (from extension)
 
 ### W2502 - 7 findings
 
@@ -19956,21 +19634,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **E9002** `InvertedRangeSecurityGroup` (AWS::EC2::SecurityGroup) → `Properties.SecurityGroupIngress.0` L26 in `gh-issues_issue-226_yaml`
   > FromPort 443 is greater than ToPort 80
 
-### I9002 - 6 findings
-
-- **I9002** `MyAliasRecordSet` (AWS::Route53::RecordSet) → `Properties.TTL` L113 in `bad_route53_yaml`
-  > 'TTL' is ignored in this configuration (from extension)
-- **I9002** `AuroraDB` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L9 in `good_aurora_dbinstance_yaml`
-  > 'BackupRetentionPeriod' is ignored in this configuration (from extension)
-- **I9002** `AuroraLongBackupRetention` (AWS::RDS::DBInstance) → `Properties.BackupRetentionPeriod` L98 in `good_conditional_constraints_within_limits_yaml`
-  > 'BackupRetentionPeriod' is ignored in this configuration (from extension)
-- **I9002** `ConditionalProperties` (AWS::Route53::RecordSet) → `Properties.TTL` L22 in `good_route53_conditional_scenarios_yaml`
-  > 'TTL' is ignored in this configuration (from extension)
-- **I9002** `LiteralNoValueAlias` (AWS::Route53::RecordSet) → `Properties.TTL` L65 in `good_route53_conditional_scenarios_yaml`
-  > 'TTL' is ignored in this configuration (from extension)
-- **I9002** `MutuallyExclusiveConditions` (AWS::Route53::RecordSet) → `Properties.TTL` L38 in `good_route53_conditional_scenarios_yaml`
-  > 'TTL' is ignored in this configuration (from extension)
-
 ### E1028 - 5 findings
 
 - **E1028** `EC2Instance` (AWS::EC2::Instance) → `Properties.Tags.1.Fn::If.2.Fn::If.0` L65 in `bad_conditions_yaml`
@@ -19984,16 +19647,16 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **E1028** → `Outputs.LogicalConditionalOutput.Value.Fn::If.2.Fn::If.0` L241 in `lsp_condition-usage_yaml`
   > Fn::If first element must be the name of a condition, not an expression
 
-### F3002 - 4 findings - Resource properties are invalid
+### I4010 - 4 findings - Template or architecture-relevant resource has no Context block
 
-- **F3002** `EC2Instance` (AWS::EC2::Instance) → `Properties.Tags.1.BadKey` L60 in `bad_conditions_yaml`
-  > Additional properties are not allowed ('BadKey' was unexpected)
-- **F3002** `EC2Instance` (AWS::EC2::Instance) → `Properties.Tags.1.BadValue` L60 in `bad_conditions_yaml`
-  > Additional properties are not allowed ('BadValue' was unexpected)
-- **F3002** `myBucketPass` (AWS::S3::Bucket) → `Properties.BucketName1` L13 in `bad_core_directives_yaml`
-  > Additional properties are not allowed ('BucketName1' was unexpected. Did you mean 'BucketName'?)
-- **F3002** `myBucketPass` (AWS::S3::Bucket) → `Properties.BucketName1` L13 in `bad_core_mandatory_checks_yaml`
-  > Additional properties are not allowed ('BucketName1' was unexpected. Did you mean 'BucketName'?)
+- **I4010** → `Metadata` L4 in `bad_duplicate_json`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `MyEipNat` (AWS::EC2::EIP) L11 in `bad_duplicate_json`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: MyEipNat (AWS::EC2::EIP), MySNSTopic (AWS::SNS::Topic).
+- **I4010** → `Metadata` L2 in `bad_duplicate_yaml`
+  > The template has no top-level Metadata.com.aws.cloudformation.Context block describing its architecture.
+- **I4010** `myS3Bucket` (AWS::S3::Bucket) L7 in `bad_duplicate_yaml`
+  > Resources without a Metadata.com.aws.cloudformation.Context block: myS3Bucket (AWS::S3::Bucket), mySnsTopic (AWS::SNS::Topic).
 
 ### W2509 - 3 findings
 
@@ -20003,6 +19666,15 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Parameter 'MyPassword' appears to be a password but does not have NoEcho set to true
 - **W2509** → `Parameters.DBPassword` L6 in `integration_resources-cloudformation-init_yaml`
   > Parameter 'DBPassword' appears to be a password but does not have NoEcho set to true
+
+### W9052 - 3 findings
+
+- **W9052** in `bad_E3023_recordsetgroup_projection_covering_yaml`
+  > Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted
+- **W9052** in `bad_F3032_whole_properties_item_cardinality_yaml`
+  > Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted
+- **W9052** in `bad_W9052_scenario_product_covering_yaml`
+  > Deterministic validation budgets were exhausted; analysis may be incomplete and some findings may be omitted
 
 ### E9106 - 2 findings
 
@@ -20024,6 +19696,13 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
   > Fn::FindInMap references non-existent mapping 'NonExistentMap'
 - **F1012** `myInstance` (AWS::EC2::Instance) L6 in `bad_functions_base64_yaml`
   > Fn::FindInMap references non-existent mapping 'amimap'
+
+### F3002 - 2 findings - Resource properties are invalid
+
+- **F3002** `myBucketPass` (AWS::S3::Bucket) → `Properties.BucketName1` L13 in `bad_core_directives_yaml`
+  > Additional properties are not allowed ('BucketName1' was unexpected. Did you mean 'BucketName'?)
+- **F3002** `myBucketPass` (AWS::S3::Bucket) → `Properties.BucketName1` L13 in `bad_core_mandatory_checks_yaml`
+  > Additional properties are not allowed ('BucketName1' was unexpected. Did you mean 'BucketName'?)
 
 ### F8611 - 2 findings
 
@@ -20135,288 +19814,196 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9054** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
   > Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'
 
-## Per-Template Breakdown - 558 templates with mismatches
+## Per-Template Breakdown - 286 templates with mismatches
 
-### `good_lifecycle_intrinsic_scenarios_yaml` - 18 mismatches (0 TP, 0 FP, 0 EE, 18 FN)
+### `good_lifecycle_intrinsic_scenarios_yaml` - 16 mismatches (2 TP, 0 FP, 0 EE, 16 FN)
 
-- FN: `F0018` ×5, `F3016` ×5, `W1028` ×3, `E3055` ×2, `I4010` ×2, `E3001`
+- FN: `F0018` ×5, `F3016` ×5, `W1028` ×3, `E3055` ×2, `E3001`
 
-### `good_ecs_fargate_decimal_units_yaml` - 16 mismatches (0 TP, 0 FP, 42 EE, 16 FN)
+### `good_ecs_fargate_decimal_units_yaml` - 14 mismatches (2 TP, 0 FP, 42 EE, 14 FN)
 
-- FN: `E3047` ×7, `E3048` ×7, `I4010` ×2
+- FN: `E3047` ×7, `E3048` ×7
 - EE: `I9001` ×35, `I9040` ×7
 
-### `bad_lifecycle_policy_shapes_yaml` - 14 mismatches (6 TP, 3 FP, 10 EE, 11 FN)
+### `bad_lifecycle_policy_shapes_yaml` - 12 mismatches (8 TP, 3 FP, 10 EE, 9 FN)
 
-- FN: `E3055` ×2, `F0018` ×2, `F3016` ×2, `I4010` ×2, `E1011`, `F1018`, `F1020`
+- FN: `E3055` ×2, `F0018` ×2, `F3016` ×2, `E1011`, `F1018`, `F1020`
 - FP: `E3055`, `F0018`, `F3016`
 - EE: `F1101` ×6, `I9040` ×4
 
-### `good_both_forms_yaml` - 13 mismatches (1 TP, 0 FP, 2 EE, 13 FN)
+### `good_both_forms_yaml` - 11 mismatches (3 TP, 0 FP, 2 EE, 11 FN)
 
-- FN: `F3003` ×11, `I4010` ×2
+- FN: `F3003` ×11
 - EE: `I9001` ×2
 
-### `bad_generic_yaml` - 12 mismatches (30 TP, 0 FP, 42 EE, 12 FN)
+### `bad_generic_yaml` - 10 mismatches (32 TP, 0 FP, 42 EE, 10 FN)
 
-- FN: `W1036` ×6, `I4010` ×2, `W1028` ×2, `E1011`, `E3673`
+- FN: `W1036` ×6, `W1028` ×2, `E1011`, `E3673`
 - EE: `I9001` ×21, `I9040` ×12, `W9003` ×5, `W9010` ×3, `I9003`
-
-### `bad_lifecycle_conditional_invalid_policies_yaml` - 11 mismatches (9 TP, 6 FP, 6 EE, 5 FN)
-
-- FN: `I4010` ×2, `W1030` ×2, `F3016`
-- FP: `F0018` ×3, `F3016` ×3
-- EE: `I9040` ×6
-
-### `bad_resources_cloudformation_stacks_yaml` - 10 mismatches (6 TP, 0 FP, 2 EE, 10 FN)
-
-- FN: `E3043` ×8, `I4010` ×2
-- EE: `I9040` ×2
-
-### `bad_resources_iam_identity_policy_e3510_yaml` - 10 mismatches (11 TP, 1 FP, 10 EE, 9 FN)
-
-- FN: `F3003` ×6, `I4010` ×2, `W1030`
-- FP: `E3510`
-- EE: `I9001` ×6, `I9040` ×2, `W2512`, `W9002`
 
 ### `bad_transform_serverless_template_yaml` - 10 mismatches (0 TP, 3 FP, 0 EE, 7 FN)
 
 - FN: `F3003` ×2, `E2533`, `E3039`, `F3002`, `F3012`, `F3018`
 - FP: `E0001` ×3
 
-### `gh-issues_issue-235_yaml` - 10 mismatches (106 TP, 0 FP, 124 EE, 10 FN)
+### `bad_lifecycle_conditional_invalid_policies_yaml` - 9 mismatches (11 TP, 6 FP, 6 EE, 3 FN)
 
-- FN: `I3013` ×3, `E3707` ×2, `I4010` ×2, `E0002`, `E3720`, `F3012`
-- EE: `I9001` ×65, `I9040` ×38, `W9008` ×13, `W9003` ×5, `F3003`, `W9002`, `W9013`
+- FN: `W1030` ×2, `F3016`
+- FP: `F0018` ×3, `F3016` ×3
+- EE: `I9040` ×6
 
-### `lsp_parameter_usage_yaml` - 10 mismatches (4 TP, 0 FP, 14 EE, 10 FN)
+### `bad_schema_composition_yaml` - 9 mismatches (5 TP, 1 FP, 3 EE, 8 FN)
 
-- FN: `W1031` ×6, `I4010` ×2, `W1032` ×2
-- EE: `I9001` ×7, `I9040` ×7
-
-### `bad_schema_composition_yaml` - 9 mismatches (4 TP, 0 FP, 3 EE, 9 FN)
-
-- FN: `F3003` ×7, `I4010` ×2
+- FN: `F3003` ×7, `F3018`
+- FP: `F3017`
 - EE: `I9040` ×2, `I9001`
 
-### `good_transform_applications_location_yaml` - 9 mismatches (0 TP, 4 FP, 2 EE, 5 FN)
+### `bad_resources_cloudformation_stacks_yaml` - 8 mismatches (8 TP, 0 FP, 2 EE, 8 FN)
 
-- FN: `I4010` ×2, `F3003`, `F3012`, `F3017`
-- FP: `I3011` ×4
+- FN: `E3043` ×8
 - EE: `I9040` ×2
 
-### `lsp_condition-usage_yaml` - 9 mismatches (12 TP, 0 FP, 23 EE, 9 FN)
+### `bad_resources_iam_identity_policy_e3510_yaml` - 8 mismatches (13 TP, 1 FP, 10 EE, 7 FN)
 
-- FN: `F6101` ×4, `F0013` ×3, `I4010` ×2
-- EE: `I9001` ×11, `I9040` ×6, `E1028` ×3, `I9003`, `W9008`, `W9010`
-
-### `bad_core_resource_attributes_yaml` - 8 mismatches (15 TP, 1 FP, 5 EE, 7 FN)
-
-- FN: `E3001` ×2, `E3066` ×2, `I4010` ×2, `E3055`
-- FP: `E3055`
-- EE: `I9040` ×4, `W9013`
-
-### `bad_parameters_configuration_yaml` - 8 mismatches (33 TP, 1 FP, 1 EE, 7 FN)
-
-- FN: `E2001` ×4, `I4010`, `W2001`, `W2002`
-- FP: `F2002`
-- EE: `I9040`
+- FN: `F3003` ×6, `W1030`
+- FP: `E3510`
+- EE: `I9001` ×6, `I9040` ×2, `W2512`, `W9002`
 
 ### `bad_resources_properties_atleastone_yaml` - 8 mismatches (3 TP, 0 FP, 0 EE, 8 FN)
 
 - FN: `F3003` ×6, `E3510` ×2
 
-### `lsp_parameter_usage_json` - 8 mismatches (4 TP, 0 FP, 10 EE, 8 FN)
+### `gh-issues_issue-235_yaml` - 8 mismatches (108 TP, 0 FP, 124 EE, 8 FN)
 
-- FN: `W1031` ×4, `I4010` ×2, `W1032` ×2
-- EE: `I9001` ×5, `I9040` ×5
+- FN: `I3013` ×3, `E3707` ×2, `E0002`, `E3720`, `F3012`
+- EE: `I9001` ×65, `I9040` ×38, `W9008` ×13, `W9003` ×5, `F3003`, `W9002`, `W9013`
 
-### `bad_core_conditions_yaml` - 7 mismatches (18 TP, 0 FP, 17 EE, 7 FN)
+### `bad_parameters_configuration_yaml` - 7 mismatches (34 TP, 1 FP, 1 EE, 6 FN)
 
-- FN: `I4010` ×2, `W1001` ×2, `F3003`, `F3014`, `W3698`
-- EE: `I9001` ×10, `I9040` ×7
+- FN: `E2001` ×4, `W2001`, `W2002`
+- FP: `F2002`
+- EE: `I9040`
 
-### `bad_resources_elasticache_cache_cluster_failover_yaml` - 7 mismatches (12 TP, 0 FP, 18 EE, 7 FN)
+### `good_transform_applications_location_yaml` - 7 mismatches (2 TP, 4 FP, 2 EE, 3 FN)
 
-- FN: `E3026` ×5, `I4010` ×2
-- EE: `I9001` ×11, `I9040` ×7
-
-### `good_functions_sub_needed_custom_excludes_yaml` - 7 mismatches (3 TP, 0 FP, 2 EE, 7 FN)
-
-- FN: `E3530` ×6, `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_E3019_identity_reference_forms_yaml` - 6 mismatches (5 TP, 4 FP, 12 EE, 2 FN)
-
-- FN: `I4010` ×2
-- FP: `E3019` ×4
-- EE: `I9001` ×6, `I9040` ×6
-
-### `bad_E3022_equivalent_subnet_forms_yaml` - 6 mismatches (1 TP, 4 FP, 8 EE, 2 FN)
-
-- FN: `I4010` ×2
-- FP: `E3022` ×4
-- EE: `I9001` ×8
-
-### `bad_functions_join_yaml` - 6 mismatches (2 TP, 0 FP, 6 EE, 6 FN)
-
-- FN: `E1021` ×4, `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×2
-
-### `bad_resources_iam_resource_policy_yaml` - 6 mismatches (0 TP, 0 FP, 2 EE, 6 FN)
-
-- FN: `E3513` ×4, `I4010` ×2
+- FN: `F3003`, `F3012`, `F3017`
+- FP: `I3011` ×4
 - EE: `I9040` ×2
+
+### `lsp_condition-usage_yaml` - 7 mismatches (14 TP, 0 FP, 23 EE, 7 FN)
+
+- FN: `F6101` ×4, `F0013` ×3
+- EE: `I9001` ×11, `I9040` ×6, `E1028` ×3, `I9003`, `W9008`, `W9010`
+
+### `bad_core_resource_attributes_yaml` - 6 mismatches (17 TP, 1 FP, 5 EE, 5 FN)
+
+- FN: `E3001` ×2, `E3066` ×2, `E3055`
+- FP: `E3055`
+- EE: `I9040` ×4, `W9013`
 
 ### `bad_transform_auto_publish_alias_yaml` - 6 mismatches (0 TP, 2 FP, 0 EE, 4 FN)
 
 - FN: `E2531` ×2, `I4010` ×2
 - FP: `E0001` ×2
 
-### `gh-issues_issue-61_json` - 6 mismatches (3 TP, 0 FP, 1 EE, 6 FN)
+### `good_functions_sub_needed_custom_excludes_yaml` - 6 mismatches (4 TP, 0 FP, 2 EE, 6 FN)
 
-- FN: `F3003` ×5, `I4010`
-- EE: `I9040`
+- FN: `E3530` ×6
+- EE: `I9001`, `I9040`
 
-### `quickstart_nat-instance_json` - 6 mismatches (5 TP, 0 FP, 12 EE, 6 FN)
+### `lsp_parameter_usage_yaml` - 6 mismatches (8 TP, 0 FP, 14 EE, 6 FN)
 
-- FN: `W1030` ×4, `I4010` ×2
-- EE: `I9001` ×10, `I9003`, `I9040`
+- FN: `W1031` ×4, `W1032` ×2
+- EE: `I9001` ×7, `I9040` ×7
 
-### `bad_conditions_yaml` - 5 mismatches (18 TP, 0 FP, 12 EE, 5 FN)
+### `bad_core_E3001_resource_shape_yaml` - 5 mismatches (10 TP, 1 FP, 8 EE, 4 FN)
 
-- FN: `E3024` ×2, `I4010` ×2, `F0013`
-- EE: `I9001` ×4, `F3002` ×2, `I9040` ×2, `E1028`, `W1103`, `W9010`, `W9053`
-
-### `bad_core_E3001_resource_shape_yaml` - 5 mismatches (9 TP, 0 FP, 8 EE, 5 FN)
-
-- FN: `I4010` ×2, `E0002`, `E3001`, `E3005`
+- FN: `E0002`, `E3001`, `E3005`, `I4010`
+- FP: `I4010`
 - EE: `I9001` ×4, `I9040` ×4
 
-### `bad_core_sections_not_objects_yaml` - 5 mismatches (3 TP, 0 FP, 0 EE, 5 FN)
+### `bad_core_conditions_yaml` - 5 mismatches (20 TP, 0 FP, 17 EE, 5 FN)
 
-- FN: `E0002` ×4, `I4010`
+- FN: `W1001` ×2, `F3003`, `F3014`, `W3698`
+- EE: `I9001` ×10, `I9040` ×7
 
-### `bad_limit_numbers_yaml` - 5 mismatches (401 TP, 0 FP, 506 EE, 5 FN)
+### `bad_resources_elasticache_cache_cluster_failover_yaml` - 5 mismatches (14 TP, 0 FP, 18 EE, 5 FN)
 
-- FN: `I4010` ×2, `E3010`, `E6010`, `E7010`
-- EE: `I9040` ×501, `F0003`, `F0004`, `F0007`, `F0008`, `F0050`
-
-### `bad_parameters_F2012_cdl_default_split_yaml` - 5 mismatches (5 TP, 0 FP, 8 EE, 5 FN)
-
-- FN: `F2015` ×4, `I4010`
-- EE: `F2012` ×8
-
-### `bad_resources_circular_dependency_yaml` - 5 mismatches (27 TP, 0 FP, 35 EE, 5 FN)
-
-- FN: `I4010` ×2, `W3037` ×2, `F1018`
-- EE: `I9001` ×20, `I9040` ×9, `W9003` ×5, `I9003`
-
-### `bad_resources_deletionpolicy_yaml` - 5 mismatches (18 TP, 0 FP, 12 EE, 5 FN)
-
-- FN: `F3016` ×3, `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
-
-### `bad_resources_iam_iam_policy_yaml` - 5 mismatches (20 TP, 0 FP, 4 EE, 5 FN)
-
-- FN: `F3003` ×3, `I4010` ×2
-- EE: `E1028`, `I9001`, `I9040`, `W2512`
-
-### `bad_resources_updatereplacepolicy_yaml` - 5 mismatches (20 TP, 0 FP, 12 EE, 5 FN)
-
-- FN: `F0018` ×3, `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
-
-### `bad_route53_yaml` - 5 mismatches (31 TP, 0 FP, 12 EE, 5 FN)
-
-- FN: `E3023` ×3, `I4010` ×2
-- EE: `I9001` ×11, `I9002`
+- FN: `E3026` ×5
+- EE: `I9001` ×11, `I9040` ×7
 
 ### `bad_sam_connector_missing_source_yaml` - 5 mismatches (0 TP, 1 FP, 0 EE, 4 FN)
 
 - FN: `F3003` ×3, `I4010`
 - FP: `E0001`
 
-### `good_conditional_constraints_within_limits_yaml` - 5 mismatches (0 TP, 0 FP, 21 EE, 5 FN)
+### `gh-issues_issue-61_json` - 5 mismatches (4 TP, 0 FP, 1 EE, 5 FN)
 
-- FN: `I4010` ×2, `E3707`, `E3719`, `W3705`
-- EE: `I9001` ×12, `I9040` ×7, `I9002`, `I9003`
-
-### `good_core_conditions_yaml` - 5 mismatches (7 TP, 0 FP, 22 EE, 5 FN)
-
-- FN: `I4010` ×2, `F3014`, `W1001`, `W3698`
-- EE: `I9001` ×10, `I9040` ×7, `W9010` ×4, `I9003`
-
-### `good_resources_dynamodb_attributes_transform_yaml` - 5 mismatches (6 TP, 3 FP, 10 EE, 2 FN)
-
-- FN: `I4010` ×2
-- FP: `E3639` ×3
-- EE: `F1101` ×4, `I9001` ×3, `I9040` ×3
-
-### `good_unknown_resource_types_ignored_yaml` - 5 mismatches (0 TP, 0 FP, 0 EE, 5 FN)
-
-- FN: `F3006` ×3, `I4010` ×2
-
-### `lsp_comprehensive_json` - 5 mismatches (10 TP, 0 FP, 32 EE, 5 FN)
-
-- FN: `I4010` ×2, `W1001` ×2, `E1701`
-- EE: `I9001` ×24, `I9040` ×4, `F8611`, `I9003`, `W2508`, `W9008`
-
-### `lsp_comprehensive_yaml` - 5 mismatches (10 TP, 0 FP, 34 EE, 5 FN)
-
-- FN: `I4010` ×2, `W1001` ×2, `E1701`
-- EE: `I9001` ×24, `I9040` ×4, `F8611`, `I9003`, `W1103`, `W2508`, `W9003`, `W9008`
-
-### `quickstart_nist_application_yaml` - 5 mismatches (44 TP, 0 FP, 113 EE, 5 FN)
-
-- FN: `W1030` ×3, `I4010` ×2
-- EE: `W9003` ×53, `I9001` ×50, `I9040` ×10
-
-### `bad_F6101_getatt_ref_typed_object_attribute_yaml` - 4 mismatches (1 TP, 1 FP, 7 EE, 3 FN)
-
-- FN: `I4010` ×2, `E9004`
-- FP: `F3012`
-- EE: `I9001` ×4, `I9040` ×2, `I9003`
-
-### `bad_conditions_condition_functions_json` - 4 mismatches (31 TP, 0 FP, 1 EE, 4 FN)
-
-- FN: `E8003`, `E8004`, `E8005`, `I4010`
+- FN: `F3003` ×5
 - EE: `I9040`
 
-### `bad_limit_size_yaml` - 4 mismatches (1196 TP, 0 FP, 899 EE, 4 FN)
+### `good_W2530_snapstart_unreachable_or_published_yaml` - 5 mismatches (5 TP, 1 FP, 16 EE, 4 FN)
 
-- FN: `I4010` ×2, `E1002`, `E1003`
-- EE: `I9001` ×897, `F0011`, `I9003`
+- FN: `W2530` ×4
+- FP: `W1028`
+- EE: `I9040` ×10, `I9001` ×6
 
-### `bad_override_include_yaml` - 4 mismatches (2 TP, 0 FP, 6 EE, 4 FN)
+### `lsp_parameter_usage_json` - 5 mismatches (7 TP, 0 FP, 10 EE, 5 FN)
 
-- FN: `I4010` ×2, `E3512`, `E3514`
-- EE: `I9001` ×3, `I9040` ×3
+- FN: `W1031` ×3, `W1032` ×2
+- EE: `I9001` ×5, `I9040` ×5
 
-### `bad_properties_sg_ingress_yaml` - 4 mismatches (18 TP, 0 FP, 28 EE, 4 FN)
+### `bad_E3019_identity_reference_forms_yaml` - 4 mismatches (7 TP, 4 FP, 12 EE, 0 FN)
 
-- FN: `F3014` ×2, `I4010` ×2
-- EE: `I9001` ×18, `W9003` ×7, `I9040` ×3
+- FP: `E3019` ×4
+- EE: `I9001` ×6, `I9040` ×6
 
-### `bad_rds_dbclusterinstanceclass_invalid_yaml` - 4 mismatches (5 TP, 0 FP, 7 EE, 4 FN)
+### `bad_E3022_equivalent_subnet_forms_yaml` - 4 mismatches (3 TP, 4 FP, 8 EE, 0 FN)
 
-- FN: `E3692` ×3, `I4010`
-- EE: `F3003` ×3, `I9001` ×2, `I9003`, `I9040`
+- FP: `E3022` ×4
+- EE: `I9001` ×8
 
-### `bad_resources_properties_list_duplicates_yaml` - 4 mismatches (1 TP, 0 FP, 0 EE, 4 FN)
+### `bad_E3023_record_value_projection_covering_yaml` - 4 mismatches (3 TP, 1 FP, 2 EE, 3 FN)
 
-- FN: `F3037` ×2, `I4010` ×2
+- FN: `E3023` ×3
+- FP: `E3023`
+- EE: `I9001` ×2
 
-### `bad_resources_properties_primitive_types_map_yaml` - 4 mismatches (2 TP, 0 FP, 4 EE, 4 FN)
+### `bad_E3505_conditional_service_defaults_yaml` - 4 mismatches (25 TP, 3 FP, 21 EE, 1 FN)
 
-- FN: `F3012` ×2, `I4010` ×2
-- EE: `I9040` ×2, `W9013` ×2
+- FN: `I3013`
+- FP: `E3505` ×3
+- EE: `I9040` ×15, `I9001` ×6
 
-### `bad_route53_conditional_scenarios_yaml` - 4 mismatches (6 TP, 2 FP, 3 EE, 2 FN)
+### `bad_W2530_snapstart_version_not_coexisting_yaml` - 4 mismatches (2 TP, 4 FP, 10 EE, 0 FN)
 
-- FN: `I4010` ×2
-- FP: `E3029` ×2
-- EE: `I9001` ×3
+- FP: `W2530` ×4
+- EE: `I9001` ×5, `I9040` ×5
+
+### `bad_W9006_every_allowed_value_too_long_json` - 4 mismatches (1 TP, 2 FP, 3 EE, 2 FN)
+
+- FN: `W1030` ×2
+- FP: `W1030` ×2
+- EE: `I9001`, `I9040`, `W9006`
+
+### `bad_core_sections_not_objects_yaml` - 4 mismatches (4 TP, 0 FP, 0 EE, 4 FN)
+
+- FN: `E0002` ×4
+
+### `bad_functions_join_yaml` - 4 mismatches (4 TP, 0 FP, 6 EE, 4 FN)
+
+- FN: `E1021` ×4
+- EE: `I9001` ×4, `I9040` ×2
+
+### `bad_parameters_F2012_cdl_default_split_yaml` - 4 mismatches (6 TP, 0 FP, 8 EE, 4 FN)
+
+- FN: `F2015` ×4
+- EE: `F2012` ×8
+
+### `bad_resources_iam_resource_policy_yaml` - 4 mismatches (2 TP, 0 FP, 2 EE, 4 FN)
+
+- FN: `E3513` ×4
+- EE: `I9040` ×2
 
 ### `bad_sam_connector_missing_destination_yaml` - 4 mismatches (0 TP, 1 FP, 0 EE, 3 FN)
 
@@ -20428,129 +20015,81 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E3724`, `F3002`, `I4010`
 - FP: `E0001`
 
-### `bad_security_issues_yaml` - 4 mismatches (1 TP, 0 FP, 3 EE, 4 FN)
+### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json` - 4 mismatches (1 TP, 2 FP, 43 EE, 2 FN)
 
-- FN: `F3003` ×3, `I4010`
-- EE: `I9001`, `I9040`, `W2508`
+- FN: `W1034` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×39, `I9040` ×4
 
-### `bad_sub_nested_intrinsic_yaml` - 4 mismatches (0 TP, 0 FP, 3 EE, 4 FN)
+### `quickstart_nat-instance_json` - 4 mismatches (7 TP, 0 FP, 12 EE, 4 FN)
 
-- FN: `I4010` ×2, `W1031` ×2
-- EE: `I9040` ×2, `I9001`
+- FN: `W1030` ×4
+- EE: `I9001` ×10, `I9003`, `I9040`
 
-### `good_apigateway_method_authorizer_same_rest_api_yaml` - 4 mismatches (0 TP, 0 FP, 9 EE, 4 FN)
+### `bad_I4010_cdk_synthesized_missing_context_json` - 3 mismatches (3 TP, 3 FP, 3 EE, 0 FN)
 
-- FN: `I4010` ×2, `E3698`, `E3699`
+- FP: `I4010` ×2, `W4011`
+- EE: `I9040` ×3
+
+### `bad_W3688_snapshot_identifier_from_parameter_yaml` - 3 mismatches (4 TP, 3 FP, 9 EE, 0 FN)
+
+- FP: `W3689` ×2, `W3688`
 - EE: `I9001` ×7, `I9040` ×2
 
-### `good_functions_findinmap_yaml` - 4 mismatches (0 TP, 0 FP, 6 EE, 4 FN)
+### `bad_W4012_resource_context_intrinsics_yaml` - 3 mismatches (17 TP, 0 FP, 4 EE, 3 FN)
 
-- FN: `E7001` ×2, `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×3
+- FN: `W4011` ×2, `W4012`
+- EE: `I9040` ×4
 
-### `good_parameters_used_transforms_yaml` - 4 mismatches (3 TP, 0 FP, 4 EE, 4 FN)
+### `bad_conditions_condition_functions_json` - 3 mismatches (32 TP, 0 FP, 1 EE, 3 FN)
 
-- FN: `I4010` ×2, `E1021`, `E3724`
-- EE: `I9001` ×3, `I9040`
+- FN: `E8003`, `E8004`, `E8005`
+- EE: `I9040`
 
-### `good_stackset_conditional_template_source_yaml` - 4 mismatches (0 TP, 0 FP, 2 EE, 4 FN)
+### `bad_conditions_yaml` - 3 mismatches (20 TP, 0 FP, 10 EE, 3 FN)
 
-- FN: `F3003` ×2, `F3018`, `I4010`
-- EE: `I9001` ×2
+- FN: `E3024` ×2, `F0013`
+- EE: `I9001` ×4, `I9040` ×2, `E1028`, `W1103`, `W9010`, `W9053`
 
-### `good_transform_yaml` - 4 mismatches (0 TP, 2 FP, 2 EE, 2 FN)
+### `bad_limit_numbers_yaml` - 3 mismatches (403 TP, 0 FP, 506 EE, 3 FN)
 
-- FN: `I4010` ×2
-- FP: `I3011` ×2
-- EE: `I9040` ×2
-
-### `integration_ref-no-value_yaml` - 4 mismatches (7 TP, 0 FP, 2 EE, 4 FN)
-
-- FN: `F3012` ×2, `I4010` ×2
-- EE: `I9040` ×2
-
-### `lsp_test-template_yaml` - 4 mismatches (2 TP, 0 FP, 2 EE, 4 FN)
-
-- FN: `I4010` ×2, `F3003`, `W2533`
-- EE: `I9040` ×2
-
-### `bad_E3717_E3718_E3719_E3723_conditional_constraints_yaml` - 3 mismatches (4 TP, 0 FP, 14 EE, 3 FN)
-
-- FN: `I4010` ×2, `I3013`
-- EE: `I9001` ×8, `I9040` ×5, `I9003`
-
-### `bad_F3006_invalid_aws_namespaces_yaml` - 3 mismatches (2 TP, 0 FP, 4 EE, 3 FN)
-
-- FN: `I4010` ×2, `F3006`
-- EE: `W9013` ×2, `I9001`, `I9040`
-
-### `bad_F3018_conditional_required_novalue_yaml` - 3 mismatches (1 TP, 0 FP, 3 EE, 3 FN)
-
-- FN: `F3003` ×2, `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `bad_W9006_every_allowed_value_too_long_json` - 3 mismatches (0 TP, 0 FP, 3 EE, 3 FN)
-
-- FN: `W1030` ×2, `I4010`
-- EE: `I9001`, `I9040`, `W9006`
-
-### `bad_aurora_with_allocated_storage_yaml` - 3 mismatches (2 TP, 0 FP, 5 EE, 3 FN)
-
-- FN: `E3682`, `E3707`, `I4010`
-- EE: `I9001` ×2, `I9003`, `I9040`, `W9003`
-
-### `bad_core_directives_yaml` - 3 mismatches (5 TP, 1 FP, 6 EE, 2 FN)
-
-- FN: `I4010` ×2
-- FP: `E3001`
-- EE: `I9040` ×4, `F3002`, `W3030`
-
-### `bad_findinmap_bad_yaml` - 3 mismatches (0 TP, 0 FP, 2 EE, 3 FN)
-
-- FN: `E1011`, `E3024`, `I4010`
-- EE: `F1012`, `I9001`
-
-### `bad_functions_import_value_yaml` - 3 mismatches (2 TP, 0 FP, 3 EE, 3 FN)
-
-- FN: `E1016` ×2, `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `bad_functions_select_yaml` - 3 mismatches (8 TP, 0 FP, 12 EE, 3 FN)
-
-- FN: `I4010` ×2, `E1017`
-- EE: `I9001` ×8, `I9040` ×4
+- FN: `E3010`, `E6010`, `E7010`
+- EE: `I9040` ×501, `F0003`, `F0004`, `F0007`, `F0008`, `F0050`
 
 ### `bad_parameters_default_yaml` - 3 mismatches (18 TP, 0 FP, 5 EE, 3 FN)
 
 - FN: `F2015` ×3
 - EE: `F2012` ×4, `F0001`
 
-### `bad_resources_iam_iam_policy_conditional_policies_yaml` - 3 mismatches (2 TP, 0 FP, 4 EE, 3 FN)
+### `bad_rds_dbclusterinstanceclass_invalid_yaml` - 3 mismatches (6 TP, 0 FP, 7 EE, 3 FN)
 
-- FN: `I4010` ×2, `I3510`
-- EE: `I9040` ×2, `W2512` ×2
+- FN: `E3692` ×3
+- EE: `F3003` ×3, `I9001` ×2, `I9003`, `I9040`
 
-### `bad_resources_lambda_required_properties_yaml` - 3 mismatches (4 TP, 0 FP, 8 EE, 3 FN)
+### `bad_resources_circular_dependency_yaml` - 3 mismatches (29 TP, 0 FP, 35 EE, 3 FN)
 
-- FN: `I4010` ×2, `E3678`
-- EE: `I9040` ×3, `W9013` ×3, `F3003`, `I9001`
+- FN: `W3037` ×2, `F1018`
+- EE: `I9001` ×20, `I9040` ×9, `W9003` ×5, `I9003`
 
-### `bad_resources_properties_string_size_yaml` - 3 mismatches (5 TP, 0 FP, 3 EE, 3 FN)
+### `bad_resources_deletionpolicy_yaml` - 3 mismatches (20 TP, 0 FP, 12 EE, 3 FN)
 
-- FN: `I4010` ×2, `E3065`
-- EE: `I9040` ×3
+- FN: `F3016` ×3
+- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
 
-### `bad_resources_rds_not_enum_master_username_join_yaml` - 3 mismatches (1 TP, 1 FP, 2 EE, 2 FN)
+### `bad_resources_iam_iam_policy_yaml` - 3 mismatches (22 TP, 0 FP, 4 EE, 3 FN)
 
-- FN: `I4010`, `W1032`
-- FP: `F3017`
-- EE: `I9001` ×2
+- FN: `F3003` ×3
+- EE: `E1028`, `I9001`, `I9040`, `W2512`
 
-### `bad_resources_rds_not_enum_master_username_yaml` - 3 mismatches (4 TP, 1 FP, 3 EE, 2 FN)
+### `bad_resources_updatereplacepolicy_yaml` - 3 mismatches (22 TP, 0 FP, 12 EE, 3 FN)
 
-- FN: `F3002`, `I4010`
-- FP: `F3017`
-- EE: `I9001` ×2, `I9040`
+- FN: `F0018` ×3
+- EE: `I9001` ×4, `I9040` ×4, `W9008` ×3, `I9003`
+
+### `bad_route53_yaml` - 3 mismatches (33 TP, 0 FP, 12 EE, 3 FN)
+
+- FN: `E3023` ×3
+- EE: `I9001` ×11, `I9002`
 
 ### `bad_sam_api_missing_stagename_yaml` - 3 mismatches (0 TP, 1 FP, 0 EE, 2 FN)
 
@@ -20607,148 +20146,72 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3003`, `I4010`
 - FP: `E0001`
 
-### `bad_schema_property_constraints_yaml` - 3 mismatches (1 TP, 0 FP, 11 EE, 3 FN)
+### `bad_security_issues_yaml` - 3 mismatches (2 TP, 0 FP, 3 EE, 3 FN)
 
-- FN: `I4010` ×2, `E1161`
-- EE: `I9001` ×6, `I9040` ×2, `W9002`, `W9009`, `W9013`
-
-### `bad_schema_structural_yaml` - 3 mismatches (6 TP, 0 FP, 10 EE, 3 FN)
-
-- FN: `I4010` ×2, `F3014`
-- EE: `I9001` ×8, `I9040` ×2
-
-### `bad_some_logs_stream_lambda_yaml` - 3 mismatches (12 TP, 0 FP, 12 EE, 3 FN)
-
-- FN: `I4010` ×2, `E2529`
-- EE: `I9040` ×8, `I9001` ×4
+- FN: `F3003` ×3
+- EE: `I9001`, `I9040`, `W2508`
 
 ### `bad_transform_no_properties_yaml` - 3 mismatches (0 TP, 1 FP, 0 EE, 2 FN)
 
 - FN: `F3003`, `I4010`
 - FP: `E0001`
 
-### `gh-issues_issue-40_yaml` - 3 mismatches (1 TP, 0 FP, 14 EE, 3 FN)
+### `cdk_application-load-balancer--LoadBalancerStack.template_json` - 3 mismatches (5 TP, 2 FP, 72 EE, 1 FN)
 
-- FN: `I4010` ×2, `E1041`
-- EE: `I9001` ×6, `I9040` ×3, `W9013` ×3, `I9003`, `W9002`
+- FN: `E3712`
+- FP: `I4010` ×2
+- EE: `I9001` ×68, `I9040` ×4
 
-### `good_aurora_dbinstance_yaml` - 3 mismatches (2 TP, 0 FP, 6 EE, 3 FN)
+### `cdk_py-docker-app-with-asg-alb--RDSStack.template_json` - 3 mismatches (2 TP, 2 FP, 13 EE, 1 FN)
 
-- FN: `E3707`, `E3719`, `I4010`
-- EE: `I9001` ×3, `I9002`, `I9003`, `I9040`
+- FN: `W3691`
+- FP: `I4010` ×2
+- EE: `I9001` ×7, `I9040` ×4, `I9003`, `W9008`
 
-### `good_custom_is-not-defined_yaml` - 3 mismatches (8 TP, 0 FP, 6 EE, 3 FN)
+### `good_conditional_constraints_within_limits_yaml` - 3 mismatches (2 TP, 0 FP, 21 EE, 3 FN)
 
-- FN: `I4010` ×2, `E9004`
-- EE: `I9040` ×5, `I9001`
+- FN: `E3707`, `E3719`, `W3705`
+- EE: `I9001` ×12, `I9040` ×7, `I9002`, `I9003`
 
-### `good_functions_sub_yaml` - 3 mismatches (11 TP, 0 FP, 12 EE, 3 FN)
+### `good_core_conditions_yaml` - 3 mismatches (9 TP, 0 FP, 22 EE, 3 FN)
 
-- FN: `I4010` ×2, `E1021`
-- EE: `I9001` ×7, `I9040` ×5
+- FN: `F3014`, `W1001`, `W3698`
+- EE: `I9001` ×10, `I9040` ×7, `W9010` ×4, `I9003`
 
-### `good_parameters_not_used_parameters_yaml` - 3 mismatches (3 TP, 0 FP, 4 EE, 3 FN)
+### `good_functions_split_get_stack_output_yaml` - 3 mismatches (2 TP, 0 FP, 3 EE, 3 FN)
 
-- FN: `I4010` ×2, `E1021`
-- EE: `I9001` ×3, `I9040`
+- FN: `E1017`, `E1018`, `F1020`
+- EE: `I9040` ×3
 
-### `good_parameters_used_transform_removed_yaml` - 3 mismatches (0 TP, 0 FP, 1 EE, 3 FN)
+### `good_stackset_conditional_template_source_yaml` - 3 mismatches (1 TP, 0 FP, 2 EE, 3 FN)
 
-- FN: `F3012`, `F3017`, `I4010`
-- EE: `I9040`
-
-### `good_resources_properties_exclusive_yaml` - 3 mismatches (1 TP, 0 FP, 6 EE, 3 FN)
-
-- FN: `I4010` ×2, `E1150`
-- EE: `I9001` ×5, `I9040`
-
-### `good_resources_properties_templated_code_sam_yaml` - 3 mismatches (0 TP, 2 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- FP: `I3011` ×2
-- EE: `I9040`
-
-### `good_route53_conditional_record_arrays_yaml` - 3 mismatches (2 TP, 0 FP, 6 EE, 3 FN)
-
-- FN: `I4010` ×2, `E3023`
-- EE: `I9001` ×6
-
-### `good_sam_simpletable_no_primarykey_yaml` - 3 mismatches (0 TP, 2 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- FP: `I3011` ×2
-- EE: `I9040`
-
-### `good_sam_simpletable_valid_yaml` - 3 mismatches (0 TP, 2 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- FP: `I3011` ×2
-- EE: `I9040`
-
-### `integration_getatt-types_yaml` - 3 mismatches (8 TP, 0 FP, 17 EE, 3 FN)
-
-- FN: `I4010` ×2, `E9004`
-- EE: `I9001` ×10, `I9040` ×7
-
-### `lsp_constants_json` - 3 mismatches (5 TP, 0 FP, 3 EE, 3 FN)
-
-- FN: `I4010` ×2, `E3024`
-- EE: `I9001` ×2, `I9040`
-
-### `lsp_constants_yaml` - 3 mismatches (5 TP, 0 FP, 3 EE, 3 FN)
-
-- FN: `I4010` ×2, `E3024`
-- EE: `I9001` ×2, `I9040`
-
-### `bad_E2530_I2530_snapstart_sourced_tables_yaml` - 2 mismatches (6 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×5
-
-### `bad_E3019_four_way_group_yaml` - 2 mismatches (4 TP, 0 FP, 8 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×4
-
-### `bad_E3023_conditional_record_items_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
+- FN: `F3003` ×2, `F3018`
 - EE: `I9001` ×2
 
-### `bad_E3031_cognito_user_pool_domain_pattern_yaml` - 2 mismatches (6 TP, 0 FP, 12 EE, 2 FN)
+### `good_unknown_resource_types_ignored_yaml` - 3 mismatches (2 TP, 0 FP, 0 EE, 3 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×12
+- FN: `F3006` ×3
 
-### `bad_E3032_E3002_E3689_conditional_constraints_yaml` - 2 mismatches (21 TP, 0 FP, 14 EE, 2 FN)
+### `lsp_comprehensive_json` - 3 mismatches (12 TP, 0 FP, 32 EE, 3 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×9, `I9040` ×4, `W9002`
+- FN: `W1001` ×2, `E1701`
+- EE: `I9001` ×24, `I9040` ×4, `F8611`, `I9003`, `W2508`, `W9008`
 
-### `bad_E3680_alb_fewer_than_two_subnets_yaml` - 2 mismatches (3 TP, 0 FP, 10 EE, 2 FN)
+### `lsp_comprehensive_yaml` - 3 mismatches (12 TP, 0 FP, 34 EE, 3 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×5, `I9040` ×5
+- FN: `W1001` ×2, `E1701`
+- EE: `I9001` ×24, `I9040` ×4, `F8611`, `I9003`, `W1103`, `W2508`, `W9003`, `W9008`
 
-### `bad_E3699_authorizer_literal_and_param_rest_api_yaml` - 2 mismatches (2 TP, 0 FP, 9 EE, 2 FN)
+### `bad_E3023_recordsetgroup_projection_covering_yaml` - 2 mismatches (2 TP, 2 FP, 3 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×8, `I9040`
+- FP: `E3023` ×2
+- EE: `I9001` ×2, `W9052`
 
-### `bad_E3699_method_authorizer_rest_api_mismatch_yaml` - 2 mismatches (1 TP, 0 FP, 6 EE, 2 FN)
+### `bad_E3024_duplicate_tag_keys_yaml` - 2 mismatches (14 TP, 1 FP, 4 EE, 1 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×2
-
-### `bad_E9002_inverted_port_range_egress_and_standalone_yaml` - 2 mismatches (0 TP, 0 FP, 18 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×13, `E9002` ×3, `I9040` ×2
-
-### `bad_F2002_ssm_parameter_type_invalid_yaml` - 2 mismatches (1 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `F1020`, `I4010`
-- EE: `I9001`, `I9040`
+- FN: `I3037`
+- FP: `E3024`
+- EE: `I9040` ×2, `I9001`, `W9013`
 
 ### `bad_F2002_unsupported_ssm_parameter_type_yaml` - 2 mismatches (1 TP, 1 FP, 1 EE, 1 FN)
 
@@ -20756,35 +20219,26 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FP: `F2002`
 - EE: `F0001`
 
-### `bad_I3100_previous_generation_sourced_routes_yaml` - 2 mismatches (8 TP, 0 FP, 5 EE, 2 FN)
+### `bad_F3018_conditional_required_novalue_yaml` - 2 mismatches (2 TP, 0 FP, 3 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×2
+- FN: `F3003` ×2
+- EE: `I9001` ×2, `I9040`
 
-### `bad_I9001_conditional_create_only_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
+### `bad_F6101_getatt_ref_typed_object_attribute_yaml` - 2 mismatches (3 TP, 1 FP, 7 EE, 1 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×3
+- FN: `E9004`
+- FP: `F3012`
+- EE: `I9001` ×4, `I9040` ×2, `I9003`
 
-### `bad_W2501_nested_password_W1011_exact_path_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
+### `bad_W9052_scenario_product_covering_yaml` - 2 mismatches (1 TP, 0 FP, 7 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001`, `I9040`
+- FN: `E3046`, `E3048`
+- EE: `I9001` ×5, `I9040`, `W9052`
 
-### `bad_W3010_full_coverage_yaml` - 2 mismatches (15 TP, 0 FP, 26 EE, 2 FN)
+### `bad_aurora_with_allocated_storage_yaml` - 2 mismatches (3 TP, 0 FP, 5 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×15, `I9040` ×8, `I9003`, `W9008`, `W9010`
-
-### `bad_W3660_api_gateway_body_mixing_yaml` - 2 mismatches (6 TP, 0 FP, 13 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×12, `I9040`
-
-### `bad_W3687_ports_ignored_by_protocol_yaml` - 2 mismatches (8 TP, 0 FP, 14 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×11, `I9040` ×2, `W9003`
+- FN: `E3682`, `E3707`
+- EE: `I9001` ×2, `I9003`, `I9040`, `W9003`
 
 ### `bad_conditions_equals_yaml` - 2 mismatches (16 TP, 0 FP, 1 EE, 2 FN)
 
@@ -20796,294 +20250,61 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E0002`, `F0013`
 - EE: `F0001`
 
-### `bad_core_mandatory_checks_yaml` - 2 mismatches (7 TP, 0 FP, 5 EE, 2 FN)
+### `bad_findinmap_bad_yaml` - 2 mismatches (1 TP, 0 FP, 2 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×4, `F3002`
-
-### `bad_cross_resource_task10_yaml` - 2 mismatches (11 TP, 0 FP, 29 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×16, `I9040` ×10, `W9003` ×2, `F3003`
-
-### `bad_duplicate_primary_id_multi_yaml` - 2 mismatches (0 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2
-
-### `bad_duplicate_primary_id_yaml` - 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2
-
-### `bad_ecs_dynamic_port_no_traffic_yaml` - 2 mismatches (2 TP, 0 FP, 7 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×3
-
-### `bad_ecs_fargate_mismatch_yaml` - 2 mismatches (1 TP, 0 FP, 8 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×2
-
-### `bad_ecs_role_no_boundary_yaml` - 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×3
-
-### `bad_fargate_daemon_yaml` - 2 mismatches (2 TP, 0 FP, 12 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×9, `I9040` ×3
+- FN: `E1011`, `E3024`
+- EE: `F1012`, `I9001`
 
 ### `bad_functions_foreach_no_transform_yaml` - 2 mismatches (4 TP, 0 FP, 0 EE, 2 FN)
 
 - FN: `E0002`, `E6001`
 
-### `bad_functions_get_stack_output_json` - 2 mismatches (4 TP, 0 FP, 4 EE, 2 FN)
+### `bad_functions_import_value_yaml` - 2 mismatches (3 TP, 0 FP, 3 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×4
-
-### `bad_functions_get_stack_output_yaml` - 2 mismatches (7 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×5
-
-### `bad_functions_getaz_yaml` - 2 mismatches (8 TP, 0 FP, 12 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×9, `I9040` ×3
-
-### `bad_functions_ref_yaml` - 2 mismatches (12 TP, 0 FP, 26 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×16, `I9040` ×4, `W9003` ×3, `W9010` ×2, `I9003`
-
-### `bad_functions_relationship_conditions_yaml` - 2 mismatches (8 TP, 0 FP, 6 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×4, `I9001` ×2
-
-### `bad_functions_sub_needed_yaml` - 2 mismatches (12 TP, 0 FP, 11 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×4, `I9001` ×3, `W9002` ×2, `W9013` ×2
-
-### `bad_getatt_object_attribute_member_yaml` - 2 mismatches (1 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `bad_hard_coded_arn_properties_yaml` - 2 mismatches (4 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2
-
-### `bad_hardcoded_partition_yaml` - 2 mismatches (0 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2, `W9013`
-
-### `bad_iam_ref_with_path_yaml` - 2 mismatches (1 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2, `I9001`
-
-### `bad_iam_wildcard_all_types_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2, `W2512`
-
-### `bad_invalid_mapping_structure_yaml` - 2 mismatches (1 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `E7001`, `I4010`
-- EE: `F0017`, `I9040`
-
-### `bad_lambda_sqs_timeout_yaml` - 2 mismatches (4 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3, `I9001`
-
-### `bad_mappings_used_yaml` - 2 mismatches (2 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010`, `W1034`
+- FN: `E1016` ×2
 - EE: `I9001` ×2, `I9040`
+
+### `bad_limit_size_yaml` - 2 mismatches (1198 TP, 0 FP, 899 EE, 2 FN)
+
+- FN: `E1002`, `E1003`
+- EE: `I9001` ×897, `F0011`, `I9003`
 
 ### `bad_modules_bad_has_create_policy_yaml` - 2 mismatches (1 TP, 1 FP, 0 EE, 1 FN)
 
 - FN: `E5001`
 - FP: `E3055`
 
-### `bad_noecho_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
+### `bad_override_include_yaml` - 2 mismatches (4 TP, 0 FP, 6 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `bad_opensearch_instance_type_yaml` - 2 mismatches (5 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2, `I9003`
-
-### `bad_override_complete_yaml` - 2 mismatches (3 TP, 0 FP, 7 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×5, `I9001` ×2
-
-### `bad_override_exclude_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `bad_param_number_default_yaml` - 2 mismatches (1 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `F2015`, `I4010`
-- EE: `F0016` ×2, `F0015`, `F2012`
-
-### `bad_pipeline_no_source_first_stage_yaml` - 2 mismatches (3 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `E3701`, `I4010`
-- EE: `I9001`, `I9040`, `W9002`, `W9013`
-
-### `bad_previous_generation_instances_yaml` - 2 mismatches (15 TP, 0 FP, 11 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×6, `I9001` ×4, `I9003`
-
-### `bad_properties_ebs_yaml` - 2 mismatches (8 TP, 0 FP, 16 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×10, `I9040` ×2, `W9010` ×2, `I9003`, `W9003`
-
-### `bad_properties_password_yaml` - 2 mismatches (17 TP, 0 FP, 15 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3, `W9008` ×3, `W2509` ×2, `I9003`
-
-### `bad_properties_rt_association_yaml` - 2 mismatches (7 TP, 0 FP, 13 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×13
-
-### `bad_redshift_internet_accessible_yaml` - 2 mismatches (0 TP, 0 FP, 13 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×8, `I9040` ×5
-
-### `bad_refs_yaml` - 2 mismatches (6 TP, 0 FP, 17 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×12, `I9040` ×2, `W9010` ×2, `I9003`
-
-### `bad_resources_backup_test_backup_plan_lifecycle_rule_yml` - 2 mismatches (0 TP, 0 FP, 0 EE, 2 FN)
-
-- FN: `E3504`, `I4010`
-
-### `bad_resources_circular_dependency_2_yaml` - 2 mismatches (9 TP, 0 FP, 9 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×9
-
-### `bad_resources_circular_dependency_dependson_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `bad_resources_codepipeline_stages_second_stage_yaml` - 2 mismatches (3 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `E3700`, `I4010`
-- EE: `I9001`, `I9040`, `W9002`
-
-### `bad_resources_creation_policy_unsupported_e3055_yaml` - 2 mismatches (0 TP, 1 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- FP: `E3055`
-- EE: `I9001`, `I9040`
-
-### `bad_resources_dynamodb_attributes_transform_e3639_yaml` - 2 mismatches (9 TP, 0 FP, 10 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `F1101` ×4, `I9001` ×3, `I9040` ×3
-
-### `bad_resources_dynamodb_conditional_scenarios_yaml` - 2 mismatches (9 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3, `I9001` ×2
-
-### `bad_resources_dynamodb_provisioned_throughput_e3639_yaml` - 2 mismatches (21 TP, 0 FP, 18 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×10, `I9040` ×7, `F3003`
-
-### `bad_resources_ecs_fargate_conditional_properties_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `bad_resources_ecs_fargate_numeric_spellings_e3047_yaml` - 2 mismatches (9 TP, 0 FP, 36 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×30, `I9040` ×6
-
-### `bad_resources_ecs_fargate_properties_e3048_yaml` - 2 mismatches (17 TP, 0 FP, 94 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×80, `I9040` ×14
-
-### `bad_resources_ecs_fargate_task_sizes_e3047_yaml` - 2 mismatches (11 TP, 0 FP, 67 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×54, `I9040` ×9, `W9003` ×4
-
-### `bad_resources_iam_identity_policy_conditional_novalue_e3510_yaml` - 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
-
-- FN: `I3510`, `I4010`
-- EE: `I9001`
-
-### `bad_resources_iam_identity_policy_wildcard_service_yaml` - 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-- FP: `E3510`
-
-### `bad_resources_iam_ref_with_path_yaml` - 2 mismatches (1 TP, 0 FP, 11 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×7, `I9040` ×4
-
-### `bad_resources_lambda_function_property_value_limits_yaml` - 2 mismatches (11 TP, 0 FP, 6 EE, 2 FN)
-
-- FN: `I4010` ×2
+- FN: `E3512`, `E3514`
 - EE: `I9001` ×3, `I9040` ×3
 
-### `bad_resources_name_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
+### `bad_properties_sg_ingress_yaml` - 2 mismatches (20 TP, 0 FP, 28 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×2
+- FN: `F3014` ×2
+- EE: `I9001` ×18, `W9003` ×7, `I9040` ×3
 
-### `bad_resources_primary_identifiers_yaml` - 2 mismatches (11 TP, 0 FP, 25 EE, 2 FN)
+### `bad_resources_properties_primitive_types_map_yaml` - 2 mismatches (4 TP, 0 FP, 4 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×15, `I9040` ×10
+- FN: `F3012` ×2
+- EE: `I9040` ×2, `W9013` ×2
 
-### `bad_resources_rds_instance_sizes_yaml` - 2 mismatches (26 TP, 0 FP, 23 EE, 2 FN)
+### `bad_resources_rds_not_enum_master_username_join_yaml` - 2 mismatches (2 TP, 1 FP, 2 EE, 1 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×8, `I9040` ×8, `W9008` ×6, `I9003`
+- FN: `W1032`
+- FP: `F3017`
+- EE: `I9001` ×2
 
-### `bad_resources_s3_access-control-obsolete_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
+### `bad_resources_rds_not_enum_master_username_yaml` - 2 mismatches (5 TP, 1 FP, 3 EE, 1 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×2
+- FN: `F3002`
+- FP: `F3017`
+- EE: `I9001` ×2, `I9040`
 
-### `bad_route53_conditional_record_arrays_yaml` - 2 mismatches (10 TP, 0 FP, 10 EE, 2 FN)
+### `bad_route53_conditional_scenarios_yaml` - 2 mismatches (8 TP, 2 FP, 3 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×10
-
-### `bad_sagemaker_instance_types_yaml` - 2 mismatches (41 TP, 0 FP, 8 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×5, `I9001` ×2, `I9003`
+- FP: `E3029` ×2
+- EE: `I9001` ×3
 
 ### `bad_sam_function_autopublishalias_invalid_name_yaml` - 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
 
@@ -21150,809 +20371,640 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `I4010`
 - FP: `E0001`
 
-### `bad_schema_lifecycle_yaml` - 2 mismatches (7 TP, 0 FP, 10 EE, 2 FN)
+### `bad_sub_nested_intrinsic_yaml` - 2 mismatches (2 TP, 0 FP, 3 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×5, `I9040` ×3, `W9013` ×2
-
-### `bad_schema_required_xor_conditional_yaml` - 2 mismatches (1 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `F3014`, `I4010`
-- EE: `I9001` ×5
-
-### `bad_sqs_fifo_standard_dlq_yaml` - 2 mismatches (7 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×2
-
-### `bad_sub_needed_yaml` - 2 mismatches (3 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `E1161`, `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_subnet_outside_vpc_yaml` - 2 mismatches (1 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×2
-
-### `bad_subnet_overlap_multi_yaml` - 2 mismatches (8 TP, 0 FP, 18 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×13, `I9040` ×5
-
-### `bad_subnet_overlap_yaml` - 2 mismatches (3 TP, 0 FP, 10 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×7, `I9040` ×3
-
-### `bad_templates_transform_invalid_entries_yaml` - 2 mismatches (3 TP, 0 FP, 0 EE, 2 FN)
-
-- FN: `E1005`, `I4010`
+- FN: `W1031` ×2
+- EE: `I9040` ×2, `I9001`
 
 ### `bad_transform_serverless_auto_publish_alias_yaml` - 2 mismatches (0 TP, 1 FP, 0 EE, 1 FN)
 
 - FN: `I4010`
 - FP: `E0001`
 
-### `bad_unknown_properties_yaml` - 2 mismatches (2 TP, 0 FP, 2 EE, 2 FN)
+### `cdk_DemoStack.template_json` - 2 mismatches (10 TP, 2 FP, 14 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001`, `I9040`
+- FP: `I4010` ×2
+- EE: `I9040` ×7, `I9001` ×4, `E9002`, `F3003`, `W2508`
 
-### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStack.template_json` - 2 mismatches (1 TP, 0 FP, 43 EE, 2 FN)
+### `cdk_amazon-mq-rabbitmq-lambda--AmazonMqRabbitmqLambdaStack.template_json` - 2 mismatches (23 TP, 2 FP, 28 EE, 0 FN)
 
-- FN: `W1034` ×2
-- EE: `I9001` ×39, `I9040` ×4
+- FP: `I4010` ×2
+- EE: `I9040` ×18, `I9001` ×9, `I9003`
 
-### `gh-issues_issue-226_yaml` - 2 mismatches (0 TP, 0 FP, 5 EE, 2 FN)
+### `cdk_amplify-console-app--AmplifyConsoleApp.template_json` - 2 mismatches (0 TP, 2 FP, 4 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2, `E9002`
+- FP: `I4010` ×2
+- EE: `I9001` ×2, `I9040` ×2
 
-### `gh-issues_issue-246_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
+### `cdk_api-cors-lambda-crud-dynamodb--ApiLambdaCrudDynamoDBExample.template_json` - 2 mismatches (10 TP, 2 FP, 86 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001`, `I9040`
+- FP: `I4010` ×2
+- EE: `I9001` ×72, `I9040` ×14
 
-### `gh-issues_issue-264_yaml` - 2 mismatches (0 TP, 0 FP, 9 EE, 2 FN)
+### `cdk_api-gateway-async-lambda-invocation--ApiGatewayAsyncLambdaStack.template_json` - 2 mismatches (2 TP, 2 FP, 34 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×8, `I9040`
+- FP: `I4010` ×2
+- EE: `I9001` ×25, `I9040` ×9
 
-### `gh-issues_issue-34_json` - 2 mismatches (1 TP, 0 FP, 7 EE, 2 FN)
+### `cdk_api-gateway-lambda-token-authorizer--gateway-lambda-auth-stack.template_json` - 2 mismatches (5 TP, 2 FP, 30 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×2, `I9003`
+- FP: `I4010` ×2
+- EE: `I9001` ×22, `I9040` ×8
 
-### `gh-issues_issue-37_yaml` - 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
+### `cdk_api-gateway-parallel-step-functions--apigateway-parallel-stepfunctions-stack-2.template_json` - 2 mismatches (16 TP, 2 FP, 33 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040`
+- FP: `I4010` ×2
+- EE: `I9001` ×17, `I9040` ×16
 
-### `gh-issues_issue-39_json` - 2 mismatches (0 TP, 0 FP, 5 EE, 2 FN)
+### `cdk_api-gateway-parallel-step-functions--apigatewayparallelstepfunctionsstack2nestedstacklambda9F5CAB08.nested.template_json` - 2 mismatches (0 TP, 2 FP, 31 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×31
 
-### `gh-issues_issue-42-if_yaml` - 2 mismatches (1 TP, 0 FP, 9 EE, 2 FN)
+### `cdk_api-websocket-lambda-dynamodb--chat-app.template_json` - 2 mismatches (3 TP, 2 FP, 22 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3
+- FP: `I4010` ×2
+- EE: `I9001` ×12, `I9040` ×10
 
-### `gh-issues_issue-42-ref_yaml` - 2 mismatches (0 TP, 0 FP, 9 EE, 2 FN)
+### `cdk_appsync-graphql-dynamodb--CdkAppsyncDemoStack.template_json` - 2 mismatches (0 TP, 2 FP, 21 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3
+- FP: `I4010` ×2
+- EE: `I9001` ×16, `I9040` ×5
 
-### `gh-issues_issue-42_yaml` - 2 mismatches (1 TP, 0 FP, 9 EE, 2 FN)
+### `cdk_appsync-graphql-eventbridge--AppSyncEventBridge.template_json` - 2 mismatches (1 TP, 2 FP, 15 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3
+- FP: `I4010` ×2
+- EE: `I9001` ×10, `I9040` ×5
 
-### `gh-issues_issue-44_json` - 2 mismatches (1 TP, 0 FP, 2 EE, 2 FN)
+### `cdk_appsync-graphql-http--AppSyncGraphQLHTTPExample.template_json` - 2 mismatches (0 TP, 2 FP, 16 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×15, `I9040`
 
-### `gh-issues_issue-46_json` - 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
+### `cdk_aspects--SampleStack.template_json` - 2 mismatches (8 TP, 2 FP, 8 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×2, `W9013` ×2, `I9001`, `W9002`
+- FP: `I4010` ×2
+- EE: `I9040` ×8
 
-### `gh-issues_issue-49_yaml` - 2 mismatches (6 TP, 0 FP, 8 EE, 2 FN)
+### `cdk_aws-transfer-sftp-server--SftpServerStack-dev.template_json` - 2 mismatches (0 TP, 2 FP, 55 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×3, `I9003`, `W9010`
+- FP: `I4010` ×2
+- EE: `I9001` ×45, `I9040` ×9, `W2508`
 
-### `gh-issues_issue-53_json` - 2 mismatches (18 TP, 0 FP, 58 EE, 2 FN)
+### `cdk_aws-transfer-sftp-server--SftpServerStack-prod.template_json` - 2 mismatches (0 TP, 2 FP, 55 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×49, `I9040` ×9
+- FP: `I4010` ×2
+- EE: `I9001` ×45, `I9040` ×9, `W2508`
 
-### `gh-issues_issue-68_json` - 2 mismatches (3 TP, 0 FP, 6 EE, 2 FN)
+### `cdk_backup-s3--AwsBackupS3Stack.template_json` - 2 mismatches (0 TP, 2 FP, 5 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2, `W9013` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×4, `I9040`
 
-### `good_E3019_identity_no_false_positive_yaml` - 2 mismatches (0 TP, 0 FP, 10 EE, 2 FN)
+### `cdk_batch-ecr-openmp--AwsBatchOpenmpBenchmarkStack.template_json` - 2 mismatches (2 TP, 2 FP, 62 EE, 0 FN)
 
-- FN: `I4010` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×48, `I9040` ×14
+
+### `cdk_classic-load-balancer--LoadBalancerStack.template_json` - 2 mismatches (1 TP, 2 FP, 65 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×63, `I9040` ×2
+
+### `cdk_cloudfront-functions--DemoCloudfrontFunctionsStack.template_json` - 2 mismatches (1 TP, 2 FP, 10 EE, 0 FN)
+
+- FP: `I4010` ×2
 - EE: `I9001` ×5, `I9040` ×5
 
-### `good_E3022_multi_element_join_distinct_yaml` - 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
+### `cdk_codepipeline-build-deploy--CodepipelineBuildDeployStack.template_json` - 2 mismatches (4 TP, 2 FP, 112 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×4
+- FP: `I4010` ×2
+- EE: `I9001` ×78, `I9040` ×34
 
-### `good_E3031_cognito_user_pool_domain_pattern_yaml` - 2 mismatches (0 TP, 0 FP, 8 EE, 2 FN)
+### `cdk_cognito-api-lambda--CognitoProtectedApi.template_json` - 2 mismatches (2 TP, 2 FP, 23 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×8
+- FP: `I4010` ×2
+- EE: `I9001` ×18, `I9040` ×5
 
-### `good_E3680_alb_subnet_counts_yaml` - 2 mismatches (0 TP, 0 FP, 19 EE, 2 FN)
+### `cdk_custom-logical-names--MyStack.template_json` - 2 mismatches (0 TP, 2 FP, 2 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×10, `I9040` ×9
+- FP: `I4010` ×2
+- EE: `I9040` ×2
 
-### `good_E9002_port_range_exemptions_yaml` - 2 mismatches (0 TP, 0 FP, 20 EE, 2 FN)
+### `cdk_custom-resource--CustomResourceDemoStack.template_json` - 2 mismatches (3 TP, 2 FP, 5 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×18, `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9040` ×4, `I9001`
 
-### `good_W3010_getazs_not_flagged_yaml` - 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
+### `cdk_custom-resource-provider--CustomResourceDemoStack.template_json` - 2 mismatches (4 TP, 2 FP, 7 EE, 0 FN)
 
-- FN: `I4010` ×2
+- FP: `I4010` ×2
+- EE: `I9040` ×6, `I9001`
+
+### `cdk_ddb-stream-lambda-sns--DdbStreamStack.template_json` - 2 mismatches (5 TP, 2 FP, 19 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9040` ×11, `I9001` ×8
+
+### `cdk_ec2-instance--EC2Example.template_json` - 2 mismatches (4 TP, 2 FP, 41 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×32, `I9040` ×7, `I9003`, `W2508`
+
+### `cdk_ec2-instance-connect-endpoint--integ-testing-eicendpoint.template_json` - 2 mismatches (8 TP, 2 FP, 34 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×22, `I9040` ×11, `I9003`
+
+### `cdk_ecs-cluster--MyFirstEcsCluster.template_json` - 2 mismatches (1 TP, 2 FP, 52 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×50, `I9040` ×2
+
+### `cdk_ecs-cross-stack-load-balancer--CrossStackLBInfra.template_json` - 2 mismatches (0 TP, 2 FP, 40 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×39, `I9040`
+
+### `cdk_ecs-cross-stack-load-balancer--SplitAtListener-LBStack.template_json` - 2 mismatches (0 TP, 2 FP, 6 EE, 0 FN)
+
+- FP: `I4010` ×2
 - EE: `I9001` ×4, `I9040` ×2
 
-### `good_complex_conditions_yaml` - 2 mismatches (4 TP, 0 FP, 10 EE, 2 FN)
+### `cdk_ecs-cross-stack-load-balancer--SplitAtListener-ServiceStack.template_json` - 2 mismatches (1 TP, 2 FP, 32 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3, `I9003`
+- FP: `I4010` ×2
+- EE: `I9001` ×26, `I9040` ×6
 
-### `good_conditional_constraints_composite_keys_and_monitoring_yaml` - 2 mismatches (0 TP, 0 FP, 19 EE, 2 FN)
+### `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-LBStack.template_json` - 2 mismatches (0 TP, 2 FP, 13 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×12, `I9040` ×6, `W9002`
+- FP: `I4010` ×2
+- EE: `I9001` ×9, `I9040` ×4
 
-### `good_conditions_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
+### `cdk_ecs-cross-stack-load-balancer--SplitAtTargetGroup-ServiceStack.template_json` - 2 mismatches (0 TP, 2 FP, 25 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001`, `I9040`, `W9010`
+- FP: `I4010` ×2
+- EE: `I9001` ×21, `I9040` ×4
 
-### `good_core_resource_attributes_yaml` - 2 mismatches (0 TP, 0 FP, 11 EE, 2 FN)
+### `cdk_ecs-ecs-service-with-logging--Willkommen.template_json` - 2 mismatches (3 TP, 2 FP, 71 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×6, `I9001` ×5
+- FP: `I4010` ×2
+- EE: `I9001` ×65, `I9040` ×6
 
-### `good_custom_is-defined_yaml` - 2 mismatches (14 TP, 0 FP, 8 EE, 2 FN)
+### `cdk_ecs-ecs-service-with-task-networking--ec2-service-with-task-networking.template_json` - 2 mismatches (3 TP, 2 FP, 71 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×7, `I9001`
+- FP: `I4010` ×2
+- EE: `I9001` ×66, `I9040` ×5
 
-### `good_custom_numeric-inequalities-large_yaml` - 2 mismatches (4 TP, 0 FP, 5 EE, 2 FN)
+### `cdk_ecs-ecs-service-with-task-placement--sample-aws-ecs-integ-ecs.template_json` - 2 mismatches (3 TP, 2 FP, 68 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×3, `I9001`, `W9003`
+- FP: `I4010` ×2
+- EE: `I9001` ×64, `I9040` ×4
 
-### `good_custom_numeric-inequalities-small_yaml` - 2 mismatches (4 TP, 0 FP, 5 EE, 2 FN)
+### `cdk_ecs-fargate-application-load-balanced-service--Bonjour.template_json` - 2 mismatches (1 TP, 2 FP, 81 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×3, `I9001`, `W9003`
+- FP: `I4010` ×2
+- EE: `I9001` ×70, `I9040` ×11
 
-### `good_deletion_policies_yaml` - 2 mismatches (4 TP, 0 FP, 7 EE, 2 FN)
+### `cdk_ecs-fargate-service-with-auto-scaling--aws-fargate-application-autoscaling.template_json` - 2 mismatches (1 TP, 2 FP, 74 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×2, `I9003`, `W9008`
+- FP: `I4010` ×2
+- EE: `I9001` ×63, `I9040` ×11
 
-### `good_ecs_fargate_ddb_valid_yaml` - 2 mismatches (10 TP, 0 FP, 71 EE, 2 FN)
+### `cdk_ecs-fargate-service-with-logging--Willkommen.template_json` - 2 mismatches (0 TP, 2 FP, 58 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×57, `I9040` ×14
+- FP: `I4010` ×2
+- EE: `I9001` ×51, `I9040` ×7
 
-### `good_ecs_fargate_units_and_sizes_yaml` - 2 mismatches (0 TP, 0 FP, 43 EE, 2 FN)
+### `cdk_eventbridge-lambda--EventBridgeLambdaStack.template_json` - 2 mismatches (2 TP, 2 FP, 11 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×43
+- FP: `I4010` ×2
+- EE: `I9001` ×7, `I9040` ×4
 
-### `good_ecs_fargate_yaml` - 2 mismatches (0 TP, 0 FP, 9 EE, 2 FN)
+### `cdk_http-proxy-apigateway--HttpProxy.template_json` - 2 mismatches (0 TP, 2 FP, 15 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×7, `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×12, `I9040` ×3
 
-### `good_enum_case_insensitive_casing_yaml` - 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
+### `cdk_imagebuilder--ImagebuilderStack.template_json` - 2 mismatches (0 TP, 2 FP, 31 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6
+- FP: `I4010` ×2
+- EE: `I9001` ×22, `I9040` ×9
 
-### `good_functions_dynamic_reference_embedded_yaml` - 2 mismatches (0 TP, 0 FP, 8 EE, 2 FN)
+### `cdk_inspector2--Inspector2EnableDelegatedAdminAccountStack.template_json` - 2 mismatches (2 TP, 2 FP, 5 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×5, `I9040` ×2, `I9003`
+- FP: `I4010` ×2
+- EE: `I9040` ×5
 
-### `good_functions_findinmap_default_value_yaml` - 2 mismatches (5 TP, 0 FP, 18 EE, 2 FN)
+### `cdk_inspector2--Inspector2EnableStack.template_json` - 2 mismatches (1 TP, 2 FP, 2 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×9, `I9040` ×9
+- FP: `I4010` ×2
+- EE: `I9040` ×2
 
-### `good_functions_findinmap_enhanced_yaml` - 2 mismatches (8 TP, 0 FP, 12 EE, 2 FN)
+### `cdk_inspector2--Inspector2MonitoringStack.template_json` - 2 mismatches (5 TP, 2 FP, 16 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×6
+- FP: `I4010` ×2
+- EE: `I9001` ×8, `I9040` ×8
 
-### `good_functions_foreach_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
+### `cdk_lambda-cloudwatch-dashboard--LambdaCloudwatchDashboardStack.template_json` - 2 mismatches (3 TP, 2 FP, 6 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×3
+- FP: `I4010` ×2
+- EE: `I9040` ×5, `I9001`
 
-### `good_functions_get_stack_output_yaml` - 2 mismatches (0 TP, 0 FP, 10 EE, 2 FN)
+### `cdk_lambda-cron--LambdaCronExample.template_json` - 2 mismatches (2 TP, 2 FP, 7 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×10
+- FP: `I4010` ×2
+- EE: `I9001` ×4, `I9040` ×3
 
-### `good_functions_relationship_conditions_sam_yaml` - 2 mismatches (1 TP, 0 FP, 4 EE, 2 FN)
+### `cdk_lambda-layer--LambdaLayerStack.template_json` - 2 mismatches (1 TP, 2 FP, 5 EE, 0 FN)
 
-- FN: `I4010` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×3, `I9040` ×2
+
+### `cdk_lambda-manage-s3-event-notification--AStack.template_json` - 2 mismatches (1 TP, 2 FP, 2 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001`, `I9040`
+
+### `cdk_lambda-manage-s3-event-notification--BStack.template_json` - 2 mismatches (0 TP, 2 FP, 2 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001`, `I9040`
+
+### `cdk_lambda-manage-s3-event-notification--SharedStack.template_json` - 2 mismatches (2 TP, 2 FP, 4 EE, 0 FN)
+
+- FP: `I4010` ×2
 - EE: `I9040` ×3, `I9001`
 
-### `good_functions_relationship_conditions_yaml` - 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
+### `cdk_my-widget-service--MyWidgetServiceStack.template_json` - 2 mismatches (2 TP, 2 FP, 56 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×50, `I9040` ×6
 
-### `good_functions_select_string_index_yaml` - 2 mismatches (0 TP, 0 FP, 10 EE, 2 FN)
+### `cdk_pat-the-big-fan--TheBigFanStack.template_json` - 2 mismatches (11 TP, 2 FP, 38 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×7, `I9040` ×3
+- FP: `I4010` ×2
+- EE: `I9001` ×25, `I9040` ×13
 
-### `good_functions_sub_needed_yaml` - 2 mismatches (7 TP, 0 FP, 9 EE, 2 FN)
+### `cdk_pat-the-cloudwatch-dashboard--TheCloudwatchDashboardStack.template_json` - 2 mismatches (3 TP, 2 FP, 25 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×3, `W9002`, `W9013`
+- FP: `I4010` ×2
+- EE: `I9040` ×15, `I9001` ×10
 
-### `good_generic_yaml` - 2 mismatches (0 TP, 0 FP, 28 EE, 2 FN)
+### `cdk_pat-the-destined-lambda--TheDestinedLambdaStack.template_json` - 2 mismatches (7 TP, 2 FP, 49 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×16, `I9040` ×8, `W9010` ×2, `I9003`, `W9013`
+- FP: `I4010` ×2
+- EE: `I9001` ×35, `I9040` ×14
 
-### `good_getatt_provisioned_product_outputs_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
+### `cdk_pat-the-dynamo-streamer--TheDynamoStreamerStack.template_json` - 2 mismatches (3 TP, 2 FP, 26 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×18, `I9040` ×8
 
-### `good_getatt_ref_typed_nested_attribute_yaml` - 2 mismatches (0 TP, 0 FP, 7 EE, 2 FN)
+### `cdk_pat-the-eventbridge-atm--TheEventbridgeAtmStack.template_json` - 2 mismatches (10 TP, 2 FP, 54 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×2, `I9003`
+- FP: `I4010` ×2
+- EE: `I9001` ×40, `I9040` ×14
 
-### `good_getazs_resolves_current_regions_yaml` - 2 mismatches (0 TP, 0 FP, 8 EE, 2 FN)
+### `cdk_pat-the-eventbridge-circuit-breaker--TheEventbridgeCircuitBreakerStack.template_json` - 2 mismatches (6 TP, 2 FP, 42 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×33, `I9040` ×9
 
-### `good_iam_intrinsic_resource_arns_schema_valid_yaml` - 2 mismatches (1 TP, 0 FP, 7 EE, 2 FN)
+### `cdk_pat-the-eventbridge-etl--TheEventbridgeEtlStack.template_json` - 2 mismatches (18 TP, 2 FP, 83 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×5, `I9040` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×61, `I9040` ×22
 
-### `good_kms_key_identifier_forms_yaml` - 2 mismatches (0 TP, 0 FP, 10 EE, 2 FN)
+### `cdk_pat-the-lambda-circuit-breaker--TheLambdaCircuitBreakerStack.template_json` - 2 mismatches (3 TP, 2 FP, 15 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×7, `W9013` ×3
+- FP: `I4010` ×2
+- EE: `I9001` ×10, `I9040` ×5
 
-### `good_no_value_yaml` - 2 mismatches (4 TP, 0 FP, 11 EE, 2 FN)
+### `cdk_pat-the-saga-stepfunction--TheSagaStepfunctionSingleTableStack.template_json` - 2 mismatches (20 TP, 2 FP, 53 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×10, `I9040`
+- FP: `I4010` ×2
+- EE: `I9001` ×29, `I9040` ×24
 
-### `good_output_value_string_yaml` - 2 mismatches (3 TP, 0 FP, 1 EE, 2 FN)
+### `cdk_pat-the-scalable-webhook--TheScalableWebhookStack.template_json` - 2 mismatches (9 TP, 2 FP, 40 EE, 0 FN)
 
-- FN: `I4010`, `W6001`
-- EE: `I9040`
+- FP: `I4010` ×2
+- EE: `I9001` ×30, `I9040` ×10
 
-### `good_override_complete_yaml` - 2 mismatches (0 TP, 0 FP, 7 EE, 2 FN)
+### `cdk_pat-the-scheduled-lambda--TheScheduledLambdaStack.template_json` - 2 mismatches (3 TP, 2 FP, 9 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×3, `W9010`
+- FP: `I4010` ×2
+- EE: `I9001` ×5, `I9040` ×4
 
-### `good_properties_ec2_vpc_yaml` - 2 mismatches (2 TP, 0 FP, 21 EE, 2 FN)
+### `cdk_pat-the-simple-graphql-service--TheSimpleGraphqlServiceStack.template_json` - 2 mismatches (3 TP, 2 FP, 35 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×14, `I9040` ×7
+- FP: `I4010` ×2
+- EE: `I9001` ×28, `I9040` ×7
 
-### `good_properties_rt_association_yaml` - 2 mismatches (0 TP, 0 FP, 11 EE, 2 FN)
+### `cdk_pat-the-simple-webservice--TheSimpleWebserviceStack.template_json` - 2 mismatches (3 TP, 2 FP, 15 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×11
+- FP: `I4010` ×2
+- EE: `I9001` ×10, `I9040` ×5
 
-### `good_redshift_private_yaml` - 2 mismatches (0 TP, 0 FP, 14 EE, 2 FN)
+### `cdk_pat-the-state-machine--TheStateMachineStack.template_json` - 2 mismatches (4 TP, 2 FP, 13 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×9, `I9040` ×5
+- FP: `I4010` ×2
+- EE: `I9040` ×7, `I9001` ×6
 
-### `good_resources_backup_test_backup_plan_lifecycle_rule_yml` - 2 mismatches (0 TP, 0 FP, 0 EE, 2 FN)
+### `cdk_pat-the-waf-apigateway--APIGatewayStack.template_json` - 2 mismatches (3 TP, 2 FP, 22 EE, 0 FN)
 
-- FN: `I4010` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×17, `I9040` ×5
 
-### `good_resources_cloudformation_stacks_yaml` - 2 mismatches (14 TP, 0 FP, 5 EE, 2 FN)
+### `cdk_pat-the-waf-apigateway--TheWafStack.template_json` - 2 mismatches (0 TP, 2 FP, 4 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9040` ×5
+- FP: `I4010` ×2
+- EE: `I9001` ×3, `I9040`
 
-### `good_resources_deletionpolicy_yaml` - 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
+### `cdk_pat-the-xray-tracer--TheXrayDynamoFlow.template_json` - 2 mismatches (3 TP, 2 FP, 12 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001`, `I9003`, `I9040`, `W9008`
-
-### `good_resources_dynamodb_attributes_transform_object_yaml` - 2 mismatches (6 TP, 0 FP, 6 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×3
-
-### `good_resources_dynamodb_attributes_yaml` - 2 mismatches (4 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2
-
-### `good_resources_dynamodb_conditional_scenarios_yaml` - 2 mismatches (4 TP, 0 FP, 1 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001`
-
-### `good_resources_elasticache_cache_cluster_failover_yaml` - 2 mismatches (21 TP, 0 FP, 26 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×16, `I9040` ×10
-
-### `good_resources_iam_iam_policy_conditional_policies_yaml` - 2 mismatches (0 TP, 0 FP, 0 EE, 2 FN)
-
-- FN: `I4010` ×2
-
-### `good_resources_iam_instance_profile_yaml` - 2 mismatches (4 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `good_resources_iam_policy_yaml` - 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
-
-- FN: `I3510`, `I4010`
-- EE: `I9001`
-
-### `good_resources_iam_ref_with_path_yaml` - 2 mismatches (0 TP, 0 FP, 11 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×7, `I9040` ×4
-
-### `good_resources_lambda_required_properties_yaml` - 2 mismatches (1 TP, 0 FP, 7 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3, `W9013` ×3, `I9001`
-
-### `good_resources_primary_identifiers_yaml` - 2 mismatches (0 TP, 0 FP, 17 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×12, `I9040` ×5
-
-### `good_resources_properties_hard_coded_arn_properties_sam_yaml` - 2 mismatches (1 TP, 0 FP, 6 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9040` ×3
-
-### `good_resources_properties_hard_coded_arn_properties_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040`
-
-### `good_resources_properties_list_duplicates_yaml` - 2 mismatches (3 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `good_resources_properties_password_yaml` - 2 mismatches (14 TP, 0 FP, 15 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×7, `I9040` ×4, `W9008` ×3, `I9003`
-
-### `good_resources_properties_templated_code_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001`, `I9040`
-
-### `good_resources_rds_instance_sizes_yaml` - 2 mismatches (17 TP, 0 FP, 17 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×6, `W9008` ×4, `I9003`
-
-### `good_resources_rds_not_enum_master_username_parameter_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010`, `W1030`
-- EE: `I9001` ×2
-
-### `good_resources_s3_access-control-obsolete_yaml` - 2 mismatches (0 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2, `I9040` ×2
-
-### `good_resources_update_policy_supported_yaml` - 2 mismatches (2 TP, 0 FP, 9 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3
-
-### `good_resources_updatereplacepolicy_yaml` - 2 mismatches (2 TP, 0 FP, 4 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001`, `I9003`, `I9040`, `W9008`
-
-### `good_route53_conditional_record_items_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×2
-
-### `good_route53_conditional_scenarios_yaml` - 2 mismatches (0 TP, 0 FP, 6 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×3, `I9002` ×3
-
-### `good_sam_connector_valid_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `good_sam_implicit_alias_ref_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `good_sam_implicit_httpapi_ref_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `good_sam_implicit_restapi_stage_ref_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `good_sam_implicit_role_getatt_dependson_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `good_schema_resource_yaml` - 2 mismatches (0 TP, 0 FP, 0 EE, 2 FN)
-
-- FN: `F3006`, `I4010`
-
-### `good_schema_valid_resources_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2, `I9001`
-
-### `good_sg_icmpv6_type_code_yaml` - 2 mismatches (0 TP, 0 FP, 18 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×16, `I9040` ×2
-
-### `good_some_logs_stream_lambda_yaml` - 2 mismatches (12 TP, 0 FP, 12 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×8, `I9001` ×4
-
-### `good_string_length_unknowable_values_json` - 2 mismatches (0 TP, 0 FP, 9 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×5, `I9001` ×4
-
-### `good_transform_auto_publish_alias_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `good_transform_language_extension_yaml` - 2 mismatches (3 TP, 0 FP, 13 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×5, `I9003`, `W9008`
-
-### `good_transform_serverless_api_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `good_transform_serverless_auto_publish_alias_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×2
-
-### `good_transform_serverless_function_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `good_transform_serverless_ignore_globals_supported_runtime_yaml` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `good_transform_serverless_ignore_globals_yaml` - 2 mismatches (1 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `good_unique_items_deploy_time_values_json` - 2 mismatches (0 TP, 0 FP, 3 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×3
-
-### `good_vpc_subnets_yaml` - 2 mismatches (2 TP, 0 FP, 12 EE, 2 FN)
-
-- FN: `I4010` ×2
+- FP: `I4010` ×2
 - EE: `I9001` ×9, `I9040` ×3
 
-### `integration_aws-dynamodb-table_yaml` - 2 mismatches (2 TP, 0 FP, 10 EE, 2 FN)
+### `cdk_pat-the-xray-tracer--TheXrayHttpFlow.template_json` - 2 mismatches (3 TP, 2 FP, 10 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×4
+- FP: `I4010` ×2
+- EE: `I9001` ×8, `I9040` ×2
 
-### `integration_aws-ec2-instance_yaml` - 2 mismatches (4 TP, 0 FP, 6 EE, 2 FN)
+### `cdk_pat-the-xray-tracer--TheXraySQSFlow.template_json` - 2 mismatches (8 TP, 2 FP, 15 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9003`, `I9040`
+- FP: `I4010` ×2
+- EE: `I9001` ×9, `I9040` ×6
 
-### `integration_aws-ec2-subnet_yaml` - 2 mismatches (5 TP, 0 FP, 18 EE, 2 FN)
+### `cdk_pat-the-xray-tracer--TheXraySnsFlow.template_json` - 2 mismatches (5 TP, 2 FP, 20 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×13, `I9040` ×5
+- FP: `I4010` ×2
+- EE: `I9001` ×15, `I9040` ×5
 
-### `integration_aws-lambda-function_yaml` - 2 mismatches (0 TP, 0 FP, 2 EE, 2 FN)
+### `cdk_pat-the-xray-tracer--TheXrayTracerStack.template_json` - 2 mismatches (0 TP, 2 FP, 23 EE, 0 FN)
 
-- FN: `I4010` ×2
+- FP: `I4010` ×2
+- EE: `I9001` ×18, `I9040` ×5
+
+### `cdk_py-api-cors-lambda--ApiCorsLambdaStack.template_json` - 2 mismatches (2 TP, 2 FP, 25 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×20, `I9040` ×5
+
+### `cdk_py-api-eventbridge-lambda--ApiEventBridgeLambdaStack.template_json` - 2 mismatches (6 TP, 2 FP, 41 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×25, `I9040` ×16
+
+### `cdk_py-api-sqs-lambda--ApiSqsLambdaStack.template_json` - 2 mismatches (2 TP, 2 FP, 21 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×13, `I9040` ×8
+
+### `cdk_py-athena-s3-glue--DemoAthenaS3GlueStack.template_json` - 2 mismatches (4 TP, 2 FP, 23 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×21, `I9040` ×2
+
+### `cdk_py-datasync-s3--cdk-datasync-s3-to-s3-iam.template_json` - 2 mismatches (0 TP, 2 FP, 8 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×6, `I9040` ×2
+
+### `cdk_py-datasync-s3--cdk-datasync-s3-to-s3.template_json` - 2 mismatches (0 TP, 2 FP, 9 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×4, `I9040` ×3, `W9002` ×2
+
+### `cdk_py-docker-app-with-asg-alb--ASGStack.template_json` - 2 mismatches (1 TP, 2 FP, 38 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×33, `I9040` ×5
+
+### `cdk_py-docker-app-with-asg-alb--NetworkStack.template_json` - 2 mismatches (0 TP, 2 FP, 37 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×37
+
+### `cdk_py-docker-app-with-asg-alb--StorageStack.template_json` - 2 mismatches (2 TP, 2 FP, 5 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×4, `I9040`
+
+### `cdk_py-dynamodb-lambda--dynamodb-lambda.template_json` - 2 mismatches (4 TP, 2 FP, 15 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×9, `I9040` ×6
+
+### `cdk_py-ec2-cloudwatch--ec2-cloudwatch.template_json` - 2 mismatches (2 TP, 2 FP, 76 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×68, `I9040` ×5, `W9003` ×2, `I9003`
+
+### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcrStack6B6F0F99.nested.template_json` - 2 mismatches (1 TP, 2 FP, 6 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9040` ×4, `I9001` ×2
+
+### `cdk_py-ecs-serviceconnect--CdkExamplesServiceConnectStackEcsStack19C526D0.nested.template_json` - 2 mismatches (0 TP, 2 FP, 61 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×44, `I9040` ×17
+
+### `cdk_py-emr--emr-cluster.template_json` - 2 mismatches (2 TP, 2 FP, 31 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×28, `I9040` ×3
+
+### `cdk_py-iotcore--CdkIotThingStack.template_json` - 2 mismatches (7 TP, 2 FP, 20 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×10, `I9040` ×10
+
+### `cdk_py-lambda-cron--LambdaCronExample.template_json` - 2 mismatches (1 TP, 2 FP, 7 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×4, `I9040` ×3
+
+### `cdk_py-lambda-from-container--LambdaContainerFunctionStack.template_json` - 2 mismatches (1 TP, 2 FP, 4 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×2, `I9040` ×2
+
+### `cdk_py-lambda-layer--LambdaLayerExample.template_json` - 2 mismatches (2 TP, 2 FP, 5 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×3, `I9040` ×2
+
+### `cdk_py-stepfunctions--aws-stepfunctions-integ.template_json` - 2 mismatches (5 TP, 2 FP, 6 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9040` ×6
+
+### `cdk_py-url-shortener--urlshort-app.template_json` - 2 mismatches (2 TP, 2 FP, 41 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×32, `I9040` ×7, `W9002`, `W9013`
+
+### `cdk_py-url-shortener--urlshort-load-test.template_json` - 2 mismatches (0 TP, 2 FP, 18 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×12, `I9040` ×6
+
+### `cdk_r53-resolver--R53ResolverStack.template_json` - 2 mismatches (1 TP, 2 FP, 33 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×24, `I9040` ×9
+
+### `cdk_rekognition-lambda-s3-trigger--RekognitionLambdaS3TriggerStack.template_json` - 2 mismatches (4 TP, 2 FP, 14 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9040` ×8, `I9001` ×6
+
+### `cdk_resource-overrides--resource-overrides.template_json` - 2 mismatches (8 TP, 2 FP, 31 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×30, `I9040`
+
+### `cdk_route53-resolver-dns-firewall--Route53ResolverDnsFirewallStack.template_json` - 2 mismatches (0 TP, 2 FP, 55 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×49, `I9040` ×6
+
+### `cdk_s3-object-lambda--S3ObjectLambdaStack.template_json` - 2 mismatches (3 TP, 2 FP, 12 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×8, `I9040` ×4
+
+### `cdk_ssm-document-association--SsmDocumentAssociationStack.template_json` - 2 mismatches (1 TP, 2 FP, 28 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×22, `I9040` ×5, `I9003`
+
+### `cdk_static-site-basic--MyStaticSite.template_json` - 2 mismatches (2 TP, 2 FP, 7 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9040` ×4, `I9001` ×3
+
+### `cdk_stepfunction-external-definition--StepfunctionExternalDefinitionStack.template_json` - 2 mismatches (1 TP, 2 FP, 17 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×11, `I9040` ×6
+
+### `cdk_stepfunctions-job-poller--aws-stepfunctions-integ.template_json` - 2 mismatches (5 TP, 2 FP, 8 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9040` ×8
+
+### `good_E3505_unresolved_dynamic_and_covering_yaml` - 2 mismatches (25 TP, 0 FP, 31 EE, 2 FN)
+
+- FN: `E3505`, `I3013`
+- EE: `I9040` ×20, `I9001` ×11
+
+### `good_apigateway_method_authorizer_same_rest_api_yaml` - 2 mismatches (2 TP, 0 FP, 9 EE, 2 FN)
+
+- FN: `E3698`, `E3699`
+- EE: `I9001` ×7, `I9040` ×2
+
+### `good_aurora_dbinstance_yaml` - 2 mismatches (3 TP, 0 FP, 6 EE, 2 FN)
+
+- FN: `E3707`, `E3719`
+- EE: `I9001` ×3, `I9002`, `I9003`, `I9040`
+
+### `good_functions_findinmap_yaml` - 2 mismatches (2 TP, 0 FP, 6 EE, 2 FN)
+
+- FN: `E7001` ×2
+- EE: `I9001` ×3, `I9040` ×3
+
+### `good_parameters_used_transform_removed_yaml` - 2 mismatches (1 TP, 0 FP, 1 EE, 2 FN)
+
+- FN: `F3012`, `F3017`
+- EE: `I9040`
+
+### `good_parameters_used_transforms_yaml` - 2 mismatches (5 TP, 0 FP, 4 EE, 2 FN)
+
+- FN: `E1021`, `E3724`
+- EE: `I9001` ×3, `I9040`
+
+### `good_resources_properties_hard_coded_arn_properties_cdk_yaml` - 2 mismatches (4 TP, 2 FP, 4 EE, 0 FN)
+
+- FP: `I4010` ×2
+- EE: `I9001` ×2, `I9040` ×2
+
+### `good_resources_properties_templated_code_sam_yaml` - 2 mismatches (1 TP, 2 FP, 1 EE, 0 FN)
+
+- FP: `I3011` ×2
+- EE: `I9040`
+
+### `good_sam_simpletable_no_primarykey_yaml` - 2 mismatches (1 TP, 2 FP, 1 EE, 0 FN)
+
+- FP: `I3011` ×2
+- EE: `I9040`
+
+### `good_sam_simpletable_valid_yaml` - 2 mismatches (1 TP, 2 FP, 1 EE, 0 FN)
+
+- FP: `I3011` ×2
+- EE: `I9040`
+
+### `good_transform_yaml` - 2 mismatches (2 TP, 2 FP, 2 EE, 0 FN)
+
+- FP: `I3011` ×2
 - EE: `I9040` ×2
 
-### `integration_cfn-gather_yaml` - 2 mismatches (24 TP, 0 FP, 39 EE, 2 FN)
+### `lsp_test-template_yaml` - 2 mismatches (4 TP, 0 FP, 2 EE, 2 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×24, `I9040` ×14, `I9003`
-
-### `integration_custom-resources_yaml` - 2 mismatches (1 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001`, `I9040`
-
-### `integration_deployment-file-template_yaml` - 2 mismatches (0 TP, 0 FP, 13 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×9, `I9040` ×3, `I9003`
-
-### `integration_dynamic-references_yaml` - 2 mismatches (2 TP, 0 FP, 11 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×7, `I9040` ×4
-
-### `integration_formats_yaml` - 2 mismatches (2 TP, 0 FP, 17 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×8, `I9040` ×4, `W9003` ×3, `I9003`, `W9010`
-
-### `integration_get-stack-output_yaml` - 2 mismatches (2 TP, 0 FP, 5 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×5
-
-### `integration_ref-types_yaml` - 2 mismatches (2 TP, 0 FP, 40 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×28, `I9040` ×12
-
-### `issues_sam_w_conditions_yaml` - 2 mismatches (8 TP, 0 FP, 29 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×23, `I9040` ×6
-
-### `lsp_condition-usage_json` - 2 mismatches (8 TP, 0 FP, 12 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3, `I9003`, `W9008`, `W9010`
-
-### `public_lambda-poller_json` - 2 mismatches (1 TP, 0 FP, 9 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3
-
-### `public_lambda-poller_yaml` - 2 mismatches (1 TP, 0 FP, 9 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×6, `I9040` ×3
-
-### `quickstart_cis_benchmark_yaml` - 2 mismatches (69 TP, 0 FP, 148 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×104, `I9040` ×38, `W9003` ×6
-
-### `quickstart_config-rules_json` - 2 mismatches (5 TP, 0 FP, 17 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×13, `I9040` ×2, `W9003` ×2
-
-### `quickstart_iam_json` - 2 mismatches (4 TP, 0 FP, 9 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×4, `W2512`
-
-### `quickstart_nist_config_rules_yaml` - 2 mismatches (7 TP, 0 FP, 15 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×13, `I9040` ×2
-
-### `quickstart_nist_high_main_yaml` - 2 mismatches (41 TP, 0 FP, 17 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9040` ×6, `W9003` ×6, `W2502` ×5
-
-### `quickstart_nist_iam_yaml` - 2 mismatches (4 TP, 0 FP, 9 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×4, `I9040` ×4, `W2512`
-
-### `quickstart_nist_logging_yaml` - 2 mismatches (42 TP, 0 FP, 33 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×19, `I9040` ×14
-
-### `quickstart_nist_vpc_management_yaml` - 2 mismatches (36 TP, 0 FP, 68 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×59, `I9040` ×5, `W2508` ×2, `I9003`, `W2502`
-
-### `quickstart_nist_vpc_production_yaml` - 2 mismatches (62 TP, 0 FP, 97 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×91, `I9040` ×5, `W2508`
-
-### `quickstart_openshift_master_yaml` - 2 mismatches (4 TP, 0 FP, 2 EE, 2 FN)
-
-- FN: `I4010` ×2
+- FN: `F3003`, `W2533`
 - EE: `I9040` ×2
 
-### `quickstart_openshift_yaml` - 2 mismatches (41 TP, 0 FP, 73 EE, 2 FN)
+### `bad_E3023_cname_projection_covering_yaml` - 1 mismatches (1 TP, 1 FP, 1 EE, 0 FN)
 
-- FN: `I4010` ×2
-- EE: `I9001` ×54, `I9040` ×10, `W2508` ×7, `I9003`, `W9010`
-
-### `quickstart_test_yaml` - 2 mismatches (2 TP, 0 FP, 11 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×10, `I9040`
-
-### `quickstart_vpc-management_json` - 2 mismatches (22 TP, 0 FP, 83 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×59, `W9003` ×15, `I9040` ×5, `W2508` ×2, `I9003`, `W2502`
-
-### `quickstart_vpc_json` - 2 mismatches (7 TP, 0 FP, 210 EE, 2 FN)
-
-- FN: `I4010` ×2
-- EE: `I9001` ×158, `W9003` ×40, `I9040` ×11, `I9003`
-
-### `bad_E1050_dynamic_ref_malformed_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
+- FP: `E3023`
 - EE: `I9001`
 
-### `bad_E1150_network_interfaces_groupset_multi_yaml` - 1 mismatches (2 TP, 0 FP, 6 EE, 1 FN)
+### `bad_E3029_alias_projection_covering_yaml` - 1 mismatches (2 TP, 1 FP, 2 EE, 0 FN)
 
-- FN: `I4010`
-- EE: `I9001` ×3, `I9003`, `I9040`, `W9010`
+- FP: `E3029`
+- EE: `I9001`, `I9002`
 
-### `bad_E3512_opensearch_access_policy_yaml` - 1 mismatches (3 TP, 0 FP, 1 EE, 1 FN)
+### `bad_E3048_fargate_projection_covering_yaml` - 1 mismatches (1 TP, 1 FP, 7 EE, 0 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FP: `E3048`
+- EE: `I9001` ×6, `I9040`
 
-### `bad_E3663_reserved_environment_keys_yaml` - 1 mismatches (2 TP, 0 FP, 0 EE, 1 FN)
+### `bad_E3717_E3718_E3719_E3723_conditional_constraints_yaml` - 1 mismatches (6 TP, 0 FP, 14 EE, 1 FN)
 
-- FN: `I4010`
+- FN: `I3013`
+- EE: `I9001` ×8, `I9040` ×5, `I9003`
 
-### `bad_E3679_classic_elb_listener_index_yaml` - 1 mismatches (1 TP, 0 FP, 5 EE, 1 FN)
+### `bad_F2002_ssm_parameter_type_invalid_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `W9003` ×4, `I9040`
+- FN: `F1020`
+- EE: `I9001`, `I9040`
 
-### `bad_E8007_condition_undefined_in_expr_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
+### `bad_F3006_invalid_aws_namespaces_yaml` - 1 mismatches (4 TP, 0 FP, 4 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_E9001_unknown_resource_type_yaml` - 1 mismatches (1 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `bad_E9106_condition_cycle_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `E9106`, `I9040`
+- FN: `F3006`
+- EE: `W9013` ×2, `I9001`, `I9040`
 
 ### `bad_F3031_log_group_name_dollar_brace_yaml` - 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
 
 - FP: `E1155`
 - EE: `I9001`, `I9040`
 
-### `bad_W1019_sub_unused_key_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
+### `bad_F3032_whole_properties_item_cardinality_yaml` - 1 mismatches (1 TP, 1 FP, 1 EE, 0 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W1019`
+- FP: `F3032`
+- EE: `W9052`
 
-### `bad_W1028_allowedvalues_excludes_literal_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
+### `bad_W4012_template_context_intrinsic_yaml` - 1 mismatches (4 TP, 1 FP, 1 EE, 0 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_W1051_secretsmanager_at_arn_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
+- FP: `W2001`
 - EE: `I9040`
-
-### `bad_W1053_dynref_spaces_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_W1054_raw_pseudo_param_yaml` - 1 mismatches (3 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_W3030_enum_case_insensitive_mismatch_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2
-
-### `bad_W3671_spotfleet_ebs_iops_yaml` - 1 mismatches (1 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `bad_W9007_duplicate_objects_different_key_order_yaml` - 1 mismatches (1 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`, `W9007`
-
-### `bad_W9053_equivalent_conditions_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9053`
-
-### `bad_cloudfront_bad_alias_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_cloudfront_bad_origin_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_codepipeline_bad_artifact_counts_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9002`
-
-### `bad_codepipeline_bad_artifacts_yaml` - 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9002`, `W9013`
 
 ### `bad_conditions_and_yaml` - 1 mismatches (12 TP, 0 FP, 2 EE, 1 FN)
 
 - FN: `E8004`
 - EE: `E9106`, `F0001`
-
-### `bad_conditions_properties_fn_if_json` - 1 mismatches (3 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_core_config_configure_e3012_yaml` - 1 mismatches (1 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
 
 ### `bad_core_config_invalid_json_json` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
@@ -21961,6 +21013,11 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 ### `bad_core_config_invalid_yaml_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
 - FN: `F0000`
+
+### `bad_core_directives_yaml` - 1 mismatches (7 TP, 1 FP, 6 EE, 0 FN)
+
+- FP: `E3001`
+- EE: `I9040` ×4, `F3002`, `W3030`
 
 ### `bad_core_parse_invalid_map_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
@@ -21978,138 +21035,28 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 
 - FN: `F0000`
 
-### `bad_deprecated_type_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `W9009`
-
-### `bad_dynamodb_attribute_mismatch_yaml` - 1 mismatches (3 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `bad_dynamodb_prod_no_kms_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2
-
-### `bad_dynamodb_provisioned_no_throughput_yaml` - 1 mismatches (3 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `F3003`, `I9040`
-
-### `bad_ecr_policy_no_statement_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_ecs_awsvpc_port_mismatch_yaml` - 1 mismatches (1 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `bad_elb_http_443_yaml` - 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9002`, `W9013`
-
 ### `bad_empty_file_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
 - FN: `E1001`
 
-### `bad_equals_wrong_arity_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+### `bad_functions_select_yaml` - 1 mismatches (10 TP, 0 FP, 12 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E1017`
+- EE: `I9001` ×8, `I9040` ×4
 
-### `bad_fargate_bad_cpu_memory_yaml` - 1 mismatches (1 TP, 0 FP, 7 EE, 1 FN)
+### `bad_invalid_mapping_structure_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001` ×6, `I9040`
-
-### `bad_formatters_yaml` - 1 mismatches (3 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`, `W9003`
-
-### `bad_functions_base64_yaml` - 1 mismatches (3 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `F1012`, `I9040`
-
-### `bad_functions_findinmap_default_value_no_transform_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `F1101`, `I9040`
-
-### `bad_functions_findinmap_enhanced_invalid_key_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_functions_length_no_transform_yaml` - 1 mismatches (4 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_functions_tojsonstring_no_transform_yaml` - 1 mismatches (3 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_if_wrong_arity_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_invalid_deletion_policy_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_invalid_update_replace_policy_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_issues_yaml` - 1 mismatches (1 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×3, `I9040`
+- FN: `E7001`
+- EE: `F0017`, `I9040`
 
 ### `bad_json_parse_json` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
 - FN: `F0000`
 
-### `bad_lambda_image_handler_intrinsic_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
+### `bad_mappings_used_yaml` - 1 mismatches (3 TP, 0 FP, 3 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_lambda_no_snapstart_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_lambda_snapstart_bad_runtime_yaml` - 1 mismatches (1 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9013`
-
-### `bad_lambda_snapstart_no_version_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_lambda_zip_no_handler_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_lambda_zipfile_java_yaml` - 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9013`
+- FN: `W1034`
+- EE: `I9001` ×2, `I9040`
 
 ### `bad_modules_bad_has_update_policy_yaml` - 1 mismatches (2 TP, 0 FP, 0 EE, 1 FN)
 
@@ -22124,210 +21071,77 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1001`
 - EE: `F0001`
 
-### `bad_output_invalid_references_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+### `bad_param_number_default_yaml` - 1 mismatches (2 TP, 0 FP, 4 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `F2015`
+- EE: `F0016` ×2, `F0015`, `F2012`
 
-### `bad_output_invalid_targets_yaml` - 1 mismatches (5 TP, 0 FP, 1 EE, 1 FN)
+### `bad_pipeline_no_source_first_stage_yaml` - 1 mismatches (4 TP, 0 FP, 4 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E3701`
+- EE: `I9001`, `I9040`, `W9002`, `W9013`
 
-### `bad_output_value_not_string_yaml` - 1 mismatches (10 TP, 0 FP, 1 EE, 1 FN)
+### `bad_resources_backup_test_backup_plan_lifecycle_rule_yml` - 1 mismatches (1 TP, 0 FP, 0 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E3504`
 
-### `bad_override_required_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
+### `bad_resources_codepipeline_stages_second_stage_yaml` - 1 mismatches (4 TP, 0 FP, 3 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E3700`
+- EE: `I9001`, `I9040`, `W9002`
 
-### `bad_param_constraints_yaml` - 1 mismatches (10 TP, 0 FP, 1 EE, 1 FN)
+### `bad_resources_creation_policy_unsupported_e3055_yaml` - 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
 
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_previous_gen_instance_yaml` - 1 mismatches (1 TP, 0 FP, 5 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9003`, `I9040`, `W9010`
-
-### `bad_rds_dbinstanceclass_mixed_case_engine_yaml` - 1 mismatches (4 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9003`, `I9040`, `W9008`
-
-### `bad_rds_public_yaml` - 1 mismatches (4 TP, 0 FP, 6 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×3, `I9003`, `I9040`, `W9011`
-
-### `bad_resource_policy_no_statement_yaml` - 1 mismatches (3 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_resources_cloudfront_invalid_aliases_yaml` - 1 mismatches (8 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_resources_cognito_userpool_tag_is_list_yaml` - 1 mismatches (3 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `bad_resources_dynamodb_undefined_attribute_definition_yaml` - 1 mismatches (3 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
+- FP: `E3055`
 - EE: `I9001`, `I9040`
 
-### `bad_resources_dynamodb_unused_attribute_definition_1_yaml` - 1 mismatches (3 TP, 0 FP, 2 EE, 1 FN)
+### `bad_resources_iam_iam_policy_conditional_policies_yaml` - 1 mismatches (4 TP, 0 FP, 4 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`
+- FN: `I3510`
+- EE: `I9040` ×2, `W2512` ×2
 
-### `bad_resources_dynamodb_unused_attribute_definition_2_yaml` - 1 mismatches (3 TP, 0 FP, 2 EE, 1 FN)
+### `bad_resources_iam_identity_policy_conditional_novalue_e3510_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_resources_iam_instanceprofile_roles_yaml` - 1 mismatches (1 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `bad_resources_iam_managed_policy_description_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
+- FN: `I3510`
 - EE: `I9001`
 
-### `bad_resources_properties_custom_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
+### `bad_resources_iam_identity_policy_wildcard_service_yaml` - 1 mismatches (1 TP, 1 FP, 0 EE, 0 FN)
 
-- FN: `I4010`
+- FP: `E3510`
 
-### `bad_resources_properties_templated_code_yaml` - 1 mismatches (4 TP, 0 FP, 1 EE, 1 FN)
+### `bad_resources_lambda_required_properties_yaml` - 1 mismatches (6 TP, 0 FP, 8 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E3678`
+- EE: `I9040` ×3, `W9013` ×3, `F3003`, `I9001`
 
-### `bad_resources_sns_topic_name_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
+### `bad_resources_properties_string_size_yaml` - 1 mismatches (7 TP, 0 FP, 3 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`
+- FN: `E3065`
+- EE: `I9040` ×3
 
-### `bad_resources_uniqueNames_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
+### `bad_schema_property_constraints_yaml` - 1 mismatches (3 TP, 0 FP, 11 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E1161`
+- EE: `I9001` ×6, `I9040` ×2, `W9002`, `W9009`, `W9013`
 
-### `bad_resources_update_policy_unsupported_e3016_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
+### `bad_schema_required_xor_conditional_yaml` - 1 mismatches (2 TP, 0 FP, 5 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`
+- FN: `F3014`
+- EE: `I9001` ×5
 
-### `bad_s3_tiering_bad_days_yaml` - 1 mismatches (4 TP, 0 FP, 1 EE, 1 FN)
+### `bad_schema_structural_yaml` - 1 mismatches (8 TP, 0 FP, 10 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_sam_transform_bogus_name_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_sam_transform_wrong_date_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_schema_additional_props_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_schema_conditional_type_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9003`
-
-### `bad_schema_enum_violation_yaml` - 1 mismatches (3 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_schema_format_violation_yaml` - 1 mismatches (1 TP, 0 FP, 5 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×3, `I9040`, `W9010`
-
-### `bad_schema_numeric_bounds_yaml` - 1 mismatches (4 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_schema_string_length_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9013`
-
-### `bad_schema_type_mismatch_yaml` - 1 mismatches (1 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `W9003` ×2, `I9001`, `I9040`
-
-### `bad_schema_unique_items_yaml` - 1 mismatches (2 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `bad_schema_write_only_yaml` - 1 mismatches (1 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `W9002`, `W9013`, `W9054`
-
-### `bad_sg_bad_port_range_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `E9002`, `I9001`, `I9040`
-
-### `bad_sg_open_egress_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_simple_sub_param_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_sns_cross_account_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `bad_sqs_fifo_no_suffix_yaml` - 1 mismatches (4 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `E2504`, `I9040`
-
-### `bad_ssm_document_invalid_yaml` - 1 mismatches (1 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `bad_stepfunctions_bad_start_at_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9002`
-
-### `bad_stepfunctions_invalid_state_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9002`
+- FN: `F3014`
+- EE: `I9001` ×8, `I9040` ×2
 
 ### `bad_string_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
 - FN: `F0000`
+
+### `bad_sub_needed_yaml` - 1 mismatches (4 TP, 0 FP, 2 EE, 1 FN)
+
+- FN: `E1161`
+- EE: `I9001`, `I9040`
 
 ### `bad_template_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
 
@@ -22338,569 +21152,98 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `E1001`
 - EE: `F0001`
 
-### `bad_templates_description_object_yaml` - 1 mismatches (1 TP, 0 FP, 0 EE, 1 FN)
+### `bad_templates_transform_invalid_entries_yaml` - 1 mismatches (4 TP, 0 FP, 0 EE, 1 FN)
 
-- FN: `I4010`
+- FN: `E1005`
 
-### `bad_undefined_condition_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
+### `cdk_aws-transfer-sftp-server--IncomingDataStack-dev.template_json` - 1 mismatches (0 TP, 1 FP, 3 EE, 0 FN)
 
-- FN: `I4010`
-- EE: `I9040`
-
-### `bad_unique_items_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `W9007`
-
-### `cdk_application-load-balancer--LoadBalancerStack.template_json` - 1 mismatches (5 TP, 0 FP, 72 EE, 1 FN)
-
-- FN: `E3712`
-- EE: `I9001` ×68, `I9040` ×4
-
-### `cdk_py-docker-app-with-asg-alb--RDSStack.template_json` - 1 mismatches (2 TP, 0 FP, 13 EE, 1 FN)
-
-- FN: `W3691`
-- EE: `I9001` ×7, `I9040` ×4, `I9003`, `W9008`
-
-### `gh-issues_issue-144_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
+- FP: `I4010`
 - EE: `I9001` ×2, `I9040`
-
-### `gh-issues_issue-183_yaml` - 1 mismatches (2 TP, 0 FP, 12 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×8, `W9002` ×2, `I9040`, `W9013`
-
-### `gh-issues_issue-184_yaml` - 1 mismatches (3 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9003`, `I9040`
-
-### `gh-issues_issue-186-clb_json` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2
-
-### `gh-issues_issue-186-imagebuilder_json` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`
-
-### `gh-issues_issue-194_json` - 1 mismatches (1 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
 
 ### `gh-issues_issue-201_json` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
 
 - FN: `E1001`
 - EE: `F0001`
 
-### `gh-issues_issue-247_json` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
+### `gh-issues_issue-40_yaml` - 1 mismatches (3 TP, 0 FP, 14 EE, 1 FN)
 
-- FN: `I4010`
+- FN: `E1041`
+- EE: `I9001` ×6, `I9040` ×3, `W9013` ×3, `I9003`, `W9002`
+
+### `good_E9001_aws_cdk_metadata_yaml` - 1 mismatches (0 TP, 1 FP, 2 EE, 0 FN)
+
+- FP: `I4010`
 - EE: `I9001`, `I9040`
 
-### `gh-issues_issue-278_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+### `good_custom_is-not-defined_yaml` - 1 mismatches (10 TP, 0 FP, 6 EE, 1 FN)
 
-- FN: `I4010`
+- FN: `E9004`
+- EE: `I9040` ×5, `I9001`
+
+### `good_functions_sub_yaml` - 1 mismatches (13 TP, 0 FP, 12 EE, 1 FN)
+
+- FN: `E1021`
+- EE: `I9001` ×7, `I9040` ×5
+
+### `good_output_value_string_yaml` - 1 mismatches (4 TP, 0 FP, 1 EE, 1 FN)
+
+- FN: `W6001`
 - EE: `I9040`
 
-### `gh-issues_issue-339_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
+### `good_parameters_not_used_parameters_yaml` - 1 mismatches (5 TP, 0 FP, 4 EE, 1 FN)
 
-- FN: `I4010`
-
-### `gh-issues_issue-34-w2506-overfire_json` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `W9013`
-
-### `gh-issues_issue-357_yaml` - 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `gh-issues_issue-35_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-36_yaml` - 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9002`, `W9013`
-
-### `gh-issues_issue-38_json` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `gh-issues_issue-41_json` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `gh-issues_issue-45_json` - 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
+- FN: `E1021`
 - EE: `I9001` ×3, `I9040`
 
-### `gh-issues_issue-47_json` - 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
+### `good_resources_iam_policy_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9013`
-
-### `gh-issues_issue-50_json` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-52_json` - 1 mismatches (0 TP, 0 FP, 5 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×3, `I9040`, `W9013`
-
-### `gh-issues_issue-54-bare_json` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-54-with-ownership_json` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-54_json` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-55_json` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-56_json` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `gh-issues_issue-57_json` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-62_json` - 1 mismatches (2 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9002`, `W9013`
-
-### `gh-issues_issue-63_json` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `gh-issues_issue-65_json` - 1 mismatches (1 TP, 0 FP, 7 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×5, `I9040`, `W9013`
-
-### `gh-issues_issue-67_json` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `gh-issues_issue-69_yaml` - 1 mismatches (2 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_E3663_custom_environment_key_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_W1028_pseudo_param_branches_reachable_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_cdk_bootstrap_version_rule_json` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_cloudfront_valid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_codepipeline_artifact_counts_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9002`
-
-### `good_conditions_and_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_core_config_default_e3012_yaml` - 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`, `W9003`
-
-### `good_core_directives_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_decode_yaml11_scalars_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_dynamodb_provisioned_yaml` - 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `good_dynamodb_valid_attributes_yaml` - 1 mismatches (2 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `good_ecs_awsvpc_valid_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `good_ecs_fargate_valid_yaml` - 1 mismatches (0 TP, 0 FP, 7 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×6, `I9040`
-
-### `good_elb_https_empty_sslcertificateid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_functions_sub_needed_transform_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_good_conditions_valid_refs_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_iam_intrinsic_resource_arns_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_iam_valid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_lambda_snapstart_yaml` - 1 mismatches (1 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9013`
-
-### `good_lambda_zipfile_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `good_mappings_used_yaml` - 1 mismatches (1 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9040`
-
-### `good_mappings_valid_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_minimal_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_modules_minimal_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_neptune_valid_instanceclass_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9003`, `I9040`
-
-### `good_no_w3010_on_unlisted_type_yaml` - 1 mismatches (4 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×3, `I9040`
-
-### `good_override_required_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `good_param_constraints_valid_yaml` - 1 mismatches (2 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_parameters_F2012_cdl_default_split_yaml` - 1 mismatches (6 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_parameters_used_transform_language_extension_json` - 1 mismatches (4 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_redshift_valid_nodetype_yaml` - 1 mismatches (4 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×2, `I9003`, `I9040`
-
-### `good_region_conditional_resource_type_yaml` - 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9002`, `W9013`
-
-### `good_resources_cloudformation_nested_stack_dynamic_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_resources_cloudfront_aliases_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_resources_codepipeline_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W9002`
-
-### `good_resources_cognito_userpool_tag_is_string_map_yaml` - 1 mismatches (2 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_resources_ecs_fargate_conditional_properties_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_resources_iam_identity_policy_wildcard_partition_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_resources_iam_managed_policy_description_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
+- FN: `I3510`
 - EE: `I9001`
 
-### `good_resources_iam_resource_policy_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+### `good_resources_properties_az_cdk_yaml` - 1 mismatches (2 TP, 1 FP, 3 EE, 0 FN)
 
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_resources_name_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `good_resources_properties_allowed_pattern_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
+- FP: `I4010`
 - EE: `I9001` ×2, `I9040`
 
-### `good_resources_properties_custom_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
+### `good_resources_properties_exclusive_yaml` - 1 mismatches (3 TP, 0 FP, 6 EE, 1 FN)
 
-- FN: `I4010`
+- FN: `E1150`
+- EE: `I9001` ×5, `I9040`
 
-### `good_resources_properties_string_size_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+### `good_resources_rds_not_enum_master_username_parameter_yaml` - 1 mismatches (1 TP, 0 FP, 2 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `W1030`
+- EE: `I9001` ×2
 
-### `good_sam_api_stagename_valid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+### `good_route53_conditional_record_arrays_yaml` - 1 mismatches (4 TP, 0 FP, 6 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E3023`
+- EE: `I9001` ×6
 
-### `good_sam_function_deploymentpreference_with_alias_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+### `good_schema_resource_yaml` - 1 mismatches (1 TP, 0 FP, 0 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `F3006`
 
-### `good_sam_function_dlq_valid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+### `integration_getatt-types_yaml` - 1 mismatches (10 TP, 0 FP, 17 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
+- FN: `E9004`
+- EE: `I9001` ×10, `I9040` ×7
 
-### `good_sam_function_image_valid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
+### `lsp_constants_json` - 1 mismatches (7 TP, 0 FP, 3 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_sam_function_provisioned_concurrency_with_alias_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_sam_function_runtime_handler_via_globals_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_sam_function_url_config_valid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_sam_function_zip_valid_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_sam_globals_all_valid_sections_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_sam_globals_empty_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_sam_layerversion_valid_retention_and_arch_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_sam_statemachine_definition_only_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9013`
-
-### `good_schema_required_xor_resource_condition_yaml` - 1 mismatches (1 TP, 0 FP, 5 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×5
-
-### `good_simple_sub_prefix_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `good_sqs_fifo_valid_yaml` - 1 mismatches (3 TP, 0 FP, 3 EE, 1 FN)
-
-- FN: `I4010`
+- FN: `E3024`
 - EE: `I9001` ×2, `I9040`
 
-### `good_ssm_document_valid_yaml` - 1 mismatches (0 TP, 0 FP, 3 EE, 1 FN)
+### `lsp_constants_yaml` - 1 mismatches (7 TP, 0 FP, 3 EE, 1 FN)
 
-- FN: `I4010`
+- FN: `E3024`
 - EE: `I9001` ×2, `I9040`
 
-### `good_ssm_parameter_name_type_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
+### `quickstart_nist_application_yaml` - 1 mismatches (48 TP, 0 FP, 113 EE, 1 FN)
 
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `good_stepfunctions_valid_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9002`
-
-### `good_sub_not_needed_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `good_transform_auto_publish_code_sha256_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_transform_function_use_s3_uri_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_transform_function_using_image_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_transform_include_object_form_yaml` - 1 mismatches (0 TP, 0 FP, 0 EE, 1 FN)
-
-- FN: `I4010`
-
-### `good_transform_list_transform_many_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_transform_list_transform_not_sam_yaml` - 1 mismatches (0 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`, `W9013`
-
-### `good_transform_list_transform_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_transform_serverless_globals_yaml` - 1 mismatches (1 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `good_transform_step_function_local_definition_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `integration_availability-zones_yaml` - 1 mismatches (2 TP, 0 FP, 5 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×4, `I9040`
-
-### `integration_aws-ec2-launchtemplate_yaml` - 1 mismatches (5 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`
-
-### `integration_aws-ec2-networkinterface_yaml` - 1 mismatches (2 TP, 0 FP, 2 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`
-
-### `integration_resources-cloudformation-init_yaml` - 1 mismatches (0 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001`, `I9040`, `W2509`, `W9010`
-
-### `lsp_simple_json` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `lsp_simple_yaml` - 1 mismatches (0 TP, 0 FP, 1 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9040`
-
-### `public_rds-cluster_yaml` - 1 mismatches (5 TP, 0 FP, 4 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×4
-
-### `public_watchmaker_json` - 1 mismatches (32 TP, 0 FP, 9 EE, 1 FN)
-
-- FN: `I4010`
-- EE: `I9001` ×7, `I9003`, `I9040`
+- FN: `W1030`
+- EE: `W9003` ×53, `I9001` ×50, `I9040` ×10
 
 ## Inputs Excluded from Parity Comparison
 
@@ -22925,17 +21268,9 @@ other tool's output. They are excluded from precision/recall scoring.
 - `integration_yaml-alias-scalar_yaml` (5 diagnostics)
 - `integration_yaml-alias_yaml` (3 diagnostics)
 
-### Engine reports with no cfn-lint result — 10 templates, 118 diagnostics
+### Engine reports with no cfn-lint result — 2 templates, 0 diagnostics
 
-- `bad_E3059_subnet_outside_every_vpc_cidr_yaml` (18 diagnostics)
-- `bad_E3060_subnet_overlap_in_one_branch_yaml` (16 diagnostics)
-- `bad_E3679_https_listener_beside_referenced_certificate_yaml` (3 diagnostics)
-- `bad_W3688_snapshot_identifier_from_parameter_yaml` (14 diagnostics)
 - `empty_yaml` (0 diagnostics)
-- `good_functions_split_get_stack_output_yaml` (3 diagnostics)
-- `good_reference_values_are_not_literals_yaml` (10 diagnostics)
-- `good_subnet_cidrs_across_vpcs_and_secondary_blocks_yaml` (22 diagnostics)
-- `good_unresolved_values_are_present_yaml` (32 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis
@@ -22944,19 +21279,21 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FN | Rules |
 |-------|------:|--------:|-------|
-| Informational checks | 798 | 69.21% | I3013, I3510, I4010 |
-| Other | 175 | 15.18% | E0002, E2001, E2529, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F3037, F6101 |
-| Resource property validation | 90 | 7.81% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3047, E3048, E3055, E3065, E3066, E3504, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
-| Warning-level checks | 63 | 5.46% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W2533, W3037, W3691, W3698, W3705, W6001 |
-| Intrinsic function validation | 27 | 2.34% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1021, E1041, E1150, E1161, E1701 |
+| Other | 172 | 42.57% | E0002, E2001, E2531, E2533, E5001, E6001, E6010, E7001, E7010, E8003, E8004, E8005, E9004, F0000, F0013, F0018, F1018, F1020, F2015, F3002, F3003, F3006, F3012, F3014, F3016, F3017, F3018, F3030, F6101 |
+| Resource property validation | 96 | 23.76% | E3001, E3005, E3010, E3023, E3024, E3026, E3039, E3043, E3046, E3047, E3048, E3055, E3065, E3066, E3504, E3505, E3510, E3512, E3513, E3514, E3530, E3673, E3678, E3682, E3685, E3692, E3698, E3699, E3700, E3701, E3707, E3712, E3719, E3720, E3724 |
+| Warning-level checks | 65 | 16.09% | W1001, W1028, W1030, W1031, W1032, W1034, W1036, W2001, W2002, W2530, W2533, W3037, W3691, W3698, W3705, W4011, W4012, W6001 |
+| Informational checks | 42 | 10.40% | I3013, I3037, I3510, I4010 |
+| Intrinsic function validation | 29 | 7.18% | E1001, E1002, E1003, E1005, E1011, E1016, E1017, E1018, E1021, E1041, E1150, E1161, E1701 |
 
 ### False Positive Root Causes
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Other | 47 | 58.75% | E0001, F0018, F2002, F3012, F3016, F3017 |
-| Over-reporting property/intrinsic errors | 21 | 26.25% | E1155, E3001, E3019, E3022, E3029, E3055, E3510, E3639 |
-| Stricter than cfn-lint (informational) | 12 | 15.00% | I3011 |
+| Extra informational findings | 220 | 68.54% | I4010 |
+| Other | 49 | 15.26% | E0001, F0018, F2002, F3012, F3016, F3017, F3032 |
+| Over-reporting property/intrinsic errors | 28 | 8.72% | E1155, E3001, E3019, E3022, E3023, E3024, E3029, E3048, E3055, E3505, E3510 |
+| Stricter than cfn-lint (informational) | 12 | 3.74% | I3011 |
+| Stricter than cfn-lint (warnings) | 12 | 3.74% | W1028, W1030, W2001, W2530, W3688, W3689, W4011 |
 
 ## Location Mismatches - 9 matched pairs disagree on line
 
@@ -22972,7 +21309,7 @@ actual property line - deliberately more precise, not a defect.
 - **E3023** `StandaloneInvalidTrue` → `Properties.ResourceRecords.0` in `bad_route53_conditional_record_arrays_yaml`: reference L19 vs engine L21
 - **E3023** `StandaloneMixedInvalidFalse` → `Properties.ResourceRecords.1` in `bad_route53_conditional_record_arrays_yaml`: reference L53 vs engine L57
 - **E3023** `StandaloneMixedInvalidTrue` → `Properties.ResourceRecords.1` in `bad_route53_conditional_record_arrays_yaml`: reference L41 vs engine L44
-- **E3023** `MyCNAMERecordSetConditions` → `Properties.ResourceRecords` in `bad_route53_yaml`: reference L90 vs engine L93
+- **F3037** `IamGroupWithConditions` → `Properties.ManagedPolicyArns` in `bad_resources_properties_list_duplicates_yaml`: reference L22 vs engine L25
 - **I3042** `myKms` → `Properties.KeyPolicy.Statement.2.Principal.AWS.0.Fn::Sub` in `bad_resources_circular_dependency_yaml`: reference L191 vs engine L192
 - **I3042** `CognitoAuthorizer` → `Properties.ProviderARNs.0.Fn::Sub` in `integration_cfn-gather_yaml`: reference L60 vs engine L61
 - **W1028** `ProductionBucket` → `Properties.PublicAccessBlockConfiguration.BlockPublicAcls.Fn::If.2` in `lsp_condition-usage_yaml`: reference L66 vs engine L69

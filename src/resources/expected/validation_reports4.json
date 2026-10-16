@@ -11823,7 +11823,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 22,
+        "informational": 21,
         "debug": 0
       },
       "suppressed": 0,
@@ -11917,29 +11917,6 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CarApiSchema8E4784D9",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppSync::GraphQLSchema"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 93,
-        "startColumn": 5,
-        "endLine": 93,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt CarApiE5E7ACF5.ApiId"
         }
       },
       {
@@ -12335,7 +12312,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 1,
-        "informational": 16,
+        "informational": 15,
         "debug": 0
       },
       "suppressed": 0,
@@ -12378,29 +12355,6 @@
         "startLine": 16,
         "startColumn": 5,
         "endLine": 16,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt AppSync2EventBridgeApi.ApiId"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ItemsSchema",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppSync::GraphQLSchema"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 5,
-        "endLine": 30,
         "endColumn": 11,
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
@@ -12727,7 +12681,7 @@
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 17,
+        "informational": 16,
         "debug": 0
       },
       "suppressed": 0,
@@ -12750,29 +12704,6 @@
         "startLine": 16,
         "startColumn": 5,
         "endLine": 16,
-        "endColumn": 11,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt PostsApiCdk.ApiId"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "PostsSchema",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppSync::GraphQLSchema"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 5,
-        "endLine": 30,
         "endColumn": 11,
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
@@ -55848,7 +55779,7 @@
         "fatal": 0,
         "errors": 1,
         "warnings": 2,
-        "informational": 36,
+        "informational": 35,
         "debug": 0
       },
       "suppressed": 0,
@@ -55916,29 +55847,6 @@
         "endColumn": 17,
         "ruleDescription": "Check obsolete DependsOn configuration for Resources",
         "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ApiSchema510EECD7",
-          "entityType": "Resource",
-          "resourceType": "AWS::AppSync::GraphQLSchema"
-        },
-        "propertyPath": "Properties.ApiId",
-        "category": "Best Practice",
-        "startLine": 59,
-        "startColumn": 9,
-        "endLine": 59,
-        "endColumn": 15,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt ApiF70053CD.ApiId"
-        }
       },
       {
         "ruleId": "I9001",

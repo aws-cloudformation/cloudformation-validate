@@ -5,11 +5,11 @@ severity model documented in `product.md`.
 
 ## Summary
 
-- Total rules: **303**
-- By severity: Fatal=69, Error=148, Warn=64, Info=22
-- By true origin: CfnLint=204, Engine=29, Engine(collision)=1, Schema=69
-- By category: BestPractice=50, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=87, Schema=25, Security=14, Structure=57
-- cfn-lint reference: 323 rule IDs loaded
+- Total rules: **317**
+- By severity: Fatal=69, Error=153, Warn=72, Info=23
+- By true origin: CfnLint=218, Engine=29, Engine(collision)=1, Schema=69
+- By category: BestPractice=59, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=92, Schema=25, Security=14, Structure=57
+- cfn-lint reference: 329 rule IDs loaded
 - E→F promoted rules: 51
 - Engine-extra rules: 60
 
@@ -18,10 +18,13 @@ severity model documented in `product.md`.
 True origin is computed by checking cfn-lint source, not the registry's
 `origin:` field. Mismatches indicate the registry needs updating.
 
-**1 issue(s) found.**
+**4 issue(s) found.**
 
 | ID | Registry origin | True origin | Note |
 |----|-----------------|-------------|------|
+| `I4010` | Engine | CfnLint | registry says Engine; cfn-lint has this exact ID |
+| `W4011` | Engine | CfnLint | registry says Engine; cfn-lint has this exact ID |
+| `W4012` | Engine | CfnLint | registry says Engine; cfn-lint has this exact ID |
 | `W9003` | CfnLint | Engine | registry says CfnLint but no cfn-lint equivalent (exact ID or alias) exists |
 
 ## 2. Description parity vs cfn-lint
@@ -38,7 +41,7 @@ cfn-lint's `shortdesc`. Fatal rules are exempt
 | `E1024` | Error | 0.09 | Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits | Cidr validation of parameters |
 | `E1031` | Error | 0.09 | Fn::ToJsonString argument must be a non-empty array/object or a supported function | ToJsonString validation of parameters |
 
-### Soft mismatches (21) - wording divergence
+### Soft mismatches (23) - wording divergence
 
 | ID | Sev | Sim | Our description | cfn-lint shortdesc |
 |----|-----|----:|------------------|--------------------|
@@ -54,9 +57,11 @@ cfn-lint's `shortdesc`. Fatal rules are exempt
 | `E8005` | Error | 0.12 | Fn::Not must take exactly one boolean condition | Check Fn::Not structure for validity |
 | `E1028` | Error | 0.14 | Fn::If condition must exist in Conditions section | Check Fn::If structure for validity |
 | `E2531` | Error | 0.14 | Check if Lambda Function Runtimes are blocked for create | Validate if lambda runtime is deprecated |
+| `E3718` | Error | 0.14 | API Gateway TOKEN and REQUEST authorizers must keep AuthorizerResultTtlInSeconds within 0 to 3600 | Validate API Gateway Authorizer TTL based on type |
 | `E6003` | Error | 0.14 | Outputs section must be an object of named output definitions | Check the type of Outputs |
 | `E8007` | Error | 0.14 | Condition function value must be a string referencing a defined condition | Check Condition structure for validity |
 | `E3040` | Error | 0.17 | Read only property should not be specified | Validate we aren't configuring read only properties |
+| `E3719` | Error | 0.17 | RDS DB instances on non-Aurora engines must keep BackupRetentionPeriod at most 35 days | Validate RDS BackupRetentionPeriod configuration |
 | `W1051` | Warn | 0.17 | Dynamic reference resolves secret value but property expects the secret ARN | Validate dynamic references to secrets manager are not used when a secrets manager ARN was expected |
 | `E1050` | Error | 0.22 | Dynamic reference must match the SSM, ssm-secure, or Secrets Manager format | Validate the structure of a dynamic reference |
 | `E8003` | Error | 0.22 | Fn::Equals must take exactly two scalar operands | Check Fn::Equals structure for validity |
@@ -106,7 +111,7 @@ cfn-lint rules that have no corresponding rule in our registry
 (neither same ID, nor F-promoted equivalent, nor logically-covered via
 schema-validator extensions or Fatal schema rules).
 
-### Not implemented (24)
+### Not implemented (23)
 
 | cfn-lint ID | Severity | Description | Source file |
 |-------------|----------|-------------|-------------|
@@ -122,10 +127,9 @@ schema-validator extensions or Fatal schema rules).
 | `E3720` | Error | Validate StorageEncrypted is set when KmsKeyId is specified | DbInstanceKmsKeyStorageEncrypted.py |
 | `E3721` | Error | Validate ReplicaMode value for Oracle and Db2 engines | DbInstanceReplicaMode.py |
 | `E3722` | Error | Cookies Forward must be a valid enum when CachePolicyId is absent | DistributionCacheBehaviorForwardEnum.py |
-| `E3723` | Error | ResourcePath must start with / when method settings are configured | StageMethodSettingsResourcePath.py |
 | `E3724` | Error | Validate Globals section and IgnoreGlobals entries | GlobalsTransform.py |
-| `W1034` | Warn | Validate the values that come from a Fn::FindInMap function | FindInMapResolved.py |
-| `W1036` | Warn | Validate the values that come from a Fn::GetAZs function | GetAzResolved.py |
+| `E3725` | Error | Validate FSx file system StorageCapacity based on FileSystemType | FileSystemStorageCapacity.py |
+| `W1101` | Warn | Validate if the template is using YAML aliases | UsingAlias.py |
 | `W3001` | Warn | SAM resource-level properties are ignored | Configuration.py |
 | `W3699` | Warn | ReplicaMode is ignored for non-Oracle/Db2 engines | DbInstanceReplicaModeIgnored.py |
 | `W3700` | Warn | Non-standard Domain values are converted to vpc | EipDomain.py |
@@ -135,7 +139,7 @@ schema-validator extensions or Fatal schema rules).
 | `W3704` | Warn | ForwardedValues is ignored when CachePolicyId is specified | DistributionCacheBehaviorForwardedValuesIgnored.py |
 | `W3705` | Warn | MethodSettings entry is ignored without any setting properties | StageMethodSettingsIgnored.py |
 
-### Covered via different mechanism (70)
+### Covered via different mechanism (63)
 
 These cfn-lint rule IDs have no matching engine ID but are enforced
 through our schema-validator (extensions/patches from cfn-lint) or
@@ -179,7 +183,6 @@ via a Fatal schema rule covering the same concern.
 | `E3684` | Validate target group health check protocol property restrictions | `schema-ext` | ELBv2 TargetGroup health check protocol |
 | `E3686` | Validate allowed properties when using a serverless RDS DB cluster | `schema-patch` | Serverless RDS DB cluster properties |
 | `E3688` | Validate that to and from ports are both -1 | `schema-ext` | SG ports must both be -1 |
-| `E3689` | Validate MonitoringInterval and MonitoringRoleArn are used together | `schema-patch` | RDS MonitoringInterval+Role required together |
 | `E3692` | Validate Multi-AZ DB cluster configuration | `schema-patch` | RDS Multi-AZ DB cluster config |
 | `E3693` | Validate Aurora DB cluster configuration | `schema-patch` | Aurora DB cluster config |
 | `E3695` | Validate Elasticache Cluster Engine and Engine Version | `schema-ext` | ElastiCache Engine and EngineVersion |
@@ -191,8 +194,6 @@ via a Fatal schema rule covering the same concern.
 | `E3713` | Validate Fargate ECS services use supported log drivers | `schema-ext` | Fargate ECS log drivers |
 | `E3714` | Validate LaunchTemplate SecurityGroup and Subnet are in the same VPC | `schema-patch` | LaunchTemplate SG/Subnet VPC match |
 | `E3716` | Validate Lambda layer ARN length based on region | `schema-ext` | Lambda layer ARN length by region |
-| `E3718` | Validate API Gateway Authorizer TTL based on type | `schema-ext` | API Gateway Authorizer TTL |
-| `E3719` | Validate RDS BackupRetentionPeriod configuration | `schema-patch` | RDS BackupRetentionPeriod config |
 | `E4001` | Metadata Interface have appropriate properties | `F0005` | Metadata Interface section validation |
 | `E4002` | Validate the configuration of the Metadata section | `F0005` | Metadata section config |
 | `E6002` | Outputs have required properties | `F0040` | Output Value required |
@@ -200,10 +201,6 @@ via a Fatal schema rule covering the same concern.
 | `E7010` | Max number of properties for Mappings | `F0008` | Mappings limit 200 |
 | `I1002` | Validate approaching the template size limit | `I2010/I6010` | approaching template size (via parameter/output limit warns) |
 | `I3010` | Resource limit | `I2010` | resource limit approach |
-| `W1031` | Validate the values that come from a Fn::Sub function | `F3012+W9003` | Fn::Sub resolved values (via resolver) |
-| `W1032` | Validate the values that come from a Fn::Join function | `F3012+W9003` | Fn::Join resolved values |
-| `W1033` | Validate the values that come from a Fn::Split function | `F3012+W9003` | Fn::Split resolved values |
-| `W1035` | Validate the values that come from a Fn::Select function | `F3012+W9003` | Fn::Select resolved values |
 | `W1040` | Validate the values that come from a Fn::ToJsonString function | `F3012+W9003` | Fn::ToJsonString resolved values |
 | `W2030` | Check if parameters have a valid value | `F2015` | Parameter Default enum check |
 | `W2031` | Check if parameters have a valid value based on an allowed pattern | `F3031` | Parameter AllowedPattern check |
@@ -302,9 +299,9 @@ Rule IDs found in one engine's source but not the other.
 May be false positives from regex limitations - cross-reference
 with `cargo test -p cfn-validate --test engine_parity` for ground truth.
 
-**CEL only (2):** `E3023`, `E3510`
+**CEL only (4):** `E3023`, `E3024`, `E3510`, `W2530`
 
-_Scanned 259 CEL sites (196 IDs), 283 Rego sites (194 IDs)._
+_Scanned 257 CEL sites (197 IDs), 282 Rego sites (193 IDs)._
 
 ## Appendix: full rule inventory
 
@@ -426,6 +423,7 @@ _Scanned 259 CEL sites (196 IDs), 283 Rego sites (194 IDs)._
 | `E3680` | Error | Resource | CfnLint | CfnLint | Application load balancers require at least 2 subnets |
 | `E3685` | Error | Resource | CfnLint | CfnLint | Container image functions cannot use Handler, Runtime, or Layers |
 | `E3687` | Error | Resource | CfnLint | CfnLint | Validate to and from ports based on the protocol |
+| `E3689` | Error | Resource | CfnLint | CfnLint | RDS DB cluster MonitoringRoleArn and a MonitoringInterval greater than 0 must be specified together |
 | `E3694` | Error | Resource | CfnLint | CfnLint | Validates RDS DB Cluster instance class |
 | `E3698` | Error | Resource | CfnLint | CfnLint | API Gateway Stage and Deployment must use the same RestApi |
 | `E3699` | Error | Resource | CfnLint | CfnLint | API Gateway Method and Authorizer must use the same RestApi |
@@ -440,6 +438,10 @@ _Scanned 259 CEL sites (196 IDs), 283 Rego sites (194 IDs)._
 | `E3708` | Error | Resource | CfnLint | CfnLint | API Gateway Method AuthorizationType must match Authorizer Type |
 | `E3710` | Error | Deprecation | CfnLint | CfnLint | Resource type is from a service that has been shut down |
 | `E3715` | Error | Resource | CfnLint | CfnLint | VirtualName must use ephemeral device format when Ebs is absent |
+| `E3717` | Error | Resource | CfnLint | CfnLint | Lambda function Timeout may exceed 900 seconds only with CapacityProviderConfig |
+| `E3718` | Error | Resource | CfnLint | CfnLint | API Gateway TOKEN and REQUEST authorizers must keep AuthorizerResultTtlInSeconds within 0 to 3600 |
+| `E3719` | Error | Resource | CfnLint | CfnLint | RDS DB instances on non-Aurora engines must keep BackupRetentionPeriod at most 35 days |
+| `E3723` | Error | Resource | CfnLint | CfnLint | API Gateway Stage method setting ResourcePath must start with '/' when a setting is configured |
 | `E5001` | Error | Structure | CfnLint | CfnLint | Check that Modules resources are valid |
 | `E6001` | Error | Structure | CfnLint | CfnLint | Outputs have appropriate properties |
 | `E6003` | Error | Structure | CfnLint | CfnLint | Outputs section must be an object of named output definitions |
@@ -541,6 +543,7 @@ _Scanned 259 CEL sites (196 IDs), 283 Rego sites (194 IDs)._
 | `I3049` | Info | BestPractice | CfnLint | CfnLint | ELB target group relies on the default traffic-port health check for an ECS dynamic host port |
 | `I3100` | Info | BestPractice | CfnLint | CfnLint | Checks for legacy instance type generations |
 | `I3510` | Info | Security | CfnLint | CfnLint | Validate statement resources match the actions |
+| `I4010` | Info | BestPractice | Engine ⚠ | CfnLint | Template or architecture-relevant resource has no Metadata Context block |
 | `I6010` | Info | Structure | CfnLint | CfnLint | Output limit |
 | `I6011` | Info | Structure | CfnLint | CfnLint | Output name limit |
 | `I7002` | Info | Structure | CfnLint | CfnLint | Mapping name limit |
@@ -555,6 +558,12 @@ _Scanned 259 CEL sites (196 IDs), 283 Rego sites (194 IDs)._
 | `W1020` | Warn | BestPractice | CfnLint | CfnLint | Sub isn't needed if it doesn't have a variable defined |
 | `W1028` | Warn | BestPractice | CfnLint | CfnLint | Check Fn::If has a path that cannot be reached |
 | `W1030` | Warn | BestPractice | CfnLint | CfnLint | Validate the values that come from a Ref function |
+| `W1031` | Warn | BestPractice | CfnLint | CfnLint | Validate the values that come from a Fn::Sub function |
+| `W1032` | Warn | BestPractice | CfnLint | CfnLint | Validate the values that come from a Fn::Join function |
+| `W1033` | Warn | BestPractice | CfnLint | CfnLint | Validate the values that come from a Fn::Split function |
+| `W1034` | Warn | BestPractice | CfnLint | CfnLint | Validate the values that come from a Fn::FindInMap function |
+| `W1035` | Warn | BestPractice | CfnLint | CfnLint | Validate the values that come from a Fn::Select function |
+| `W1036` | Warn | BestPractice | CfnLint | CfnLint | Validate the values that come from a Fn::GetAZs function |
 | `W1051` | Warn | Intrinsic | CfnLint | CfnLint | Dynamic reference resolves secret value but property expects the secret ARN |
 | `W1053` | Warn | BestPractice | CfnLint | CfnLint | Dynamic references should not contain spaces |
 | `W1054` | Warn | Intrinsic | CfnLint | CfnLint | String value matches a pseudo parameter; use Ref instead |
@@ -595,6 +604,8 @@ _Scanned 259 CEL sites (196 IDs), 283 Rego sites (194 IDs)._
 | `W3696` | Warn | Deprecation | CfnLint | CfnLint | Resource type is from a service that is sunsetting |
 | `W3697` | Warn | Deprecation | CfnLint | CfnLint | Resource type is from a service in maintenance mode |
 | `W3698` | Warn | BestPractice | CfnLint | CfnLint | VirtualName is ignored when Ebs is specified |
+| `W4011` | Warn | BestPractice | Engine ⚠ | CfnLint | Metadata Context block has no 'why' rationale and no low-confidence trust declaration |
+| `W4012` | Warn | BestPractice | Engine ⚠ | CfnLint | Metadata Context block does not match the Metadata Context schema |
 | `W7001` | Warn | BestPractice | CfnLint | CfnLint | Check if Mappings are Used |
 | `W8001` | Warn | BestPractice | CfnLint | CfnLint | Check if Conditions are Used |
 | `W8003` | Warn | BestPractice | CfnLint | CfnLint | Fn::Equals will always return true or false |
