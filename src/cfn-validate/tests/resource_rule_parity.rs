@@ -830,9 +830,6 @@ Resources:
       Name: AWS::Include
       Parameters:
         Location: s3://example-bucket/queue-resource.yaml
-  NoValuePropertiesQueue:
-    Type: AWS::SQS::Queue
-    Properties: !Ref AWS::NoValue
   NestedTransformQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -886,6 +883,11 @@ Resources:
     Condition: IsProduction
     Properties:
       MessageRetentionPeriod: !If [IsProduction, 60, !Ref AWS::NoValue]
+  NegatedResourceConditionExcludesAbsenceQueue:
+    Type: AWS::SQS::Queue
+    Condition: IsNotProduction
+    Properties:
+      MessageRetentionPeriod: !If [IsProduction, !Ref AWS::NoValue, 60]
   CorrelatedConditionsExcludeAbsenceQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -933,13 +935,45 @@ Resources:
         "CorrelatedConditionsExcludeAbsenceQueue",
         "DynamicPropertiesQueue",
         "DynamicRetentionQueue",
-        "NoValuePropertiesQueue",
+        "NegatedResourceConditionExcludesAbsenceQueue",
         "ResourceConditionExcludesAbsenceQueue",
         "ResourceTransformQueue",
         "SiblingTransformQueue",
     ] {
         assert!(rego_findings.iter().all(|finding| !finding.contains(&format!("|{resource}|"))));
     }
+}
+
+#[test]
+fn whole_properties_no_value_is_a_schema_type_error() {
+    let template = r#"
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties: !Ref AWS::NoValue
+  MacroOwnedQueue:
+    Type: AWS::SQS::Queue
+    Properties: !Ref AWS::NoValue
+    Fn::Transform:
+      Name: AWS::Include
+      Parameters:
+        Location: s3://example-bucket/queue-resource.yaml
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["F3012", "I3013"]);
+    let cel_findings = selected_findings(&cel, template, &["F3012", "I3013"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "the non-object Properties value must produce one finding: {rego_findings:?}");
+    assert!(
+        rego_findings[0].contains("F3012|Fatal|Queue|Properties|{'Ref': 'AWS::NoValue'} is not of type 'object'"),
+        "the whole Properties value must be rejected without a missing-retention cascade: {rego_findings:?}"
+    );
+
+    let rego_anchors = selected_finding_anchors(&rego, template, &["F3012"]);
+    let cel_anchors = selected_finding_anchors(&cel, template, &["F3012"]);
+    assert_eq!(rego_anchors, cel_anchors);
+    assert_eq!(rego_anchors, ["Queue|Properties|5:5"]);
 }
 
 #[test]

@@ -14985,7 +14985,7 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 4,
+        "fatal": 6,
         "errors": 3,
         "warnings": 0,
         "informational": 2,
@@ -15085,6 +15085,57 @@
         },
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3012",
+        "severity": "FATAL",
+        "message": "{'Ref': 'AWS::NoValue'} is not of type 'object'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "IamRole2",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties",
+        "category": "Schema",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
+        "ruleDescription": "Property type mismatch",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": {
+            "Ref": "AWS::NoValue"
+          },
+          "expectedConstraint": "object"
+        }
+      },
+      {
+        "ruleId": "F3012",
+        "severity": "FATAL",
+        "message": "{'Ref': 'AWS::NoValue'} is not of type 'object'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "CloudFront1",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFront::Distribution"
+        },
+        "propertyPath": "Properties",
+        "category": "Schema",
+        "startLine": 39,
+        "startColumn": 5,
+        "endLine": 39,
+        "endColumn": 15,
+        "ruleDescription": "Property type mismatch",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": {
+            "Ref": "AWS::NoValue"
+          },
+          "expectedConstraint": "object"
+        }
       },
       {
         "ruleId": "E3024",
