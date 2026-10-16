@@ -990,6 +990,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: my-queue
+      MessageRetentionPeriod: !Ref Port
 Transform: AWS::Serverless-2016-10-31
 "#;
 
@@ -1228,6 +1229,25 @@ violation contains v if {
             "B_NOT_DYN",
         );
         assert_eq!(diags.len(), 1, "BucketName is static");
+    }
+
+    #[test]
+    fn builtin_property_can_be_absent_uses_known_absence() {
+        let diags = eval_builtin_policy(
+            r#"
+package builtin_test
+import rego.v1
+violation contains v if {
+    property_can_be_absent("MyQueue", "Properties.RedrivePolicy")
+    not property_can_be_absent("MyBucket", "Properties.BucketName")
+    not property_can_be_absent("MyQueue", "Properties.MessageRetentionPeriod")
+    property_can_be_absent("MissingQueue", "Properties.MessageRetentionPeriod")
+    v := {"rule_id": "B_PROPERTY_ABSENCE", "severity": "error", "message": "ok", "resource_id": "MyQueue"}
+}
+"#,
+            "B_PROPERTY_ABSENCE",
+        );
+        assert_eq!(diags.len(), 1, "only known property absence should satisfy the builtin");
     }
 
     #[test]

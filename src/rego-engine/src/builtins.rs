@@ -1784,15 +1784,11 @@ fn register_property_can_be_absent(rego: &mut regorus::Engine) {
             };
             let rid = params[0].as_string()?;
             let path = params[1].as_string()?;
-            let prop = path.strip_prefix("Properties.").unwrap_or(path.as_ref());
-            let key_present =
-                model.resources.get(rid.as_ref()).map(|r| r.properties.contains_key(prop)).unwrap_or(false);
-            if !key_present {
+            let property = path.strip_prefix("Properties.").unwrap_or(path.as_ref());
+            if !model.resources.contains_key(rid.as_ref()) {
                 return Ok(Value::from(true));
             }
-            let scenarios = model.resolve_scenarios_json_shared(rid.as_ref(), path.as_ref());
-            let absent = scenarios.is_empty() || scenarios.iter().any(|(v, _)| v.is_null());
-            Ok(Value::from(absent))
+            Ok(Value::from(!model.property_absence_scenarios(rid.as_ref(), property).is_empty()))
         }),
     );
 }

@@ -300,7 +300,7 @@ condition assignment and should be emitted with `make_diag_conditional`.
 | `is_satisfiable`          | `({condition_name: bool}) -> bool`               | Whether the condition assignment is satisfiable; an empty assignment returns `true`.                                                |
 | `unreachable_if_branches` | `(resource_id) -> [{resourceId, path, message}]` | Finds immediate `Fn::If` branches unreachable under surrounding conditions. `__output__<name>` addresses an output.                 |
 | `has_property`            | `(resource_id, property_name) -> bool`           | Whether the resource authors the named property, whatever its value: a `Ref`, `Fn::GetAtt`, or `Fn::ImportValue` counts as present. Use `"BucketName"`, not `"Properties.BucketName"`. |
-| `property_can_be_absent`  | `(resource_id, path) -> bool`                    | Whether the property is missing or can resolve to null/`AWS::NoValue` in a scenario.                                                |
+| `property_can_be_absent`  | `(resource_id, path) -> bool`                    | Whether a top-level property is absent in a reachable deployment scenario. Macro-owned property sets are unknown rather than absent. |
 
 ### Parameters and Template Metadata
 

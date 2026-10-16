@@ -124,9 +124,9 @@ pub struct ResolvedResource {
     pub metadata: Option<JsonValue>,
     #[cfg_attr(feature = "wasm-bindings", tsify(type = "Record<string, ResolvedValue>"))]
     pub properties: HashMap<String, ResolvedValue>,
-    /// True when a resource-level macro or a non-map `Properties` intrinsic can
-    /// determine the effective property set only at deploy time, as distinct from
-    /// a resource that simply declares no properties.
+    /// True when a resource-level or property-set macro can determine the
+    /// effective property set only at deploy time, or when a non-map
+    /// `Properties` intrinsic has no statically inspectable property map.
     pub properties_dynamic: bool,
     pub diagnostics: ResourceDiagnostics,
 }
@@ -2293,10 +2293,13 @@ impl SemanticModel {
 
     /// The condition assignments under which the top-level property
     /// `property_name` is absent at deployment: undeclared, or resolving to
-    /// `AWS::NoValue`. Only the conditions that decide the property's own
-    /// presence appear, never conditions nested inside a present value, so the
-    /// result stays linear in the property's `Fn::If` depth. Empty when the
-    /// property is always present or the resource's properties are dynamic.
+    /// `AWS::NoValue`. A macro-owned branch is unknown rather than absent, and
+    /// an explicitly authored dynamic value remains present. Only the conditions
+    /// that decide the property's own presence appear, never conditions nested
+    /// inside a present value, so the result stays linear in the property's
+    /// `Fn::If` depth. Empty when the property is always present or the resource's
+    /// properties are otherwise dynamic. Scenarios incompatible with the resource's
+    /// own condition or the template condition model are excluded.
     #[must_use]
     pub fn property_absence_scenarios(&self, resource_id: &str, property_name: &str) -> Vec<HashMap<String, bool>> {
         let Some(properties) = self.resolved_properties_value(resource_id) else {
@@ -2304,6 +2307,20 @@ impl SemanticModel {
         };
         let mut absences = Vec::new();
         collect_property_absences(&properties, property_name, &mut Vec::new(), &mut absences);
+        absences.retain(|conditions| {
+            let mut assumptions: Vec<(String, bool)> =
+                conditions.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
+            if let Some(resource_condition) =
+                self.resources.get(resource_id).and_then(|resource| resource.condition.as_ref())
+            {
+                match conditions.get(resource_condition) {
+                    Some(false) => return false,
+                    Some(true) => {}
+                    None => assumptions.push((resource_condition.clone(), true)),
+                }
+            }
+            assumptions.is_empty() || self.conditions.is_satisfiable(&assumptions)
+        });
         absences
     }
 
@@ -2790,6 +2807,7 @@ fn collect_property_absences(
                 }
             }
         }
+        ResolvedValue::Map { entries } if entries.iter().any(|entry| entry.key == FN_TRANSFORM) => {}
         ResolvedValue::Map { entries } => match entries.iter().find(|entry| entry.key == property_name) {
             None => absences.push(assignment(literals)),
             Some(entry) => {
@@ -3386,10 +3404,19 @@ fn resolve_resource(arena: &Arena, name: &str, node_ref: NodeRef, resolver: &mut
             // rather than doubling the `Fn::If` segment.
             resolver.set_current_path(KEY_PROPERTIES);
             properties.insert(synthetic_key, resolver.resolve_node(*props_ref));
+        } else if matches!(
+            arena.node(*props_ref),
+            Node::Intrinsic(IntrinsicFn::Ref(target)) if target == PSEUDO_NO_VALUE
+        ) && !properties_dynamic
+        {
+            // Retain the known non-object value so schema validation can reject
+            // it without treating every schema property as missing.
+            resolver.set_current_path(KEY_PROPERTIES);
+            resolver.resolve_node(*props_ref);
+            properties_dynamic = true;
         } else if matches!(arena.node(*props_ref), Node::Intrinsic(_)) {
-            // The whole Properties block is an intrinsic (e.g. `!Ref AWS::NoValue`)
-            // that did not collapse into a per-branch synthetic key. Its effective
-            // properties are only known at deploy time.
+            // The intrinsic may produce the effective property map only at
+            // deployment, so static analysis cannot infer missing keys.
             properties_dynamic = true;
         }
     }

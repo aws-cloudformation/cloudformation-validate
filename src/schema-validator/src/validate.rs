@@ -562,6 +562,28 @@ fn validate_resource(
     let base = KEY_PROPERTIES;
     let defs = &schema.definitions;
 
+    if m.is_authored_ref_at(rid, base, PSEUDO_NO_VALUE) {
+        let mut actual_value = serde_json::Map::new();
+        actual_value.insert(FN_REF.to_string(), serde_json::Value::String(PSEUDO_NO_VALUE.to_string()));
+        let mut diagnostic = build_diagnostic(
+            "F3012",
+            &format!("{{'Ref': '{}'}} is not of type 'object'", PSEUDO_NO_VALUE),
+            m,
+            rid,
+            base,
+            None,
+        );
+        diagnostic.context = Some(ViolationContext {
+            actual_value: Some(serde_json::Value::Object(actual_value).into()),
+            expected_constraint: Some("object".to_string()),
+            property: None,
+            lifecycle: None,
+            resolution_source: None,
+            extra: None,
+        });
+        out.push(diagnostic);
+    }
+
     // Lifecycle pointers (deprecated/create-only/write-only) address a specific
     // property, which for many resources is a nested sub-property (e.g. MediaConnect
     // Flow deprecates only `Source.Decryption.Url`, never the required `Source`
@@ -632,10 +654,9 @@ fn validate_resource(
         }
     }
 
-    // When the whole Properties block is a deploy-time intrinsic (e.g.
-    // `Properties: !Ref AWS::NoValue`), the resolved view is empty and every
-    // required property would look missing. The effective properties are not
-    // known statically, so skip the key/required-property checks.
+    // A macro-owned Properties block has no statically complete key set. A
+    // direct AWS::NoValue reference is already reported above as a type error,
+    // so neither case should cascade into missing-required diagnostics.
     let key_scenarios = if res.properties_dynamic { Vec::new() } else { resource_property_key_scenarios(m, rid, res) };
     for (actual_keys, conds) in &key_scenarios {
         let scenario = if conds.is_empty() { None } else { Some(conds) };
