@@ -544,14 +544,11 @@ jobs:
         printf '  %s\n' "${go_libraries[@]}"
 
         for d in "$GITHUB_WORKSPACE"/incoming/cfn-validate-*/; do
-          case "$d" in
-            *cfn-validate-amazonlinux-*) continue ;;
-          esac
           cp -R "$d." "$GITHUB_WORKSPACE/release-bin/"
         done
         cli_binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
-        if [ ${#cli_binaries[@]} -ne 6 ]; then
-          echo "::error::Expected six staged cfn-validate binaries, found ${#cli_binaries[@]}"
+        if [ ${#cli_binaries[@]} -ne 8 ]; then
+          echo "::error::Expected eight staged cfn-validate binaries, found ${#cli_binaries[@]}"
           exit 1
         fi
         echo "Staged cfn-validate binaries:"
