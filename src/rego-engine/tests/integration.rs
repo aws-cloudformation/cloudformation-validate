@@ -868,6 +868,23 @@ fn e2e_e3061_s3_tiering_bad_days() {
 }
 
 #[test]
+fn e2e_e9014_invalid_event_patterns() {
+    let report = validate_fixture("bad/E9014_invalid_event_patterns.yaml");
+    let event_pattern_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9014").count();
+    assert_eq!(
+        event_pattern_findings, 10,
+        "Expected one E9014 per rejected pattern shape, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_e9014_valid_and_unresolved_event_patterns() {
+    let report = validate_fixture("good/E9014_valid_event_patterns.yaml");
+    assert!(!has_rule(&report, "E9014"), "Expected no E9014, got: {:?}", report.diagnostics);
+}
+
+#[test]
 fn e2e_e3505_sqs_default_visibility_timeout() {
     let report = validate_fixture("bad/E3505_sqs_default_visibility_timeout.yaml");
     assert!(

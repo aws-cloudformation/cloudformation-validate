@@ -105,6 +105,19 @@ Resources:
     }
 
     #[test]
+    fn invalid_event_patterns_trigger_e9014_once_per_rejected_matcher() {
+        let ids = validate_file("bad/E9014_invalid_event_patterns.yaml");
+        let event_pattern_findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9014").count();
+        assert_eq!(event_pattern_findings, 10, "Expected one E9014 per rejected pattern shape, got: {ids:?}");
+    }
+
+    #[test]
+    fn valid_and_unresolved_event_patterns_do_not_trigger_e9014() {
+        let ids = validate_file("good/E9014_valid_event_patterns.yaml");
+        assert!(!ids.contains(&"E9014".to_string()), "Expected no E9014, got: {ids:?}");
+    }
+
+    #[test]
     fn sqs_default_visibility_timeout_below_function_timeout_triggers_e3505() {
         let ids = validate_file("bad/E3505_sqs_default_visibility_timeout.yaml");
         assert!(

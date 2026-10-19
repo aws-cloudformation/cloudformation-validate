@@ -2374,6 +2374,48 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn invalid_event_patterns_are_reported_identically_per_rejected_matcher() {
+    let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9014"]);
+    let cel_findings = selected_findings(&cel, template, &["E9014"]);
+    assert_eq!(rego_findings, cel_findings, "event pattern diagnostics must be identical across engines");
+    let expected = [
+        ("UnknownOperatorRule", "'startsWith' in 'EventPattern.detail.name' is not an event pattern operator"),
+        ("NumericComparisonRule", "'=>' in 'EventPattern.detail.price' is not a numeric comparison operator"),
+        ("AnythingButNestedRule", "anything-but in 'EventPattern.detail.state' cannot use 'exists'"),
+        ("PrefixNumberRule", "prefix in 'EventPattern.detail.code' must be a string or an equals-ignore-case object"),
+        ("ExistsStringRule", "exists in 'EventPattern.detail.error' must be true or false"),
+        (
+            "ConsecutiveWildcardRule",
+            "wildcard 'a**b' in 'EventPattern.detail.path' has consecutive wildcard characters",
+        ),
+        ("OrWithSiblingRule", "$or in 'EventPattern.detail' cannot share its object with y"),
+        ("EmptyArrayRule", "'EventPattern.source' is an empty array"),
+        ("ScalarValueStringRule", "'EventPattern.source' must be an array or an object"),
+        ("NestedScalarArchive", "'EventPattern.detail.a.b.c' must be an array or an object"),
+    ];
+    assert_eq!(rego_findings.len(), expected.len(), "one finding per rejected pattern shape: {rego_findings:?}");
+    for (resource, message) in expected {
+        let anchor = format!("E9014|Error|{resource}|Properties.EventPattern|{message}|");
+        assert!(
+            rego_findings.iter().any(|finding| finding.starts_with(&anchor)),
+            "missing {resource} finding: {rego_findings:?}"
+        );
+    }
+}
+
+#[test]
+fn valid_and_unresolved_event_patterns_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9014_valid_event_patterns.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9014"]);
+    let cel_findings = selected_findings(&cel, template, &["E9014"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "every matcher here is accepted by EventBridge: {rego_findings:?}");
+}
+
+#[test]
 fn conditional_value_constraints_report_under_their_owning_rules() {
     let template = include_str!("../../resources/templates/bad/E3717_E3718_E3719_E3723_conditional_constraints.yaml");
     let (rego, cel) = engines();

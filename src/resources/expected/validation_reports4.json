@@ -1,4 +1,81 @@
 {
+  "bad/stepfunctions_bad_start_at.yaml": {
+    "filePath": "bad/stepfunctions_bad_start_at.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 1,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3601",
+        "severity": "ERROR",
+        "message": "StartAt 'NonExistentState' does not reference a valid state at StartAt",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SM",
+          "entityType": "Resource",
+          "resourceType": "AWS::StepFunctions::StateMachine"
+        },
+        "propertyPath": "Properties.DefinitionString",
+        "category": "Resource",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 23,
+        "ruleDescription": "Validate the structure of a StateMachine definition",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SM",
+          "entityType": "Resource",
+          "resourceType": "AWS::StepFunctions::StateMachine"
+        },
+        "propertyPath": "Properties.RoleArn",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 7,
+        "endLine": 16,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SM' of type 'AWS::StepFunctions::StateMachine' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SM",
+          "entityType": "Resource",
+          "resourceType": "AWS::StepFunctions::StateMachine"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/stepfunctions_invalid_state.yaml": {
     "filePath": "bad/stepfunctions_invalid_state.yaml",
     "status": "OK",
@@ -63196,203 +63273,6 @@
         "startLine": 142,
         "startColumn": 4,
         "endLine": 142,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "cdk/py-datasync-s3--cdk-datasync-s3-to-s3-iam.template.json": {
-    "filePath": "cdk/py-datasync-s3--cdk-datasync-s3-to-s3-iam.template.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 5,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 8,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3AccessRole0C49AEBFA",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 19,
-        "startColumn": 5,
-        "endLine": 19,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Description' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3Policy034C77CD2",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::ManagedPolicy"
-        },
-        "propertyPath": "Properties.Description",
-        "category": "Best Practice",
-        "startLine": 55,
-        "startColumn": 5,
-        "endLine": 55,
-        "endColumn": 17,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3Policy034C77CD2",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::ManagedPolicy"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 56,
-        "startColumn": 5,
-        "endLine": 56,
-        "endColumn": 10,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RoleName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3AccessRole18E349368",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.RoleName",
-        "category": "Best Practice",
-        "startLine": 83,
-        "startColumn": 5,
-        "endLine": 83,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Description' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3Policy1E7D7BFA5",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::ManagedPolicy"
-        },
-        "propertyPath": "Properties.Description",
-        "category": "Best Practice",
-        "startLine": 119,
-        "startColumn": 5,
-        "endLine": 119,
-        "endColumn": 17,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Path' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3Policy1E7D7BFA5",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::ManagedPolicy"
-        },
-        "propertyPath": "Properties.Path",
-        "category": "Best Practice",
-        "startLine": 120,
-        "startColumn": 5,
-        "endLine": 120,
-        "endColumn": 10,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-iam",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'CDKDataSyncS3AccessRole0C49AEBFA' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3AccessRole0C49AEBFA",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 4,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'CDKDataSyncS3AccessRole18E349368' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CDKDataSyncS3AccessRole18E349368",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 69,
-        "startColumn": 4,
-        "endLine": 69,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

@@ -7855,6 +7855,471 @@
       }
     ]
   },
+  "bad/E9014_invalid_event_patterns.yaml": {
+    "filePath": "bad/E9014_invalid_event_patterns.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 11,
+      "counts": {
+        "fatal": 0,
+        "errors": 10,
+        "warnings": 0,
+        "informational": 12,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "'startsWith' in 'EventPattern.detail.name' is not an event pattern operator",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnknownOperatorRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Use one of prefix, suffix, anything-but, numeric, exists, cidr, wildcard or equals-ignore-case",
+        "category": "Resource",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "'=>' in 'EventPattern.detail.price' is not a numeric comparison operator",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NumericComparisonRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Use <, <=, =, >= or >",
+        "category": "Resource",
+        "startLine": 18,
+        "startColumn": 7,
+        "endLine": 18,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "anything-but in 'EventPattern.detail.state' cannot use 'exists'",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnythingButNestedRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Give anything-but a value, an array of values, or an object using prefix, suffix, wildcard or equals-ignore-case",
+        "category": "Resource",
+        "startLine": 25,
+        "startColumn": 7,
+        "endLine": 25,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "prefix in 'EventPattern.detail.code' must be a string or an equals-ignore-case object",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PrefixNumberRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Give prefix a string value",
+        "category": "Resource",
+        "startLine": 32,
+        "startColumn": 7,
+        "endLine": 32,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "exists in 'EventPattern.detail.error' must be true or false",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ExistsStringRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Set exists to an unquoted true or false",
+        "category": "Resource",
+        "startLine": 39,
+        "startColumn": 7,
+        "endLine": 39,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "wildcard 'a**b' in 'EventPattern.detail.path' has consecutive wildcard characters",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConsecutiveWildcardRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Separate literal characters with a single *",
+        "category": "Resource",
+        "startLine": 46,
+        "startColumn": 7,
+        "endLine": 46,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "$or in 'EventPattern.detail' cannot share its object with y",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "OrWithSiblingRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Move the sibling keys into each $or branch",
+        "category": "Resource",
+        "startLine": 53,
+        "startColumn": 7,
+        "endLine": 53,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "'EventPattern.source' is an empty array",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EmptyArrayRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Give the key at least one value, or remove the key",
+        "category": "Resource",
+        "startLine": 62,
+        "startColumn": 7,
+        "endLine": 62,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "'EventPattern.source' must be an array or an object",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ScalarValueStringRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Wrap the value in an array",
+        "category": "Resource",
+        "startLine": 68,
+        "startColumn": 7,
+        "endLine": 68,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9014",
+        "severity": "ERROR",
+        "message": "'EventPattern.detail.a.b.c' must be an array or an object",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NestedScalarArchive",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Archive"
+        },
+        "propertyPath": "Properties.EventPattern",
+        "suggestedFix": "Wrap the value in an array",
+        "category": "Resource",
+        "startLine": 77,
+        "startColumn": 7,
+        "endLine": 77,
+        "endColumn": 19,
+        "ruleDescription": "EventBridge rule and archive EventPattern must use valid matchers",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bus",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::EventBus"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 72,
+        "startColumn": 7,
+        "endLine": 72,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-events",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NestedScalarArchive",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Archive"
+        },
+        "propertyPath": "Properties.SourceArn",
+        "category": "Best Practice",
+        "startLine": 76,
+        "startColumn": 7,
+        "endLine": 76,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt Bus.Arn"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'UnknownOperatorRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnknownOperatorRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'NumericComparisonRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "NumericComparisonRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'AnythingButNestedRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AnythingButNestedRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 5,
+        "endLine": 23,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'PrefixNumberRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "PrefixNumberRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 5,
+        "endLine": 30,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ExistsStringRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ExistsStringRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConsecutiveWildcardRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConsecutiveWildcardRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 44,
+        "startColumn": 5,
+        "endLine": 44,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'OrWithSiblingRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "OrWithSiblingRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'EmptyArrayRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "EmptyArrayRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 60,
+        "startColumn": 5,
+        "endLine": 60,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ScalarValueStringRule' of type 'AWS::Events::Rule' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ScalarValueStringRule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 66,
+        "startColumn": 5,
+        "endLine": 66,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bus' of type 'AWS::Events::EventBus' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bus",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::EventBus"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 5,
+        "endLine": 71,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E9106_condition_cycle.yaml": {
     "filePath": "bad/E9106_condition_cycle.yaml",
     "status": "OK",
@@ -22771,145 +23236,6 @@
         "endLine": 3,
         "endColumn": 9,
         "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/duplicate.json": {
-    "filePath": "bad/duplicate.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 3,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 3,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F0000",
-        "severity": "FATAL",
-        "message": "Duplicate key 'MySNSTopic'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MySNSTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Resources/MySNSTopic",
-        "category": "Structure",
-        "startLine": 5,
-        "startColumn": 3,
-        "endLine": 5,
-        "endColumn": 14,
-        "ruleDescription": "Duplicate key in template",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0000",
-        "severity": "FATAL",
-        "message": "Duplicate key 'MySNSTopic'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MySNSTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Resources/MySNSTopic",
-        "category": "Structure",
-        "startLine": 17,
-        "startColumn": 3,
-        "endLine": 17,
-        "endColumn": 14,
-        "ruleDescription": "Duplicate key in template",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "F0000",
-        "severity": "FATAL",
-        "message": "Duplicate key 'MySNSTopic'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MySNSTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Resources/MySNSTopic",
-        "category": "Structure",
-        "startLine": 23,
-        "startColumn": 3,
-        "endLine": 23,
-        "endColumn": 14,
-        "ruleDescription": "Duplicate key in template",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'TopicName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MySNSTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.TopicName",
-        "category": "Best Practice",
-        "startLine": 26,
-        "startColumn": 6,
-        "endLine": 26,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyEipNat' of type 'AWS::EC2::EIP' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyEipNat",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::EIP"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 4,
-        "endLine": 13,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MySNSTopic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MySNSTopic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 4,
-        "endLine": 25,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
     ]

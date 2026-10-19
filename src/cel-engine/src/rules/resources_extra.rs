@@ -14,6 +14,7 @@ use template_model::consts::{
     KEY_CREATION_POLICY, KEY_PROPERTIES, KEY_UPDATE_POLICY, PARAM_TYPE_STRING, TRANSFORM_SERVERLESS,
 };
 use template_model::dynamodb::analyze_dynamodb_table_scenarios;
+use template_model::event_pattern::event_pattern_violations;
 use template_model::fargate::{CPU_UNIT_LABELS, VCPU_SIZES, cpu_is_offered};
 use template_model::iam_policy::{inline_identity_policy_document_paths, validate_identity_policy_scenarios};
 use template_model::lambda_sqs::sqs_event_source_timeout_violations;
@@ -372,6 +373,22 @@ fn sqs_event_source_timeout_diagnostics(model: &SemanticModel) -> Vec<Diagnostic
                 model,
                 &violation.queue_id,
                 "Properties.VisibilityTimeout",
+                Some(&violation.suggested_fix),
+            )
+        })
+        .collect()
+}
+
+fn event_pattern_diagnostics(model: &SemanticModel) -> Vec<Diagnostic> {
+    event_pattern_violations(model)
+        .into_iter()
+        .map(|violation| {
+            make_resource_diagnostic(
+                "E9014",
+                &violation.message,
+                model,
+                &violation.resource_id,
+                "Properties.EventPattern",
                 Some(&violation.suggested_fix),
             )
         })
@@ -2036,6 +2053,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     out.extend(sqs_event_source_timeout_diagnostics(m));
+    out.extend(event_pattern_diagnostics(m));
 
     for name in m.resources_of_type("AWS::SSM::Document") {
         if let Some(content) = resolve_concrete(m, name, "Properties.Content")
