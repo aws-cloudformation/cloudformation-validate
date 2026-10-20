@@ -26,31 +26,39 @@ Resources:
           caseless: [{prefix: {equals-ignore-case: ORDER-}}, {suffix: {equals-ignore-case: .PNG}}]
           state: [{anything-but: stopped}]
           region: [{anything-but: [us-west-1, us-west-2]}]
-          bucket: [{anything-but: {prefix: tmp-}}, {anything-but: {wildcard: ["*.log", "*.tmp"]}}]
+          count: [{anything-but: [1, 2]}]
+          bucket:
+            - {anything-but: {prefix: [tmp-, scratch-]}}
+            - {anything-but: {suffix: [.log, .tmp]}}
+            - {anything-but: {equals-ignore-case: [stopped, ""]}}
+            - {anything-but: {wildcard: ["*.log", ""]}}
           price: [{numeric: [">", 0, "<=", 100]}, {numeric: [">=", 5]}]
           error: [{exists: false}]
           output: [{exists: true}]
-          ip: [{cidr: 10.0.0.0/24}]
+          ip: [{cidr: 10.0.0.0/24}, {cidr: 2001:db8::/32}]
           title: [{equals-ignore-case: Report}]
-          path: [{wildcard: "a*b"}]
-  NestedOrRule:
+          path: [{wildcard: "a*b"}, {wildcard: 'a\**b'}, {wildcard: 'a\\*b'}]
+          primitive: [null, true, false, 1, ""]
+  NestedOrWithSiblingRule:
     Type: AWS::Events::Rule
     Properties:
       State: DISABLED
       EventPattern:
         source: [example.app]
         detail:
+          category: [order]
           $or:
             - x: ["1"]
             - y: ["2"]
-  TopLevelOrRule:
+  TopLevelOrWithSiblingRule:
     Type: AWS::Events::Rule
     Properties:
       State: DISABLED
       EventPattern:
+        source: [example.app]
         $or:
-          - source: [example.app]
           - detail-type: [Order Placed]
+          - detail-type: [Order Updated]
   JsonStringRule:
     Type: AWS::Events::Rule
     Properties:
@@ -62,6 +70,8 @@ Resources:
       State: DISABLED
       EventPattern:
         source: !Ref EventSources
+        detail:
+          state: [ready]
   SubstitutedStringRule:
     Type: AWS::Events::Rule
     Properties:

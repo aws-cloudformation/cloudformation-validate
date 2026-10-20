@@ -872,7 +872,7 @@ fn e2e_e9014_invalid_event_patterns() {
     let report = validate_fixture("bad/E9014_invalid_event_patterns.yaml");
     let event_pattern_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9014").count();
     assert_eq!(
-        event_pattern_findings, 10,
+        event_pattern_findings, 29,
         "Expected one E9014 per rejected pattern shape, got: {:?}",
         report.diagnostics
     );

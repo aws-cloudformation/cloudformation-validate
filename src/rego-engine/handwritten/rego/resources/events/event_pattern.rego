@@ -3,7 +3,7 @@ package resources
 import rego.v1
 
 violation contains make_diag_full("E9014", "ERROR", finding.resourceId,
-    "Properties.EventPattern",
+    finding.propertyPath,
     finding.message,
     finding.suggestedFix,
     "") if {

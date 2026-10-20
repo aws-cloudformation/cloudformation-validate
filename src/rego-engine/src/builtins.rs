@@ -1094,6 +1094,7 @@ fn register_event_pattern_violations(rego: &mut regorus::Engine) {
                 .map(|violation| {
                     json_to_value(&serde_json::json!({
                         "resourceId": violation.resource_id,
+                        "propertyPath": violation.property_path,
                         "message": violation.message,
                         "suggestedFix": violation.suggested_fix,
                     }))

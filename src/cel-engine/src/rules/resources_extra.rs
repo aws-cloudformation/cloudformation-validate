@@ -388,7 +388,7 @@ fn event_pattern_diagnostics(model: &SemanticModel) -> Vec<Diagnostic> {
                 &violation.message,
                 model,
                 &violation.resource_id,
-                "Properties.EventPattern",
+                &violation.property_path,
                 Some(&violation.suggested_fix),
             )
         })

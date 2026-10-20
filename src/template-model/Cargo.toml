@@ -24,7 +24,7 @@ uniffi-bindings = ["dep:uniffi"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
+serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
 regex = "1"
 fancy-regex = "0.18"
 yaml-rust2 = "0.11.0"

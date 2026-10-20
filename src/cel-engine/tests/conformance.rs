@@ -108,7 +108,7 @@ Resources:
     fn invalid_event_patterns_trigger_e9014_once_per_rejected_matcher() {
         let ids = validate_file("bad/E9014_invalid_event_patterns.yaml");
         let event_pattern_findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9014").count();
-        assert_eq!(event_pattern_findings, 10, "Expected one E9014 per rejected pattern shape, got: {ids:?}");
+        assert_eq!(event_pattern_findings, 29, "Expected one E9014 per rejected pattern shape, got: {ids:?}");
     }
 
     #[test]
