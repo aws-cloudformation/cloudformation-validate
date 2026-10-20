@@ -473,14 +473,12 @@ fn property_f3031_pattern_violation() {
 }
 
 #[test]
-fn literal_dollar_brace_log_group_name_enforces_pattern_and_format() {
+fn literal_dollar_brace_log_group_name_reports_schema_pattern_once() {
     let diagnostics = validate_fixture("bad/F3031_log_group_name_dollar_brace.yaml");
-    let relevant: Vec<_> =
-        diagnostics.iter().filter(|diagnostic| matches!(diagnostic.rule_id.as_str(), "F3031" | "E1155")).collect();
+    let pattern_diagnostics = diags_for(&diagnostics, "F3031");
 
-    assert_eq!(relevant.len(), 2, "the literal must violate both schema constraints: {diagnostics:?}");
-    assert!(relevant.iter().any(|diagnostic| diagnostic.rule_id == "F3031"));
-    assert!(relevant.iter().any(|diagnostic| diagnostic.rule_id == "E1155"));
+    assert_eq!(pattern_diagnostics.len(), 1, "expected one schema pattern diagnostic: {diagnostics:?}");
+    assert!(!has_rule(&diagnostics, "E1155"), "format validation must not duplicate F3031: {diagnostics:?}");
 }
 
 #[test]
@@ -491,6 +489,19 @@ fn unresolved_log_group_name_substitution_is_not_schema_validated_as_a_literal()
         diagnostics.iter().all(|diagnostic| !matches!(diagnostic.rule_id.as_str(), "F3031" | "E1155")),
         "deployment-time substitutions must remain deferred: {diagnostics:?}"
     );
+}
+
+#[test]
+fn getatt_type_mismatch_anchors_at_authored_intrinsic() {
+    let diagnostics = validate_fixture("bad/F6101_getatt_ref_typed_object_attribute.yaml");
+    let diagnostic = diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.rule_id == "F3012" && diagnostic.resource_logical_id() == Some("Parameter"))
+        .expect("expected the GetAtt object-to-string type mismatch");
+
+    assert_eq!(diagnostic.property_path.as_deref(), Some("Properties.Value"));
+    let location = diagnostic.location.expect("type mismatch must have an authored source location");
+    assert_eq!((location.start_line, location.start_column), (28, 22));
 }
 
 #[test]
@@ -612,11 +623,11 @@ fn type_mismatch_array_for_object() {
 }
 
 #[test]
-fn composition_f3018_one_of_zero_matches() {
+fn composition_f3017_any_of_zero_matches() {
     let diags = validate_fixture("bad/schema_composition.yaml");
-    let f3018: Vec<_> =
-        diags.iter().filter(|d| d.rule_id == "F3018" && d.resource_logical_id() == Some("NoImage")).collect();
-    assert!(!f3018.is_empty(), "expected F3018 for ImageBuilder missing both ImageName and ImageArn");
+    let f3017: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3017" && d.resource_logical_id() == Some("NoImage")).collect();
+    assert!(!f3017.is_empty(), "expected F3017 for AppStream ImageBuilder missing both ImageName and ImageArn");
 }
 
 #[test]

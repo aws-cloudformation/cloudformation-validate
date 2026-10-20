@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-10-16 17:43:55  
+> Generated: 2026-10-20 10:55:25  
 > Engine: **rego**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -23,14 +23,14 @@
 | Metric | Value |
 |--------|------:|
 | True Positives | 5177 |
-| False Positives (engine bugs) | 321 |
+| False Positives (engine bugs) | 320 |
 | Engine Extra (correct, cfn-lint gap) | 8897 |
 | False Negatives (engine misses) | 404 |
-| Precision | 94.16% |
+| Precision | 94.18% |
 | Recall | 92.76% |
 | F1 | 93.46% |
-| Unique rules detected | 255 |
-| Perfect templates | 446/732 |
+| Unique rules detected | 254 |
+| Perfect templates | 447/732 |
 | Location mismatches (matched pairs) | 9 |
 
 ### By Severity
@@ -38,7 +38,7 @@
 | Severity | TP | FP | EE | FN | Precision | Recall |
 |----------|---:|---:|---:|---:|----------:|-------:|
 | Fatal | 477 | 15 | 81 | 140 | 96.95% | 77.31% |
-| Error | 924 | 62 | 15 | 157 | 93.71% | 85.48% |
+| Error | 924 | 61 | 15 | 157 | 93.81% | 85.48% |
 | Warning | 2160 | 12 | 388 | 65 | 99.45% | 97.08% |
 | Info | 1616 | 232 | 8413 | 42 | 87.45% | 97.47% |
 
@@ -1154,7 +1154,7 @@ but found another document
 - **W6001** → `Outputs.ImportedValue.Value.Fn::ImportValue` L39 in `good_output_value_string_yaml`
   > The output value {'Fn::ImportValue': 'SomeExportedName'} is an import from another output
 
-## False Positives - 321 extra findings across 27 rules
+## False Positives - 320 extra findings across 26 rules
 
 These are diagnostics the engine reports but cfn-lint does not expect (potential bugs).
 
@@ -1830,11 +1830,6 @@ These are diagnostics the engine reports but cfn-lint does not expect (potential
   > 'MasterUsername' is ignored when SourceDBClusterIdentifier is present
 - **W3689** `Cloned` (AWS::RDS::DBCluster) → `Properties.StorageEncrypted` L26 in `bad_W3688_snapshot_identifier_from_parameter_yaml`
   > 'StorageEncrypted' is ignored when SourceDBClusterIdentifier is present
-
-### E1155 - 1 extra
-
-- **E1155** `InvalidLiteralName` (AWS::Logs::LogGroup) → `Properties.LogGroupName` L8 in `bad_F3031_log_group_name_dollar_brace_yaml`
-  > 'invalid ${literal' does not match format 'AWS::Logs::LogGroup.Name'
 
 ### E3001 - 1 extra - Basic CloudFormation Resource Check
 
@@ -19814,7 +19809,7 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - **W9054** `CertAuth` (AWS::ACMPCA::CertificateAuthorityActivation) → `Properties.Certificate` L8 in `bad_schema_write_only_yaml`
   > Write-only property 'Certificate' of 'CertAuth' is referenced in output 'WriteOnlyOutput'
 
-## Per-Template Breakdown - 286 templates with mismatches
+## Per-Template Breakdown - 285 templates with mismatches
 
 ### `good_lifecycle_intrinsic_scenarios_yaml` - 16 mismatches (2 TP, 0 FP, 0 EE, 16 FN)
 
@@ -20986,11 +20981,6 @@ These are correct diagnostics the engine reports that cfn-lint does not cover.
 - FN: `F3006`
 - EE: `W9013` ×2, `I9001`, `I9040`
 
-### `bad_F3031_log_group_name_dollar_brace_yaml` - 1 mismatches (1 TP, 1 FP, 2 EE, 0 FN)
-
-- FP: `E1155`
-- EE: `I9001`, `I9040`
-
 ### `bad_F3032_whole_properties_item_cardinality_yaml` - 1 mismatches (1 TP, 1 FP, 1 EE, 0 FN)
 
 - FP: `F3032`
@@ -21289,11 +21279,11 @@ other tool's output. They are excluded from precision/recall scoring.
 
 | Cause | Count | % of FP | Rules |
 |-------|------:|--------:|-------|
-| Extra informational findings | 220 | 68.54% | I4010 |
-| Other | 49 | 15.26% | E0001, F0018, F2002, F3012, F3016, F3017, F3032 |
-| Over-reporting property/intrinsic errors | 28 | 8.72% | E1155, E3001, E3019, E3022, E3023, E3024, E3029, E3048, E3055, E3505, E3510 |
-| Stricter than cfn-lint (informational) | 12 | 3.74% | I3011 |
-| Stricter than cfn-lint (warnings) | 12 | 3.74% | W1028, W1030, W2001, W2530, W3688, W3689, W4011 |
+| Extra informational findings | 220 | 68.75% | I4010 |
+| Other | 49 | 15.31% | E0001, F0018, F2002, F3012, F3016, F3017, F3032 |
+| Over-reporting property/intrinsic errors | 27 | 8.44% | E3001, E3019, E3022, E3023, E3024, E3029, E3048, E3055, E3505, E3510 |
+| Stricter than cfn-lint (informational) | 12 | 3.75% | I3011 |
+| Stricter than cfn-lint (warnings) | 12 | 3.75% | W1028, W1030, W2001, W2530, W3688, W3689, W4011 |
 
 ## Location Mismatches - 9 matched pairs disagree on line
 
