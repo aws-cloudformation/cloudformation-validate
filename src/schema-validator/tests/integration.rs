@@ -623,11 +623,11 @@ fn type_mismatch_array_for_object() {
 }
 
 #[test]
-fn composition_f3018_one_of_zero_matches() {
+fn composition_f3017_any_of_zero_matches() {
     let diags = validate_fixture("bad/schema_composition.yaml");
-    let f3018: Vec<_> =
-        diags.iter().filter(|d| d.rule_id == "F3018" && d.resource_logical_id() == Some("NoImage")).collect();
-    assert!(!f3018.is_empty(), "expected F3018 for ImageBuilder missing both ImageName and ImageArn");
+    let f3017: Vec<_> =
+        diags.iter().filter(|d| d.rule_id == "F3017" && d.resource_logical_id() == Some("NoImage")).collect();
+    assert!(!f3017.is_empty(), "expected F3017 for AppStream ImageBuilder missing both ImageName and ImageArn");
 }
 
 #[test]

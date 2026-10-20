@@ -8,11 +8,12 @@
 //!
 //! [`compile`] closes that gap. It tries, cheapest first: the `regex` crate with a raised
 //! compiled-size limit, then a normalization pass that rewrites Rust-incompatible-but-equivalent
-//! syntax, then the `fancy-regex` backtracking engine (which understands lookaround/backreferences)
-//! on the raw and normalized forms. Every pattern shipped in the compiled schemas - and every
-//! service-valid `AllowedPattern` - compiles through one of these paths, so a constraint is never
-//! silently discarded. [`is_service_valid`] reports whether a pattern is enforceable this way, for
-//! the rule that flags genuinely-malformed `AllowedPattern`s.
+//! syntax, then the `fancy-regex` backtracking engine on the raw and normalized forms. A final
+//! fallback rewrites oversized bounded-dot repetitions into an equivalent compact form for the
+//! backtracking engine. Every pattern shipped in the compiled schemas - and every service-valid
+//! `AllowedPattern` - compiles through one of these paths, so a constraint is never silently
+//! discarded. [`is_service_valid`] reports whether a pattern is enforceable this way, for the rule
+//! that flags genuinely-malformed `AllowedPattern`s.
 
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, RwLock};
@@ -80,13 +81,20 @@ fn compile_uncached(pattern: &str) -> Option<CompiledPattern> {
         return Some(CompiledPattern::Fast(re));
     }
     let normalized = normalize(pattern);
-    if let Ok(re) = build_fast(&normalized) {
+    let normalization_changed_pattern = normalized != pattern;
+    if normalization_changed_pattern && let Ok(re) = build_fast(&normalized) {
         return Some(CompiledPattern::Fast(re));
     }
     if let Ok(re) = fancy_regex::Regex::new(pattern) {
         return Some(CompiledPattern::Fancy(re));
     }
-    if let Ok(re) = fancy_regex::Regex::new(&normalized) {
+    if normalization_changed_pattern && let Ok(re) = fancy_regex::Regex::new(&normalized) {
+        return Some(CompiledPattern::Fancy(re));
+    }
+    let compact_bounded_dots = rewrite_bounded_dot_repetitions(&normalized);
+    if compact_bounded_dots != normalized
+        && let Ok(re) = fancy_regex::Regex::new(&compact_bounded_dots)
+    {
         return Some(CompiledPattern::Fancy(re));
     }
     None
@@ -146,6 +154,89 @@ fn normalize(pattern: &str) -> String {
     out = rewrite_unicode_other_complement(&out);
     out = repair_char_classes(&out);
     QUANTIFIED_LOOKAROUND.replace_all(&out, "$1").into_owned()
+}
+
+const COMPACT_DOT_ATOM: &str = r"(?:(?=.)(?s:.))";
+
+/// Large bounded repetitions of `.` exceed the fast engine's automaton size limit. The lookahead
+/// evaluates the ordinary dot under its surrounding flags, while the dot-all atom consumes exactly
+/// one scalar and makes the backtracking engine retain the repetition as a compact counter. Only a
+/// single repetition is rewritten so this fallback cannot newly admit adjacent broad repetitions
+/// whose ambiguous partitions may exhaust the backtracking budget.
+fn rewrite_bounded_dot_repetitions(pattern: &str) -> String {
+    let chars: Vec<char> = pattern.chars().collect();
+    let mut out = String::with_capacity(pattern.len());
+    let mut index = 0;
+    let mut inside_class = false;
+    let mut has_rewritten_dot = false;
+    while index < chars.len() {
+        let character = chars[index];
+        if character == '\\' && index + 1 < chars.len() {
+            out.push(character);
+            out.push(chars[index + 1]);
+            index += 2;
+            continue;
+        }
+        if character == '[' && !inside_class {
+            inside_class = true;
+            out.push(character);
+            index += 1;
+            if chars.get(index) == Some(&'^') {
+                out.push('^');
+                index += 1;
+            }
+            if chars.get(index) == Some(&']') {
+                out.push(']');
+                index += 1;
+            }
+            continue;
+        }
+        if character == ']' && inside_class {
+            inside_class = false;
+        } else if character == '.' && !inside_class && bounded_quantifier_follows(&chars, index + 1) {
+            if has_rewritten_dot {
+                return pattern.to_string();
+            }
+            has_rewritten_dot = true;
+            out.push_str(COMPACT_DOT_ATOM);
+            index += 1;
+            continue;
+        }
+        out.push(character);
+        index += 1;
+    }
+    out
+}
+
+fn bounded_quantifier_follows(chars: &[char], index: usize) -> bool {
+    if chars.get(index) != Some(&'{') {
+        return false;
+    }
+
+    let mut cursor = index + 1;
+    let Some(minimum) = parse_quantifier_bound(chars, &mut cursor) else {
+        return false;
+    };
+
+    match chars.get(cursor) {
+        Some('}') => true,
+        Some(',') => {
+            cursor += 1;
+            parse_quantifier_bound(chars, &mut cursor)
+                .is_some_and(|maximum| minimum <= maximum && chars.get(cursor) == Some(&'}'))
+        }
+        _ => false,
+    }
+}
+
+fn parse_quantifier_bound(chars: &[char], cursor: &mut usize) -> Option<u64> {
+    let start = *cursor;
+    let mut bound = 0_u64;
+    while let Some(character) = chars.get(*cursor).filter(|character| character.is_ascii_digit()) {
+        bound = bound.checked_mul(10)?.checked_add(u64::from(character.to_digit(10)?))?;
+        *cursor += 1;
+    }
+    (*cursor > start).then_some(bound)
 }
 
 /// `\Z` in Python matches at end-of-string or just before a trailing newline; `\z` in Rust matches
@@ -459,6 +550,67 @@ mod tests {
     }
 
     #[test]
+    fn bounded_dot_pattern_uses_other_normalizations_before_the_compact_fallback() {
+        let compiled = compile(r"\A.{1,64}\Z").expect("normalized bounded dot pattern compiles");
+        assert!(matches!(*compiled, CompiledPattern::Fast(_)));
+        assert!(!compiled.is_match("line\n"));
+        assert_eq!(normalize(r"^(?=.{1,5})+abc$"), r"^(?=.{1,5})abc$");
+    }
+
+    #[test]
+    fn large_bounded_dot_repetition_preserves_length_anchors_and_dot_semantics() {
+        const MAXIMUM_LENGTH: usize = 65_535;
+
+        let compiled = compile(r"^.{1,65535}$").expect("large bounded dot repetition compiles");
+        let CompiledPattern::Fancy(regex) = compiled.as_ref() else {
+            panic!("large bounded dot repetition must use the compact backtracking representation");
+        };
+        assert!(matches!(regex.is_match("é"), Ok(true)), "one Unicode scalar must count as one character");
+        assert!(matches!(regex.is_match(""), Ok(false)), "the lower length boundary must be enforced");
+        assert!(
+            matches!(regex.is_match("line\nbreak"), Ok(false)),
+            "the compact atom must preserve ordinary dot behavior"
+        );
+        assert!(
+            matches!(regex.is_match("line\n"), Ok(false)),
+            "the compact representation must preserve the engine's anchor behavior"
+        );
+
+        let maximum_length = "a".repeat(MAXIMUM_LENGTH);
+        let above_maximum_length = "a".repeat(MAXIMUM_LENGTH + 1);
+        assert!(matches!(regex.is_match(&maximum_length), Ok(true)), "the upper length boundary must be accepted");
+        assert!(
+            matches!(regex.is_match(&above_maximum_length), Ok(false)),
+            "values above the upper boundary must be rejected without exhausting the backtracking budget"
+        );
+
+        let dot_all = compile(r"(?s:^.{1,65535}$)").expect("dot-all bounded repetition compiles");
+        let dot_all_matches_line_feed = match dot_all.as_ref() {
+            CompiledPattern::Fast(regex) => regex.is_match("\n"),
+            CompiledPattern::Fancy(regex) => matches!(regex.is_match("\n"), Ok(true)),
+        };
+        assert!(dot_all_matches_line_feed, "the compiled pattern must preserve surrounding dot-all behavior");
+    }
+
+    #[test]
+    fn bounded_dot_rewrite_ignores_escaped_dots_and_character_classes() {
+        assert_eq!(
+            rewrite_bounded_dot_repetitions(r"^.{1,65535}\.{1,65535}[.]{1,65535}$"),
+            r"^(?:(?=.)(?s:.)){1,65535}\.{1,65535}[.]{1,65535}$"
+        );
+        for character_class_pattern in [r"^[]a.{1,2}]$", r"^[^]a.{1,2}]$"] {
+            assert_eq!(rewrite_bounded_dot_repetitions(character_class_pattern), character_class_pattern);
+        }
+
+        let adjacent_broad_repetitions = r"^.{1,30000}x.{1,30000}$";
+        assert_eq!(
+            rewrite_bounded_dot_repetitions(adjacent_broad_repetitions),
+            adjacent_broad_repetitions,
+            "the fallback must not admit ambiguous adjacent broad repetitions"
+        );
+    }
+
+    #[test]
     fn bounded_unicode_other_complement_preserves_category_and_length_constraints() {
         let compiled = compile(r"^[^\p{C}]{1,2048}$").expect("bounded Unicode category pattern compiles");
 
@@ -534,6 +686,7 @@ mod tests {
     fn genuinely_malformed_pattern_is_not_service_valid() {
         assert!(!is_service_valid(r"^(unbalanced"));
         assert!(!is_service_valid(r"a{2,1}"));
+        assert!(!is_service_valid(r"^.{2,1}$"));
     }
 
     #[test]
