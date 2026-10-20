@@ -298,10 +298,10 @@ struct CfnYamlLoader {
     /// `MAX_YAML_ALIAS_EXPANSION_NODES`.
     alias_expanded_nodes: usize,
     /// Stack of tags to apply when sequences/mappings complete.
-    /// Each entry is (tag_name, stack_depth_when_set).
+    /// Each entry is (tag name, stack depth when set, tagged value position).
     /// A stack is needed because nested tags (e.g. `!Or [!Equals [...]]`)
     /// would otherwise overwrite the outer tag.
-    pending_tags: Vec<(String, usize)>,
+    pending_tags: Vec<(String, usize, (u32, u32))>,
     /// One frame per open container, parallel to `doc_stack`; see [`PathFrame`].
     path_frames: Vec<PathFrame>,
     span_map: HashMap<String, (u32, u32)>,
@@ -515,14 +515,17 @@ impl CfnYamlLoader {
             .unwrap_or_else(|| format!("{}{}", FN_PREFIX, tag_name))
     }
 
-    fn record_tagged_spans(&mut self, tag_name: &str) {
+    fn record_tagged_spans(&mut self, tag_name: &str, tagged_value_position: (u32, u32)) {
         let base_path = self.current_path();
         if base_path.is_empty() {
             return;
         }
 
-        let tagged_path = format!("{}/{}", base_path, Self::cfn_tag_key(tag_name));
-        if let Some(span) = self.span_map.get(&base_path).copied() {
+        let function_name = Self::cfn_tag_key(tag_name);
+        let tagged_path = format!("{base_path}/{function_name}");
+        if function_name == FN_GET_ATT {
+            self.span_map.insert(tagged_path.clone(), tagged_value_position);
+        } else if let Some(span) = self.span_map.get(&base_path).copied() {
             self.span_map.entry(tagged_path.clone()).or_insert(span);
         }
 
@@ -547,16 +550,16 @@ impl CfnYamlLoader {
 
     fn insert_new_node(&mut self, node: (Yaml, usize), mark: Marker) {
         let (mut node_val, aid) = node;
-        if let Some((_, depth)) = self.pending_tags.last()
+        if let Some((_, depth, _)) = self.pending_tags.last()
             && self.doc_stack.len() == *depth
         {
-            let (tag_name, _) = self.pending_tags.pop().unwrap();
+            let (tag_name, _, tagged_value_position) = self.pending_tags.pop().unwrap();
             // A `!Name` shorthand tag is unambiguously a function invocation -
             // unlike a long-form `Fn::Name` map key, which may be a data key -
             // so any unknown tag warrants the unknown-function warning here,
             // where the tag context still exists.
             self.warn_unknown_tag(&tag_name);
-            self.record_tagged_spans(&tag_name);
+            self.record_tagged_spans(&tag_name, tagged_value_position);
             let wrapped = Self::wrap_with_tag(&tag_name, node_val);
             node_val = wrapped;
         }
@@ -789,7 +792,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                     return;
                 }
                 if let Some(tag_name) = Self::cfn_tag_name(tag) {
-                    self.pending_tags.push((tag_name, self.doc_stack.len()));
+                    self.pending_tags.push((tag_name, self.doc_stack.len(), Self::mark_position(mark)));
                 }
                 // Anchor the sequence at its slot in the parent before opening a frame
                 // for its elements. As a mapping value this is a no-op (the key already
@@ -810,7 +813,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
                     return;
                 }
                 if let Some(tag_name) = Self::cfn_tag_name(tag) {
-                    self.pending_tags.push((tag_name, self.doc_stack.len()));
+                    self.pending_tags.push((tag_name, self.doc_stack.len(), Self::mark_position(mark)));
                 }
                 self.record_value_span(mark);
                 self.doc_stack.push((Yaml::Hash(Hash::new()), aid));
@@ -902,7 +905,7 @@ impl MarkedEventReceiver for CfnYamlLoader {
 
                 if let Some(tag_name) = cfn_tag {
                     self.warn_unknown_tag(&tag_name);
-                    self.record_tagged_spans(&tag_name);
+                    self.record_tagged_spans(&tag_name, Self::mark_position(mark));
                     let wrapped = Self::wrap_with_tag(&tag_name, node);
                     self.insert_new_node((wrapped, aid), mark);
                 } else {
@@ -1279,6 +1282,11 @@ mod tests {
             }
             o => panic!("Expected GetAtt, got {:?}", o),
         }
+        let span = ir
+            .span_index
+            .get("Resources/R/Properties/Role/Fn::GetAtt")
+            .expect("shorthand GetAtt must retain its tag location");
+        assert_eq!((span.start_line, span.start_column), (5, 21));
     }
 
     #[test]

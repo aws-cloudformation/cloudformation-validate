@@ -3486,6 +3486,7 @@ fn validate_prop(
         }
     }
 
+    let mut schema_pattern_failures = Vec::new();
     if let Some(ref pat) = schema.pattern
         && let Some(re) = compile_pattern(pat)
     {
@@ -3517,13 +3518,14 @@ fn validate_prop(
                         None,
                         condition_map(conds),
                     ));
+                    schema_pattern_failures.push((val.clone(), conds.clone()));
                 }
             }
         }
     }
 
     if let Some(ref fmt) = schema.format {
-        validate_format(out, m, rid, prop_path, fmt, &scenarios);
+        validate_format(out, m, rid, prop_path, fmt, &scenarios, &schema_pattern_failures);
     }
 
     for (val, conds) in &scenarios {
@@ -4825,7 +4827,7 @@ fn validate_reference_type(
                     }
                     _ => return,
                 };
-                out.push(build_diagnostic(
+                let mut diagnostic = build_diagnostic(
                     "F3012",
                     &format!(
                         "{} ({}) returns '{}', but property expects '{}'",
@@ -4838,7 +4840,11 @@ fn validate_reference_type(
                     rid,
                     prop_path,
                     None,
-                ));
+                );
+                if let Some(intrinsic_name) = m.authored_intrinsic_name_at(rid, prop_path) {
+                    diagnostic.location = Some(m.resource_span(rid, &format!("{prop_path}.{intrinsic_name}")));
+                }
+                out.push(diagnostic);
             }
         }
         ResolvedValue::TypedDynamic { reason: _name, param_type } => {
@@ -5143,6 +5149,7 @@ fn validate_format(
     prop_path: &str,
     format: &str,
     scenarios: &[(serde_json::Value, HashMap<String, bool>)],
+    schema_pattern_failures: &[(serde_json::Value, HashMap<String, bool>)],
 ) {
     let Some(re) = FORMAT_PATTERNS.get(format) else {
         return;
@@ -5162,6 +5169,13 @@ fn validate_format(
             }
             if !re.is_match(&s) {
                 let rule_id = format_rule_for_format(format).unwrap_or("E1103");
+                if rule_id == "E1155"
+                    && schema_pattern_failures
+                        .iter()
+                        .any(|(pattern_value, pattern_conditions)| pattern_value == val && pattern_conditions == conds)
+                {
+                    continue;
+                }
                 out.push(build_diagnostic_conditional(
                     rule_id,
                     &format!("{} does not match format '{}'", format_value(val), format),

@@ -90,8 +90,12 @@ pub fn download_schemas(upstream_dir: &Path) -> anyhow::Result<(SyncStats, Strin
     // type→hash set the resource schemas are written from.
     let mut region_files: Vec<String> = archive
         .file_names()
-        .filter(|n| n.starts_with("providers/") && n.ends_with(".json") && *n != "providers/sam.json")
-        .map(String::from)
+        .map(|name| {
+            name.context("enhanced schema archive contains an invalid entry name").map(|name| name.into_owned())
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?
+        .into_iter()
+        .filter(|n| n.starts_with("providers/") && n.ends_with(".json") && n != "providers/sam.json")
         .collect();
     // Read us-east-1 first so its hash wins for any type present in several regions.
     region_files.sort_by_key(|n| (!n.ends_with("/us-east-1.json"), n.clone()));

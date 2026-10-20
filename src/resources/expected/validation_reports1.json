@@ -8734,7 +8734,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 1,
-        "errors": 1,
+        "errors": 0,
         "warnings": 0,
         "informational": 2,
         "debug": 0
@@ -8766,29 +8766,6 @@
         "context": {
           "actualValue": "invalid ${literal",
           "expectedConstraint": "^[.\\-_/#A-Za-z0-9]{1,512}\\Z"
-        }
-      },
-      {
-        "ruleId": "E1155",
-        "severity": "ERROR",
-        "message": "'invalid ${literal' does not match format 'AWS::Logs::LogGroup.Name'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "InvalidLiteralName",
-          "entityType": "Resource",
-          "resourceType": "AWS::Logs::LogGroup"
-        },
-        "propertyPath": "Properties.LogGroupName",
-        "category": "Intrinsic Function",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-logs.git",
-        "ruleDescription": "Validate CloudWatch logs group name",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "invalid ${literal"
         }
       },
       {
@@ -8960,9 +8937,9 @@
         "propertyPath": "Properties.Value",
         "category": "Schema",
         "startLine": 28,
-        "startColumn": 7,
+        "startColumn": 22,
         "endLine": 28,
-        "endColumn": 12,
+        "endColumn": 32,
         "ruleDescription": "Property type mismatch",
         "phase": "SCHEMA",
         "context": {
