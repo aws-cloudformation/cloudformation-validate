@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
-  # F3018: oneOf - ImageBuilder needs exactly one of ImageName or ImageArn
+  # AppStream ImageBuilder needs at least one of ImageName or ImageArn
   NoImage:
     Type: AWS::AppStream::ImageBuilder
     Properties:
