@@ -19849,7 +19849,7 @@ limitations under the License.
 ******************************
 
 ruzstd
-0.8.3 <https://github.com/KillingSpark/zstd-rs>
+0.9.1 <https://github.com/KillingSpark/zstd-rs>
 MIT License
 
 Copyright (c) 2019 Moritz Borcherding

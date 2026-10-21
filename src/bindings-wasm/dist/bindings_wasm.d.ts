@@ -485,9 +485,9 @@ export interface ResolvedResource {
     metadata?: JsonValue;
     properties: Record<string, ResolvedValue>;
     /**
-     * True when the entire `Properties` block is a non-map intrinsic (e.g.
-     * `Properties: !Ref AWS::NoValue`) whose effective property set is only known
-     * at deploy time, as distinct from a resource that simply declares no properties.
+     * True when a resource-level or property-set macro can determine the
+     * effective property set only at deploy time, or when a non-map
+     * `Properties` intrinsic has no statically inspectable property map.
      */
     propertiesDynamic: boolean;
     diagnostics: ResourceDiagnostics;
@@ -1178,6 +1178,19 @@ export class WasmSemanticModel {
     transforms(): any;
 }
 
+/**
+ * Number of export bodies that were entered and never returned. The host
+ * reads it after a failed call to tell a returned error from an interrupted
+ * call that left the instance inconsistent.
+ */
+export function activeCalls(): number;
+
 export function init(): void;
+
+/**
+ * Registers the host callback that receives panic messages. A panic still
+ * traps the instance; the callback only lets the host report why.
+ */
+export function setPanicListener(listener: (message: string) => void): void;
 
 export function version(): string;
