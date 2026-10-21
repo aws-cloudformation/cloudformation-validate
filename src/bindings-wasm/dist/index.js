@@ -200,7 +200,188 @@ function fromWireAwsCliCommandValidation(validation) {
         template: template == null ? null : Uint8Array.from(template),
     };
 }
-const bridge = require('./bindings_wasm');
+/** The error a WebAssembly trap raises; the configured TypeScript libraries do not declare it. */
+const WasmRuntimeError = globalThis.WebAssembly.RuntimeError;
+/** Errors the instance guard raised itself, rethrown unchanged by enclosing guards. */
+const guardErrors = new WeakSet();
+const INTERNAL_ERROR_PREFIX = 'Internal validation error';
+function guardError(message) {
+    const error = new WasmRuntimeError(message);
+    guardErrors.add(error);
+    return error;
+}
+function isTrap(error) {
+    return error instanceof WasmRuntimeError || (error instanceof RangeError && /call stack/i.test(error.message));
+}
+/**
+ * One evaluation of the generated glue and the WebAssembly instance it created.
+ *
+ * A Rust panic, an allocation failure, or a stack overflow traps the instance
+ * mid-call without running Rust cleanup, so locks, borrows, and the shadow
+ * stack can be left inconsistent. The first such failure terminates the
+ * instance: every later call on an object it owns throws instead of running
+ * on that state, and objects constructed afterwards use a fresh instance.
+ */
+class WasmInstance {
+    constructor(bridge) {
+        this.bridge = bridge;
+        bridge.setPanicListener((message) => {
+            this.panicMessage = message;
+        });
+    }
+    get terminated() {
+        return this.terminationReason !== undefined;
+    }
+    /** Runs one call into the instance; terminates it if the call did not return through Rust. */
+    call(operation) {
+        if (this.terminationReason !== undefined) {
+            throw guardError(
+                `${INTERNAL_ERROR_PREFIX}: the WebAssembly instance was terminated by an earlier failure ` +
+                    `(${this.terminationReason}); construct a new object to continue`,
+            );
+        }
+        this.panicMessage = undefined;
+        try {
+            return operation(this.bridge);
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && guardErrors.has(error)) {
+                throw error;
+            }
+            if (this.panicMessage === undefined && !isTrap(error) && !this.interrupted()) {
+                throw error;
+            }
+            const reason = this.panicMessage ?? (error instanceof Error ? error.message : String(error));
+            this.terminate(reason);
+            if (this.panicMessage === undefined && !isTrap(error)) {
+                // A host runtime hook interrupted generated deserialization: preserve
+                // the original exception while preventing reuse of the abandoned frame.
+                throw error;
+            }
+            const failure = guardError(`${INTERNAL_ERROR_PREFIX}: ${reason}`);
+            Object.defineProperty(failure, 'cause', { value: error, configurable: true, writable: true });
+            throw failure;
+        } finally {
+            this.panicMessage = undefined;
+        }
+    }
+    interrupted() {
+        try {
+            return this.bridge.activeCalls() !== 0;
+        } catch {
+            return true;
+        }
+    }
+    terminate(reason) {
+        this.terminationReason ?? (this.terminationReason = reason);
+        if (activeInstance === this) {
+            activeInstance = undefined;
+        }
+    }
+}
+const loadedBridges = new WeakSet();
+function resolveBridgeCacheKey() {
+    try {
+        return require.resolve('./bindings_wasm');
+    } catch {
+        return undefined;
+    }
+}
+function evictBridgeModule() {
+    const bridgeCacheKey = resolveBridgeCacheKey();
+    if (bridgeCacheKey === undefined) {
+        return undefined;
+    }
+    const staleBridge = require.cache?.[bridgeCacheKey];
+    if (staleBridge === undefined) {
+        return undefined;
+    }
+    delete require.cache[bridgeCacheKey];
+    const childModules = module.children;
+    if (Array.isArray(childModules)) {
+        for (let index = childModules.length - 1; index >= 0; index -= 1) {
+            if (childModules[index] === staleBridge) {
+                childModules.splice(index, 1);
+            }
+        }
+    }
+    return staleBridge.exports;
+}
+function loadInstance() {
+    const evictedBridge = evictBridgeModule();
+    const bridge = require('./bindings_wasm');
+    if (bridge === evictedBridge || loadedBridges.has(bridge)) {
+        throw new WasmRuntimeError(
+            `${INTERNAL_ERROR_PREFIX}: the WebAssembly instance was terminated and this module loader ` +
+                'cannot create a fresh one; restart the process or worker to continue',
+        );
+    }
+    loadedBridges.add(bridge);
+    return new WasmInstance(bridge);
+}
+let activeInstance;
+function currentInstance() {
+    activeInstance ?? (activeInstance = loadInstance());
+    return activeInstance;
+}
+/**
+ * Frees objects the caller dropped without calling `free()`. It replaces the
+ * generated glue's own finalizer, which calls into the instance unconditionally:
+ * after a trap that call can trap again inside a finalization callback, which
+ * Node.js reports as an uncaught exception.
+ */
+const allocations = new FinalizationRegistry(({ instance, prototype, pointer }) => {
+    if (instance.terminated) {
+        return;
+    }
+    try {
+        instance.call(() => {
+            const shell = Object.create(prototype);
+            shell.__wbg_ptr = pointer;
+            shell.free();
+        });
+    } catch {
+        // The failure has already terminated the instance; a finalizer has no caller to report to.
+    }
+});
+/** Exclusive owner of one generated-glue object and the instance that created it. */
+class Owned {
+    constructor(instance, create, label) {
+        this.instance = instance;
+        this.label = label;
+        const inner = instance.call(create);
+        const object = inner;
+        const pointer = object.__destroy_into_raw();
+        object.__wbg_ptr = pointer;
+        allocations.register(inner, { instance, prototype: Object.getPrototypeOf(inner), pointer }, inner);
+        this.inner = inner;
+    }
+    /** The live object, for passing as an argument to another call on the same instance. */
+    raw() {
+        if (this.inner === undefined) {
+            throw new Error(`${this.label} has been freed`);
+        }
+        return this.inner;
+    }
+    use(operation) {
+        const inner = this.inner;
+        if (inner === undefined) {
+            throw new Error(`${this.label} has been freed`);
+        }
+        return this.instance.call(() => operation(inner));
+    }
+    free() {
+        const inner = this.inner;
+        if (inner === undefined) {
+            return;
+        }
+        this.inner = undefined;
+        allocations.unregister(inner);
+        if (!this.instance.terminated) {
+            this.instance.call(() => inner.free());
+        }
+    }
+}
+activeInstance = loadInstance();
 /** Name reported for an in-memory template when the caller does not supply one. */
 exports.DEFAULT_TEMPLATE_NAME = 'template';
 /** A template read from disk; the path labels the report and its diagnostics. */
@@ -232,7 +413,18 @@ class TemplateContent {
 }
 exports.TemplateContent = TemplateContent;
 function templateLabel(template) {
-    return template instanceof TemplateContent ? template.name : template.path;
+    const label = template instanceof TemplateContent ? template.name : template.path;
+    if (typeof label !== 'string') {
+        throw new TypeError('template name must be a string');
+    }
+    return label;
+}
+function templateBytes(template) {
+    const bytes = template.readBytes();
+    if (!(bytes instanceof Uint8Array)) {
+        throw new TypeError('template content must be a string or a Uint8Array');
+    }
+    return new Uint8Array(bytes);
 }
 class RuleFile {
     constructor(path) {
@@ -257,6 +449,64 @@ class SchemaFile {
     }
 }
 exports.SchemaFile = SchemaFile;
+const MAX_WASM_INPUT_DEPTH = 64;
+const MAP_FOR_EACH = Map.prototype.forEach;
+function copyWasmInput(value, path, depth = 0, ancestors = new Set()) {
+    if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+        return value;
+    }
+    if (depth > MAX_WASM_INPUT_DEPTH) {
+        throw new TypeError(`${path} exceeds the supported nesting depth`);
+    }
+    if (ancestors.has(value)) {
+        throw new TypeError(`${path} must not contain a cycle`);
+    }
+    ancestors.add(value);
+    try {
+        if (Array.isArray(value)) {
+            const length = Object.getOwnPropertyDescriptor(value, 'length')?.value;
+            if (!Number.isSafeInteger(length) || length < 0) {
+                throw new TypeError(`${path} must have a valid array length`);
+            }
+            const copied = [];
+            for (let index = 0; index < length; index += 1) {
+                const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+                if (descriptor === undefined || !('value' in descriptor)) {
+                    throw new TypeError(`${path}[${index}] must be a value property`);
+                }
+                copied.push(copyWasmInput(descriptor.value, `${path}[${index}]`, depth + 1, ancestors));
+            }
+            return copied;
+        }
+        if (value instanceof Map) {
+            const copied = new Map();
+            MAP_FOR_EACH.call(value, (entryValue, entryKey) => {
+                copied.set(
+                    copyWasmInput(entryKey, `${path} key`, depth + 1, ancestors),
+                    copyWasmInput(entryValue, `${path} value`, depth + 1, ancestors),
+                );
+            });
+            return copied;
+        }
+        if (!isPlainRecord(value)) {
+            throw new TypeError(`${path} must contain only plain objects, arrays, maps, and primitive values`);
+        }
+        const copied = Object.create(null);
+        for (const key of Reflect.ownKeys(value)) {
+            if (typeof key !== 'string') {
+                throw new TypeError(`${path} property names must be strings`);
+            }
+            const descriptor = Object.getOwnPropertyDescriptor(value, key);
+            if (descriptor === undefined || !('value' in descriptor)) {
+                throw new TypeError(`${path}.${key} must be a value property`);
+            }
+            copied[key] = copyWasmInput(descriptor.value, `${path}.${key}`, depth + 1, ancestors);
+        }
+        return copied;
+    } finally {
+        ancestors.delete(value);
+    }
+}
 function toExternalRuleSources(sources) {
     return (sources ?? []).map((source) =>
         source instanceof RuleFile ? { name: source.path, content: source.readContent() } : source,
@@ -293,70 +543,89 @@ function toWasmSchemaValidatorConfig(config) {
 }
 class TemplateModel {
     constructor(template) {
-        this.inner = bridge.WasmSemanticModel.parse(template.readBytes());
+        const bytes = templateBytes(template);
+        this.owned = new Owned(currentInstance(), (bridge) => bridge.WasmSemanticModel.parse(bytes), 'TemplateModel');
     }
     resources() {
-        return this.inner.resources();
+        return this.owned.use((inner) => inner.resources());
     }
     parameters() {
-        return this.inner.parameters();
+        return this.owned.use((inner) => inner.parameters());
     }
     outputs() {
-        return this.inner.outputs();
+        return this.owned.use((inner) => inner.outputs());
     }
     conditions() {
-        return this.inner.conditions();
+        return this.owned.use((inner) => inner.conditions());
     }
     transforms() {
-        return this.inner.transforms();
+        return this.owned.use((inner) => inner.transforms());
     }
     formatVersion() {
-        return this.inner.formatVersion();
+        return this.owned.use((inner) => inner.formatVersion());
     }
     description() {
-        return this.inner.description();
+        return this.owned.use((inner) => inner.description());
     }
     toDiagnosticModel() {
-        return this.inner.toDiagnosticModel();
+        return this.owned.use((inner) => inner.toDiagnosticModel());
     }
     sourceLocation(path) {
-        return this.inner.sourceLocation(path);
+        if (typeof path !== 'string') {
+            throw new TypeError('path must be a string');
+        }
+        return this.owned.use((inner) => inner.sourceLocation(path));
     }
     free() {
-        this.inner.free();
+        this.owned.free();
     }
 }
 exports.TemplateModel = TemplateModel;
 class SchemaValidator {
     constructor(config) {
-        this.inner = new bridge.WasmSchemaValidator(toWasmSchemaValidatorConfig(config));
+        const wasmConfig = copyWasmInput(toWasmSchemaValidatorConfig(config), 'schema validator config');
+        this.instance = currentInstance();
+        this.owned = new Owned(
+            this.instance,
+            (bridge) => new bridge.WasmSchemaValidator(wasmConfig),
+            'SchemaValidator',
+        );
     }
     listRules() {
-        return this.inner.listRules();
+        return this.owned.use((inner) => inner.listRules());
     }
     schemaCount() {
-        return this.inner.schemaCount();
+        return this.owned.use((inner) => inner.schemaCount());
     }
     validate(template, region) {
-        const model = bridge.WasmSemanticModel.parse(template.readBytes());
+        if (region !== undefined && typeof region !== 'string') {
+            throw new TypeError('region must be a string');
+        }
+        const bytes = templateBytes(template);
+        const model = new Owned(this.instance, (bridge) => bridge.WasmSemanticModel.parse(bytes), 'TemplateModel');
         try {
-            return this.inner.validate(model, region).diagnostics;
+            const parsed = model.raw();
+            return this.owned.use((inner) => inner.validate(parsed, region).diagnostics);
         } finally {
             model.free();
         }
     }
     free() {
-        this.inner.free();
+        this.owned.free();
     }
 }
 exports.SchemaValidator = SchemaValidator;
-function createEngineClass(WasmClass, toWasmConfig) {
+function createEngineClass(label, wasmClass, toWasmConfig) {
     return class {
         constructor(config) {
-            this.inner = new WasmClass(toWasmConfig(config));
+            const wasmConfig = copyWasmInput(toWasmConfig(config), `${label} config`);
+            this.owned = new Owned(currentInstance(), (bridge) => new (wasmClass(bridge))(wasmConfig), label);
         }
         validateTemplate(template, config) {
-            return this.inner.validateTemplate(template.readBytes(), config ?? {}, templateLabel(template));
+            const bytes = templateBytes(template);
+            const label = templateLabel(template);
+            const wasmConfig = copyWasmInput(config ?? {}, 'validation config');
+            return this.owned.use((inner) => inner.validateTemplate(bytes, wasmConfig, label));
         }
         validateStandard(template, config) {
             return this.validateTemplate(template, { ...config, detailLevel: 'STANDARD' });
@@ -368,22 +637,27 @@ function createEngineClass(WasmClass, toWasmConfig) {
             if (!(request instanceof AwsCliCommand)) {
                 throw new TypeError('request must be an AwsCliCommand');
             }
-            return fromWireAwsCliCommandValidation(this.inner.validateAwsCliCommand(toWireAwsCliCommand(request)));
+            const wire = toWireAwsCliCommand(request);
+            return fromWireAwsCliCommandValidation(this.owned.use((inner) => inner.validateAwsCliCommand(wire)));
         }
         listRules() {
-            return this.inner.listRules();
+            return this.owned.use((inner) => inner.listRules());
         }
         engineName() {
-            return this.inner.engineName();
+            return this.owned.use((inner) => inner.engineName());
         }
         free() {
-            this.inner.free();
+            this.owned.free();
         }
     };
 }
-exports.RegoEngine = createEngineClass(bridge.WasmRegoEngine, toWasmEngineConfig);
-exports.CelEngine = createEngineClass(bridge.WasmCelEngine, toWasmEngineConfig);
-exports.CompositeEngine = createEngineClass(bridge.WasmCompositeEngine, toWasmCompositeEngineConfig);
+exports.RegoEngine = createEngineClass('RegoEngine', (bridge) => bridge.WasmRegoEngine, toWasmEngineConfig);
+exports.CelEngine = createEngineClass('CelEngine', (bridge) => bridge.WasmCelEngine, toWasmEngineConfig);
+exports.CompositeEngine = createEngineClass(
+    'CompositeEngine',
+    (bridge) => bridge.WasmCompositeEngine,
+    toWasmCompositeEngineConfig,
+);
 function version() {
-    return bridge.version();
+    return currentInstance().call((bridge) => bridge.version());
 }
