@@ -1,6 +1,6 @@
 # cloudformation-validate vs cfn-lint - Parity Report
 
-> Generated: 2026-10-20 10:55:28  
+> Generated: 2026-10-21 16:48:09  
 > Engine: **cel**  
 > Detail level: **detailed**  
 > Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  
@@ -21258,9 +21258,11 @@ other tool's output. They are excluded from precision/recall scoring.
 - `integration_yaml-alias-scalar_yaml` (5 diagnostics)
 - `integration_yaml-alias_yaml` (3 diagnostics)
 
-### Engine reports with no cfn-lint result — 2 templates, 0 diagnostics
+### Engine reports with no cfn-lint result — 4 templates, 86 diagnostics
 
+- `bad_E9014_invalid_event_patterns_yaml` (72 diagnostics)
 - `empty_yaml` (0 diagnostics)
+- `good_E9014_valid_event_patterns_yaml` (14 diagnostics)
 - `malformed_yaml` (0 diagnostics)
 
 ## Root-Cause Analysis

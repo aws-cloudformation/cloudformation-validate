@@ -872,6 +872,16 @@
     "AWS::Batch::ServiceEnvironment": [
       "ServiceEnvironmentArn"
     ],
+    "AWS::BcmPricingCalculator::BillEstimate": [
+      "Arn",
+      "BillInterval",
+      "CostCategoryGroupSharingPreferenceArn",
+      "CostCategoryGroupSharingPreferenceEffectiveDate",
+      "CreatedAt",
+      "GroupSharingPreference",
+      "Id",
+      "Status"
+    ],
     "AWS::BcmPricingCalculator::BillScenario": [
       "Arn",
       "BillInterval",
@@ -1051,6 +1061,14 @@
       "Variants",
       "Version"
     ],
+    "AWS::Bedrock::RetrievalInstruction": [
+      "Arn",
+      "CreatedAt",
+      "LastTransitionStatus",
+      "RetrievalInstructionId",
+      "Status",
+      "UpdatedAt"
+    ],
     "AWS::Bedrock::Session": [
       "CreatedAt",
       "LastUpdatedAt",
@@ -1193,26 +1211,31 @@
       "MemoryArn",
       "MemoryId",
       "MemoryStrategies.*.CustomMemoryStrategy.CreatedAt",
+      "MemoryStrategies.*.CustomMemoryStrategy.RecordExpiryDurationDays",
       "MemoryStrategies.*.CustomMemoryStrategy.Status",
       "MemoryStrategies.*.CustomMemoryStrategy.StrategyId",
       "MemoryStrategies.*.CustomMemoryStrategy.Type",
       "MemoryStrategies.*.CustomMemoryStrategy.UpdatedAt",
       "MemoryStrategies.*.EpisodicMemoryStrategy.CreatedAt",
+      "MemoryStrategies.*.EpisodicMemoryStrategy.RecordExpiryDurationDays",
       "MemoryStrategies.*.EpisodicMemoryStrategy.Status",
       "MemoryStrategies.*.EpisodicMemoryStrategy.StrategyId",
       "MemoryStrategies.*.EpisodicMemoryStrategy.Type",
       "MemoryStrategies.*.EpisodicMemoryStrategy.UpdatedAt",
       "MemoryStrategies.*.SemanticMemoryStrategy.CreatedAt",
+      "MemoryStrategies.*.SemanticMemoryStrategy.RecordExpiryDurationDays",
       "MemoryStrategies.*.SemanticMemoryStrategy.Status",
       "MemoryStrategies.*.SemanticMemoryStrategy.StrategyId",
       "MemoryStrategies.*.SemanticMemoryStrategy.Type",
       "MemoryStrategies.*.SemanticMemoryStrategy.UpdatedAt",
       "MemoryStrategies.*.SummaryMemoryStrategy.CreatedAt",
+      "MemoryStrategies.*.SummaryMemoryStrategy.RecordExpiryDurationDays",
       "MemoryStrategies.*.SummaryMemoryStrategy.Status",
       "MemoryStrategies.*.SummaryMemoryStrategy.StrategyId",
       "MemoryStrategies.*.SummaryMemoryStrategy.Type",
       "MemoryStrategies.*.SummaryMemoryStrategy.UpdatedAt",
       "MemoryStrategies.*.UserPreferenceMemoryStrategy.CreatedAt",
+      "MemoryStrategies.*.UserPreferenceMemoryStrategy.RecordExpiryDurationDays",
       "MemoryStrategies.*.UserPreferenceMemoryStrategy.Status",
       "MemoryStrategies.*.UserPreferenceMemoryStrategy.StrategyId",
       "MemoryStrategies.*.UserPreferenceMemoryStrategy.Type",
@@ -1808,7 +1831,7 @@
       "Status"
     ],
     "AWS::CloudWatch::AnomalyDetector": [
-      "AnomalyDetectorId"
+      "Id"
     ],
     "AWS::CloudWatch::CompositeAlarm": [
       "Arn"
@@ -3612,6 +3635,19 @@
       "Status",
       "UpdatedAt"
     ],
+    "AWS::ECS::Gateway": [
+      "AccessType",
+      "Arn",
+      "Configuration.HostSharedAlb.CurrentAlbCount",
+      "CreatedAt",
+      "Status",
+      "UpdatedAt"
+    ],
+    "AWS::ECS::GatewayClusterAssociations": [
+      "ClusterArn",
+      "GatewayArn",
+      "Status"
+    ],
     "AWS::ECS::Service": [
       "Name",
       "ServiceArn"
@@ -5129,9 +5165,6 @@
       "SuiteDefinitionId",
       "SuiteDefinitionVersion"
     ],
-    "AWS::IoTEvents::AlarmModel": [
-      "Id"
-    ],
     "AWS::IoTFleetWise::Campaign": [
       "Arn",
       "CreationTime",
@@ -6146,9 +6179,24 @@
     ],
     "AWS::MediaLive::Input": [
       "Arn",
+      "AttachedChannels",
+      "DestinationUrls",
       "Destinations",
+      "Destinations.*.Ip",
+      "Destinations.*.Port",
+      "Destinations.*.Url",
+      "Destinations.*.Vpc",
+      "Destinations.*.Vpc.AvailabilityZone",
+      "Destinations.*.Vpc.NetworkInterfaceId",
       "Id",
-      "Sources"
+      "InputClass",
+      "InputPartnerIds",
+      "InputSourceType",
+      "RouterSettings.Destinations.*.RouterOutputArn",
+      "SecurityGroups",
+      "SourceUrls",
+      "Sources",
+      "State"
     ],
     "AWS::MediaLive::InputSecurityGroup": [
       "Arn",
@@ -8163,6 +8211,11 @@
     "AWS::Route53RecoveryReadiness::ResourceSet": [
       "ResourceSetArn"
     ],
+    "AWS::Route53Resolver::FirewallConfig": [
+      "Arn",
+      "Id",
+      "OwnerId"
+    ],
     "AWS::Route53Resolver::FirewallDomainList": [
       "Arn",
       "CreationTime",
@@ -8727,6 +8780,14 @@
       "CodeRepositoryArn",
       "CodeRepositoryName"
     ],
+    "AWS::SageMaker::ComputeQuota": [
+      "ComputeQuotaArn",
+      "ComputeQuotaId",
+      "ComputeQuotaVersion",
+      "CreationTime",
+      "LastModifiedTime",
+      "Status"
+    ],
     "AWS::SageMaker::Context": [
       "Arn",
       "CreationTime",
@@ -9181,6 +9242,9 @@
       "VerificationStatusReason",
       "VerifiedAt"
     ],
+    "AWS::SecurityHub::ActionTarget": [
+      "ActionTargetArn"
+    ],
     "AWS::SecurityHub::AggregatorV2": [
       "AggregationRegion",
       "AggregatorV2Arn"
@@ -9566,6 +9630,7 @@
       "DateImported",
       "HostKeyFingerprint",
       "HostKeyId",
+      "SecretId",
       "Type"
     ],
     "AWS::Transfer::Profile": [
@@ -12016,6 +12081,20 @@
       "State": "string",
       "Tags": "object"
     },
+    "AWS::BcmPricingCalculator::BillEstimate": {
+      "Arn": "string",
+      "BillInterval": "object",
+      "BillScenarioId": "string",
+      "CostCategoryGroupSharingPreferenceArn": "string",
+      "CostCategoryGroupSharingPreferenceEffectiveDate": "string",
+      "CreatedAt": "string",
+      "ExpiresAt": "string",
+      "GroupSharingPreference": "string",
+      "Id": "string",
+      "Name": "string",
+      "Status": "string",
+      "Tags": "array"
+    },
     "AWS::BcmPricingCalculator::BillScenario": {
       "Arn": "string",
       "BillInterval": "object",
@@ -12330,6 +12409,19 @@
     "AWS::Bedrock::ResourcePolicy": {
       "PolicyDocument": "object",
       "ResourceArn": "string"
+    },
+    "AWS::Bedrock::RetrievalInstruction": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "CustomerEncryptionKeyArn": "string",
+      "Description": "string",
+      "Instruction": "object",
+      "LastTransitionStatus": "string",
+      "Name": "string",
+      "RetrievalInstructionId": "string",
+      "Status": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
     },
     "AWS::Bedrock::Session": {
       "CreatedAt": "string",
@@ -12647,7 +12739,6 @@
       "Tags": "array"
     },
     "AWS::BedrockAgentCore::PaymentManager": {
-      "AuthorizerConfiguration": "object",
       "AuthorizerType": "string",
       "CreatedAt": "string",
       "Description": "string",
@@ -13842,9 +13933,9 @@
       "Tags": "array"
     },
     "AWS::CloudWatch::AnomalyDetector": {
-      "AnomalyDetectorId": "string",
       "Configuration": "object",
       "Dimensions": "array",
+      "Id": "string",
       "MetricCharacteristics": "object",
       "MetricMathAnomalyDetector": "object",
       "MetricName": "string",
@@ -16542,6 +16633,7 @@
       "StreamSpecification": "object",
       "TableId": "string",
       "TableName": "string",
+      "TableType": "string",
       "TimeToLiveSpecification": "object",
       "VectorIndexes": "array",
       "WarmThroughput": "object",
@@ -18144,6 +18236,27 @@
       "TaskRoleArn": "string",
       "UpdatedAt": "string"
     },
+    "AWS::ECS::Gateway": {
+      "AccessType": "string",
+      "Arn": "string",
+      "Configuration": "object",
+      "Configuration.HostSharedAlb.CurrentAlbCount": "integer",
+      "CreatedAt": "string",
+      "DeletionProtection": "boolean",
+      "GatewayName": "string",
+      "InfrastructureRoleArn": "string",
+      "PropagateTags": "string",
+      "Status": "string",
+      "Tags": "array",
+      "UpdatedAt": "string"
+    },
+    "AWS::ECS::GatewayClusterAssociations": {
+      "Cluster": "string",
+      "ClusterArn": "string",
+      "Gateway": "string",
+      "GatewayArn": "string",
+      "Status": "string"
+    },
     "AWS::ECS::PrimaryTaskSet": {
       "Cluster": "string",
       "Service": "string",
@@ -18159,6 +18272,7 @@
       "EnableECSManagedTags": "boolean",
       "EnableExecuteCommand": "boolean",
       "ForceNewDeployment": "object",
+      "GatewayConnectors": "array",
       "HealthCheckGracePeriodSeconds": "integer",
       "LaunchType": "string",
       "LoadBalancers": "array",
@@ -20836,12 +20950,14 @@
       "KeyPair": "string",
       "Logging": "object",
       "Name": "string",
+      "ParentInstance": "object",
       "Placement": "object",
       "ResourceTags": "object",
       "SecurityGroupIds": "array",
       "SnsTopicArn": "string",
       "SubnetId": "string",
       "Tags": "object",
+      "TerminateInstanceOnCompletion": "boolean",
       "TerminateInstanceOnFailure": "boolean"
     },
     "AWS::ImageBuilder::LifecyclePolicy": {
@@ -21363,7 +21479,6 @@
       "AlarmModelDescription": "string",
       "AlarmModelName": "string",
       "AlarmRule": "object",
-      "Id": "string",
       "Key": "string",
       "RoleArn": "string",
       "Severity": "integer",
@@ -23730,20 +23845,28 @@
     },
     "AWS::MediaLive::Input": {
       "Arn": "string",
+      "AttachedChannels": "array",
+      "DestinationUrls": "array",
       "Destinations": "array",
       "Id": "string",
+      "InputClass": "string",
       "InputDevices": "array",
       "InputNetworkLocation": "string",
+      "InputPartnerIds": "array",
       "InputSecurityGroups": "array",
+      "InputSourceType": "string",
       "MediaConnectFlows": "array",
       "MulticastSettings": "object",
       "Name": "string",
       "RoleArn": "string",
       "RouterSettings": "object",
       "SdiSources": "array",
+      "SecurityGroups": "array",
       "Smpte2110ReceiverGroupSettings": "object",
+      "SourceUrls": "array",
       "Sources": "array",
       "SrtSettings": "object",
+      "State": "string",
       "Tags": "object",
       "Type": "string",
       "Vpc": "object"
@@ -27940,6 +28063,13 @@
       "Resources": "array",
       "Tags": "array"
     },
+    "AWS::Route53Resolver::FirewallConfig": {
+      "Arn": "string",
+      "FirewallFailOpen": "string",
+      "Id": "string",
+      "OwnerId": "string",
+      "ResourceId": "string"
+    },
     "AWS::Route53Resolver::FirewallDomainList": {
       "Arn": "string",
       "CreationTime": "string",
@@ -29136,6 +29266,21 @@
       "GitConfig": "object",
       "Tags": "array"
     },
+    "AWS::SageMaker::ComputeQuota": {
+      "ActivationState": "string",
+      "ClusterArn": "string",
+      "ComputeQuotaArn": "string",
+      "ComputeQuotaConfig": "object",
+      "ComputeQuotaId": "string",
+      "ComputeQuotaTarget": "object",
+      "ComputeQuotaVersion": "integer",
+      "CreationTime": "string",
+      "Description": "string",
+      "LastModifiedTime": "string",
+      "Name": "string",
+      "Status": "string",
+      "Tags": "array"
+    },
     "AWS::SageMaker::Context": {
       "Arn": "string",
       "ContextName": "string",
@@ -29782,6 +29927,12 @@
       "VerificationStatus": "string",
       "VerificationStatusReason": "string",
       "VerifiedAt": "string"
+    },
+    "AWS::SecurityHub::ActionTarget": {
+      "ActionTargetArn": "string",
+      "Description": "string",
+      "Id": "string",
+      "Name": "string"
     },
     "AWS::SecurityHub::AggregatorV2": {
       "AggregationRegion": "string",
@@ -30810,7 +30961,10 @@
       "HostKeyBody": "string",
       "HostKeyFingerprint": "string",
       "HostKeyId": "string",
+      "KmsKey": "string",
+      "SecretId": "string",
       "ServerId": "string",
+      "StorageType": "string",
       "Tags": "array",
       "Type": "string"
     },

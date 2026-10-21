@@ -561,6 +561,10 @@
     "AWS::ECS::ClusterCapacityProviderAssociations": [
       "Cluster"
     ],
+    "AWS::ECS::GatewayClusterAssociations": [
+      "Gateway",
+      "Cluster"
+    ],
     "AWS::ECS::PrimaryTaskSet": [
       "Cluster",
       "Service"
@@ -860,6 +864,9 @@
     ],
     "AWS::IoTAnalytics::Pipeline": [
       "PipelineName"
+    ],
+    "AWS::IoTEvents::AlarmModel": [
+      "AlarmModelName"
     ],
     "AWS::IoTEvents::DetectorModel": [
       "DetectorModelName"
