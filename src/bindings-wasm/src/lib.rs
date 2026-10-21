@@ -15,8 +15,6 @@ use validation_engine::{
 };
 use wasm_bindgen::prelude::*;
 
-const SERIALIZER: serde_wasm_bindgen::Serializer = serde_wasm_bindgen::Serializer::json_compatible();
-
 #[wasm_bindgen]
 extern "C" {
     /// Host callback told the message of a panic before the instance traps.
@@ -104,8 +102,9 @@ fn from_js<T: DeserializeOwned>(value: JsValue) -> Result<T, JsValue> {
     serde_wasm_bindgen::from_value(value).map_err(|error| wasm_bindgen::JsError::new(&error.to_string()).into())
 }
 
-fn to_js<T: serde::Serialize>(val: &T) -> Result<JsValue, JsValue> {
-    val.serialize(&SERIALIZER).map_err(to_js_err)
+fn to_js<T: serde::Serialize>(value: &T) -> Result<JsValue, JsValue> {
+    let json = serde_json::to_string(value).map_err(to_js_err)?;
+    js_sys::JSON::parse(&json)
 }
 
 /// Maps a caught panic message to a thrown JS error so an internal panic
