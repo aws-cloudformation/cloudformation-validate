@@ -3,7 +3,7 @@ use crate::budget::{BudgetKind, BudgetTracker};
 use crate::conditions::{ConditionModel, Satisfiability};
 use crate::consts::*;
 use crate::defect::{DefectPhase, ParseDefect};
-use crate::graph::ReferenceGraph;
+use crate::graph::{Edge, ReferenceGraph};
 use crate::ir::*;
 use crate::is_custom_resource_type;
 use crate::json_value::JsonValue;
@@ -2435,23 +2435,50 @@ impl SemanticModel {
         conditions: &HashMap<String, bool>,
     ) -> bool {
         self.graph.outgoing_edges(resource_id).any(|edge| {
-            self.parameters.get(&edge.target).is_some_and(|parameter| {
-                (!self.parameter_overrides.contains(&edge.target)
-                    || parameter.param_type.starts_with(SSM_PARAMETER_VALUE_TYPE_PREFIX))
-                    && Self::reference_path_overlaps(&edge.source_path, effective_path)
-                    && Self::edge_applies_to_scenario(edge.condition_context.as_deref(), conditions)
-            })
+            self.unresolved_parameter_edge_applies(edge, conditions)
+                && Self::reference_path_overlaps(&edge.source_path, effective_path)
+        })
+    }
+
+    /// Whether the value at `effective_path` is produced by an unresolved
+    /// parameter reference at that path or one of its ancestors. References in
+    /// descendant siblings do not make the value itself unknown.
+    pub(crate) fn scenario_value_uses_unresolved_parameter(
+        &self,
+        resource_id: &str,
+        effective_path: &str,
+        conditions: &HashMap<String, bool>,
+    ) -> bool {
+        self.graph.outgoing_edges(resource_id).any(|edge| {
+            self.unresolved_parameter_edge_applies(edge, conditions)
+                && Self::reference_path_contains_value(&edge.source_path, effective_path)
+        })
+    }
+
+    fn unresolved_parameter_edge_applies(&self, edge: &Edge, conditions: &HashMap<String, bool>) -> bool {
+        self.parameters.get(&edge.target).is_some_and(|parameter| {
+            (!self.parameter_overrides.contains(&edge.target)
+                || parameter.param_type.starts_with(SSM_PARAMETER_VALUE_TYPE_PREFIX))
+                && Self::edge_applies_to_scenario(edge.condition_context.as_deref(), conditions)
         })
     }
 
     fn reference_path_overlaps(source_path: &str, effective_path: &str) -> bool {
-        let Some(normalized_source) = effective_path_from_scenario_source_path(source_path) else {
+        let Some(reference_anchor) = Self::reference_anchor(source_path) else {
             return false;
         };
-        let reference_anchor =
-            normalized_source.split_once(".Fn::").map_or(normalized_source.as_str(), |(prefix, _)| prefix);
-        Self::path_is_at_or_below(reference_anchor, effective_path)
-            || Self::path_is_at_or_below(effective_path, reference_anchor)
+        Self::path_is_at_or_below(&reference_anchor, effective_path)
+            || Self::path_is_at_or_below(effective_path, &reference_anchor)
+    }
+
+    fn reference_path_contains_value(source_path: &str, effective_path: &str) -> bool {
+        Self::reference_anchor(source_path)
+            .is_some_and(|reference_anchor| Self::path_is_at_or_below(effective_path, &reference_anchor))
+    }
+
+    fn reference_anchor(source_path: &str) -> Option<String> {
+        let normalized_source = effective_path_from_scenario_source_path(source_path)?;
+        Some(normalized_source.split_once(".Fn::").map_or(normalized_source.as_str(), |(prefix, _)| prefix).to_string())
     }
 
     fn path_is_at_or_below(candidate_path: &str, root_path: &str) -> bool {

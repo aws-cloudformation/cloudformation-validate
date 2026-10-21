@@ -1,0 +1,212 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Event patterns that EventBridge rejects with "Event pattern is not valid",
+  in both the object and the JSON string form, on rules and archives.
+Parameters:
+  EventSources:
+    Type: CommaDelimitedList
+    Default: example.app
+Resources:
+  UnknownOperatorRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: [example.app]
+        detail:
+          name: [{startsWith: order-}]
+  NumericComparisonRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          price: [{numeric: ["=>", 10]}]
+  AnythingButNestedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          state: [{anything-but: {exists: true}}]
+  PrefixNumberRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          code: [{prefix: 5}]
+  ExistsStringRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          error: [{exists: "true"}]
+  ConsecutiveWildcardRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          path: [{wildcard: "a**b"}]
+  OrSingleBranchRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        $or:
+          - x: ["1"]
+  EmptyArrayRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: []
+  ScalarValueStringRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern: '{"source": "aws.ec2"}'
+  MalformedJsonRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern: '{"source": ['
+  NonObjectJsonRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern: '[]'
+  InvalidPrefixObjectRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          name: [{prefix: {bogus: order-}}]
+  InvalidNumericShapeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          price: [{numeric: [">"]}]
+  EqualNumericBoundsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          price: [{numeric: [">=", 1, "<=", 1]}]
+  AnythingButMixedValuesRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          state: [{anything-but: [stopped, 5]}]
+  WildcardNumberRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          path: [{wildcard: 5}]
+  InvalidWildcardEscapeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          path: [{wildcard: 'a\qb'}]
+  InvalidCidrRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          address: [{cidr: 10.0.0.0/32}]
+  InvalidEqualsIgnoreCaseRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          name: [{equals-ignore-case: 5}]
+  MultipleOperatorsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          name: [{prefix: order-, suffix: .json}]
+  EmptyMatcherRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          name: [{}]
+  OrWrongTypeRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        $or:
+          source: [example.app]
+  OrInvalidBranchRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        $or:
+          - not-an-object
+          - source: [example.app]
+  OrReservedFieldRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        $or:
+          - prefix: [reserved]
+          - source: [example.app]
+  BareNullFieldRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail: null
+  EmptyObjectRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail: {}
+  NestedMatchArrayRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: [[example.app]]
+  ParameterWithInvalidSiblingRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: !Ref EventSources
+        detail:
+          state: []
+  Bus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: invalid-event-pattern-bus
+  NestedScalarArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      SourceArn: !GetAtt Bus.Arn
+      EventPattern:
+        detail:
+          a:
+            b:
+              c: plain

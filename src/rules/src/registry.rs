@@ -909,6 +909,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "E9014",
+        category: Category::Resource,
+        description: "EventBridge rule and archive EventPattern must use valid matchers",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "E3047",
         category: Category::Resource,
         description: "Validate ECS Fargate tasks have the right combination of CPU and memory",

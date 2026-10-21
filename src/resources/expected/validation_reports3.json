@@ -1,4 +1,293 @@
 {
+  "bad/resources/dynamodb/conditional_scenarios.yaml": {
+    "filePath": "bad/resources/dynamodb/conditional_scenarios.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 0,
+        "informational": 11,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3039",
+        "severity": "ERROR",
+        "message": "AttributeDefinitions does not match KeySchema attributes. unused definitions: [gsi_key]",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalGSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "category": "Resource",
+        "startLine": 22,
+        "startColumn": 5,
+        "endLine": 22,
+        "endColumn": 15,
+        "ruleDescription": "AttributeDefinitions / KeySchemas mismatch",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3039",
+        "severity": "ERROR",
+        "message": "AttributeDefinitions does not match KeySchema attributes. unused definitions: [lsi_key]",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalLSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "category": "Resource",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "AttributeDefinitions / KeySchemas mismatch",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3639",
+        "severity": "ERROR",
+        "message": "ProvisionedThroughput is required when BillingMode defaults to 'PROVISIONED'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MissingDefaultThroughput",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.ProvisionedThroughput",
+        "suggestedFix": "Add ProvisionedThroughput or set BillingMode to 'PAY_PER_REQUEST'",
+        "category": "Resource",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Validate DynamoDB table ProvisionedThroughput is set when BillingMode is PROVISIONED",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MissingDefaultThroughput",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 27,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MissingDefaultThroughput",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 10,
+        "endColumn": 27,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalGSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 3,
+        "endLine": 20,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalGSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 20,
+        "startColumn": 3,
+        "endLine": 20,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalLSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 3,
+        "endLine": 35,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I3011",
+        "severity": "INFO",
+        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalLSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 3,
+        "endLine": 35,
+        "endColumn": 17,
+        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalGSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'KeySchema' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalLSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.KeySchema",
+        "category": "Best Practice",
+        "startLine": 43,
+        "startColumn": 7,
+        "endLine": 43,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'MissingDefaultThroughput' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "MissingDefaultThroughput",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalGSI' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalGSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 22,
+        "startColumn": 5,
+        "endLine": 22,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalLSI' of type 'AWS::DynamoDB::Table' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalLSI",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 5,
+        "endLine": 37,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/resources/dynamodb/provisioned_throughput_e3639.yaml": {
     "filePath": "bad/resources/dynamodb/provisioned_throughput_e3639.yaml",
     "status": "OK",
@@ -23967,83 +24256,6 @@
           "logicalId": "Doc",
           "entityType": "Resource",
           "resourceType": "AWS::SSM::Document"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/stepfunctions_bad_start_at.yaml": {
-    "filePath": "bad/stepfunctions_bad_start_at.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 1,
-        "warnings": 1,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E3601",
-        "severity": "ERROR",
-        "message": "StartAt 'NonExistentState' does not reference a valid state at StartAt",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SM",
-          "entityType": "Resource",
-          "resourceType": "AWS::StepFunctions::StateMachine"
-        },
-        "propertyPath": "Properties.DefinitionString",
-        "category": "Resource",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 23,
-        "ruleDescription": "Validate the structure of a StateMachine definition",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9002",
-        "severity": "WARN",
-        "message": "Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SM",
-          "entityType": "Resource",
-          "resourceType": "AWS::StepFunctions::StateMachine"
-        },
-        "propertyPath": "Properties.RoleArn",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 7,
-        "endLine": 16,
-        "endColumn": 14,
-        "ruleDescription": "Hardcoded ARN property",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'SM' of type 'AWS::StepFunctions::StateMachine' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SM",
-          "entityType": "Resource",
-          "resourceType": "AWS::StepFunctions::StateMachine"
         },
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",

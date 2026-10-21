@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Event patterns that EventBridge accepts, including every matcher shape the
+  service documents, and patterns whose values are only known at deployment.
+Parameters:
+  EventSources:
+    Type: CommaDelimitedList
+    Default: aws.ec2,aws.s3
+  Stage:
+    Type: String
+    AllowedValues: [prod, dev]
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+  MatcherShapesRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: [example.app]
+        resources: [!Ref Topic]
+        detail:
+          name: [{prefix: order-}, {suffix: .png}, "exact"]
+          caseless: [{prefix: {equals-ignore-case: ORDER-}}, {suffix: {equals-ignore-case: .PNG}}]
+          state: [{anything-but: stopped}]
+          region: [{anything-but: [us-west-1, us-west-2]}]
+          count: [{anything-but: [1, 2]}]
+          bucket:
+            - {anything-but: {prefix: [tmp-, scratch-]}}
+            - {anything-but: {suffix: [.log, .tmp]}}
+            - {anything-but: {equals-ignore-case: [stopped, ""]}}
+            - {anything-but: {wildcard: ["*.log", ""]}}
+          price: [{numeric: [">", 0, "<=", 100]}, {numeric: [">=", 5]}]
+          error: [{exists: false}]
+          output: [{exists: true}]
+          ip: [{cidr: 10.0.0.0/24}, {cidr: 2001:db8::/32}]
+          title: [{equals-ignore-case: Report}]
+          path: [{wildcard: "a*b"}, {wildcard: 'a\**b'}, {wildcard: 'a\\*b'}]
+          primitive: [null, true, false, 1, ""]
+  NestedOrWithSiblingRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: [example.app]
+        detail:
+          category: [order]
+          $or:
+            - x: ["1"]
+            - y: ["2"]
+  TopLevelOrWithSiblingRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: [example.app]
+        $or:
+          - detail-type: [Order Placed]
+          - detail-type: [Order Updated]
+  JsonStringRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern: '{"source": ["example.app"], "detail": {"size": [{"numeric": [">", 1]}]}}'
+  ParameterListRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: !Ref EventSources
+        detail:
+          state: [ready]
+  SubstitutedStringRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern: !Sub '{"source": ["${AWS::StackName}"]}'
+  ConditionalValueRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: !If [IsProd, [example.app], [example.dev]]
+  ReferencedOperandRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          topic: [{prefix: !Ref Topic}, {anything-but: !GetAtt Topic.TopicName}]
+  Bus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: valid-event-pattern-bus
+  ValidArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      SourceArn: !GetAtt Bus.Arn
+      EventPattern:
+        source: [example.app]

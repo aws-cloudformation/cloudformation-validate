@@ -2374,6 +2374,96 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn invalid_event_patterns_have_identical_precise_diagnostics() {
+    let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9014"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9014"]);
+    assert_eq!(rego_findings, cel_findings, "event pattern diagnostics must be identical across engines");
+    let expected = [
+        (
+            "UnknownOperatorRule",
+            "Properties.EventPattern.detail.name.0.startsWith",
+            "'startsWith' in 'EventPattern.detail.name[0]' is not an event pattern operator",
+        ),
+        (
+            "NumericComparisonRule",
+            "Properties.EventPattern.detail.price.0.numeric.0",
+            "'=>' in 'EventPattern.detail.price[0]' is not a numeric comparison operator",
+        ),
+        ("AnythingButNestedRule", "Properties.EventPattern.detail.state.0.anything-but.exists", "cannot use 'exists'"),
+        ("PrefixNumberRule", "Properties.EventPattern.detail.code.0.prefix", "must be a string"),
+        ("ExistsStringRule", "Properties.EventPattern.detail.error.0.exists", "must be true or false"),
+        (
+            "ConsecutiveWildcardRule",
+            "Properties.EventPattern.detail.path.0.wildcard",
+            "has consecutive wildcard characters",
+        ),
+        ("OrSingleBranchRule", "Properties.EventPattern.$or", "must contain at least 2 branch objects"),
+        ("EmptyArrayRule", "Properties.EventPattern.source", "is an empty array"),
+        ("ScalarValueStringRule", "Properties.EventPattern", "must be an array or an object"),
+        ("MalformedJsonRule", "Properties.EventPattern", "EventPattern string is not valid JSON"),
+        ("NonObjectJsonRule", "Properties.EventPattern", "EventPattern must be a JSON object"),
+        ("InvalidPrefixObjectRule", "Properties.EventPattern.detail.name.0.prefix", "must be a string"),
+        (
+            "InvalidNumericShapeRule",
+            "Properties.EventPattern.detail.price.0.numeric",
+            "must contain two or four elements",
+        ),
+        ("EqualNumericBoundsRule", "Properties.EventPattern.detail.price.0.numeric", "cannot match any value"),
+        (
+            "AnythingButMixedValuesRule",
+            "Properties.EventPattern.detail.state.0.anything-but",
+            "cannot mix strings and numbers",
+        ),
+        ("WildcardNumberRule", "Properties.EventPattern.detail.path.0.wildcard", "must be a string"),
+        (
+            "InvalidWildcardEscapeRule",
+            "Properties.EventPattern.detail.path.0.wildcard",
+            "uses an unsupported escape sequence",
+        ),
+        ("InvalidCidrRule", "Properties.EventPattern.detail.address.0.cidr", "must be a valid IPv4 or IPv6 network"),
+        ("InvalidEqualsIgnoreCaseRule", "Properties.EventPattern.detail.name.0.equals-ignore-case", "must be a string"),
+        ("MultipleOperatorsRule", "Properties.EventPattern.detail.name.0", "must contain exactly one operator"),
+        ("EmptyMatcherRule", "Properties.EventPattern.detail.name.0", "must contain exactly one operator"),
+        ("OrWrongTypeRule", "Properties.EventPattern.$or", "must be an array of branch objects"),
+        ("OrInvalidBranchRule", "Properties.EventPattern.$or.0", "must be an object"),
+        (
+            "OrReservedFieldRule",
+            "Properties.EventPattern.$or.0.prefix",
+            "is reserved and cannot be a field name inside $or",
+        ),
+        ("BareNullFieldRule", "Properties.EventPattern.detail", "must be an array or an object"),
+        ("EmptyObjectRule", "Properties.EventPattern.detail", "must not be an empty object"),
+        ("NestedMatchArrayRule", "Properties.EventPattern.source.0", "must be a scalar value or a matcher object"),
+        ("ParameterWithInvalidSiblingRule", "Properties.EventPattern.detail.state", "is an empty array"),
+        ("NestedScalarArchive", "Properties.EventPattern.detail.a.b.c", "must be an array or an object"),
+    ];
+    assert_eq!(rego_findings.len(), expected.len(), "one finding per rejected pattern shape: {rego_findings:?}");
+    assert!(
+        rego_findings.iter().all(|finding| finding.contains("|Some(SourceSpan")),
+        "every event pattern finding must carry a source span: {rego_findings:?}"
+    );
+    for (resource, property_path, message) in expected {
+        let identity_prefix = format!("|{resource}|{property_path}|");
+        assert!(
+            rego_findings.iter().any(|finding| finding.contains(&identity_prefix) && finding.contains(message)),
+            "missing {resource} finding: {rego_findings:?}"
+        );
+    }
+}
+
+#[test]
+fn valid_and_unresolved_event_patterns_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9014_valid_event_patterns.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9014"]);
+    let cel_findings = selected_findings(&cel, template, &["E9014"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "every matcher here is accepted by EventBridge: {rego_findings:?}");
+}
+
+#[test]
 fn conditional_value_constraints_report_under_their_owning_rules() {
     let template = include_str!("../../resources/templates/bad/E3717_E3718_E3719_E3723_conditional_constraints.yaml");
     let (rego, cel) = engines();
