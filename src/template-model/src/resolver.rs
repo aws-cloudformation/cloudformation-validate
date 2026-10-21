@@ -935,8 +935,8 @@ impl<'a> Resolver<'a> {
             if target == PSEUDO_NO_VALUE {
                 return Some(ResolvedValue::Concrete { value: serde_json::Value::Null.into() });
             }
-            if let Some(val) = self.pseudo_parameter_overrides.get(target) {
-                return Some(ResolvedValue::Concrete { value: serde_json::Value::String(val).into() });
+            if let Some(value) = self.pseudo_parameter_overrides.get(target) {
+                return Some(ResolvedValue::Concrete { value: pseudo_parameter_ref_to_json(target, value).into() });
             }
             return Some(ResolvedValue::Dynamic { reason: format!("pseudo-parameter {}", target) });
         }
@@ -1581,6 +1581,13 @@ impl<'a> Resolver<'a> {
     pub fn set_current_path(&mut self, path: &str) {
         self.current_path = path.to_string();
     }
+}
+
+fn pseudo_parameter_ref_to_json(name: &str, value: String) -> serde_json::Value {
+    if name == PSEUDO_NOTIFICATION_ARNS {
+        return serde_json::Value::Array(vec![serde_json::Value::String(value)]);
+    }
+    serde_json::Value::String(value)
 }
 
 fn param_string_to_json(value: &str, param_type: &str) -> serde_json::Value {
@@ -2310,6 +2317,17 @@ mod tests {
     use super::*;
     use crate::parser;
 
+    fn concrete_property<'a>(
+        model: &'a crate::model::SemanticModel,
+        resource_id: &str,
+        property_path: &str,
+    ) -> &'a serde_json::Value {
+        match model.resolve(resource_id, property_path) {
+            Some(ResolvedValue::Concrete { value }) => value,
+            other => panic!("Expected concrete value at {resource_id}.{property_path}, got {other:?}"),
+        }
+    }
+
     #[test]
     fn param_number_whole_value_resolves_to_integer() {
         // A whole-number Number parameter must resolve to a JSON integer, not a
@@ -2367,6 +2385,39 @@ mod tests {
             }
             other => panic!("Expected Concrete(\"us-east-1\"), got {:?}", other),
         }
+    }
+
+    #[test]
+    fn resolve_ref_notification_arns_as_list() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{"V":{"Ref":"AWS::NotificationARNs"}}}}}"#;
+        let model = crate::model::SemanticModel::from_bytes(input.as_bytes()).expect("template parses");
+        assert_eq!(
+            concrete_property(&model, "R", "Properties.V"),
+            &serde_json::json!(["arn:aws:sns:us-east-1:123456789012:notification"]),
+            "NotificationARNs must keep its CloudFormation list shape"
+        );
+    }
+
+    #[test]
+    fn notification_arns_override_preserves_list_shape_through_intrinsics() {
+        let input = r#"{"Resources":{"R":{"Type":"T","Properties":{
+            "Notifications":{"Ref":"AWS::NotificationARNs"},
+            "First":{"Fn::Select":[0,{"Ref":"AWS::NotificationARNs"}]},
+            "Joined":{"Fn::Join":["|",{"Ref":"AWS::NotificationARNs"}]}
+        }}}}"#;
+        let configured_arn = "arn:aws:sns:us-east-1:123456789012:configured";
+        let config = crate::model::ParseConfig {
+            parameters: HashMap::new(),
+            pseudo_parameters: crate::model::PseudoParameterOverrides {
+                notification_arns: Some(configured_arn.to_string()),
+                ..Default::default()
+            },
+        };
+        let model = crate::model::SemanticModel::parse(input.as_bytes(), config).expect("template parses").model;
+
+        assert_eq!(concrete_property(&model, "R", "Properties.Notifications"), &serde_json::json!([configured_arn]));
+        assert_eq!(concrete_property(&model, "R", "Properties.First"), &serde_json::json!(configured_arn));
+        assert_eq!(concrete_property(&model, "R", "Properties.Joined"), &serde_json::json!(configured_arn));
     }
 
     #[test]

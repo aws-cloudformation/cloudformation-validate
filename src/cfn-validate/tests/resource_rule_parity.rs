@@ -2410,7 +2410,11 @@ fn invalid_event_patterns_have_identical_precise_diagnostics() {
             "Properties.EventPattern.detail.price.0.numeric",
             "must contain two or four elements",
         ),
-        ("EqualNumericBoundsRule", "Properties.EventPattern.detail.price.0.numeric", "cannot match any value"),
+        (
+            "EqualNumericBoundsRule",
+            "Properties.EventPattern.detail.price.0.numeric",
+            "must have a lower bound strictly less than its upper bound",
+        ),
         (
             "AnythingButMixedValuesRule",
             "Properties.EventPattern.detail.state.0.anything-but",
@@ -2437,6 +2441,27 @@ fn invalid_event_patterns_have_identical_precise_diagnostics() {
         ("EmptyObjectRule", "Properties.EventPattern.detail", "must not be an empty object"),
         ("NestedMatchArrayRule", "Properties.EventPattern.source.0", "must be a scalar value or a matcher object"),
         ("ParameterWithInvalidSiblingRule", "Properties.EventPattern.detail.state", "is an empty array"),
+        ("ScalarPseudoParameterRule", "Properties.EventPattern.source", "must be an array or an object"),
+        (
+            "PseudoNumericOperandRule",
+            "Properties.EventPattern.detail.account.0.numeric.1",
+            "must be a finite number whose decimal value is preserved as a 64-bit double",
+        ),
+        (
+            "NestedNotificationArnsRule",
+            "Properties.EventPattern.resources.0",
+            "must be a scalar value or a matcher object",
+        ),
+        (
+            "NotificationArnsPrefixRule",
+            "Properties.EventPattern.detail.topic.0.prefix",
+            "must be a string or an equals-ignore-case object containing one string",
+        ),
+        (
+            "NonRepresentableNumericRule",
+            "Properties.EventPattern.detail.price.0.numeric.1",
+            "must be a finite number whose decimal value is preserved as a 64-bit double",
+        ),
         ("NestedScalarArchive", "Properties.EventPattern.detail.a.b.c", "must be an array or an object"),
     ];
     assert_eq!(rego_findings.len(), expected.len(), "one finding per rejected pattern shape: {rego_findings:?}");
@@ -2460,7 +2485,10 @@ fn valid_and_unresolved_event_patterns_are_not_reported() {
     let rego_findings = selected_findings(&rego, template, &["E9014"]);
     let cel_findings = selected_findings(&cel, template, &["E9014"]);
     assert_eq!(rego_findings, cel_findings);
-    assert!(rego_findings.is_empty(), "every matcher here is accepted by EventBridge: {rego_findings:?}");
+    assert!(
+        rego_findings.is_empty(),
+        "valid and deployment-controlled event patterns must not be reported: {rego_findings:?}"
+    );
 }
 
 #[test]

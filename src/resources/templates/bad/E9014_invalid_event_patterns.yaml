@@ -197,6 +197,39 @@ Resources:
         source: !Ref EventSources
         detail:
           state: []
+  ScalarPseudoParameterRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        source: !Ref AWS::Region
+  PseudoNumericOperandRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          account: [{numeric: [">", !Ref AWS::AccountId]}]
+  NestedNotificationArnsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        resources: [!Ref AWS::NotificationARNs]
+  NotificationArnsPrefixRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          topic: [{prefix: !Ref AWS::NotificationARNs}]
+  NonRepresentableNumericRule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      EventPattern:
+        detail:
+          price: [{numeric: ["=", 9007199254740993]}]
   Bus:
     Type: AWS::Events::EventBus
     Properties:

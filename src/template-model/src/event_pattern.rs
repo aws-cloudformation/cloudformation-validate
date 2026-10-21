@@ -24,7 +24,6 @@ const LOWER_BOUND_COMPARISONS: [&str; 2] = [">", ">="];
 const UPPER_BOUND_COMPARISONS: [&str; 2] = ["<", "<="];
 const ANYTHING_BUT_NESTED_OPERATORS: [&str; 4] =
     [PREFIX_OPERATOR, SUFFIX_OPERATOR, WILDCARD_OPERATOR, EQUALS_IGNORE_CASE_OPERATOR];
-const MAX_EXACT_EVENTBRIDGE_INTEGER: u64 = 9_007_199_254_740_992;
 const MIN_OR_BRANCHES: usize = 2;
 const OR_BRANCH_RESERVED_FIELD_NAMES: &[&str] = &[
     EXACTLY_OPERATOR,
@@ -65,6 +64,7 @@ const SCALAR_VALUE_FIX: &str = "Wrap the value in an array";
 const MATCH_VALUE_FIX: &str = "Use a scalar value or an object containing exactly one matcher operator";
 const PREFIX_SUFFIX_FIX: &str = "Use a string or an object containing only equals-ignore-case with a string value";
 const NUMERIC_FIX: &str = "Use [operator, number] or [>, number, <, number] with inclusive variants where allowed";
+const NUMERIC_VALUE_FIX: &str = "Use a finite number whose decimal value is preserved as a 64-bit double";
 const ANYTHING_BUT_FIX: &str =
     "Give anything-but one string, one number, a homogeneous array, or one supported nested matcher";
 const EXISTS_FIX: &str = "Set exists to an unquoted true or false";
@@ -466,8 +466,11 @@ impl<'a> EventPatternChecker<'a> {
         if first_number == NumericOperand::Invalid {
             self.add_finding(
                 &first_number_location,
-                format!("numeric comparison value in '{}' must be a representable number", match_location.display_path),
-                NUMERIC_FIX,
+                format!(
+                    "numeric comparison value in '{}' must be a finite number whose decimal value is preserved as a 64-bit double",
+                    match_location.display_path
+                ),
+                NUMERIC_VALUE_FIX,
             );
             return;
         }
@@ -506,17 +509,23 @@ impl<'a> EventPatternChecker<'a> {
         if second_number == NumericOperand::Invalid {
             self.add_finding(
                 &second_number_location,
-                format!("numeric comparison value in '{}' must be a representable number", match_location.display_path),
-                NUMERIC_FIX,
+                format!(
+                    "numeric comparison value in '{}' must be a finite number whose decimal value is preserved as a 64-bit double",
+                    match_location.display_path
+                ),
+                NUMERIC_VALUE_FIX,
             );
             return;
         }
         if let (NumericOperand::Known(lower), NumericOperand::Known(upper)) = (first_number, second_number) {
-            let range_is_empty = lower >= upper;
-            if range_is_empty {
+            let bounds_are_not_strictly_increasing = lower >= upper;
+            if bounds_are_not_strictly_increasing {
                 self.add_finding(
                     operand_location,
-                    format!("numeric range in '{}' cannot match any value", match_location.display_path),
+                    format!(
+                        "numeric range in '{}' must have a lower bound strictly less than its upper bound",
+                        match_location.display_path
+                    ),
                     NUMERIC_FIX,
                 );
             }
@@ -777,7 +786,7 @@ impl<'a> EventPatternChecker<'a> {
         match self.shape_at(value, location) {
             PatternShape::Unknown => NumericOperand::Unknown,
             PatternShape::Scalar(serde_json::Value::Number(number)) => {
-                numeric_comparison_number(number).map_or(NumericOperand::Invalid, NumericOperand::Known)
+                comparable_number(number).map_or(NumericOperand::Invalid, NumericOperand::Known)
             }
             PatternShape::Object(_) | PatternShape::Array(_) | PatternShape::Scalar(_) => NumericOperand::Invalid,
         }
@@ -846,11 +855,6 @@ fn comparable_number(number: &serde_json::Number) -> Option<f64> {
     let authored = normalize_decimal(&number.to_string())?;
     let represented = normalize_decimal(&value.to_string())?;
     (authored == represented).then_some(value)
-}
-
-fn numeric_comparison_number(number: &serde_json::Number) -> Option<f64> {
-    comparable_number(number)
-        .filter(|value| value.fract() != 0.0 || value.abs() <= MAX_EXACT_EVENTBRIDGE_INTEGER as f64)
 }
 
 fn normalize_decimal(text: &str) -> Option<NormalizedDecimal> {
@@ -1023,6 +1027,76 @@ Resources:
     }
 
     #[test]
+    fn notification_arns_list_does_not_hide_invalid_concrete_sibling() {
+        let template = r#"
+Resources:
+  Rule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        resources: !Ref AWS::NotificationARNs
+        detail:
+          state: []
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).expect("template parses");
+        let findings = event_pattern_violations(&model);
+        assert_eq!(findings.len(), 1, "the concrete sibling remains invalid: {findings:?}");
+        assert_eq!(findings[0].property_path, "Properties.EventPattern.detail.state");
+    }
+
+    #[test]
+    fn scalar_pseudo_parameter_shapes_are_checked() {
+        let template = r#"
+Resources:
+  Rule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source: !Ref AWS::Region
+        detail:
+          account: [{numeric: [">", !Ref AWS::AccountId]}]
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).expect("template parses");
+        let findings = event_pattern_violations(&model);
+        assert_eq!(findings.len(), 2, "both scalar pseudo-parameter shapes are invalid: {findings:?}");
+        assert!(
+            findings.iter().any(|finding| finding.property_path == "Properties.EventPattern.source"),
+            "source must remain subject to field-selector shape validation: {findings:?}"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|finding| finding.property_path == "Properties.EventPattern.detail.account.0.numeric.1"),
+            "AccountId must remain subject to numeric operand validation: {findings:?}"
+        );
+    }
+
+    #[test]
+    fn notification_arns_list_shape_is_checked_in_matcher_contexts() {
+        let template = r#"
+Resources:
+  Rule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        resources: [!Ref AWS::NotificationARNs]
+        detail:
+          topic: [{prefix: !Ref AWS::NotificationARNs}]
+"#;
+        let model = SemanticModel::from_bytes(template.as_bytes()).expect("template parses");
+        let findings = event_pattern_violations(&model);
+        assert_eq!(findings.len(), 2, "list values are invalid in both matcher contexts: {findings:?}");
+        assert!(
+            findings.iter().any(|finding| finding.property_path == "Properties.EventPattern.resources.0"),
+            "a nested match array must be rejected: {findings:?}"
+        );
+        assert!(
+            findings.iter().any(|finding| finding.property_path == "Properties.EventPattern.detail.topic.0.prefix"),
+            "prefix must reject a list operand: {findings:?}"
+        );
+    }
+
+    #[test]
     fn prefix_and_suffix_case_insensitive_forms_require_one_string() {
         assert!(messages(r#"{"x": [{"prefix": {"equals-ignore-case": "abc"}}, {"suffix": "xyz"}]}"#).is_empty());
         for pattern in [
@@ -1042,13 +1116,6 @@ Resources:
             r#"{"x": [{"numeric": [">", true]}]}"#,
             r#"{"x": [{"numeric": ["<", 1, "<", 2]}]}"#,
             r#"{"x": [{"numeric": [">", 1, ">=", 2]}]}"#,
-            r#"{"x": [{"numeric": [">", 2, "<", 1]}]}"#,
-            r#"{"x": [{"numeric": [">=", 1, "<=", 1]}]}"#,
-            r#"{"x": [{"numeric": [">=", -0.0, "<=", 0]}]}"#,
-            r#"{"x": [{"numeric": ["=", 9007199254740993]}]}"#,
-            r#"'{"x": [{"numeric": ["=", 9007199254740993.0]}]}'"#,
-            r#"'{"x": [{"numeric": ["=", 0.30000000000000001]}]}'"#,
-            r#"{"x": [{"numeric": ["=", 1e16]}]}"#,
         ] {
             assert_eq!(messages(pattern).len(), 1, "{pattern}");
         }
@@ -1056,9 +1123,43 @@ Resources:
             r#"{"x": [{"numeric": ["=", 3.8]}]}"#,
             r#"'{"x": [{"numeric": ["=", 1E-320]}]}'"#,
             r#"{"x": [{"numeric": [">=", 0, "<=", 1]}]}"#,
-            r#"{"x": [{"numeric": ["=", 9007199254740992.0]}]}"#,
         ] {
             assert!(messages(pattern).is_empty(), "{pattern}");
+        }
+    }
+
+    #[test]
+    fn numeric_comparison_values_must_preserve_their_decimal_value() {
+        for pattern in [
+            r#"{"x": [{"numeric": ["=", 9007199254740993]}]}"#,
+            r#"{"x": [{"numeric": ["=", 9007199254740995]}]}"#,
+            r#"'{"x": [{"numeric": ["=", 9007199254740993.0]}]}'"#,
+            r#"'{"x": [{"numeric": ["=", 0.30000000000000001]}]}'"#,
+        ] {
+            assert_eq!(messages(pattern).len(), 1, "{pattern}");
+        }
+        for pattern in [
+            r#"{"x": [{"numeric": ["=", 9007199254740992.0]}]}"#,
+            r#"{"x": [{"numeric": ["=", 9007199254740994]}]}"#,
+            r#"{"x": [{"numeric": ["=", -9007199254740994]}]}"#,
+            r#"{"x": [{"numeric": ["=", 1.0e+16]}]}"#,
+        ] {
+            assert!(messages(pattern).is_empty(), "{pattern}");
+        }
+    }
+
+    #[test]
+    fn numeric_ranges_require_strictly_increasing_bounds() {
+        let expected = vec![
+            "numeric range in 'EventPattern.x[0]' must have a lower bound strictly less than its upper bound"
+                .to_string(),
+        ];
+        for pattern in [
+            r#"{"x": [{"numeric": [">", 2, "<", 1]}]}"#,
+            r#"{"x": [{"numeric": [">=", 1, "<=", 1]}]}"#,
+            r#"{"x": [{"numeric": [">=", -0.0, "<=", 0]}]}"#,
+        ] {
+            assert_eq!(messages(pattern), expected, "{pattern}");
         }
     }
 
