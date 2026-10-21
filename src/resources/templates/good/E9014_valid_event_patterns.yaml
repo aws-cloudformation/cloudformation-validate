@@ -100,3 +100,9 @@ Resources:
       SourceArn: !GetAtt Bus.Arn
       EventPattern:
         source: [example.app]
+        resources: !Ref AWS::NotificationARNs
+        detail:
+          representable:
+            - {numeric: ["=", 9007199254740994]}
+            - {numeric: ["=", -9007199254740994]}
+            - {numeric: ["=", 1.0e+16]}

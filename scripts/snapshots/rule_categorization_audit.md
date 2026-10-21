@@ -5,13 +5,13 @@ severity model documented in `product.md`.
 
 ## Summary
 
-- Total rules: **317**
-- By severity: Fatal=69, Error=153, Warn=72, Info=23
-- By true origin: CfnLint=218, Engine=29, Engine(collision)=1, Schema=69
-- By category: BestPractice=59, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=92, Schema=25, Security=14, Structure=57
+- Total rules: **318**
+- By severity: Fatal=69, Error=154, Warn=72, Info=23
+- By true origin: CfnLint=218, Engine=30, Engine(collision)=1, Schema=69
+- By category: BestPractice=59, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=93, Schema=25, Security=14, Structure=57
 - cfn-lint reference: 329 rule IDs loaded
 - E→F promoted rules: 51
-- Engine-extra rules: 60
+- Engine-extra rules: 61
 
 ## 1. Origin correctness
 
@@ -301,7 +301,7 @@ with `cargo test -p cfn-validate --test engine_parity` for ground truth.
 
 **CEL only (4):** `E3023`, `E3024`, `E3510`, `W2530`
 
-_Scanned 257 CEL sites (197 IDs), 282 Rego sites (193 IDs)._
+_Scanned 258 CEL sites (198 IDs), 283 Rego sites (194 IDs)._
 
 ## Appendix: full rule inventory
 
@@ -458,6 +458,7 @@ _Scanned 257 CEL sites (197 IDs), 282 Rego sites (193 IDs)._
 | `E9003` | Error | Intrinsic | CfnLint | CfnLint | GetAtt return type may not match usage context |
 | `E9004` | Error | Intrinsic | Schema ⚠ | CfnLint | GetAtt attribute must exist on target resource type |
 | `E9006` | Error | Schema | CfnLint | CfnLint | Property value not valid for conditional extension enum |
+| `E9014` | Error | Resource | Engine | Engine | EventBridge rule and archive EventPattern must use valid matchers |
 | `E9101` | Error | Intrinsic | Schema ⚠ | Engine | Invalid nesting of intrinsic functions |
 | `E9106` | Error | Structure | Schema ⚠ | Engine | Circular dependency in condition definitions |
 | `F0000` | Fatal | Structure | Schema | Schema | Duplicate key in template |
