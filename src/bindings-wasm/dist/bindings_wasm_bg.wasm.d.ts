@@ -6,9 +6,11 @@ export const __wbg_wasmcompositeengine_free: (a: number, b: number) => void;
 export const __wbg_wasmregoengine_free: (a: number, b: number) => void;
 export const __wbg_wasmschemavalidator_free: (a: number, b: number) => void;
 export const __wbg_wasmsemanticmodel_free: (a: number, b: number) => void;
+export const activeCalls: () => number;
 export const init: () => void;
-export const version: () => [number, number];
-export const wasmcelengine_engineName: (a: number) => [number, number];
+export const setPanicListener: (a: any) => void;
+export const version: () => [number, number, number, number];
+export const wasmcelengine_engineName: (a: number) => [number, number, number, number];
 export const wasmcelengine_listRules: (a: number) => [number, number, number];
 export const wasmcelengine_new: (a: any) => [number, number, number];
 export const wasmcelengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
@@ -20,7 +22,7 @@ export const wasmcelengine_validateTemplate: (
     e: number,
     f: number,
 ) => [number, number, number];
-export const wasmcompositeengine_engineName: (a: number) => [number, number];
+export const wasmcompositeengine_engineName: (a: number) => [number, number, number, number];
 export const wasmcompositeengine_listRules: (a: number) => [number, number, number];
 export const wasmcompositeengine_new: (a: any) => [number, number, number];
 export const wasmcompositeengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
@@ -32,7 +34,7 @@ export const wasmcompositeengine_validateTemplate: (
     e: number,
     f: number,
 ) => [number, number, number];
-export const wasmregoengine_engineName: (a: number) => [number, number];
+export const wasmregoengine_engineName: (a: number) => [number, number, number, number];
 export const wasmregoengine_listRules: (a: number) => [number, number, number];
 export const wasmregoengine_new: (a: any) => [number, number, number];
 export const wasmregoengine_validateAwsCliCommand: (a: number, b: any) => [number, number, number];
@@ -46,11 +48,11 @@ export const wasmregoengine_validateTemplate: (
 ) => [number, number, number];
 export const wasmschemavalidator_listRules: (a: number) => [number, number, number];
 export const wasmschemavalidator_new: (a: any) => [number, number, number];
-export const wasmschemavalidator_schemaCount: (a: number) => number;
+export const wasmschemavalidator_schemaCount: (a: number) => [number, number, number];
 export const wasmschemavalidator_validate: (a: number, b: number, c: number, d: number) => [number, number, number];
 export const wasmsemanticmodel_conditions: (a: number) => [number, number, number];
-export const wasmsemanticmodel_description: (a: number) => [number, number];
-export const wasmsemanticmodel_formatVersion: (a: number) => [number, number];
+export const wasmsemanticmodel_description: (a: number) => [number, number, number, number];
+export const wasmsemanticmodel_formatVersion: (a: number) => [number, number, number, number];
 export const wasmsemanticmodel_outputs: (a: number) => [number, number, number];
 export const wasmsemanticmodel_parameters: (a: number) => [number, number, number];
 export const wasmsemanticmodel_parse: (a: number, b: number) => [number, number, number];
