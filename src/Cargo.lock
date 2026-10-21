@@ -294,8 +294,10 @@ dependencies = [
  "cloudformation-validate-validation-engine",
  "console_error_panic_hook",
  "getrandom 0.3.4",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen",
+ "serde_json",
  "tsify",
  "wasm-bindgen",
 ]
