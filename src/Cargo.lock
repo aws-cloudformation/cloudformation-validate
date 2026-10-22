@@ -229,7 +229,7 @@ checksum = "4372b9543397a4b86050cc5e7ee36953edf4bac9518e8a774c2da694977fb6e4"
 
 [[package]]
 name = "bindings-go"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
  "cloudformation-validate-composite-engine",
@@ -248,7 +248,7 @@ dependencies = [
 
 [[package]]
 name = "bindings-jvm"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
  "cloudformation-validate-composite-engine",
@@ -265,7 +265,7 @@ dependencies = [
 
 [[package]]
 name = "bindings-python"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
  "cloudformation-validate-composite-engine",
@@ -282,7 +282,7 @@ dependencies = [
 
 [[package]]
 name = "bindings-wasm"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
  "cloudformation-validate-composite-engine",
@@ -486,7 +486,7 @@ checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
 name = "cfn-validate"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "chrono",
  "cloudformation-validate-cel-engine",
@@ -584,7 +584,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
  "cloudformation-validate-composite-engine",
@@ -599,7 +599,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-cel-engine"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "anyhow",
  "cel-interpreter",
@@ -619,7 +619,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-composite-engine"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "anyhow",
  "cloudformation-validate-cel-engine",
@@ -634,7 +634,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-data-source"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -655,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-diagnostics"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-rules",
  "cloudformation-validate-template-model",
@@ -670,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-guard-translator"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-guard-lang",
  "serde_json",
@@ -678,7 +678,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-rego-engine"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "anyhow",
  "cloudformation-validate-data-source",
@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-rules"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-template-model",
  "log",
@@ -712,7 +712,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-schema-validator"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
@@ -730,7 +730,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-template-model"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "base64",
  "env_logger",
@@ -749,7 +749,7 @@ dependencies = [
 
 [[package]]
 name = "cloudformation-validate-validation-engine"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-data-source",
  "cloudformation-validate-diagnostics",
@@ -1483,7 +1483,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "performance-harness"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-cel-engine",
  "cloudformation-validate-composite-engine",
@@ -1669,7 +1669,7 @@ dependencies = [
 
 [[package]]
 name = "resources"
-version = "1.14.0"
+version = "1.15.0"
 dependencies = [
  "cloudformation-validate-diagnostics",
  "cloudformation-validate-rules",
