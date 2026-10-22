@@ -712,20 +712,8 @@ function __wbg_get_imports() {
             const ret = new Error();
             return ret;
         },
-        __wbg_new_32b398fb48b6d94a: function () {
-            const ret = new Array();
-            return ret;
-        },
-        __wbg_new_7796ffc7ed656783: function () {
-            const ret = new Map();
-            return ret;
-        },
         __wbg_new_cd45aabdf6073e84: function (arg0) {
             const ret = new Uint8Array(arg0);
-            return ret;
-        },
-        __wbg_new_da52cf8fe3429cb2: function () {
-            const ret = new Object();
             return ret;
         },
         __wbg_next_6dbf2c0ac8cde20f: function (arg0) {
@@ -742,22 +730,18 @@ function __wbg_get_imports() {
             const ret = arg0.now();
             return ret;
         },
+        __wbg_parse_1c0d8a8656d7e016: function () {
+            return handleError(function (arg0, arg1) {
+                const ret = JSON.parse(getStringFromWasm0(arg0, arg1));
+                return ret;
+            }, arguments);
+        },
         __wbg_performance_3fcf6e32a7e1ed0a: function (arg0) {
             const ret = arg0.performance;
             return ret;
         },
         __wbg_prototypesetcall_4770620bbe4688a0: function (arg0, arg1, arg2) {
             Uint8Array.prototype.set.call(getArrayU8FromWasm0(arg0, arg1), arg2);
-        },
-        __wbg_set_575dd786d51585f8: function (arg0, arg1, arg2) {
-            const ret = arg0.set(arg1, arg2);
-            return ret;
-        },
-        __wbg_set_6be42768c690e380: function (arg0, arg1, arg2) {
-            arg0[arg1] = arg2;
-        },
-        __wbg_set_8a16b38e4805b298: function (arg0, arg1, arg2) {
-            arg0[arg1 >>> 0] = arg2;
         },
         __wbg_stack_3b0d974bbf31e44f: function (arg0, arg1) {
             const ret = arg1.stack;
@@ -787,21 +771,16 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function (arg0) {
-            // Cast intrinsic for `F64 -> Externref`.
-            const ret = arg0;
-            return ret;
-        },
-        __wbindgen_cast_0000000000000002: function (arg0) {
             // Cast intrinsic for `I64 -> Externref`.
             const ret = arg0;
             return ret;
         },
-        __wbindgen_cast_0000000000000003: function (arg0, arg1) {
+        __wbindgen_cast_0000000000000002: function (arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
         },
-        __wbindgen_cast_0000000000000004: function (arg0) {
+        __wbindgen_cast_0000000000000003: function (arg0) {
             // Cast intrinsic for `U64 -> Externref`.
             const ret = BigInt.asUintN(64, arg0);
             return ret;
