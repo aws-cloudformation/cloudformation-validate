@@ -196,8 +196,8 @@ jobs:
           mkdir -p release
 
           binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
-          if [ ${#binaries[@]} -ne 6 ]; then
-            echo "::error::Expected six cfn-validate binaries in $GITHUB_WORKSPACE/release-bin/, found ${#binaries[@]}. Run the Build Artifacts workflow and merge its PR first."
+          if [ ${#binaries[@]} -ne 8 ]; then
+            echo "::error::Expected eight cfn-validate binaries in $GITHUB_WORKSPACE/release-bin/, found ${#binaries[@]}. Run the Build Artifacts workflow and merge its PR first."
             exit 1
           fi
           for bin in "${binaries[@]}"; do
@@ -371,8 +371,8 @@ jobs:
           )
 
           committed_binaries=("$GITHUB_WORKSPACE"/release-bin/cfn-validate-*)
-          if [ ${#committed_binaries[@]} -ne 6 ]; then
-            echo "::error::Expected six committed cfn-validate binaries, found ${#committed_binaries[@]}."
+          if [ ${#committed_binaries[@]} -ne 8 ]; then
+            echo "::error::Expected eight committed cfn-validate binaries, found ${#committed_binaries[@]}."
             exit 1
           fi
           for binary in "${committed_binaries[@]}"; do
