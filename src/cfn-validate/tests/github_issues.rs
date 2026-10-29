@@ -2174,11 +2174,11 @@ Resources:
     assert_absent(&diagnostics, "E3025");
 }
 
-/// Issue #339: EC2 resolves the official Systems Manager ImageId alias when an
-/// instance launches from a launch template, so it is not a literal AMI ID.
+/// Issue #339: EC2 resolves Systems Manager ImageId aliases when launching through
+/// either a launch template or an AWS::EC2::Instance resource, so they are not literal AMI IDs.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/339
 #[test]
-fn issue_339_accepts_the_launch_template_ssm_image_alias() {
+fn issue_339_accepts_ec2_ssm_image_aliases() {
     let diagnostics = validate_all("issue-339.yaml");
 
     assert_absent(&diagnostics, "E1152");
