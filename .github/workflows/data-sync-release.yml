@@ -1,0 +1,189 @@
+name: Release Merged Data Sync
+run-name: Check for a merged data sync release
+
+on:
+  schedule: [{ cron: '0 * * * *' }]
+  workflow_dispatch:
+
+concurrency:
+  group: data-sync-release
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  dispatch-release:
+    if: github.repository == 'aws-cloudformation/cloudformation-validate'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find the latest merged data sync PR
+        id: merged-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          merged_pr="$(
+            gh api \
+              "repos/$GITHUB_REPOSITORY/pulls?state=closed&sort=updated&direction=desc&per_page=100" \
+              | jq -cr \
+                --arg repository "$GITHUB_REPOSITORY" \
+                '[.[] | select(.merged_at != null and .head.repo.full_name == $repository and (.head.ref | startswith("automated/data-sync-")))] | first // empty'
+          )"
+          if [ -z "$merged_pr" ]; then
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+            echo 'No merged data sync PR is awaiting release.'
+            exit 0
+          fi
+
+          base_branch="$(jq -er '.base.ref' <<< "$merged_pr")"
+          if [[ ! "$base_branch" =~ ^release/[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Latest merged data sync PR targets unexpected branch $base_branch."
+            exit 1
+          fi
+          {
+            echo 'found=true'
+            echo "base-branch=$base_branch"
+            echo "head-commit=$(jq -er '.head.sha' <<< "$merged_pr")"
+            echo "merge-commit=$(jq -er '.merge_commit_sha' <<< "$merged_pr")"
+            echo "pr-number=$(jq -er '.number' <<< "$merged_pr")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify the merged patch release and dispatch publication
+        if: steps.merged-pr.outputs.found == 'true'
+        env:
+          BASE_BRANCH: ${{ steps.merged-pr.outputs.base-branch }}
+          GH_TOKEN: ${{ github.token }}
+          MERGE_COMMIT: ${{ steps.merged-pr.outputs.merge-commit }}
+          PR_HEAD_COMMIT: ${{ steps.merged-pr.outputs.head-commit }}
+          PR_NUMBER: ${{ steps.merged-pr.outputs.pr-number }}
+        run: |
+          set -euo pipefail
+
+          read_repository_file() {
+            local path="$1"
+            local commit="$2"
+            gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "repos/$GITHUB_REPOSITORY/contents/$path?ref=$commit" \
+              --jq '.content' \
+              | tr -d '\n' \
+              | base64 --decode
+          }
+
+          release_intent="$(read_repository_file '.github/data-sync-release.json' "$MERGE_COMMIT")"
+          cargo_manifest="$(read_repository_file 'src/Cargo.toml' "$MERGE_COMMIT")"
+          artifact_source="$(read_repository_file 'release-bin/artifact-source.json' "$MERGE_COMMIT")"
+          source_versions_file="$RUNNER_TEMP/source_versions.json"
+          read_repository_file \
+            'src/data-source/generated/data/source_versions.json' \
+            "$MERGE_COMMIT" \
+            > "$source_versions_file"
+
+          release_version="$(
+            awk '
+              $0 == "[workspace.package]" { in_workspace_package = 1; next }
+              /^\[/ { in_workspace_package = 0 }
+              in_workspace_package && /^version = "/ {
+                value = $0
+                sub(/^version = "/, "", value)
+                sub(/"$/, "", value)
+                print value
+                exit
+              }
+            ' <<< "$cargo_manifest"
+          )"
+          intent_version="$(jq -er '.version' <<< "$release_intent")"
+          intent_base_tag="$(jq -er '.base_tag' <<< "$release_intent")"
+          intent_branch="$(jq -er '.release_branch' <<< "$release_intent")"
+          expected_source_versions_sha256="$(jq -er '.source_versions_sha256' <<< "$release_intent")"
+          actual_source_versions_sha256="$(sha256sum "$source_versions_file" | awk '{print $1}')"
+          artifact_version="$(jq -er '.version' <<< "$artifact_source")"
+          artifact_source_commit="$(jq -er '.source_commit' <<< "$artifact_source")"
+
+          if [[ ! "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Workspace version is not a production semantic version: $release_version"
+            exit 1
+          fi
+          if [ "$intent_version" != "$release_version" ] || [ "$artifact_version" != "$release_version" ]; then
+            echo "::error::Release intent ($intent_version), artifacts ($artifact_version), and workspace ($release_version) do not agree."
+            exit 1
+          fi
+          if [ "$intent_branch" != "$BASE_BRANCH" ]; then
+            echo "::error::Release intent targets $intent_branch, but PR #$PR_NUMBER merged into $BASE_BRANCH."
+            exit 1
+          fi
+          if [ "$actual_source_versions_sha256" != "$expected_source_versions_sha256" ]; then
+            echo '::error::Merged source provenance differs from the reviewed release intent.'
+            exit 1
+          fi
+          if [[ ! "$artifact_source_commit" =~ ^[0-9a-f]{40,64}$ ]]; then
+            echo "::error::Artifact provenance contains an invalid source commit: $artifact_source_commit"
+            exit 1
+          fi
+
+          comparison_status="$(gh api \
+            "repos/$GITHUB_REPOSITORY/compare/$artifact_source_commit...$PR_HEAD_COMMIT" \
+            --jq '.status')"
+          if [ "$comparison_status" != 'ahead' ] && [ "$comparison_status" != 'identical' ]; then
+            echo "::error::PR head $PR_HEAD_COMMIT does not contain artifact source $artifact_source_commit."
+            exit 1
+          fi
+
+          IFS=. read -r base_major base_minor base_patch <<< "$intent_base_tag"
+          IFS=. read -r release_major release_minor release_patch <<< "$release_version"
+          expected_branch="release/$base_major.$base_minor"
+          if [ "$BASE_BRANCH" != "$expected_branch" ] \
+            || [ "$release_major" != "$base_major" ] \
+            || [ "$release_minor" != "$base_minor" ] \
+            || [ "$release_patch" -ne "$((10#$base_patch + 1))" ]; then
+            echo "::error::$release_version is not the next patch after $intent_base_tag on $BASE_BRANCH."
+            exit 1
+          fi
+
+          mapfile -t production_tags < <(
+            git ls-remote --refs --tags "https://github.com/$GITHUB_REPOSITORY.git" \
+              | awk '{sub("refs/tags/", "", $2); print $2}' \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V
+          )
+          if [ ${#production_tags[@]} -eq 0 ]; then
+            echo '::error::No production release tags were found.'
+            exit 1
+          fi
+          latest_index=$((${#production_tags[@]} - 1))
+          latest_production_tag="${production_tags[$latest_index]}"
+          if printf '%s\n' "${production_tags[@]}" | grep -Fxq "$release_version"; then
+            echo "$release_version is already tagged; no release dispatch is needed."
+            exit 0
+          fi
+          if [ "$latest_production_tag" != "$intent_base_tag" ]; then
+            echo "::error::Latest production tag advanced from $intent_base_tag to $latest_production_tag before this PR merged."
+            exit 1
+          fi
+
+          existing_release_runs="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow release.yml \
+              --event workflow_dispatch \
+              --limit 100 \
+              --json displayTitle \
+              | jq -r \
+                --arg prefix "Release $release_version " \
+                '[.[] | select(.displayTitle | startswith($prefix))] | length'
+          )"
+          if [ "$existing_release_runs" -gt 0 ]; then
+            echo "A Release workflow run already exists for $release_version; no duplicate dispatch is needed."
+            exit 0
+          fi
+
+          gh workflow run release.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            --field tag="$release_version" \
+            --field ref="$MERGE_COMMIT" \
+            --field source-branch="$BASE_BRANCH"
+          echo "Dispatched release $release_version from $BASE_BRANCH @ $MERGE_COMMIT."

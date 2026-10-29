@@ -1,17 +1,51 @@
 name: Build Artifacts
-run-name: Build Artifacts ${{ github.actor }} ${{ github.event_name }} (${{ github.ref_name }} @ ${{ github.sha }})
+run-name: >-
+  Build Artifacts ${{ github.actor }} ${{ github.event_name }}
+  (${{ inputs.pull-request-base || github.ref_name }} @ ${{ inputs.source-ref || github.sha }})
 
-# Every job checks out the commit the run was triggered for (github.sha). To build a hotfix branch, dispatch
-# the workflow from that branch ("Use workflow from" / `gh workflow run build-artifacts.yml --ref <branch>`);
-# the artifacts PR then targets it. Nothing in this workflow checks out a ref chosen by an input, so the code
-# that runs is always the code of the branch whose cache scope and permissions the run has.
+# A reusable caller may supply an exact source commit and PR coordinates. The build always checks out that
+# immutable commit; the PR base and branch only control where the generated artifacts are proposed.
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      source-ref:
+        description: 'Exact source commit to build; defaults to the triggering commit'
+        required: false
+        type: string
+      pull-request-base:
+        description: 'Branch the generated-artifact PR targets; defaults to the triggering branch'
+        required: false
+        type: string
+      pull-request-branch:
+        description: 'Branch used for the generated-artifact PR'
+        required: false
+        type: string
+      pull-request-title:
+        description: 'Title used for the generated-artifact PR'
+        required: false
+        type: string
+      pull-request-body:
+        description: 'Text prepended to the generated-artifact PR body'
+        required: false
+        type: string
+      pull-request-labels:
+        description: 'Comma-separated labels for the generated-artifact PR'
+        required: false
+        type: string
+        default: 'automated, build-artifacts'
+    outputs:
+      pull-request-number:
+        description: 'Number of the created or updated artifact PR'
+        value: ${{ jobs.pull-request.outputs.pull-request-number }}
+      pull-request-head-sha:
+        description: 'Head commit of the created or updated artifact PR'
+        value: ${{ jobs.pull-request.outputs.pull-request-head-sha }}
 
 concurrency:
-  group: build-artifacts-${{ github.ref_name }}
+  group: build-artifacts-${{ inputs.pull-request-branch || inputs.pull-request-base || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
@@ -28,6 +62,8 @@ jobs:
       relevant: ${{ steps.decision.outputs.relevant }}
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.source-ref || github.sha }}
 
     - name: Detect relevant paths
       if: ${{ github.event_name == 'push' }}
@@ -65,9 +101,10 @@ jobs:
       id: decision
       env:
         FILTER_RELEVANT: ${{ steps.filter.outputs.relevant }}
+        SOURCE_REF: ${{ inputs.source-ref }}
       run: |
         set -euo pipefail
-        if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" || "$FILTER_RELEVANT" == "true" ]]; then
+        if [[ -n "$SOURCE_REF" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" || "$FILTER_RELEVANT" == "true" ]]; then
           echo "relevant=true" >> "$GITHUB_OUTPUT"
           echo "Artifact build required"
         else
@@ -133,6 +170,8 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.source-ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -192,6 +231,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.source-ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -260,6 +301,8 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.source-ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -304,6 +347,8 @@ jobs:
       run: dnf install -y curl-minimal gcc git gzip tar
 
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.source-ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -354,6 +399,8 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.source-ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -408,6 +455,8 @@ jobs:
         shell: bash
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.source-ref || github.sha }}
 
     - name: Load build configs
       id: configs
@@ -455,8 +504,25 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      pull-request-number: ${{ steps.create-pull-request.outputs.pull-request-number }}
+      pull-request-head-sha: ${{ steps.create-pull-request.outputs.pull-request-head-sha }}
     steps:
     - uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.pull-request-branch || inputs.source-ref || github.sha }}
+
+    - name: Verify requested source branch
+      if: inputs.pull-request-branch != ''
+      env:
+        EXPECTED_SOURCE_COMMIT: ${{ inputs.source-ref }}
+      run: |
+        set -euo pipefail
+        actual_source_commit="$(git rev-parse HEAD)"
+        if [ -z "$EXPECTED_SOURCE_COMMIT" ] || [ "$actual_source_commit" != "$EXPECTED_SOURCE_COMMIT" ]; then
+          echo "::error::Artifact PR branch is at $actual_source_commit, expected $EXPECTED_SOURCE_COMMIT."
+          exit 1
+        fi
 
     - name: Load build configs
       id: configs
@@ -469,6 +535,8 @@ jobs:
 
     - name: Stage artifacts
       working-directory: ${{ env.WORKING_DIR }}
+      env:
+        ARTIFACT_SOURCE_COMMIT: ${{ inputs.source-ref || github.sha }}
       run: |
         set -euo pipefail
         rm -rf bindings-jvm/generated bindings-wasm/dist bindings-python/generated bindings-go/go/internal bindings-go/go/libs "$GITHUB_WORKSPACE/release-bin"
@@ -563,30 +631,45 @@ jobs:
 
         bindings-jvm/generate-version-properties.sh
 
+        artifact_version="$(grep -m1 '^version = ' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')"
+        jq -n \
+          --arg source_commit "$ARTIFACT_SOURCE_COMMIT" \
+          --arg version "$artifact_version" \
+          '{source_commit: $source_commit, version: $version}' \
+          > "$GITHUB_WORKSPACE/release-bin/artifact-source.json"
+
         echo "Merged JVM jar:"; ls -1 bindings-jvm/generated
 
     - name: Name the artifacts PR branch
       id: pr
       env:
-        SOURCE_BRANCH: ${{ github.ref_name }}
+        EXPLICIT_PR_BRANCH: ${{ inputs.pull-request-branch }}
+        SOURCE_BRANCH: ${{ inputs.pull-request-base || github.ref_name }}
+        SOURCE_COMMIT: ${{ inputs.source-ref || github.sha }}
       run: |
         set -euo pipefail
-        PR_BRANCH="automated/build-artifacts"
-        if [ "$SOURCE_BRANCH" != "main" ]; then
-          PR_BRANCH="$PR_BRANCH-${SOURCE_BRANCH//\//-}"
+        PR_BRANCH="$EXPLICIT_PR_BRANCH"
+        if [ -z "$PR_BRANCH" ]; then
+          PR_BRANCH="automated/build-artifacts"
+          if [ "$SOURCE_BRANCH" != "main" ]; then
+            PR_BRANCH="$PR_BRANCH-${SOURCE_BRANCH//\//-}"
+          fi
         fi
         echo "branch=$PR_BRANCH" >> "$GITHUB_OUTPUT"
-        echo "Artifacts built from $SOURCE_BRANCH @ $GITHUB_SHA; PR branch $PR_BRANCH"
+        echo "Artifacts built from $SOURCE_BRANCH @ $SOURCE_COMMIT; PR branch $PR_BRANCH"
 
     - name: Create Pull Request
+      id: create-pull-request
       uses: peter-evans/create-pull-request@v8.1.1
       with:
         commit-message: 'chore: Update bindings'
         branch: ${{ steps.pr.outputs.branch }}
         delete-branch: true
-        title: 'chore: Update Bindings (from ${{ github.ref_name }})'
-        base: ${{ github.ref_name }}
+        title: "${{ inputs.pull-request-title || format('chore: Update Bindings (from {0})', inputs.pull-request-base || github.ref_name) }}"
+        base: ${{ inputs.pull-request-base || github.ref_name }}
         body: |
+          ${{ inputs.pull-request-body }}
+
           Automated update of the binding bundles and CLI binaries.
 
           * **JVM** - a single multi-platform `cloudformation-validate.jar` in
@@ -611,7 +694,7 @@ jobs:
             `release-bin/`, built via `cfn-validate/build.sh`.
           * **Third-party licenses** - `THIRD-PARTY-LICENSES.txt` files
             regenerated by the workflow via `scripts/generate_licenses.py`.
-        labels: automated, build-artifacts
+        labels: ${{ inputs.pull-request-labels || 'automated, build-artifacts' }}
         add-paths: |
           ${{ env.WORKING_DIR }}/bindings-jvm/generated/**
           ${{ env.WORKING_DIR }}/bindings-jvm/version.properties
@@ -627,3 +710,15 @@ jobs:
           ${{ env.WORKING_DIR }}/bindings-go/go/THIRD-PARTY-LICENSES.txt
           release-bin/**
           ${{ env.WORKING_DIR }}/THIRD-PARTY-LICENSES.txt
+
+    - name: Verify requested PR update
+      if: inputs.source-ref != ''
+      env:
+        PR_HEAD_SHA: ${{ steps.create-pull-request.outputs.pull-request-head-sha }}
+        PR_NUMBER: ${{ steps.create-pull-request.outputs.pull-request-number }}
+      run: |
+        set -euo pipefail
+        if [ -z "$PR_NUMBER" ] || [ -z "$PR_HEAD_SHA" ]; then
+          echo '::error::The reusable artifact build did not create or update the requested pull request.'
+          exit 1
+        fi

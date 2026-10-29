@@ -21,6 +21,16 @@ pipeline. `sync` is the complete schema/rule workflow: it clears `upstream/`, `g
 `generated/data/` so no stale artifact survives, refreshes every upstream source, records source versions, and
 generates all outputs. `generate` reruns code generation from the existing upstream data without network access.
 
+## Automated sync and patch release
+
+`.github/workflows/data-sync.yml` runs daily at 08:00 UTC. It skips the run when an `automated/data-sync-*` PR is
+open; otherwise, it checks out current cfn-lint and AWS CLI `v2`, then runs the full sync against the latest production
+release line. A changed sync receives the next patch version, builds every release artifact, and opens one published PR
+containing the data, snapshots, and artifacts. The normal Pull Request workflow then validates the completed PR.
+
+Merging that PR authorizes `.github/workflows/data-sync-release.yml` to dispatch the production release from the exact
+merge commit within 60 minutes. Beta releases are excluded, and unreleased minor-version work on `main` is unaffected.
+
 `--cfn-lint-root` is required by `sync`, which fails before starting work when it is absent. A successful sync records
 its source-qualified versions only after all source processing succeeds.
 
