@@ -1,5 +1,6 @@
 name: Release
-run-name: Release ${{ inputs.tag }} from ${{ inputs.ref }} by ${{ github.actor }}
+run-name: >-
+  Release ${{ inputs.tag }} from ${{ inputs.source-branch || inputs.ref }} by ${{ github.actor }}
 
 on:
   workflow_dispatch:
@@ -13,6 +14,15 @@ on:
         required: false
         type: string
         default: 'main'
+      source-branch:
+        description: "Optional source branch whose current head must equal ref"
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -35,7 +45,7 @@ jobs:
           RELEASE_SOURCE_REF: ${{ inputs.ref }}
         run: |
           set -euo pipefail
-          source_commit="$(git rev-parse HEAD^{commit})"
+          source_commit="$(git rev-parse 'HEAD^{commit}')"
           echo "sha=$source_commit" >> "$GITHUB_OUTPUT"
           echo "Resolved release source $RELEASE_SOURCE_REF to commit $source_commit."
 
@@ -72,6 +82,22 @@ jobs:
       - name: Load build configs
         id: configs
         uses: ./.github/actions/load-configs
+
+      - name: Verify release branch head
+        if: inputs.source-branch != ''
+        env:
+          RELEASE_SOURCE_BRANCH: ${{ inputs.source-branch }}
+        run: |
+          set -euo pipefail
+          git check-ref-format --branch "$RELEASE_SOURCE_BRANCH" >/dev/null
+          git fetch --no-tags origin "refs/heads/$RELEASE_SOURCE_BRANCH"
+          source_commit="$(git rev-parse 'HEAD^{commit}')"
+          branch_commit="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          if [ "$branch_commit" != "$source_commit" ]; then
+            echo "::error::$RELEASE_SOURCE_BRANCH advanced to $branch_commit; refusing to release older commit $source_commit."
+            exit 1
+          fi
+          echo "Verified $RELEASE_SOURCE_BRANCH at release source commit $source_commit."
 
       - name: Get version from Cargo.toml
         id: get-version
@@ -112,7 +138,7 @@ jobs:
         id: check-tags
         run: |
           set -euo pipefail
-          source_commit="$(git rev-parse HEAD^{commit})"
+          source_commit="$(git rev-parse 'HEAD^{commit}')"
 
           if git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null; then
             tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
@@ -136,7 +162,7 @@ jobs:
         if: steps.check-tags.outputs.missing == 'true'
         run: |
           set -euo pipefail
-          source_commit="$(git rev-parse HEAD^{commit})"
+          source_commit="$(git rev-parse 'HEAD^{commit}')"
           git tag "$RELEASE_TAG" "$source_commit"
           git push origin "refs/tags/$RELEASE_TAG"
           echo "Created and pushed tag $RELEASE_TAG at source commit $source_commit."

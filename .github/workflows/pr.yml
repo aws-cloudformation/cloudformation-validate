@@ -3,7 +3,7 @@ name: Pull Request
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-    branches: [ main ]
+    branches: [main, 'release/**']
 
 permissions:
   contents: read

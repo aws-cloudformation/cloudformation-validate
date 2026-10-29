@@ -67,7 +67,7 @@ jobs:
       id: filter
       uses: dorny/paths-filter@v4.0.3
       with:
-        base: main
+        base: ${{ github.base_ref || 'main' }}
         filters: |
           release_assets:
             - 'release-bin/**'
