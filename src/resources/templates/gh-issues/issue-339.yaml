@@ -4,3 +4,7 @@ Resources:
     Properties:
       LaunchTemplateData:
         ImageId: resolve:ssm:/aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2

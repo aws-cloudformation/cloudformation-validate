@@ -4896,6 +4896,8 @@ fn single_type_compatible(source: &str, expected: &str) -> bool {
 }
 
 const EC2_IMAGE_ID_FORMAT: &str = "AWS::EC2::Image.Id";
+const EC2_INSTANCE_RESOURCE_TYPE: &str = "AWS::EC2::Instance";
+const EC2_INSTANCE_IMAGE_ID_PATH: &str = "Properties.ImageId";
 const EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE: &str = "AWS::EC2::LaunchTemplate";
 const EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH: &str = "Properties.LaunchTemplateData.ImageId";
 const EC2_SSM_IMAGE_ALIAS_PREFIX: &str = "resolve:ssm:";
@@ -5010,11 +5012,12 @@ fn ec2_resolves_ssm_image_alias(
     value: &str,
 ) -> bool {
     format == EC2_IMAGE_ID_FORMAT
-        && property_path == EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH
         && value.starts_with(EC2_SSM_IMAGE_ALIAS_PREFIX)
-        && model
-            .resource(resource_id)
-            .is_some_and(|resource| resource.resource_type == EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE)
+        && model.resource(resource_id).is_some_and(|resource| {
+            (resource.resource_type == EC2_INSTANCE_RESOURCE_TYPE && property_path == EC2_INSTANCE_IMAGE_ID_PATH)
+                || (resource.resource_type == EC2_LAUNCH_TEMPLATE_RESOURCE_TYPE
+                    && property_path == EC2_LAUNCH_TEMPLATE_IMAGE_ID_PATH)
+        })
 }
 
 /// Validates property-level composition (anyOf/oneOf/allOf/if_then_else) when
