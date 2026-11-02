@@ -865,15 +865,6 @@
     "AWS::IoTAnalytics::Pipeline": [
       "PipelineName"
     ],
-    "AWS::IoTEvents::AlarmModel": [
-      "AlarmModelName"
-    ],
-    "AWS::IoTEvents::DetectorModel": [
-      "DetectorModelName"
-    ],
-    "AWS::IoTEvents::Input": [
-      "InputName"
-    ],
     "AWS::IoTFleetWise::Campaign": [
       "Name"
     ],
@@ -1072,9 +1063,6 @@
     ],
     "AWS::LookoutEquipment::InferenceScheduler": [
       "InferenceSchedulerName"
-    ],
-    "AWS::LookoutVision::Project": [
-      "ProjectName"
     ],
     "AWS::M2::Deployment": [
       "ApplicationId"

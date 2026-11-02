@@ -17,6 +17,7 @@
         "db.r6g.8xlarge",
         "db.r6g.large",
         "db.r6g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -47,6 +48,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -83,6 +85,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -119,6 +122,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -155,6 +159,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -191,6 +196,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -212,6 +218,7 @@
         "db.r6g.8xlarge",
         "db.r6g.large",
         "db.r6g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -248,6 +255,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -284,6 +292,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -320,6 +329,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -341,6 +351,7 @@
         "db.r6g.8xlarge",
         "db.r6g.large",
         "db.r6g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -360,6 +371,7 @@
         "db.r6gd.4xlarge",
         "db.r6gd.8xlarge",
         "db.r6gd.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -379,6 +391,7 @@
         "db.r6gd.4xlarge",
         "db.r6gd.8xlarge",
         "db.r6gd.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -415,6 +428,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -436,6 +450,7 @@
         "db.r6g.8xlarge",
         "db.r6g.large",
         "db.r6g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -472,6 +487,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -502,6 +518,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -539,6 +556,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -566,6 +584,7 @@
         "db.r6gd.4xlarge",
         "db.r6gd.8xlarge",
         "db.r6gd.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -602,6 +621,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -623,6 +643,7 @@
         "db.r6g.8xlarge",
         "db.r6g.large",
         "db.r6g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -659,6 +680,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -701,6 +723,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -737,6 +760,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -773,6 +797,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -794,6 +819,7 @@
         "db.r6g.8xlarge",
         "db.r6g.large",
         "db.r6g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -815,6 +841,7 @@
         "db.r6g.8xlarge",
         "db.r6g.large",
         "db.r6g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -834,6 +861,7 @@
         "db.r6gd.4xlarge",
         "db.r6gd.8xlarge",
         "db.r6gd.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -870,6 +898,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -912,6 +941,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -954,6 +984,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -981,6 +1012,7 @@
         "db.r6gd.4xlarge",
         "db.r6gd.8xlarge",
         "db.r6gd.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -1017,6 +1049,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]
@@ -1059,6 +1092,7 @@
         "db.r8g.8xlarge",
         "db.r8g.large",
         "db.r8g.xlarge",
+        "db.serverless",
         "db.t3.medium",
         "db.t4g.medium"
       ]

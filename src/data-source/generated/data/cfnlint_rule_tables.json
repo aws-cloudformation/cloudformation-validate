@@ -21,14 +21,6 @@
       "Resources/AWS::AutoScaling::LaunchConfiguration/Properties/BlockDeviceMappings/*/Ebs",
       "Resources/AWS::OpsWorks::Instance/Properties/BlockDeviceMappings/*/Ebs"
     ],
-    "iam_role_arn_property_paths": [
-      "Resources/AWS::Backup::BackupSelection/Properties/BackupSelection/IamRoleArn",
-      "Resources/AWS::Batch::ComputeEnvironment/Properties/ComputeResources/SpotIamFleetRole",
-      "Resources/AWS::Batch::ComputeEnvironment/Properties/ServiceRole",
-      "Resources/AWS::EC2::SpotFleet/Properties/SpotFleetRequestConfigData/IamFleetRole",
-      "Resources/AWS::ECS::TaskDefinition/Properties/ExecutionRoleArn",
-      "Resources/AWS::S3::Bucket/Properties/ReplicationConfiguration/Role"
-    ],
     "image_id_parameter_types": [
       "AWS::EC2::Image::Id",
       "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
@@ -137,20 +129,30 @@
       "af-south-1",
       "ap-east-1",
       "ap-southeast-3",
+      "ap-southeast-4",
+      "ap-southeast-5",
+      "ap-southeast-7",
       "ap-south-1",
+      "ap-south-2",
       "ap-northeast-2",
       "ap-northeast-3",
       "ap-southeast-1",
       "ap-southeast-2",
       "ap-northeast-1",
       "ca-central-1",
+      "ca-west-1",
       "eu-central-1",
+      "eu-central-2",
       "eu-west-1",
       "eu-west-2",
       "eu-south-1",
+      "eu-south-2",
       "eu-west-3",
       "eu-north-1",
       "me-south-1",
+      "me-central-1",
+      "il-central-1",
+      "mx-central-1",
       "sa-east-1"
     ],
     "snapstart_unsupported_runtime_prefixes": [

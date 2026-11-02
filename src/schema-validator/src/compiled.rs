@@ -96,6 +96,8 @@ pub struct ConditionSchema {
     /// type makes the condition unsatisfiable at the root.
     #[serde(default, rename = "type", skip_serializing_if = "Option::is_none")]
     pub prop_type: Option<PropType>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub all_of: Vec<ConditionSchema>,
     /// When set, the condition matches if ANY of these sub-conditions match.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub any_of: Vec<ConditionSchema>,
@@ -110,14 +112,24 @@ pub struct ConditionSchema {
 impl ConditionSchema {
     /// Whether the condition constrains nothing at all. Such a condition can only
     /// come from a source `if` the compiler could not represent (older artifacts
-    /// compiled `not`/`oneOf` conditions this way), and evaluating it as
+    /// compiled `allOf`/`not`/`oneOf` conditions this way), and evaluating it as
     /// always-true would apply its branch to every resource of the type.
     pub fn states_nothing(&self) -> bool {
-        let ConditionSchema { properties, required, absent, prop_type, any_of, one_of, not } = self;
+        let ConditionSchema {
+            properties,
+            required,
+            absent,
+            prop_type,
+            all_of,
+            any_of,
+            one_of,
+            not,
+        } = self;
         properties.is_empty()
             && required.is_empty()
             && absent.is_empty()
             && prop_type.is_none()
+            && all_of.is_empty()
             && any_of.is_empty()
             && one_of.is_empty()
             && not.is_none()
