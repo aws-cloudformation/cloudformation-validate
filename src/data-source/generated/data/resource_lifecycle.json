@@ -28,13 +28,61 @@
       "status": "sunset",
       "date": "2026-09-30"
     },
+    "AWS::AppRunner::AutoScalingConfiguration": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::AppRunner::ObservabilityConfiguration": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::AppRunner::Service": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::AppRunner::VpcConnector": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::AppRunner::VpcIngressConnection": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::AppTest::TestCase": {
+      "status": "shutdown",
+      "date": "2025-10-07"
+    },
+    "AWS::AuditManager::Assessment": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::AuditManager::AssessmentFramework": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::AuditManager::Control": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
     "AWS::AutoScaling::LaunchConfiguration": {
       "status": "maintenance",
       "date": "2024-10-01"
     },
+    "AWS::Bedrock::Agent": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::Bedrock::AgentAlias": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
     "AWS::Cloud9::EnvironmentEC2": {
       "status": "maintenance",
       "date": "2024-07-25"
+    },
+    "AWS::CloudTrail::EventDataStore": {
+      "status": "maintenance",
+      "date": "2026-03-31"
     },
     "AWS::CodeGuruReviewer::RepositoryAssociation": {
       "status": "maintenance",
@@ -43,6 +91,22 @@
     "AWS::CodeStar::GitHubRepository": {
       "status": "shutdown",
       "date": "2024-07-25"
+    },
+    "AWS::DevOpsGuru::LogAnomalyDetectionIntegration": {
+      "status": "sunset",
+      "date": "2027-09-29"
+    },
+    "AWS::DevOpsGuru::NotificationChannel": {
+      "status": "sunset",
+      "date": "2027-09-29"
+    },
+    "AWS::DevOpsGuru::ResourceCollection": {
+      "status": "sunset",
+      "date": "2027-09-29"
+    },
+    "AWS::DirectoryService::SimpleAD": {
+      "status": "maintenance",
+      "date": "2026-06-30"
     },
     "AWS::Evidently::Experiment": {
       "status": "shutdown",
@@ -65,7 +129,7 @@
       "date": "2025-10-17"
     },
     "AWS::FinSpace::Environment": {
-      "status": "sunset",
+      "status": "shutdown",
       "date": "2026-10-07"
     },
     "AWS::Forecast::Dataset": {
@@ -77,108 +141,112 @@
       "date": "2024-07-29"
     },
     "AWS::FraudDetector::Detector": {
-      "status": "sunset",
-      "date": "2025-11-07"
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::FraudDetector::EntityType": {
-      "status": "sunset",
-      "date": "2025-11-07"
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::FraudDetector::EventType": {
-      "status": "sunset",
-      "date": "2025-11-07"
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::FraudDetector::Label": {
-      "status": "sunset",
-      "date": "2025-11-07"
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::FraudDetector::List": {
-      "status": "sunset",
-      "date": "2025-11-07"
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::FraudDetector::Outcome": {
-      "status": "sunset",
-      "date": "2025-11-07"
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::FraudDetector::Variable": {
-      "status": "sunset",
-      "date": "2025-11-07"
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::Greengrass::ConnectorDefinition": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::ConnectorDefinitionVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::CoreDefinition": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::CoreDefinitionVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::DeviceDefinition": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::DeviceDefinitionVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::FunctionDefinition": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::FunctionDefinitionVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::Group": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::GroupVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::LoggerDefinition": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::LoggerDefinitionVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::ResourceDefinition": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::ResourceDefinitionVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::SubscriptionDefinition": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Greengrass::SubscriptionDefinitionVersion": {
       "status": "sunset",
-      "date": "2026-10-01"
+      "date": "2026-10-07"
     },
     "AWS::Inspector::AssessmentTarget": {
-      "status": "sunset",
+      "status": "shutdown",
       "date": "2026-05-20"
     },
     "AWS::Inspector::AssessmentTemplate": {
-      "status": "sunset",
+      "status": "shutdown",
       "date": "2026-05-20"
     },
     "AWS::Inspector::ResourceGroup": {
-      "status": "sunset",
+      "status": "shutdown",
       "date": "2026-05-20"
+    },
+    "AWS::IoT::SecurityProfile": {
+      "status": "maintenance",
+      "date": "2026-06-30"
     },
     "AWS::IoTAnalytics::Channel": {
       "status": "shutdown",
@@ -196,29 +264,133 @@
       "status": "shutdown",
       "date": "2025-12-15"
     },
-    "AWS::IoTEvents::AlarmModel": {
-      "status": "shutdown",
-      "date": "2026-05-20"
+    "AWS::IoTFleetWise::Campaign": {
+      "status": "maintenance",
+      "date": "2026-03-31"
     },
-    "AWS::IoTEvents::DetectorModel": {
-      "status": "shutdown",
-      "date": "2026-05-20"
+    "AWS::IoTFleetWise::DecoderManifest": {
+      "status": "maintenance",
+      "date": "2026-03-31"
     },
-    "AWS::IoTEvents::Input": {
-      "status": "shutdown",
-      "date": "2026-05-20"
+    "AWS::IoTFleetWise::Fleet": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::IoTFleetWise::ModelManifest": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::IoTFleetWise::SignalCatalog": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::IoTFleetWise::StateTemplate": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::IoTFleetWise::Vehicle": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::IoTSiteWise::AccessPolicy": {
+      "status": "maintenance",
+      "date": "2025-10-07"
+    },
+    "AWS::IoTSiteWise::Dashboard": {
+      "status": "maintenance",
+      "date": "2025-10-07"
+    },
+    "AWS::IoTSiteWise::Portal": {
+      "status": "maintenance",
+      "date": "2025-10-07"
+    },
+    "AWS::IoTSiteWise::Project": {
+      "status": "maintenance",
+      "date": "2025-10-07"
     },
     "AWS::IoTThingsGraph::FlowTemplate": {
       "status": "shutdown",
       "date": "2022-11-09"
     },
-    "AWS::MediaStore::Container": {
+    "AWS::Kendra::DataSource": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::Kendra::Faq": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::Kendra::FeaturedResultsSet": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::Kendra::Index": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::Kendra::QuerySuggestionsBlockList": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::Kendra::Thesaurus": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::KinesisAnalytics::Application": {
+      "status": "shutdown",
+      "date": "2026-01-27"
+    },
+    "AWS::KinesisAnalytics::ApplicationOutput": {
+      "status": "shutdown",
+      "date": "2026-01-27"
+    },
+    "AWS::KinesisAnalytics::ApplicationReferenceDataSource": {
+      "status": "shutdown",
+      "date": "2026-01-27"
+    },
+    "AWS::LookoutEquipment::InferenceScheduler": {
       "status": "sunset",
-      "date": "2025-11-13"
+      "date": "2026-10-07"
+    },
+    "AWS::M2::Application": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::M2::Deployment": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::M2::Environment": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::ManagedBlockchain::Accessor": {
+      "status": "sunset",
+      "date": "2027-09-29"
+    },
+    "AWS::ManagedBlockchain::Member": {
+      "status": "sunset",
+      "date": "2027-09-29"
+    },
+    "AWS::ManagedBlockchain::Node": {
+      "status": "sunset",
+      "date": "2027-09-29"
+    },
+    "AWS::MediaStore::Container": {
+      "status": "shutdown",
+      "date": "2025-11-12"
     },
     "AWS::NimbleStudio::Studio": {
       "status": "shutdown",
       "date": "2024-06-30"
+    },
+    "AWS::Omics::AnnotationStore": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::Omics::VariantStore": {
+      "status": "maintenance",
+      "date": "2025-11-07"
     },
     "AWS::OpsWorks::App": {
       "status": "shutdown",
@@ -247,6 +419,18 @@
     "AWS::OpsWorks::Volume": {
       "status": "shutdown",
       "date": "2024-05-01"
+    },
+    "AWS::Panorama::ApplicationInstance": {
+      "status": "shutdown",
+      "date": "2026-05-20"
+    },
+    "AWS::Panorama::Package": {
+      "status": "shutdown",
+      "date": "2026-05-20"
+    },
+    "AWS::Panorama::PackageVersion": {
+      "status": "shutdown",
+      "date": "2026-05-20"
     },
     "AWS::Pinpoint::ADMChannel": {
       "status": "sunset",
@@ -336,6 +520,38 @@
       "status": "sunset",
       "date": "2026-10-07"
     },
+    "AWS::QBusiness::Application": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::QBusiness::DataAccessor": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::QBusiness::DataSource": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::QBusiness::Index": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::QBusiness::Permission": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::QBusiness::Plugin": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::QBusiness::Retriever": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::QBusiness::WebExperience": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
     "AWS::QLDB::Ledger": {
       "status": "shutdown",
       "date": "2025-07-31"
@@ -344,9 +560,105 @@
       "status": "shutdown",
       "date": "2025-07-31"
     },
+    "AWS::RoboMaker::Fleet": {
+      "status": "shutdown",
+      "date": "2025-09-10"
+    },
+    "AWS::RoboMaker::Robot": {
+      "status": "shutdown",
+      "date": "2025-09-10"
+    },
+    "AWS::RoboMaker::RobotApplication": {
+      "status": "shutdown",
+      "date": "2025-09-10"
+    },
+    "AWS::RoboMaker::RobotApplicationVersion": {
+      "status": "shutdown",
+      "date": "2025-09-10"
+    },
+    "AWS::RoboMaker::SimulationApplication": {
+      "status": "shutdown",
+      "date": "2025-09-10"
+    },
+    "AWS::RoboMaker::SimulationApplicationVersion": {
+      "status": "shutdown",
+      "date": "2025-09-10"
+    },
+    "AWS::Route53RecoveryReadiness::Cell": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::Route53RecoveryReadiness::ReadinessCheck": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::Route53RecoveryReadiness::RecoveryGroup": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::Route53RecoveryReadiness::ResourceSet": {
+      "status": "maintenance",
+      "date": "2026-03-31"
+    },
+    "AWS::S3ObjectLambda::AccessPoint": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::S3ObjectLambda::AccessPointPolicy": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::SSMIncidents::ReplicationSet": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::SSMIncidents::ResponsePlan": {
+      "status": "maintenance",
+      "date": "2025-11-07"
+    },
+    "AWS::SageMaker::DataQualityJobDefinition": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::SageMaker::HumanTaskUi": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::SageMaker::ModelBiasJobDefinition": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::SageMaker::ModelExplainabilityJobDefinition": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::SageMaker::ModelQualityJobDefinition": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::SageMaker::MonitoringSchedule": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::ServiceCatalogAppRegistry::Application": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::ServiceCatalogAppRegistry::AttributeGroup": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
+    "AWS::ServiceCatalogAppRegistry::ResourceAssociation": {
+      "status": "maintenance",
+      "date": "2026-06-30"
+    },
     "AWS::SimSpaceWeaver::Simulation": {
-      "status": "sunset",
-      "date": "2026-05-20"
+      "status": "shutdown",
+      "date": "2026-03-31"
     },
     "AWS::Timestream::Database": {
       "status": "maintenance",
@@ -360,59 +672,125 @@
       "status": "maintenance",
       "date": "2025-06-20"
     },
+    "AWS::VoiceID::Domain": {
+      "status": "shutdown",
+      "date": "2026-05-20"
+    },
     "AWS::WAF::ByteMatchSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAF::IPSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAF::Rule": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAF::SizeConstraintSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAF::SqlInjectionMatchSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAF::WebACL": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAF::XssMatchSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::ByteMatchSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::GeoMatchSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::IPSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::RateBasedRule": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::RegexPatternSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::Rule": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::SizeConstraintSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::SqlInjectionMatchSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::WebACL": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::WebACLAssociation": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
     },
     "AWS::WAFRegional::XssMatchSet": {
-      "status": "sunset"
+      "status": "sunset",
+      "date": "2026-10-07"
+    },
+    "AWS::WorkSpacesThinClient::Environment": {
+      "status": "sunset",
+      "date": "2027-03-31"
+    },
+    "AWS::WorkSpacesWeb::BrowserSettings": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::DataProtectionSettings": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::IdentityProvider": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::IpAccessSettings": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::NetworkSettings": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::Portal": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::SessionLogger": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::TrustStore": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::UserAccessLoggingSettings": {
+      "status": "maintenance",
+      "date": "2026-09-29"
+    },
+    "AWS::WorkSpacesWeb::UserSettings": {
+      "status": "maintenance",
+      "date": "2026-09-29"
     }
   }
 }

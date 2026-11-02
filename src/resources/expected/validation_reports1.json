@@ -301,7 +301,7 @@
       {
         "ruleId": "E2531",
         "severity": "ERROR",
-        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08', and updates will be disabled on '2027-03-03'. Please consider updating to 'java25'",
+        "message": "Runtime 'java8' was deprecated on '2024-01-08'. Creation was disabled on '2024-02-08', and updates will be disabled on '2027-08-31'. Please consider updating to 'java25'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExcludedJava8",
@@ -364,7 +364,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.8' was deprecated on '2024-10-14'. Creation will be disabled on '2027-07-29', and updates will be disabled on '2027-08-31'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "UnsupportedPython",
@@ -13800,7 +13800,7 @@
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 0,
         "warnings": 12,
         "informational": 29,
@@ -13811,6 +13811,27 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Rds",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 62,
+        "startColumn": 5,
+        "endLine": 62,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "W3010",
         "severity": "WARN",
@@ -17853,7 +17874,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 0,
         "warnings": 1,
         "informational": 6,
@@ -17864,6 +17885,27 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "AuroraDB",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "W9003",
         "severity": "WARN",

@@ -9653,7 +9653,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'python3.14'",
+        "message": "Runtime 'python3.9' was deprecated on '2025-12-15'. Creation will be disabled on '2027-07-29', and updates will be disabled on '2027-08-31'. Please consider updating to 'python3.14'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Function2",
@@ -9976,7 +9976,7 @@
       "counts": {
         "fatal": 0,
         "errors": 11,
-        "warnings": 0,
+        "warnings": 4,
         "informational": 25,
         "debug": 0
       },
@@ -10192,6 +10192,122 @@
         "endColumn": 11,
         "ruleDescription": "Validate that all resources have unique primary identifiers",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'no_artifacts' is not one of ['CODEPIPELINE', 'NO_ARTIFACTS', 'S3']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Project1",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodeBuild::Project"
+        },
+        "propertyPath": "Properties.Artifacts.Type",
+        "category": "Schema",
+        "startLine": 171,
+        "startColumn": 9,
+        "endLine": 171,
+        "endColumn": 13,
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "no_artifacts",
+          "extra": {
+            "allowed_values": [
+              "CODEPIPELINE",
+              "NO_ARTIFACTS",
+              "S3"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'varType' is not one of ['PARAMETER_STORE', 'PLAINTEXT', 'SECRETS_MANAGER']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Project1",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodeBuild::Project"
+        },
+        "propertyPath": "Properties.Environment.EnvironmentVariables.0.Type",
+        "category": "Schema",
+        "startLine": 178,
+        "startColumn": 11,
+        "endLine": 178,
+        "endColumn": 15,
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "varType",
+          "extra": {
+            "allowed_values": [
+              "PARAMETER_STORE",
+              "PLAINTEXT",
+              "SECRETS_MANAGER"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'no_artifacts' is not one of ['CODEPIPELINE', 'NO_ARTIFACTS', 'S3']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Project2",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodeBuild::Project"
+        },
+        "propertyPath": "Properties.Artifacts.Type",
+        "category": "Schema",
+        "startLine": 191,
+        "startColumn": 9,
+        "endLine": 191,
+        "endColumn": 13,
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "no_artifacts",
+          "extra": {
+            "allowed_values": [
+              "CODEPIPELINE",
+              "NO_ARTIFACTS",
+              "S3"
+            ]
+          }
+        }
+      },
+      {
+        "ruleId": "W3030",
+        "severity": "WARN",
+        "message": "'varType' is not one of ['PARAMETER_STORE', 'PLAINTEXT', 'SECRETS_MANAGER']",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Project2",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodeBuild::Project"
+        },
+        "propertyPath": "Properties.Environment.EnvironmentVariables.0.Type",
+        "category": "Schema",
+        "startLine": 198,
+        "startColumn": 11,
+        "endLine": 198,
+        "endColumn": 15,
+        "ruleDescription": "Value not in allowed enum",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "varType",
+          "extra": {
+            "allowed_values": [
+              "PARAMETER_STORE",
+              "PLAINTEXT",
+              "SECRETS_MANAGER"
+            ]
+          }
+        }
       },
       {
         "ruleId": "I9001",
@@ -11052,7 +11168,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-07-29', and updates will be disabled on '2027-08-31'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExampleLambda",
@@ -11075,7 +11191,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs18.x' was deprecated on '2025-09-01'. Creation will be disabled on '2027-07-29', and updates will be disabled on '2027-08-31'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "ExampleLambda1",
@@ -11510,7 +11626,7 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 0,
+        "fatal": 8,
         "errors": 4,
         "warnings": 6,
         "informational": 39,
@@ -11522,9 +11638,177 @@
     },
     "diagnostics": [
       {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance1",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance2",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 18,
+        "startColumn": 5,
+        "endLine": 18,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance3",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 25,
+        "startColumn": 5,
+        "endLine": 25,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance4",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 32,
+        "startColumn": 5,
+        "endLine": 32,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance5",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 38,
+        "startColumn": 5,
+        "endLine": 38,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance7",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 44,
+        "startColumn": 5,
+        "endLine": 44,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance8",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 51,
+        "startColumn": 5,
+        "endLine": 51,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "DBInstance9",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 58,
+        "startColumn": 5,
+        "endLine": 58,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
         "ruleId": "E3025",
         "severity": "ERROR",
-        "message": "'db.m4.xlarge' is not one of ['db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.12xlarge', 'db.r5.16xlarge', 'db.r5.24xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6i.12xlarge', 'db.r6i.16xlarge', 'db.r6i.24xlarge', 'db.r6i.2xlarge', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.8xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r7g.12xlarge', 'db.r7g.16xlarge', 'db.r7g.2xlarge', 'db.r7g.4xlarge', 'db.r7g.8xlarge', 'db.r7g.large', 'db.r7g.xlarge', 'db.r7i.12xlarge', 'db.r7i.16xlarge', 'db.r7i.24xlarge', 'db.r7i.2xlarge', 'db.r7i.48xlarge', 'db.r7i.4xlarge', 'db.r7i.8xlarge', 'db.r7i.large', 'db.r7i.xlarge', 'db.r8g.12xlarge', 'db.r8g.16xlarge', 'db.r8g.24xlarge', 'db.r8g.2xlarge', 'db.r8g.48xlarge', 'db.r8g.4xlarge', 'db.r8g.8xlarge', 'db.r8g.large', 'db.r8g.xlarge', 'db.serverless', 'db.t2.medium', 'db.t2.small', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t4g.large', 'db.t4g.medium', 'db.x2g.12xlarge', 'db.x2g.16xlarge', 'db.x2g.2xlarge', 'db.x2g.4xlarge', 'db.x2g.8xlarge', 'db.x2g.large', 'db.x2g.xlarge'] when Engine is 'aurora-mysql' in any region",
+        "message": "'db.m4.xlarge' is not one of ['db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.8xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.16xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.8xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.12xlarge', 'db.r5.16xlarge', 'db.r5.24xlarge', 'db.r5.2xlarge', 'db.r5.4xlarge', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.xlarge', 'db.r6g.12xlarge', 'db.r6g.16xlarge', 'db.r6g.2xlarge', 'db.r6g.4xlarge', 'db.r6g.8xlarge', 'db.r6g.large', 'db.r6g.xlarge', 'db.r6i.12xlarge', 'db.r6i.16xlarge', 'db.r6i.24xlarge', 'db.r6i.2xlarge', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.8xlarge', 'db.r6i.large', 'db.r6i.xlarge', 'db.r7g.12xlarge', 'db.r7g.16xlarge', 'db.r7g.2xlarge', 'db.r7g.4xlarge', 'db.r7g.8xlarge', 'db.r7g.large', 'db.r7g.xlarge', 'db.r7i.12xlarge', 'db.r7i.16xlarge', 'db.r7i.24xlarge', 'db.r7i.2xlarge', 'db.r7i.48xlarge', 'db.r7i.4xlarge', 'db.r7i.8xlarge', 'db.r7i.large', 'db.r7i.xlarge', 'db.r8a.12xlarge', 'db.r8a.16xlarge', 'db.r8a.24xlarge', 'db.r8a.2xlarge', 'db.r8a.48xlarge', 'db.r8a.4xlarge', 'db.r8a.8xlarge', 'db.r8a.large', 'db.r8a.xlarge', 'db.r8g.12xlarge', 'db.r8g.16xlarge', 'db.r8g.24xlarge', 'db.r8g.2xlarge', 'db.r8g.48xlarge', 'db.r8g.4xlarge', 'db.r8g.8xlarge', 'db.r8g.large', 'db.r8g.xlarge', 'db.serverless', 'db.t2.medium', 'db.t2.small', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t4g.large', 'db.t4g.medium', 'db.x2g.12xlarge', 'db.x2g.16xlarge', 'db.x2g.2xlarge', 'db.x2g.4xlarge', 'db.x2g.8xlarge', 'db.x2g.large', 'db.x2g.xlarge'] when Engine is 'aurora-mysql' in any region",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "DBInstance1",
@@ -11543,7 +11827,7 @@
       {
         "ruleId": "E3025",
         "severity": "ERROR",
-        "message": "'db.x2e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.12xlarge', 'db.m5.16xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.8xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6i.2xlarge', 'db.m6i.32xlarge', 'db.m6i.4xlarge', 'db.m6i.large', 'db.m6i.metal', 'db.m6i.xlarge', 'db.m6id.2xlarge', 'db.m6id.4xlarge', 'db.m6id.large', 'db.m6id.metal', 'db.m6id.xlarge', 'db.m6in.2xlarge', 'db.m6in.4xlarge', 'db.m6in.large', 'db.m6in.xlarge', 'db.m7i.2xlarge', 'db.m7i.4xlarge', 'db.m7i.large', 'db.m7i.metal-24xl', 'db.m7i.metal-48xl', 'db.m7i.xlarge', 'db.m8i.2xlarge', 'db.m8i.4xlarge', 'db.m8i.large', 'db.m8i.metal-48xl', 'db.m8i.metal-96xl', 'db.m8i.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.2xlarge', 'db.r5.2xlarge.tpc1.mem2x', 'db.r5.2xlarge.tpc2.mem4x', 'db.r5.2xlarge.tpc2.mem8x', 'db.r5.4xlarge', 'db.r5.4xlarge.tpc2.mem2x', 'db.r5.4xlarge.tpc2.mem3x', 'db.r5.4xlarge.tpc2.mem4x', 'db.r5.8xlarge', 'db.r5.large', 'db.r5.large.tpc1.mem2x', 'db.r5.xlarge', 'db.r5.xlarge.tpc2.mem2x', 'db.r5.xlarge.tpc2.mem4x', 'db.r5b.2xlarge', 'db.r5b.2xlarge.tpc1.mem2x', 'db.r5b.2xlarge.tpc2.mem4x', 'db.r5b.2xlarge.tpc2.mem8x', 'db.r5b.4xlarge', 'db.r5b.4xlarge.tpc2.mem2x', 'db.r5b.4xlarge.tpc2.mem3x', 'db.r5b.4xlarge.tpc2.mem4x', 'db.r5b.large', 'db.r5b.large.tpc1.mem2x', 'db.r5b.xlarge', 'db.r5b.xlarge.tpc2.mem2x', 'db.r5b.xlarge.tpc2.mem4x', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6i.2xlarge', 'db.r6i.2xlarge.tpc1.mem2x', 'db.r6i.2xlarge.tpc2.mem4x', 'db.r6i.2xlarge.tpc2.mem8x', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.4xlarge.tpc2.mem2x', 'db.r6i.4xlarge.tpc2.mem3x', 'db.r6i.4xlarge.tpc2.mem4x', 'db.r6i.large', 'db.r6i.large.tpc1.mem2x', 'db.r6i.metal', 'db.r6i.xlarge', 'db.r6i.xlarge.tpc2.mem2x', 'db.r6i.xlarge.tpc2.mem4x', 'db.r6id.2xlarge', 'db.r6id.4xlarge', 'db.r6id.large', 'db.r6id.metal', 'db.r6id.xlarge', 'db.r6in.2xlarge', 'db.r6in.4xlarge', 'db.r6in.large', 'db.r6in.xlarge', 'db.r7i.2xlarge', 'db.r7i.2xlarge.tpc2.mem4x', 'db.r7i.2xlarge.tpc2.mem8x', 'db.r7i.3xlarge.tpc2.mem4x', 'db.r7i.4xlarge', 'db.r7i.4xlarge.tpc2.mem2x', 'db.r7i.4xlarge.tpc2.mem3x', 'db.r7i.4xlarge.tpc2.mem4x', 'db.r7i.large', 'db.r7i.metal-24xl', 'db.r7i.metal-48xl', 'db.r7i.xlarge', 'db.r7i.xlarge.tpc2.mem2x', 'db.r7i.xlarge.tpc2.mem4x', 'db.r8i.2xlarge', 'db.r8i.4xlarge', 'db.r8i.large', 'db.r8i.metal-48xl', 'db.r8i.metal-96xl', 'db.r8i.xlarge', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t3.xlarge', 'db.x1e.2xlarge', 'db.x1e.4xlarge', 'db.x1e.xlarge', 'db.x2idn.metal', 'db.x2iedn.2xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.metal', 'db.x2iedn.xlarge', 'db.x2iezn.2xlarge', 'db.x2iezn.4xlarge', 'db.x2iezn.metal', 'db.z1d.2xlarge', 'db.z1d.3xlarge', 'db.z1d.large', 'db.z1d.xlarge'] when Engine is 'oracle-se2' and LicenseModel is 'bring-your-own-license' in any region",
+        "message": "'db.x2e.xlarge' is not one of ['db.m3.2xlarge', 'db.m3.large', 'db.m3.medium', 'db.m3.xlarge', 'db.m4.2xlarge', 'db.m4.4xlarge', 'db.m4.large', 'db.m4.xlarge', 'db.m5.2xlarge', 'db.m5.4xlarge', 'db.m5.large', 'db.m5.xlarge', 'db.m5d.2xlarge', 'db.m5d.4xlarge', 'db.m5d.large', 'db.m5d.xlarge', 'db.m6i.2xlarge', 'db.m6i.32xlarge', 'db.m6i.4xlarge', 'db.m6i.large', 'db.m6i.metal', 'db.m6i.xlarge', 'db.m6id.2xlarge', 'db.m6id.4xlarge', 'db.m6id.large', 'db.m6id.metal', 'db.m6id.xlarge', 'db.m6in.2xlarge', 'db.m6in.4xlarge', 'db.m6in.large', 'db.m6in.xlarge', 'db.m7i.2xlarge', 'db.m7i.4xlarge', 'db.m7i.large', 'db.m7i.metal-24xl', 'db.m7i.metal-48xl', 'db.m7i.xlarge', 'db.m8i.12xlarge', 'db.m8i.16xlarge', 'db.m8i.24xlarge', 'db.m8i.2xlarge', 'db.m8i.32xlarge', 'db.m8i.48xlarge', 'db.m8i.4xlarge', 'db.m8i.8xlarge', 'db.m8i.large', 'db.m8i.metal-48xl', 'db.m8i.metal-96xl', 'db.m8i.xlarge', 'db.r3.2xlarge', 'db.r3.4xlarge', 'db.r3.large', 'db.r3.xlarge', 'db.r4.2xlarge', 'db.r4.4xlarge', 'db.r4.large', 'db.r4.xlarge', 'db.r5.2xlarge', 'db.r5.2xlarge.tpc1.mem2x', 'db.r5.2xlarge.tpc2.mem4x', 'db.r5.2xlarge.tpc2.mem8x', 'db.r5.4xlarge', 'db.r5.4xlarge.tpc2.mem2x', 'db.r5.4xlarge.tpc2.mem3x', 'db.r5.4xlarge.tpc2.mem4x', 'db.r5.large', 'db.r5.large.tpc1.mem2x', 'db.r5.xlarge', 'db.r5.xlarge.tpc2.mem2x', 'db.r5.xlarge.tpc2.mem4x', 'db.r5b.2xlarge', 'db.r5b.2xlarge.tpc1.mem2x', 'db.r5b.2xlarge.tpc2.mem4x', 'db.r5b.2xlarge.tpc2.mem8x', 'db.r5b.4xlarge', 'db.r5b.4xlarge.tpc2.mem2x', 'db.r5b.4xlarge.tpc2.mem3x', 'db.r5b.4xlarge.tpc2.mem4x', 'db.r5b.large', 'db.r5b.large.tpc1.mem2x', 'db.r5b.xlarge', 'db.r5b.xlarge.tpc2.mem2x', 'db.r5b.xlarge.tpc2.mem4x', 'db.r5d.2xlarge', 'db.r5d.4xlarge', 'db.r5d.large', 'db.r5d.xlarge', 'db.r6i.2xlarge', 'db.r6i.2xlarge.tpc1.mem2x', 'db.r6i.2xlarge.tpc2.mem4x', 'db.r6i.2xlarge.tpc2.mem8x', 'db.r6i.32xlarge', 'db.r6i.4xlarge', 'db.r6i.4xlarge.tpc2.mem2x', 'db.r6i.4xlarge.tpc2.mem3x', 'db.r6i.4xlarge.tpc2.mem4x', 'db.r6i.large', 'db.r6i.large.tpc1.mem2x', 'db.r6i.metal', 'db.r6i.xlarge', 'db.r6i.xlarge.tpc2.mem2x', 'db.r6i.xlarge.tpc2.mem4x', 'db.r6id.2xlarge', 'db.r6id.4xlarge', 'db.r6id.large', 'db.r6id.metal', 'db.r6id.xlarge', 'db.r6in.2xlarge', 'db.r6in.4xlarge', 'db.r6in.large', 'db.r6in.xlarge', 'db.r7i.2xlarge', 'db.r7i.2xlarge.tpc2.mem4x', 'db.r7i.2xlarge.tpc2.mem8x', 'db.r7i.3xlarge.tpc2.mem4x', 'db.r7i.4xlarge', 'db.r7i.4xlarge.tpc2.mem2x', 'db.r7i.4xlarge.tpc2.mem3x', 'db.r7i.4xlarge.tpc2.mem4x', 'db.r7i.large', 'db.r7i.metal-24xl', 'db.r7i.metal-48xl', 'db.r7i.xlarge', 'db.r7i.xlarge.tpc2.mem2x', 'db.r7i.xlarge.tpc2.mem4x', 'db.r8i.12xlarge', 'db.r8i.16xlarge', 'db.r8i.24xlarge', 'db.r8i.2xlarge', 'db.r8i.32xlarge', 'db.r8i.48xlarge', 'db.r8i.4xlarge', 'db.r8i.8xlarge', 'db.r8i.large', 'db.r8i.metal-48xl', 'db.r8i.metal-96xl', 'db.r8i.xlarge', 'db.t2.2xlarge', 'db.t2.large', 'db.t2.medium', 'db.t2.micro', 'db.t2.small', 'db.t2.xlarge', 'db.t3.2xlarge', 'db.t3.large', 'db.t3.medium', 'db.t3.small', 'db.t3.xlarge', 'db.x1e.2xlarge', 'db.x1e.4xlarge', 'db.x1e.xlarge', 'db.x2idn.metal', 'db.x2iedn.2xlarge', 'db.x2iedn.4xlarge', 'db.x2iedn.metal', 'db.x2iedn.xlarge', 'db.x2iezn.2xlarge', 'db.x2iezn.4xlarge', 'db.x2iezn.metal', 'db.z1d.2xlarge', 'db.z1d.3xlarge', 'db.z1d.large', 'db.z1d.xlarge'] when Engine is 'oracle-se2' and LicenseModel is 'bring-your-own-license' in any region",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "DBInstance2",
@@ -11581,7 +11865,7 @@
       {
         "ruleId": "E9006",
         "severity": "ERROR",
-        "message": "'bad-ee' is not one of ['aurora-mysql', 'aurora-postgresql', 'custom-oracle-ee', 'custom-oracle-ee-cdb', 'custom-sqlserver-ee', 'custom-sqlserver-se', 'custom-sqlserver-web', 'db2-ae', 'db2-se', 'mariadb', 'mysql', 'oracle-ee', 'oracle-ee-cdb', 'oracle-se2', 'oracle-se2-cdb', 'postgres', 'sqlserver-ee', 'sqlserver-ex', 'sqlserver-se', 'sqlserver-web']",
+        "message": "'bad-ee' is not one of ['aurora-mysql', 'aurora-postgresql', 'custom-oracle-ee', 'custom-oracle-ee-cdb', 'custom-sqlserver-ee', 'custom-sqlserver-se', 'custom-sqlserver-web', 'db2-ae', 'db2-se', 'mariadb', 'mysql', 'neptune', 'oracle-ee', 'oracle-ee-cdb', 'oracle-se2', 'oracle-se2-cdb', 'postgres', 'sqlserver-dev-ee', 'sqlserver-dev-se', 'sqlserver-ee', 'sqlserver-ex', 'sqlserver-se', 'sqlserver-web']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "DBInstance9",
@@ -15147,7 +15431,7 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 5,
+        "fatal": 8,
         "errors": 0,
         "warnings": 8,
         "informational": 17,
@@ -15158,6 +15442,69 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "PolicyList",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MadeUpPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "InvalidMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 39,
+        "startColumn": 5,
+        "endLine": 39,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "F3016",
         "severity": "FATAL",
@@ -15794,7 +16141,7 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 5,
+        "fatal": 8,
         "errors": 0,
         "warnings": 9,
         "informational": 18,
@@ -15902,6 +16249,69 @@
         "endColumn": 24,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "UpdateReplacePolicy must be valid",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "PolicyList",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 12,
+        "startColumn": 5,
+        "endLine": 12,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MadeUpPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 19,
+        "startColumn": 5,
+        "endLine": 19,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'StorageEncrypted' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "InvalidMapping",
+          "entityType": "Resource",
+          "resourceType": "AWS::RDS::DBInstance"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'StorageEncrypted'",
+        "category": "Schema",
+        "startLine": 39,
+        "startColumn": 5,
+        "endLine": 39,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
       },
       {
@@ -18115,7 +18525,7 @@
       "counts": {
         "fatal": 36,
         "errors": 5,
-        "warnings": 0,
+        "warnings": 2,
         "informational": 8,
         "debug": 0
       },
@@ -18943,6 +19353,42 @@
         "endColumn": 31,
         "ruleDescription": "Validate SageMaker cluster instance types based on region",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "W3697",
+        "severity": "WARN",
+        "message": "Resource type 'AWS::SageMaker::MonitoringSchedule' is from a service in maintenance mode since 2026-06-30. Consider migrating to an alternative",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "MonitoringSchedule",
+          "entityType": "Resource",
+          "resourceType": "AWS::SageMaker::MonitoringSchedule"
+        },
+        "category": "Deprecation",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 21,
+        "ruleDescription": "Resource type is from a service in maintenance mode",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W3697",
+        "severity": "WARN",
+        "message": "Resource type 'AWS::SageMaker::ModelQualityJobDefinition' is from a service in maintenance mode since 2026-06-30. Consider migrating to an alternative",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ModelQualityJobDefinition",
+          "entityType": "Resource",
+          "resourceType": "AWS::SageMaker::ModelQualityJobDefinition"
+        },
+        "category": "Deprecation",
+        "startLine": 12,
+        "startColumn": 3,
+        "endLine": 12,
+        "endColumn": 28,
+        "ruleDescription": "Resource type is from a service in maintenance mode",
+        "phase": "SCHEMA"
       },
       {
         "ruleId": "I9001",
@@ -21153,7 +21599,7 @@
       {
         "ruleId": "W2531",
         "severity": "WARN",
-        "message": "Runtime 'nodejs16.x' was deprecated on '2024-06-12'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'",
+        "message": "Runtime 'nodejs16.x' was deprecated on '2024-06-12'. Creation will be disabled on '2027-07-29', and updates will be disabled on '2027-08-31'. Please consider updating to 'nodejs24.x'",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "DeprecatedLambda",

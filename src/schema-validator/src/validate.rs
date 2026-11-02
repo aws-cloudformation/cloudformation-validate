@@ -777,7 +777,12 @@ fn collect_condition_property_names(condition: &ConditionSchema, names: &mut BTr
     names.extend(condition.properties.keys().cloned());
     names.extend(condition.required.iter().cloned());
     names.extend(condition.absent.iter().cloned());
-    for sub_condition in condition.any_of.iter().chain(condition.one_of.iter()) {
+    for sub_condition in condition
+        .all_of
+        .iter()
+        .chain(condition.any_of.iter())
+        .chain(condition.one_of.iter())
+    {
         collect_condition_property_names(sub_condition, names);
     }
     if let Some(negated) = &condition.not {
@@ -2107,9 +2112,36 @@ fn condition_schema_value_matches(
         return true; // conservative
     }
 
-    // anyOf conditions
-    if !cond.any_of.is_empty() {
-        return cond.any_of.iter().any(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1));
+    if !cond.all_of.is_empty()
+        && !cond
+            .all_of
+            .iter()
+            .all(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
+    {
+        return false;
+    }
+    if !cond.any_of.is_empty()
+        && !cond
+            .any_of
+            .iter()
+            .any(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
+    {
+        return false;
+    }
+    if !cond.one_of.is_empty()
+        && cond
+            .one_of
+            .iter()
+            .filter(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
+            .count()
+            != 1
+    {
+        return false;
+    }
+    if let Some(negated) = &cond.not
+        && condition_schema_value_matches(negated, obj, obj_keys, defs, depth + 1)
+    {
+        return false;
     }
 
     // The instance evaluated here is always a JSON object, so a condition
@@ -2123,6 +2155,11 @@ fn condition_schema_value_matches(
     // required keys
     for req in &cond.required {
         if !obj_keys.iter().any(|k| k == req) {
+            return false;
+        }
+    }
+    for absent in &cond.absent {
+        if obj_keys.iter().any(|key| key == absent) {
             return false;
         }
     }
@@ -4656,6 +4693,14 @@ fn condition_matches_at(
     defs: &HashMap<String, PropSchema>,
     base_path: &str,
 ) -> bool {
+    if !cond.all_of.is_empty()
+        && !cond
+            .all_of
+            .iter()
+            .all(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path))
+    {
+        return false;
+    }
     if !cond.any_of.is_empty()
         && !cond.any_of.iter().any(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path))
     {
