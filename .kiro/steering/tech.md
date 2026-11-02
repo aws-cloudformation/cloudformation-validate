@@ -65,6 +65,13 @@ Apply these rules when choosing validation:
 - **Non-Rust-only changes** such as documentation, GitHub workflows, scripts, or binding-language code: do not run
   Cargo format, clippy, or tests unless the changed file is a Cargo/build input and the command actually exercises it.
   Use the relevant syntax checker, build, test runner, or dry-run for the changed artifact instead.
+- **Kiro agent profile changes:** validate every affected JSON profile with `jq -e` and
+  `kiro-cli agent validate --path`, confirm workspace discovery with `kiro-cli agent list`, and start each affected
+  profile with a no-tool smoke prompt when its inline prompt, resources, or tools changed.
+- **Kiro LSP setting changes:** `.kiro/settings/lsp.json` is protected from agent writes, so the user must create or
+  edit it directly or with `/code init`. Validate it with `jq -e`, restart Kiro CLI, then use `/code status` and
+  `/code logs` to verify server initialization. Ensure custom agents that need semantic navigation include the `code`
+  tool. Do not run Cargo checks solely for agent, LSP, or steering changes.
 - **Rule, schema-data, or template changes:** run the focused validator, parity, corpus, and snapshot checks that
   exercise the changed diagnostics. A file being non-Rust does not remove those domain-specific requirements, but it
   also does not justify unrelated Cargo tests.
