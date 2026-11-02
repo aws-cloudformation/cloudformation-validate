@@ -80,9 +80,15 @@ impl Builder {
     }
 
     /// A malformed boolean condition function - `Fn::And`/`Or`/`Not`/`Equals`.
-    /// Anchored at the function node so it lands where a property-level error
-    /// would.
     fn condition_fn_error(&mut self, fn_name: &str, reason: &str, path: &str) {
+        self.condition_fn_error_at(fn_name, reason, &format!("{path}/{fn_name}"));
+    }
+
+    fn condition_fn_item_error(&mut self, fn_name: &str, reason: &str, path: &str, index: usize) {
+        self.condition_fn_error_at(fn_name, reason, &format!("{path}/{fn_name}/{index}"));
+    }
+
+    fn condition_fn_error_at(&mut self, fn_name: &str, reason: &str, path: &str) {
         let rule_id = match fn_name {
             FN_EQUALS => "E8003",
             FN_AND => "E8004",
@@ -90,12 +96,7 @@ impl Builder {
             FN_OR => "E8006",
             _ => "F0014",
         };
-        self.diagnostics.push(crate::make_parse_defect_at(
-            rule_id,
-            format!("{}: {}", fn_name, reason),
-            UNKNOWN_SPAN,
-            &format!("{}/{}", path, fn_name),
-        ));
+        self.diagnostics.push(crate::make_parse_defect_at(rule_id, format!("{fn_name}: {reason}"), UNKNOWN_SPAN, path));
     }
 
     /// A malformed `Fn::GetStackOutput` argument (error). No function-name prefix -
@@ -681,7 +682,7 @@ impl Builder {
         }
         for (idx, elem) in arr.iter().enumerate() {
             if let Some(reason) = condition_element_error(elem) {
-                self.condition_fn_error(fn_name, &format!("element {}: {}", idx, reason), path);
+                self.condition_fn_item_error(fn_name, &format!("element {idx}: {reason}"), path, idx);
             }
         }
         let children: Vec<NodeRef> =
@@ -728,7 +729,7 @@ impl Builder {
         if path.starts_with("Conditions/") || path.starts_with("Rules/") {
             for (idx, elem) in arr.iter().enumerate() {
                 if let Some(reason) = equals_argument_error(elem) {
-                    self.condition_fn_error(FN_EQUALS, &format!("argument {}: {}", idx, reason), path);
+                    self.condition_fn_item_error(FN_EQUALS, &format!("argument {idx}: {reason}"), path, idx);
                 }
             }
         }

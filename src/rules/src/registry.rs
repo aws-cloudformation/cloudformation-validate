@@ -2019,6 +2019,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3720",
+        category: Category::Resource,
+        description: "RDS DB instances with KmsKeyId must set StorageEncrypted to true for non-custom engines",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E3723",
         category: Category::Resource,
         description: "API Gateway Stage method setting ResourcePath must start with '/' when a setting is configured",

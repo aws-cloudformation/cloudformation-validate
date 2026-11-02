@@ -132765,8 +132765,35 @@
       "Id"
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2/networkinterface",
-    "all_of": [
-      {}
+    "if_then_else": [
+      {
+        "condition": {
+          "properties": {
+            "Ipv6AddressCount": {
+              "type": "integer",
+              "minimum": 1.0
+            },
+            "Ipv6Addresses": {
+              "type": "array",
+              "min_items": 1
+            }
+          },
+          "required": [
+            "Ipv6AddressCount",
+            "Ipv6Addresses"
+          ]
+        },
+        "then_schema": {
+          "dependent_excluded": {
+            "Ipv6AddressCount": [
+              "Ipv6Addresses"
+            ],
+            "Ipv6Addresses": [
+              "Ipv6AddressCount"
+            ]
+          }
+        }
+      }
     ]
   },
   "AWS::EC2::NetworkInterfaceAttachment": {

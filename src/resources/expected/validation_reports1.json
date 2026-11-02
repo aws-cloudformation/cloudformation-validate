@@ -2447,7 +2447,7 @@
         "fatal": 0,
         "errors": 2,
         "warnings": 0,
-        "informational": 2,
+        "informational": 1,
         "debug": 0
       },
       "suppressed": 0,
@@ -2514,29 +2514,6 @@
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9002",
-        "severity": "INFO",
-        "message": "'TTL' is ignored in this configuration (from extension)",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Record",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.TTL",
-        "category": "Best Practice",
-        "startLine": 30,
-        "startColumn": 7,
-        "endLine": 30,
-        "endColumn": 10,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
-        "ruleDescription": "Property is ignored in this configuration (from extension)",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "parameter with AllowedValues"
         }
       }
     ]
@@ -11812,7 +11789,7 @@
     "metadata": {
       "resourcesScanned": 16,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 2,
         "warnings": 19,
         "informational": 26,
@@ -11823,26 +11800,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'Runtime' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "WholePropertiesConditional",
-          "entityType": "Resource",
-          "resourceType": "AWS::Lambda::Function"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'Runtime'",
-        "category": "Schema",
-        "startLine": 96,
-        "startColumn": 5,
-        "endLine": 96,
-        "endColumn": 15,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "E3019",
         "severity": "ERROR",
@@ -13800,7 +13757,7 @@
     "metadata": {
       "resourcesScanned": 9,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 12,
         "informational": 29,
@@ -13811,27 +13768,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Rds",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 62,
-        "startColumn": 5,
-        "endLine": 62,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "W3010",
         "severity": "WARN",
@@ -17874,7 +17810,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 0,
         "warnings": 1,
         "informational": 6,
@@ -17885,27 +17821,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "AuroraDB",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "W9003",
         "severity": "WARN",
@@ -19047,12 +18962,12 @@
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
+        "propertyPath": "Conditions/TestAndBadCondition/Fn::And/0",
         "category": "Intrinsic Function",
         "startLine": 19,
-        "startColumn": 3,
+        "startColumn": 30,
         "endLine": 19,
-        "endColumn": 10,
+        "endColumn": 31,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19065,12 +18980,12 @@
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
+        "propertyPath": "Conditions/TestAndBadCondition/Fn::And/1",
         "category": "Intrinsic Function",
         "startLine": 19,
-        "startColumn": 3,
+        "startColumn": 84,
         "endLine": 19,
-        "endColumn": 10,
+        "endColumn": 85,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19083,12 +18998,12 @@
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
+        "propertyPath": "Conditions/TestAndBadArray/Fn::And/0",
         "category": "Intrinsic Function",
         "startLine": 20,
-        "startColumn": 3,
+        "startColumn": 26,
         "endLine": 20,
-        "endColumn": 10,
+        "endColumn": 27,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19101,12 +19016,12 @@
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
+        "propertyPath": "Conditions/TestAndBadArray/Fn::And/1",
         "category": "Intrinsic Function",
         "startLine": 20,
-        "startColumn": 3,
+        "startColumn": 34,
         "endLine": 20,
-        "endColumn": 10,
+        "endColumn": 35,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19331,12 +19246,12 @@
           "logicalId": "TestEqualBadArgs",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestEqualBadArgs/Fn::Equals",
+        "propertyPath": "Conditions/TestEqualBadArgs/Fn::Equals/0",
         "category": "Intrinsic Function",
-        "startLine": 23,
-        "startColumn": 13,
-        "endLine": 23,
-        "endColumn": 24,
+        "startLine": 24,
+        "startColumn": 17,
+        "endLine": 24,
+        "endColumn": 18,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -19349,12 +19264,12 @@
           "logicalId": "TestEqualBadArgs",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestEqualBadArgs/Fn::Equals",
+        "propertyPath": "Conditions/TestEqualBadArgs/Fn::Equals/1",
         "category": "Intrinsic Function",
-        "startLine": 23,
-        "startColumn": 13,
-        "endLine": 23,
-        "endColumn": 24,
+        "startLine": 25,
+        "startColumn": 17,
+        "endLine": 25,
+        "endColumn": 18,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -19421,12 +19336,12 @@
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
+        "propertyPath": "Conditions/TestAndBadArray/Fn::And/0",
         "category": "Intrinsic Function",
         "startLine": 11,
-        "startColumn": 29,
+        "startColumn": 41,
         "endLine": 11,
-        "endColumn": 37,
+        "endColumn": 46,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19439,12 +19354,12 @@
           "logicalId": "TestAndBadArray",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadArray/Fn::And",
+        "propertyPath": "Conditions/TestAndBadArray/Fn::And/1",
         "category": "Intrinsic Function",
         "startLine": 11,
-        "startColumn": 29,
+        "startColumn": 49,
         "endLine": 11,
-        "endColumn": 37,
+        "endColumn": 55,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19457,12 +19372,12 @@
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
+        "propertyPath": "Conditions/TestAndBadCondition/Fn::And/0",
         "category": "Intrinsic Function",
-        "startLine": 13,
-        "startColumn": 13,
-        "endLine": 13,
-        "endColumn": 21,
+        "startLine": 14,
+        "startColumn": 17,
+        "endLine": 14,
+        "endColumn": 18,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19475,12 +19390,12 @@
           "logicalId": "TestAndBadCondition",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestAndBadCondition/Fn::And",
+        "propertyPath": "Conditions/TestAndBadCondition/Fn::And/1",
         "category": "Intrinsic Function",
-        "startLine": 13,
-        "startColumn": 13,
-        "endLine": 13,
-        "endColumn": 21,
+        "startLine": 15,
+        "startColumn": 17,
+        "endLine": 15,
+        "endColumn": 18,
         "ruleDescription": "Fn::And must take between 2 and 10 boolean conditions",
         "phase": "PARSE"
       },
@@ -19905,12 +19820,12 @@
           "logicalId": "Test",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/Test/Fn::Equals",
+        "propertyPath": "Conditions/Test/Fn::Equals/0",
         "category": "Intrinsic Function",
         "startLine": 11,
-        "startColumn": 3,
+        "startColumn": 18,
         "endLine": 11,
-        "endColumn": 13,
+        "endColumn": 19,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -19923,12 +19838,12 @@
           "logicalId": "Test",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/Test/Fn::Equals",
+        "propertyPath": "Conditions/Test/Fn::Equals/1",
         "category": "Intrinsic Function",
         "startLine": 11,
-        "startColumn": 3,
+        "startColumn": 44,
         "endLine": 11,
-        "endColumn": 13,
+        "endColumn": 45,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -19941,12 +19856,12 @@
           "logicalId": "TestWrongType",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/TestWrongType/Fn::Equals",
+        "propertyPath": "Conditions/TestWrongType/Fn::Equals/1",
         "category": "Intrinsic Function",
         "startLine": 12,
-        "startColumn": 3,
+        "startColumn": 34,
         "endLine": 12,
-        "endColumn": 13,
+        "endColumn": 35,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -19959,12 +19874,12 @@
           "logicalId": "ToManyFunctions",
           "entityType": "Condition"
         },
-        "propertyPath": "Conditions/ToManyFunctions/Fn::Equals",
+        "propertyPath": "Conditions/ToManyFunctions/Fn::Equals/0",
         "category": "Intrinsic Function",
-        "startLine": 18,
-        "startColumn": 5,
-        "endLine": 18,
-        "endColumn": 15,
+        "startLine": 19,
+        "startColumn": 10,
+        "endLine": 19,
+        "endColumn": 11,
         "ruleDescription": "Fn::Equals must take exactly two scalar operands",
         "phase": "PARSE"
       },
@@ -23301,7 +23216,7 @@
     "metadata": {
       "resourcesScanned": 11,
       "counts": {
-        "fatal": 1,
+        "fatal": 2,
         "errors": 6,
         "warnings": 3,
         "informational": 30,
@@ -23312,6 +23227,27 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'Name' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "BadRestApi",
+          "entityType": "Resource",
+          "resourceType": "AWS::ApiGateway::RestApi"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'Name'",
+        "category": "Schema",
+        "startLine": 64,
+        "startColumn": 5,
+        "endLine": 64,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "F3003",
         "severity": "FATAL",

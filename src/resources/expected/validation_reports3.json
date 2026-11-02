@@ -5,7 +5,7 @@
     "metadata": {
       "resourcesScanned": 3,
       "counts": {
-        "fatal": 0,
+        "fatal": 1,
         "errors": 3,
         "warnings": 0,
         "informational": 11,
@@ -16,6 +16,29 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'ProvisionedThroughput' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "MissingDefaultThroughput",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'ProvisionedThroughput'",
+        "category": "Schema",
+        "startLine": 17,
+        "startColumn": 9,
+        "endLine": 17,
+        "endColumn": 29,
+        "conditionScenario": {
+          "OnDemand": false
+        },
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
       {
         "ruleId": "E3039",
         "severity": "ERROR",
@@ -294,7 +317,7 @@
     "metadata": {
       "resourcesScanned": 7,
       "counts": {
-        "fatal": 1,
+        "fatal": 4,
         "errors": 7,
         "warnings": 0,
         "informational": 31,
@@ -322,6 +345,75 @@
         "startColumn": 5,
         "endLine": 10,
         "endColumn": 15,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'ProvisionedThroughput' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "NullThroughput",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'ProvisionedThroughput'",
+        "category": "Schema",
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
+        "conditionScenario": {
+          "IsProd": true
+        },
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'ProvisionedThroughput' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ExplicitValueThenRemoved",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'ProvisionedThroughput'",
+        "category": "Schema",
+        "startLine": 50,
+        "startColumn": 5,
+        "endLine": 50,
+        "endColumn": 15,
+        "conditionScenario": {
+          "IsProd": false
+        },
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'ProvisionedThroughput' is a required property (from extension)",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ExplicitRemovedThenValue",
+          "entityType": "Resource",
+          "resourceType": "AWS::DynamoDB::Table"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add 'ProvisionedThroughput'",
+        "category": "Schema",
+        "startLine": 61,
+        "startColumn": 5,
+        "endLine": 61,
+        "endColumn": 15,
+        "conditionScenario": {
+          "IsProd": true
+        },
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
       },
@@ -11626,7 +11718,7 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 8,
+        "fatal": 0,
         "errors": 4,
         "warnings": 6,
         "informational": 39,
@@ -11637,174 +11729,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance1",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 12,
-        "startColumn": 5,
-        "endLine": 12,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance2",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 18,
-        "startColumn": 5,
-        "endLine": 18,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance3",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 25,
-        "startColumn": 5,
-        "endLine": 25,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance4",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 32,
-        "startColumn": 5,
-        "endLine": 32,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance5",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 38,
-        "startColumn": 5,
-        "endLine": 38,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance7",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 44,
-        "startColumn": 5,
-        "endLine": 44,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance8",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 51,
-        "startColumn": 5,
-        "endLine": 51,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "DBInstance9",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 58,
-        "startColumn": 5,
-        "endLine": 58,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "E3025",
         "severity": "ERROR",
@@ -15431,7 +15355,7 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 8,
+        "fatal": 5,
         "errors": 0,
         "warnings": 8,
         "informational": 17,
@@ -15442,69 +15366,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 12,
-        "startColumn": 5,
-        "endLine": 12,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MadeUpPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 19,
-        "startColumn": 5,
-        "endLine": 19,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "InvalidMapping",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 39,
-        "startColumn": 5,
-        "endLine": 39,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "F3016",
         "severity": "FATAL",
@@ -16141,7 +16002,7 @@
     "metadata": {
       "resourcesScanned": 5,
       "counts": {
-        "fatal": 8,
+        "fatal": 5,
         "errors": 0,
         "warnings": 9,
         "informational": 18,
@@ -16249,69 +16110,6 @@
         "endColumn": 24,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
         "ruleDescription": "UpdateReplacePolicy must be valid",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "PolicyList",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 12,
-        "startColumn": 5,
-        "endLine": 12,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "MadeUpPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 19,
-        "startColumn": 5,
-        "endLine": 19,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "InvalidMapping",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 39,
-        "startColumn": 5,
-        "endLine": 39,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
       },
       {
@@ -16845,7 +16643,7 @@
         "fatal": 0,
         "errors": 30,
         "warnings": 1,
-        "informational": 12,
+        "informational": 11,
         "debug": 0
       },
       "suppressed": 0,
@@ -17703,26 +17501,6 @@
           "lifecycle": "create-only",
           "resolutionSource": "Ref to 'MyHostedZone'"
         }
-      },
-      {
-        "ruleId": "I9002",
-        "severity": "INFO",
-        "message": "'TTL' is ignored in this configuration (from extension)",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyAliasRecordSet",
-          "entityType": "Resource",
-          "resourceType": "AWS::Route53::RecordSet"
-        },
-        "propertyPath": "Properties.TTL",
-        "category": "Best Practice",
-        "startLine": 113,
-        "startColumn": 7,
-        "endLine": 113,
-        "endColumn": 10,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53-recordset",
-        "ruleDescription": "Property is ignored in this configuration (from extension)",
-        "phase": "SCHEMA"
       }
     ]
   },
