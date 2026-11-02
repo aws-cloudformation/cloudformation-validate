@@ -25,8 +25,8 @@ use template_model::resolved_value::{
 };
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::{
-    BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, PSEUDO_PARAMETERS, SECURITY_GROUP_NAME_PATTERN, SemanticModel,
-    compile_pattern, is_custom_resource_type, resolved_value_to_json,
+    BudgetKind, CompiledPattern, IAM_ROLE_ARN_PATTERN, IAM_ROLE_NAME_PATTERN, PSEUDO_PARAMETERS,
+    SECURITY_GROUP_NAME_PATTERN, SemanticModel, compile_pattern, is_custom_resource_type, resolved_value_to_json,
 };
 
 /// Properties that accept a string value when used with `aws cloudformation package`.
@@ -4912,12 +4912,13 @@ pub(crate) fn prewarm_statics() {
 }
 
 static FORMAT_PATTERNS: LazyLock<HashMap<&'static str, Arc<CompiledPattern>>> = LazyLock::new(|| {
-    let sources: [(&str, &str); 13] = [
+    let sources: [(&str, &str); 14] = [
         ("AWS::EC2::VPC.Id", r"^vpc-[a-f0-9]{8,17}$"),
         ("AWS::EC2::Subnet.Id", r"^subnet-[a-f0-9]{8,17}$"),
         ("AWS::EC2::SecurityGroup.Id", r"^sg-[a-f0-9]{8,17}$"),
         (EC2_IMAGE_ID_FORMAT, r"^ami-([0-9a-z]{8}|[0-9a-z]{17})$"),
         ("AWS::IAM::Role.Arn", IAM_ROLE_ARN_PATTERN),
+        ("AWS::IAM::Role.Name", IAM_ROLE_NAME_PATTERN),
         ("AWS::Logs::LogGroup.Name", r"^[\.\-_/#A-Za-z0-9]{1,512}$"),
         ("AWS::EC2::SecurityGroup.Name", SECURITY_GROUP_NAME_PATTERN),
         ("AWS::EC2::KeyPair.KeyName", r"^[\x20-\x7E]{1,255}$"),
@@ -5075,6 +5076,7 @@ fn validate_prop_composition(
                     Some(val),
                     condition_map(conds),
                 ));
+                validate_failed_any_of_formats(out, m, rid, prop_path, schema, defs, val, conds);
             }
         }
     }
@@ -5145,6 +5147,32 @@ fn validate_prop_composition(
     }
 }
 
+fn validate_failed_any_of_formats(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    schema: &PropSchema,
+    defs: &HashMap<String, PropSchema>,
+    value: &serde_json::Value,
+    conditions: &HashMap<String, bool>,
+) {
+    let mut reported_formats = HashSet::new();
+    if let Some(format) = &schema.format {
+        reported_formats.insert(format.clone());
+    }
+
+    for branch in &schema.any_of {
+        let resolved_branch = branch.resolve(defs);
+        let Some(format) = resolved_branch.format.as_deref() else {
+            continue;
+        };
+        if reported_formats.insert(format.to_string()) {
+            validate_format_scenario(out, m, rid, prop_path, format, value, conditions, false);
+        }
+    }
+}
+
 fn validate_format(
     out: &mut Vec<Diagnostic>,
     m: &Arc<SemanticModel>,
@@ -5154,43 +5182,55 @@ fn validate_format(
     scenarios: &[(serde_json::Value, HashMap<String, bool>)],
     schema_pattern_failures: &[(serde_json::Value, HashMap<String, bool>)],
 ) {
-    let Some(re) = FORMAT_PATTERNS.get(format) else {
+    for (value, conditions) in scenarios {
+        let schema_pattern_failed = schema_pattern_failures
+            .iter()
+            .any(|(pattern_value, pattern_conditions)| pattern_value == value && pattern_conditions == conditions);
+        validate_format_scenario(out, m, rid, prop_path, format, value, conditions, schema_pattern_failed);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn validate_format_scenario(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    prop_path: &str,
+    format: &str,
+    value: &serde_json::Value,
+    conditions: &HashMap<String, bool>,
+    schema_pattern_failed: bool,
+) {
+    let Some(pattern) = FORMAT_PATTERNS.get(format) else {
         return;
     };
-
-    for (val, conds) in scenarios {
-        if !is_satisfiable(m, conds)
-            || val.is_null()
-            || m.is_from_intrinsic(rid, prop_path)
-            || defer_value_constraints(m, rid, prop_path, val, conds)
-        {
-            continue;
-        }
-        if let Some(s) = coerce_to_string(val) {
-            if ec2_resolves_ssm_image_alias(m, rid, prop_path, format, &s) {
-                continue;
-            }
-            if !re.is_match(&s) {
-                let rule_id = format_rule_for_format(format).unwrap_or("E1103");
-                if rule_id == "E1155"
-                    && schema_pattern_failures
-                        .iter()
-                        .any(|(pattern_value, pattern_conditions)| pattern_value == val && pattern_conditions == conds)
-                {
-                    continue;
-                }
-                out.push(build_diagnostic_conditional(
-                    rule_id,
-                    &format!("{} does not match format '{}'", format_value(val), format),
-                    m,
-                    rid,
-                    prop_path,
-                    None,
-                    condition_map(conds),
-                ));
-            }
-        }
+    if !is_satisfiable(m, conditions)
+        || value.is_null()
+        || m.is_from_intrinsic(rid, prop_path)
+        || defer_value_constraints(m, rid, prop_path, value, conditions)
+    {
+        return;
     }
+    let Some(string_value) = coerce_to_string(value) else {
+        return;
+    };
+    if ec2_resolves_ssm_image_alias(m, rid, prop_path, format, &string_value) || pattern.is_match(&string_value) {
+        return;
+    }
+
+    let rule_id = format_rule_for_format(format).unwrap_or("E1103");
+    if rule_id == "E1155" && schema_pattern_failed {
+        return;
+    }
+    out.push(build_diagnostic_conditional(
+        rule_id,
+        &format!("{} does not match format '{}'", format_value(value), format),
+        m,
+        rid,
+        prop_path,
+        None,
+        condition_map(conditions),
+    ));
 }
 
 fn validate_lifecycle(out: &mut Vec<Diagnostic>, store: &CompiledSchemaStore, model: &Arc<SemanticModel>) {

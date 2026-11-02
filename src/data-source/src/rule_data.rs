@@ -184,7 +184,7 @@ pub struct NormalizedRuleTablesDocument {
     pub rule_tables: RuleTablesRaw,
 }
 
-/// Raw deserialized rule tables with all 22 fields exactly as stored in JSON.
+/// Raw deserialized rule tables as stored in JSON.
 ///
 /// Every field uses `deny_unknown_fields` on the outer struct to reject unknown keys.
 /// Path fields are stored as raw strings here; [`RuleTables`] holds the parsed forms.
@@ -194,7 +194,6 @@ pub struct RuleTablesRaw {
     pub api_gateway_mixing_resource_types: Vec<String>,
     pub ebs_iops_ignored_volume_types: Vec<String>,
     pub ebs_iops_property_paths: Vec<String>,
-    pub iam_role_arn_property_paths: Vec<String>,
     pub image_id_parameter_types: Vec<String>,
     pub image_id_property_paths: Vec<String>,
     pub lambda_zip_required_properties: Vec<String>,
@@ -225,7 +224,6 @@ pub struct RuleTables {
     pub api_gateway_mixing_resource_types: Vec<String>,
     pub ebs_iops_ignored_volume_types: Vec<String>,
     pub ebs_iops_property_paths: Vec<ResourcePropertyPath>,
-    pub iam_role_arn_property_paths: Vec<ResourcePropertyPath>,
     pub image_id_parameter_types: Vec<String>,
     pub image_id_property_paths: Vec<ResourcePropertyPath>,
     pub lambda_zip_required_properties: Vec<String>,
@@ -260,7 +258,6 @@ impl RuleTables {
         validate_nonempty_unique(&raw.api_gateway_mixing_resource_types, "api_gateway_mixing_resource_types")?;
         validate_nonempty_unique(&raw.ebs_iops_ignored_volume_types, "ebs_iops_ignored_volume_types")?;
         validate_nonempty_unique(&raw.ebs_iops_property_paths, "ebs_iops_property_paths")?;
-        validate_nonempty_unique(&raw.iam_role_arn_property_paths, "iam_role_arn_property_paths")?;
         validate_nonempty_unique(&raw.image_id_parameter_types, "image_id_parameter_types")?;
         validate_nonempty_unique(&raw.image_id_property_paths, "image_id_property_paths")?;
         validate_nonempty_unique(&raw.lambda_zip_required_properties, "lambda_zip_required_properties")?;
@@ -300,7 +297,6 @@ impl RuleTables {
 
         let ebs_iops_property_paths = parse_paths(&raw.ebs_iops_property_paths, "ebs_iops_property_paths")?;
         validate_ebs_iops_shape(&ebs_iops_property_paths)?;
-        let iam_role_arn_property_paths = parse_paths(&raw.iam_role_arn_property_paths, "iam_role_arn_property_paths")?;
         let image_id_property_paths = parse_paths(&raw.image_id_property_paths, "image_id_property_paths")?;
         let package_property_paths = parse_paths(&raw.package_property_paths, "package_property_paths")?;
         let previous_generation_instance_property_paths = parse_paths(
@@ -315,7 +311,6 @@ impl RuleTables {
             api_gateway_mixing_resource_types: raw.api_gateway_mixing_resource_types,
             ebs_iops_ignored_volume_types: raw.ebs_iops_ignored_volume_types,
             ebs_iops_property_paths,
-            iam_role_arn_property_paths,
             image_id_parameter_types: raw.image_id_parameter_types,
             image_id_property_paths,
             lambda_zip_required_properties: raw.lambda_zip_required_properties,
@@ -740,9 +735,6 @@ mod tests {
             api_gateway_mixing_resource_types: vec!["AWS::ApiGateway::Method".into()],
             ebs_iops_ignored_volume_types: vec!["gp2".into()],
             ebs_iops_property_paths: vec!["Resources/AWS::EC2::Instance/Properties/BlockDeviceMappings/*/Ebs".into()],
-            iam_role_arn_property_paths: vec![
-                "Resources/AWS::Backup::BackupSelection/Properties/BackupSelection/IamRoleArn".into(),
-            ],
             image_id_parameter_types: vec!["AWS::EC2::Image::Id".into()],
             image_id_property_paths: vec!["Resources/AWS::AutoScaling::LaunchConfiguration/Properties/ImageId".into()],
             lambda_zip_required_properties: vec!["Handler".into()],

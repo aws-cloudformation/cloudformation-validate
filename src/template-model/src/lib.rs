@@ -67,7 +67,7 @@ pub use serialization::resolved_value_to_json;
 pub use span::{SourceSpan, SpanProvider, UNKNOWN_SPAN, span_to_option};
 pub use template_section::{EntityType, TopLevelSection, entity_identity};
 pub use value_patterns::{
-    AMI_ID_PATTERN, AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_PATTERN, IAM_ROLE_ARN_RULE_PATTERN,
+    AMI_ID_PATTERN, AVAILABILITY_ZONE_PATTERN, CAA_RECORD_PATTERN, IAM_ROLE_ARN_PATTERN, IAM_ROLE_NAME_PATTERN,
     MX_RECORD_PATTERN, SECURITY_GROUP_NAME_PATTERN,
 };
 

@@ -6,11 +6,9 @@
 /// other legal-but-unusual character is accepted here.
 pub const IAM_ROLE_ARN_PATTERN: &str = r"^arn:aws[a-zA-Z-]*:iam::\d{12}:role/.+$";
 
-/// Regex for the resource-property IAM role-ARN *rule* check: the partition group is
-/// optional and the role name is constrained to the IAM role-name character class. This is
-/// intentionally stricter than [`IAM_ROLE_ARN_PATTERN`] - the two correspond to two distinct checks
-/// and must not be conflated.
-pub const IAM_ROLE_ARN_RULE_PATTERN: &str = r"^arn:(aws[a-zA-Z-]*)?:iam::\d{12}:role/[a-zA-Z_0-9+=,.@\-_/]+$";
+/// Regex for an IAM role name with an optional path. Paths use printable ASCII and the role name
+/// uses the IAM role-name character set with its 64-character limit.
+pub const IAM_ROLE_NAME_PATTERN: &str = r"^(/[!-~]+/)?[a-zA-Z0-9_+=,.@-]{1,64}$";
 
 /// Regex for a valid EC2 Security Group name. The class mirrors the character set the service
 /// accepts; the `+` requires at least one character.

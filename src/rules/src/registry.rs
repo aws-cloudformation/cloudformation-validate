@@ -717,6 +717,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E1165",
+        category: Category::Intrinsic,
+        description: "Validate IAM role name format",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "I1022",
         category: Category::Intrinsic,
         description: "Use Sub instead of Join",
@@ -1026,12 +1032,6 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         id: "E3510",
         category: Category::Resource,
         description: "Validate identity based IAM policies",
-        origin: RuleOrigin::CfnLint,
-    },
-    RuleDefinition {
-        id: "E3511",
-        category: Category::Resource,
-        description: "Validate IAM role arn pattern",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {

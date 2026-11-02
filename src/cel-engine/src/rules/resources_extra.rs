@@ -22,9 +22,7 @@ use template_model::message::{primary_identifier_conflict_message, render_str_li
 use template_model::resolver::{RefKind, ResolvedValue};
 use template_model::route_table::duplicate_subnet_associations;
 use template_model::vpc_cidr::subnets_outside_vpc;
-use template_model::{
-    CAA_RECORD_PATTERN, IAM_ROLE_ARN_RULE_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan,
-};
+use template_model::{CAA_RECORD_PATTERN, MARKER_DYNAMIC, MARKER_PARAM_TYPE, MX_RECORD_PATTERN, SourceSpan};
 use template_model::{ListMemberScenario, SemanticModel};
 use template_model::{hardcoded_az, region_enums, schedule_expression_errors};
 use validation_engine::{make_resource_diagnostic, make_resource_diagnostic_at_source};
@@ -33,9 +31,6 @@ static DOMAIN_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^(?:[a-z0-9\*](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$")
         .expect("Invalid DOMAIN_RE pattern")
 });
-
-static ARN_RE: LazyLock<regex::Regex> =
-    LazyLock::new(|| regex::Regex::new(IAM_ROLE_ARN_RULE_PATTERN).expect("Invalid ARN_RE pattern"));
 
 static W1030_VPC_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"^vpc-(([0-9A-Fa-f]{8})|([0-9A-Fa-f]{17}))$").expect("Invalid W1030_VPC_RE pattern")
@@ -2113,24 +2108,6 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         out.extend(snapstart_without_published_version(m, name));
-    }
-
-    for rpp in &ctx.cached_data.rule_tables.iam_role_arn_property_paths {
-        let path = full_property_path(rpp);
-        for name in m.resources_of_type(&rpp.resource_type) {
-            if let Some(serde_json::Value::String(val)) = resolve_concrete(m, name, &path)
-                && !ARN_RE.is_match(&val)
-            {
-                out.push(make_resource_diagnostic(
-                    "E3511",
-                    &format!("IAM Role ARN '{}' does not match expected pattern", val),
-                    m,
-                    name,
-                    &path,
-                    None,
-                ));
-            }
-        }
     }
 
     for (name, res) in &m.resources {
