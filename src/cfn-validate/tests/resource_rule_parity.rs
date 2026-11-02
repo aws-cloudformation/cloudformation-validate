@@ -2797,13 +2797,26 @@ fn whole_properties_item_cardinality_preserves_nested_member_conditions() {
 fn route53_alias_checks_ignore_unrelated_property_scenarios() {
     let template = include_str!("../../resources/templates/bad/E3029_alias_projection_covering.yaml");
     let (rego, cel) = engines();
-    let rego_findings = selected_findings_with_spans(&rego, template, &["E3029"]);
-    let cel_findings = selected_findings_with_spans(&cel, template, &["E3029"]);
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E3029", "I9002"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E3029", "I9002"]);
 
     assert_eq!(rego_findings, cel_findings, "Route53 alias diagnostics must be identical, spans included");
     assert_eq!(rego_findings.len(), 2, "both independent alias constraints must be reported: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| !finding.starts_with("I9002|")), "{rego_findings:?}");
     assert!(rego_findings.iter().any(|finding| finding.contains("TTL must not be set when AliasTarget is specified")));
     assert!(rego_findings.iter().any(|finding| finding.contains("record type 'NS'")));
+}
+
+#[test]
+fn rds_ignored_properties_have_single_rule_owner() {
+    let template = include_str!("../../resources/templates/bad/W3688_snapshot_identifier_from_parameter.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["W3688", "W3689", "I9002"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["W3688", "W3689", "I9002"]);
+
+    assert_eq!(rego_findings, cel_findings, "RDS ignored-property diagnostics must be identical, spans included");
+    assert_eq!(rego_findings.len(), 3, "each ignored property must be reported once: {rego_findings:?}");
+    assert!(rego_findings.iter().all(|finding| !finding.starts_with("I9002|")), "{rego_findings:?}");
 }
 
 #[test]

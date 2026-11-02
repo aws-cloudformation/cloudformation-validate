@@ -1806,6 +1806,108 @@ fn issue_235_w9008_handles_all_rds_storage_encryption_modes() {
     }
 }
 
+#[test]
+fn issue_235_e3720_applies_only_to_kms_encryption_requirements() {
+    let diags = validate_all("issue-235.yaml");
+
+    assert_count(&diags, "E3720", 1);
+    assert_fires_on_resource(&diags, "E3720", "KmsKeyWithoutEncryption");
+    assert_absent(&diags, "E9006");
+    for (engine, engine_diags) in &diags {
+        let generic_storage_requirements: Vec<&Diagnostic> = engine_diags
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == "F3003" && diagnostic.message.contains("StorageEncrypted"))
+            .collect();
+        assert!(
+            generic_storage_requirements.is_empty(),
+            "[{engine}] the KMS encryption requirement must be owned by E3720: {generic_storage_requirements:?}"
+        );
+    }
+}
+
+#[test]
+fn e3720_handles_conditional_and_unresolved_rds_properties() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  Choice:
+    Type: String
+  DynamicEngine:
+    Type: String
+  DynamicEncryption:
+    Type: String
+  SourceInstance:
+    Type: String
+Conditions:
+  UseEncryption:
+    Fn::Equals: [!Ref Choice, enabled]
+Resources:
+  KmsFalse:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      KmsKeyId: alias/rds
+      StorageEncrypted: false
+  KmsTrue:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      KmsKeyId: alias/rds
+      StorageEncrypted: true
+  CustomEngine:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: custom-oracle-ee
+      KmsKeyId: alias/rds
+      StorageEncrypted: false
+  SourceReplica:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      KmsKeyId: alias/rds
+      SourceDBInstanceIdentifier: !Ref SourceInstance
+  UnknownEngine:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: !Ref DynamicEngine
+      KmsKeyId: alias/rds
+  UnknownEncryption:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      KmsKeyId: alias/rds
+      StorageEncrypted: !Ref DynamicEncryption
+  ConditionalNoValue:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      KmsKeyId: alias/rds
+      StorageEncrypted: !If [UseEncryption, true, !Ref AWS::NoValue]
+"#;
+    let diags = validate_all_bytes(TEMPLATE);
+
+    for (engine, engine_diags) in &diags {
+        let mut findings: Vec<&Diagnostic> =
+            engine_diags.iter().filter(|diagnostic| diagnostic.rule_id == "E3720").collect();
+        findings.sort_by_key(|diagnostic| diagnostic.resource_logical_id());
+        let resources: Vec<&str> = findings.iter().filter_map(|diagnostic| diagnostic.resource_logical_id()).collect();
+        assert_eq!(resources, vec!["ConditionalNoValue", "KmsFalse"], "[{engine}] {findings:?}");
+        let conditional = findings
+            .iter()
+            .find(|diagnostic| diagnostic.resource_logical_id() == Some("ConditionalNoValue"))
+            .expect("the AWS::NoValue branch is reported");
+        assert_eq!(
+            conditional.condition_scenario,
+            Some(std::collections::HashMap::from([("UseEncryption".to_string(), false)])),
+            "[{engine}]"
+        );
+        assert!(
+            engine_diags.iter().all(|diagnostic| diagnostic.rule_id != "E9006"
+                && !(diagnostic.rule_id == "F3003" && diagnostic.message.contains("StorageEncrypted"))),
+            "[{engine}] generic extension diagnostics must not duplicate E3720"
+        );
+    }
+}
+
 /// Issue #246: CloudFront supports Route53 HTTPS aliases, including when the target name is a
 /// deployment-time attribute rather than a literal.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/246

@@ -499,6 +499,8 @@ pub fn compile_schema_with(type_name: &str, raw: &serde_json::Value, ref_sibling
                 if let Some(ite) = compile_if_then_else(item, ref_siblings) {
                     if_then_else.push(ite);
                 }
+            } else if let Some(exclusion) = compile_negated_property_exclusion(item, ref_siblings) {
+                if_then_else.push(exclusion);
             } else {
                 all_of.push(compile_sub(item, ref_siblings));
             }
@@ -572,6 +574,42 @@ fn compile_dependent_required(raw: &serde_json::Value) -> BTreeMap<String, Vec<S
     dep_req
 }
 
+fn compile_negated_property_exclusion(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Option<IfThenElse> {
+    let branch = raw.as_object()?;
+    if branch.keys().any(|key| key != keywords::NOT && !keywords::REF_ANNOTATION_KEYWORDS.contains(&key.as_str())) {
+        return None;
+    }
+
+    let negated_schema = branch.get(keywords::NOT)?;
+    let negated_members = negated_schema.as_object()?;
+    if negated_members.keys().any(|key| {
+        !matches!(key.as_str(), keywords::PROPERTIES | keywords::REQUIRED | keywords::TYPE)
+            && !keywords::REF_ANNOTATION_KEYWORDS.contains(&key.as_str())
+    }) {
+        return None;
+    }
+
+    let excluded_properties = str_arr(negated_members.get(keywords::REQUIRED));
+    if excluded_properties.len() != 2 {
+        return None;
+    }
+    if let Some(property_constraints) = negated_members.get(keywords::PROPERTIES).and_then(|value| value.as_object())
+        && property_constraints.keys().any(|property| !excluded_properties.contains(property))
+    {
+        return None;
+    }
+
+    let mut dependent_excluded = BTreeMap::new();
+    dependent_excluded.insert(excluded_properties[0].clone(), vec![excluded_properties[1].clone()]);
+    dependent_excluded.insert(excluded_properties[1].clone(), vec![excluded_properties[0].clone()]);
+
+    Some(IfThenElse {
+        condition: compile_condition_schema(negated_schema, ref_siblings),
+        then_schema: Some(SubSchema { dependent_excluded, ..Default::default() }),
+        else_schema: None,
+    })
+}
+
 fn compile_if_then_else(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Option<IfThenElse> {
     let if_val = raw.get(keywords::IF)?;
     let condition = compile_condition_schema(if_val, ref_siblings);
@@ -583,7 +621,11 @@ fn compile_if_then_else(raw: &serde_json::Value, ref_siblings: RefSiblings) -> O
     Some(IfThenElse { condition, then_schema, else_schema })
 }
 
-fn compile_condition_schema(raw: &serde_json::Value, ref_siblings: RefSiblings) -> ConditionSchema {
+/// Compile the JSON Schema predicate used by a conditional extension.
+///
+/// Callers choose how `$ref` siblings are handled because bundled schemas use
+/// draft-07 semantics while caller-provided overlays enforce their siblings.
+pub fn compile_condition_schema(raw: &serde_json::Value, ref_siblings: RefSiblings) -> ConditionSchema {
     let obj = match raw.as_object() {
         Some(o) => o,
         None => return ConditionSchema::default(),
@@ -766,6 +808,19 @@ fn compile_prop_with(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Prop
         }
     }
 
+    let not_enum = obj
+        .get(keywords::NOT)
+        .and_then(|value| value.as_object())
+        .map(|negated| {
+            negated
+                .get(keywords::ENUM)
+                .and_then(|value| value.as_array())
+                .cloned()
+                .or_else(|| negated.get(keywords::CONST).cloned().map(|value| vec![value]))
+                .unwrap_or_default()
+        })
+        .unwrap_or_default();
+
     PropSchema {
         ref_name,
         prop_type,
@@ -775,12 +830,7 @@ fn compile_prop_with(raw: &serde_json::Value, ref_siblings: RefSiblings) -> Prop
             .and_then(|v| v.as_array())
             .cloned()
             .unwrap_or_default(),
-        not_enum: obj
-            .get(keywords::NOT)
-            .and_then(|v| v.get(keywords::ENUM))
-            .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default(),
+        not_enum,
         const_value: obj.get(keywords::CONST).cloned(),
         pattern: obj.get(keywords::PATTERN).and_then(|v| v.as_str()).map(String::from),
         minimum: obj.get(keywords::MINIMUM).and_then(|v| v.as_f64()),
@@ -967,6 +1017,7 @@ mod tests {
                     "Exact": { "enum": ["a", "b"] },
                     "Insensitive": { "enumCaseInsensitive": ["a", "b"] },
                     "Excluded": { "not": { "enum": ["bad"] } },
+                    "ExcludedConst": { "not": { "const": "bad" } },
                     "Fixed": { "const": 7 }
                 },
                 "dependentRequired": { "A": ["B"] },
@@ -978,6 +1029,7 @@ mod tests {
         assert_eq!(compiled.properties["Exact"].enum_values, vec![json!("a"), json!("b")]);
         assert_eq!(compiled.properties["Insensitive"].enum_case_insensitive, vec![json!("a"), json!("b")]);
         assert_eq!(compiled.properties["Excluded"].not_enum, vec![json!("bad")]);
+        assert_eq!(compiled.properties["ExcludedConst"].not_enum, vec![json!("bad")]);
         assert_eq!(compiled.properties["Fixed"].const_value, Some(json!(7)));
         assert_eq!(compiled.dependent_required.get("A"), Some(&vec!["B".to_string()]));
         assert_eq!(compiled.dependent_excluded.get("C"), Some(&vec!["D".to_string()]));
@@ -1079,6 +1131,41 @@ mod tests {
                 keywords::NOT
             ]
         );
+    }
+
+    #[test]
+    fn negated_property_pair_compiles_to_conditional_exclusions() {
+        let compiled = compile_schema(
+            "AWS::Test::NetworkInterface",
+            &json!({
+                "properties": {
+                    "Ipv6AddressCount": { "type": "integer" },
+                    "Ipv6Addresses": { "type": "array" }
+                },
+                "allOf": [{
+                    "not": {
+                        "properties": {
+                            "Ipv6AddressCount": { "minimum": 1, "type": "integer" },
+                            "Ipv6Addresses": { "minItems": 1, "type": "array" }
+                        },
+                        "required": ["Ipv6AddressCount", "Ipv6Addresses"]
+                    }
+                }]
+            }),
+        );
+
+        assert!(compiled.all_of.is_empty(), "the negated pair must not compile to an empty allOf branch");
+        assert_eq!(compiled.if_then_else.len(), 1);
+        let conditional = &compiled.if_then_else[0];
+        assert_eq!(conditional.condition.required, vec!["Ipv6AddressCount".to_string(), "Ipv6Addresses".to_string()]);
+        assert_eq!(conditional.condition.properties["Ipv6AddressCount"].minimum, Some(1.0));
+        assert_eq!(conditional.condition.properties["Ipv6Addresses"].min_items, Some(1));
+        let exclusions = &conditional.then_schema.as_ref().expect("the matching pair is excluded").dependent_excluded;
+        assert_eq!(exclusions["Ipv6AddressCount"], vec!["Ipv6Addresses".to_string()]);
+        assert_eq!(exclusions["Ipv6Addresses"], vec!["Ipv6AddressCount".to_string()]);
+
+        let serialized = serde_json::to_string(&compiled).expect("the compiled schema serializes");
+        assert!(!serialized.contains(r#""all_of":[{}]"#));
     }
 
     #[test]

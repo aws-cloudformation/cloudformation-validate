@@ -421,6 +421,40 @@ fn equals_operand_producing_non_scalar_produces_e8003() {
 }
 
 #[test]
+fn malformed_condition_operands_anchor_at_the_offending_item() {
+    let input = r#"
+Conditions:
+  Target:
+    Fn::Equals: [x, x]
+  InvalidEquals:
+    Fn::Equals:
+      - x
+      - [not-a-scalar]
+  InvalidAnd:
+    Fn::And:
+      - !Condition Target
+      - Bad: Target
+Resources:
+  R:
+    Type: AWS::S3::Bucket
+"#;
+    let model = SemanticModel::from_bytes(input.as_bytes()).unwrap();
+    let equals = model
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.rule_id == "E8003" && diagnostic.message.contains("argument 1"))
+        .expect("the malformed Equals operand is reported");
+    let and = model
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.rule_id == "E8004" && diagnostic.message.contains("element 1"))
+        .expect("the malformed And operand is reported");
+
+    assert_eq!(equals.property_path.as_deref(), Some("Conditions/InvalidEquals/Fn::Equals/1"));
+    assert_eq!(and.property_path.as_deref(), Some("Conditions/InvalidAnd/Fn::And/1"));
+}
+
+#[test]
 fn equals_operand_scalar_producing_function_is_accepted() {
     // The value-producing functions permitted by CloudFormation must not trip
     // E8003 when used as an Fn::Equals operand.

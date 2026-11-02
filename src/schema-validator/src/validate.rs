@@ -1,5 +1,6 @@
 use crate::compiled::{CompiledSchema, ConditionSchema, PropSchema, PropType, SubSchema};
 use crate::store::CompiledSchemaStore;
+use data_source::compiled_schema::{RefSiblings as BuildRefSiblings, compile_condition_schema};
 use diagnostics::{Diagnostic, Phase, RegisteredDiagnostic, ViolationContext, resolve_section_span};
 use rules::format_rule_for_format;
 use std::borrow::Cow;
@@ -4813,6 +4814,24 @@ fn condition_matches_at(
 /// `minLength` to strings, `minProperties` to objects - and an instance of any
 /// other type passes vacuously.
 fn condition_bounds_match(val: &serde_json::Value, schema: &PropSchema) -> bool {
+    if let Some(number) = coerce_to_number(val) {
+        if schema.minimum.is_some_and(|minimum| number < minimum)
+            || schema.maximum.is_some_and(|maximum| number > maximum)
+            || schema.exclusive_minimum.is_some_and(|minimum| number <= minimum)
+            || schema.exclusive_maximum.is_some_and(|maximum| number >= maximum)
+        {
+            return false;
+        }
+        if let Some(multiple) = schema.multiple_of
+            && multiple > 0.0
+        {
+            let remainder = (number / multiple).round() * multiple - number;
+            let epsilon = multiple * 1e-9;
+            if remainder.abs() > epsilon && (multiple - remainder.abs()).abs() > epsilon {
+                return false;
+            }
+        }
+    }
     if let Some(items) = val.as_array() {
         let len = items.iter().filter(|item| !item.is_null()).count() as u64;
         if schema.min_items.is_some_and(|min| len < min) || schema.max_items.is_some_and(|max| len > max) {
@@ -5511,6 +5530,35 @@ fn extension_required_covered_by_dedicated_rule(resource_type: &str, prop_name: 
     )
 }
 
+fn extension_ignored_covered_by_dedicated_rule(resource_type: &str, property_name: &str) -> bool {
+    matches!(
+        (resource_type, property_name),
+        ("AWS::Route53::RecordSet", "TTL")
+            | ("AWS::RDS::DBCluster", "MasterUsername")
+            | ("AWS::RDS::DBCluster", "StorageEncrypted")
+    )
+}
+
+fn extension_branch_requires_validation(resource_type: &str, branch: &serde_json::Value) -> bool {
+    let has_unowned_requirement = branch.get("required").and_then(|value| value.as_array()).is_some_and(|required| {
+        required
+            .iter()
+            .filter_map(|value| value.as_str())
+            .any(|property_name| !extension_required_covered_by_dedicated_rule(resource_type, property_name))
+    });
+    let has_unowned_property_constraint =
+        branch.get("properties").and_then(|value| value.as_object()).is_some_and(|properties| {
+            properties.iter().any(|(property_name, constraint)| {
+                if constraint == &serde_json::Value::Bool(false) {
+                    !extension_ignored_covered_by_dedicated_rule(resource_type, property_name)
+                } else {
+                    constraint.get("enum").is_some()
+                }
+            })
+        });
+    has_unowned_requirement || has_unowned_property_constraint
+}
+
 fn validate_extension_if_then_else(
     out: &mut Vec<Diagnostic>,
     model: &Arc<SemanticModel>,
@@ -5518,195 +5566,176 @@ fn validate_extension_if_then_else(
     res: &ResolvedResource,
     ext: &serde_json::Value,
 ) {
+    if res.properties_dynamic
+        || !ext
+            .get("then")
+            .into_iter()
+            .chain(ext.get("else"))
+            .any(|branch| extension_branch_requires_validation(&res.resource_type, branch))
+    {
+        return;
+    }
     let Some(if_schema) = ext.get("if") else {
         return;
     };
-    let if_matches = extension_condition_matches(if_schema, model, rid);
-    let branch = if if_matches { ext.get("then") } else { ext.get("else") };
-    let Some(branch_schema) = branch else { return };
+    let condition: ConditionSchema = compile_condition_schema(if_schema, BuildRefSiblings::Ignore).into();
+    if condition.states_nothing() {
+        return;
+    }
 
-    if let Some(required) = branch_schema.get("required").and_then(|v| v.as_array()) {
-        for req in required {
-            if let Some(prop_name) = req.as_str()
-                && !res.properties.contains_key(prop_name)
-            {
-                // Some extensions express a requirement that a dedicated rule
-                // already reports under its own specific ID (e.g. the S3
-                // AccessControl→OwnershipControls extension is the dedicated S3
-                // access-control rule). Emitting the generic F3003 on top of that
-                // dedicated diagnostic would be a double-report, so skip it.
-                if extension_required_covered_by_dedicated_rule(&res.resource_type, prop_name) {
-                    continue;
-                }
-                // Dedup: compiled base schema's if_then_else may already have
-                // emitted a required-property diagnostic for the same required property (the
-                // extension schemas sometimes mirror the base schema's conditional
-                // requirements). Skip to avoid double-reporting.
-                let already_reported = out.iter().any(|d| {
-                    d.rule_id == "F3003"
-                        && d.resource_logical_id() == Some(rid)
-                        && d.message.contains(&format!("'{}' is a required property", prop_name))
-                });
-                if already_reported {
-                    continue;
-                }
-                out.push(build_diagnostic(
-                    "F3003",
-                    &format!("'{}' is a required property (from extension)", prop_name),
-                    model,
-                    rid,
-                    KEY_PROPERTIES,
-                    Some(&format!("Add '{}'", prop_name)),
-                ));
-            }
+    let mut property_names = BTreeSet::new();
+    collect_condition_property_names(&condition, &mut property_names);
+    for branch in ext.get("then").into_iter().chain(ext.get("else")) {
+        if let Some(required) = branch.get("required").and_then(|value| value.as_array()) {
+            property_names.extend(required.iter().filter_map(|value| value.as_str().map(String::from)));
+        }
+        if let Some(properties) = branch.get("properties").and_then(|value| value.as_object()) {
+            property_names.extend(properties.keys().cloned());
         }
     }
 
-    if let Some(props) = branch_schema.get("properties").and_then(|v| v.as_object()) {
-        for (prop_name, constraint) in props {
-            if constraint == &serde_json::Value::Bool(false) && res.properties.contains_key(prop_name) {
-                // Extension marks the property as non-applicable in this configuration.
-                // CloudFormation does not reject such properties - it ignores them.
-                // Emit as Info so the finding is surfaced but does not block deployment
-                // or cause `good/` fixtures to fail the no-errors contract.
-                out.push(build_diagnostic(
-                    "I9002",
-                    &format!("'{}' is ignored in this configuration (from extension)", prop_name),
-                    model,
-                    rid,
-                    &format!("Properties.{}", prop_name),
-                    None,
-                ));
-            }
-        }
-    }
-
-    if let Some(props) = branch_schema.get("properties").and_then(|v| v.as_object()) {
-        for (prop_name, constraint) in props {
-            let constraint_obj = match constraint.as_object() {
-                Some(o) => o,
-                None => continue,
-            };
-            let Some(enum_vals) = constraint_obj.get("enum").and_then(|v| v.as_array()) else {
-                continue;
-            };
-            let scenarios = model.resolve_scenarios_json(rid, &format!("Properties.{}", prop_name));
-            for (val, conds) in &scenarios {
-                if !is_satisfiable(model, conds) {
-                    continue;
-                }
-                // NOTE: these extension enums use per-enum case
-                // sensitivity - case-insensitive for engine names
-                // (Engine: "MySQL" is accepted against "mysql") but case-sensitive
-                // for others (ReplicaMode: "Mounted" is rejected against
-                // "mounted"). Distinguishing them requires the per-rule mapping
-                // (tracked with the extension→specific-ID work); until then keep
-                // the case-insensitive fallback, since a false negative on
-                // ReplicaMode is preferable to false positives on valid engines.
-                let matches_enum = enum_vals.iter().any(|e| {
-                    scalar_eq(e, val) || e.as_str().zip(val.as_str()).is_some_and(|(a, b)| a.eq_ignore_ascii_case(b))
-                });
-                if !matches_enum {
-                    let allowed = render_str_list(enum_vals.iter().filter_map(|v| v.as_str()));
-                    out.push(build_diagnostic(
-                        "E9006",
-                        &format!("'{}' is not one of {}", coerce_to_string(val).unwrap_or_default(), allowed),
-                        model,
-                        rid,
-                        &format!("Properties.{}", prop_name),
-                        None,
-                    ));
-                }
-            }
-        }
-    }
-}
-
-/// Check whether a resolved JSON value satisfies a single JSON Schema constraint object
-/// containing `enum`, `const`, or `pattern`.  Returns `true` when no recognised keyword
-/// is present (open constraint).
-fn match_constraint_value(constraint: &serde_json::Map<String, serde_json::Value>, val: &serde_json::Value) -> bool {
-    if let Some(enum_vals) = constraint.get("enum").and_then(|v| v.as_array()) {
-        return enum_vals.iter().any(|e| scalar_eq(e, val));
-    }
-    if let Some(cv) = constraint.get("const") {
-        return scalar_eq(val, cv);
-    }
-    if let Some(pat) = constraint.get("pattern").and_then(|v| v.as_str()) {
-        return val.as_str().and_then(|s| compile_pattern(pat).map(|re| re.is_match(s))).unwrap_or(false);
-    }
-    true
-}
-
-fn extension_condition_matches(if_schema: &serde_json::Value, model: &Arc<SemanticModel>, rid: &str) -> bool {
-    let Some(obj) = if_schema.as_object() else {
-        return false;
+    let property_paths: Vec<String> = property_names.iter().map(|name| format!("Properties.{name}")).collect();
+    let property_path_refs: Vec<&str> = property_paths.iter().map(String::as_str).collect();
+    let Some(assignments) = property_scenario_assignments(model, rid, &property_path_refs) else {
+        return;
     };
 
-    if let Some(required) = obj.get("required").and_then(|v| v.as_array()) {
-        for req in required {
-            if let Some(name) = req.as_str() {
-                let scenarios = model.resolve_scenarios_json(rid, &format!("Properties.{}", name));
-                if scenarios.is_empty() {
-                    return false;
-                }
+    for assignment in assignments {
+        let _scenario_filter_scope = ScenarioFilterScope::enter(assignment.clone());
+        let effective_keys: Vec<String> = property_names
+            .iter()
+            .filter(|property| {
+                let property_path = format!("Properties.{property}");
+                model.has_property(rid, &property_path)
+                    && property_present_under(model, rid, KEY_PROPERTIES, property, &assignment)
+            })
+            .cloned()
+            .collect();
+        let branch = if condition_matches(&condition, &effective_keys, model, rid, &HashMap::new()) {
+            ext.get("then")
+        } else {
+            ext.get("else")
+        };
+        if let Some(branch_schema) = branch {
+            validate_extension_branch(out, model, rid, res, branch_schema, &effective_keys, &assignment);
+        }
+    }
+}
+
+fn extension_constraint_rule_id(resource_type: &str, property_name: &str) -> Option<&'static str> {
+    match (resource_type, property_name) {
+        ("AWS::RDS::DBInstance", "StorageEncrypted") => Some("E3720"),
+        _ => None,
+    }
+}
+
+fn validate_extension_branch(
+    out: &mut Vec<Diagnostic>,
+    model: &Arc<SemanticModel>,
+    rid: &str,
+    res: &ResolvedResource,
+    branch_schema: &serde_json::Value,
+    effective_keys: &[String],
+    assignment: &HashMap<String, bool>,
+) {
+    if let Some(required) = branch_schema.get("required").and_then(|value| value.as_array()) {
+        for property_name in required.iter().filter_map(|value| value.as_str()) {
+            if effective_keys.iter().any(|key| key == property_name)
+                || extension_required_covered_by_dedicated_rule(&res.resource_type, property_name)
+            {
+                continue;
             }
+            let rule_id = extension_constraint_rule_id(&res.resource_type, property_name).unwrap_or("F3003");
+            if rule_id == "F3003"
+                && out.iter().any(|diagnostic| {
+                    diagnostic.rule_id == "F3003"
+                        && diagnostic.resource_logical_id() == Some(rid)
+                        && diagnostic.message.contains(&format!("'{property_name}' is a required property"))
+                })
+            {
+                continue;
+            }
+            let message = if rule_id == "E3720" {
+                "StorageEncrypted must be set to true when KmsKeyId is specified".to_string()
+            } else {
+                format!("'{property_name}' is a required property (from extension)")
+            };
+            out.push(build_diagnostic_conditional(
+                rule_id,
+                &message,
+                model,
+                rid,
+                KEY_PROPERTIES,
+                Some(&format!("Add '{property_name}'")),
+                assignment_condition_map(assignment),
+            ));
         }
     }
 
-    if let Some(props) = obj.get("properties").and_then(|v| v.as_object()) {
-        for (prop_name, constraint) in props {
-            let prop_path = format!("Properties.{}", prop_name);
-            let scenarios = model.resolve_scenarios_json(rid, &prop_path);
-            // A property schema of `false` means the property must be ABSENT for
-            // the condition to hold (JSON Schema: `false` rejects any value). So
-            // the `if` matches only when the property resolves to nothing in
-            // every satisfiable scenario; if it is present anywhere, the
-            // condition fails. (e.g. RDS read-replica: SourceDBInstanceIdentifier
-            // present ⇒ the BackupRetentionPeriod requirement does not apply.)
-            if constraint == &serde_json::Value::Bool(false) {
-                let present = scenarios.iter().any(|(v, c)| is_satisfiable(model, c) && !v.is_null());
-                if present {
-                    return false;
-                }
+    let Some(properties) = branch_schema.get("properties").and_then(|value| value.as_object()) else {
+        return;
+    };
+    for (property_name, constraint) in properties {
+        let property_path = format!("Properties.{property_name}");
+        if constraint == &serde_json::Value::Bool(false) {
+            if effective_keys.iter().any(|key| key == property_name)
+                && !extension_ignored_covered_by_dedicated_rule(&res.resource_type, property_name)
+            {
+                out.push(build_diagnostic_conditional(
+                    "I9002",
+                    &format!("'{property_name}' is ignored in this configuration (from extension)"),
+                    model,
+                    rid,
+                    &property_path,
+                    None,
+                    assignment_condition_map(assignment),
+                ));
+            }
+            continue;
+        }
+
+        let Some(enum_values) = constraint.get("enum").and_then(|value| value.as_array()) else {
+            continue;
+        };
+        for (value, conditions) in model.resolve_scenarios_json_shared(rid, &property_path).iter() {
+            if value.is_null()
+                || !is_satisfiable(model, conditions)
+                || !scenario_consistent_with_filter(model, conditions)
+                || defer_value_constraints(model, rid, &property_path, value, conditions)
+            {
                 continue;
             }
-            if scenarios.is_empty() {
-                return false;
-            }
-            let constraint_obj = match constraint.as_object() {
-                Some(o) => o,
-                None => continue,
-            };
-            // Check nested required sub-properties within the constraint
-            if let Some(nested_required) = constraint_obj.get("required").and_then(|v| v.as_array()) {
-                for sub_req in nested_required {
-                    if let Some(sub_name) = sub_req.as_str() {
-                        let sub_path = format!("{}.{}", prop_path, sub_name);
-                        let sub_scenarios = model.resolve_scenarios_json(rid, &sub_path);
-                        let sub_exists = sub_scenarios.iter().any(|(v, c)| is_satisfiable(model, c) && !v.is_null());
-                        if !sub_exists {
-                            return false;
-                        }
-                    }
-                }
-            }
-            let any_match = scenarios.iter().any(|(val, conds)| {
-                if !is_satisfiable(model, conds) {
-                    return false;
-                }
-                if let Some(not_schema) = constraint_obj.get("not").and_then(|v| v.as_object()) {
-                    let inner_matches = match_constraint_value(not_schema, val);
-                    return !inner_matches;
-                }
-                match_constraint_value(constraint_obj, val)
+            let matches_enum = enum_values.iter().any(|expected| {
+                scalar_eq(expected, value)
+                    || expected
+                        .as_str()
+                        .zip(value.as_str())
+                        .is_some_and(|(left, right)| left.eq_ignore_ascii_case(right))
             });
-            if !any_match {
-                return false;
+            if matches_enum {
+                continue;
             }
+            let Some(world) = try_merge_assignments(assignment, conditions) else {
+                continue;
+            };
+            let rule_id = extension_constraint_rule_id(&res.resource_type, property_name).unwrap_or("E9006");
+            let message = if rule_id == "E3720" {
+                format!("StorageEncrypted must be true when KmsKeyId is specified, found {}", render_value(value))
+            } else {
+                let allowed = render_str_list(enum_values.iter().filter_map(|allowed| allowed.as_str()));
+                format!("'{}' is not one of {allowed}", coerce_to_string(value).unwrap_or_default())
+            };
+            out.push(build_diagnostic_conditional(
+                rule_id,
+                &message,
+                model,
+                rid,
+                &property_path,
+                None,
+                assignment_condition_map(&world),
+            ));
         }
     }
-    true
 }
 
 fn resolve_data_in_schema(schema: &serde_json::Value, context: &serde_json::Value) -> serde_json::Value {
@@ -6395,6 +6424,73 @@ mod tests {
         assert!(
             diagnostics.iter().all(|d| d.rule_id != "F3034"),
             "the unconditional 5400 bound is not exceeded, so no Fatal bound finding: {diagnostics:?}"
+        );
+    }
+
+    fn network_interface_schema_with_value_qualified_exclusion() -> serde_json::Value {
+        json!({
+            "typeName": "AWS::Test::NetworkInterface",
+            "properties": {
+                "Ipv6AddressCount": { "type": "integer" },
+                "Ipv6Addresses": { "type": "array", "items": { "type": "string" } }
+            },
+            "allOf": [{
+                "not": {
+                    "properties": {
+                        "Ipv6AddressCount": { "minimum": 1, "type": "integer" },
+                        "Ipv6Addresses": { "minItems": 1, "type": "array" }
+                    },
+                    "required": ["Ipv6AddressCount", "Ipv6Addresses"]
+                }
+            }]
+        })
+    }
+
+    #[test]
+    fn negated_property_pair_reports_only_when_both_value_guards_match() {
+        let template = json!({
+            "Resources": {
+                "Violating": {
+                    "Type": "AWS::Test::NetworkInterface",
+                    "Properties": { "Ipv6AddressCount": 1, "Ipv6Addresses": ["2001:db8::1"] }
+                },
+                "ZeroCount": {
+                    "Type": "AWS::Test::NetworkInterface",
+                    "Properties": { "Ipv6AddressCount": 0, "Ipv6Addresses": ["2001:db8::1"] }
+                },
+                "EmptyAddresses": {
+                    "Type": "AWS::Test::NetworkInterface",
+                    "Properties": { "Ipv6AddressCount": 1, "Ipv6Addresses": [] }
+                },
+                "CountOnly": {
+                    "Type": "AWS::Test::NetworkInterface",
+                    "Properties": { "Ipv6AddressCount": 1 }
+                },
+                "AddressesOnly": {
+                    "Type": "AWS::Test::NetworkInterface",
+                    "Properties": { "Ipv6Addresses": ["2001:db8::1"] }
+                }
+            }
+        });
+        let diagnostics = diagnostics_for_template(
+            &store_with_bundled_schema(
+                "AWS::Test::NetworkInterface",
+                network_interface_schema_with_value_qualified_exclusion(),
+            ),
+            template,
+        );
+        let mut exclusions: Vec<(&str, &str)> = diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.rule_id == "F3020")
+            .map(|diagnostic| {
+                (diagnostic.resource_logical_id().unwrap_or(""), diagnostic.property_path.as_deref().unwrap_or(""))
+            })
+            .collect();
+        exclusions.sort_unstable();
+
+        assert_eq!(
+            exclusions,
+            vec![("Violating", "Properties.Ipv6AddressCount"), ("Violating", "Properties.Ipv6Addresses")]
         );
     }
 

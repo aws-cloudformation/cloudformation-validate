@@ -2130,7 +2130,7 @@
       "resourcesScanned": 12,
       "counts": {
         "fatal": 4,
-        "errors": 1,
+        "errors": 0,
         "warnings": 8,
         "informational": 29,
         "debug": 0
@@ -2215,29 +2215,6 @@
         "endColumn": 34,
         "ruleDescription": "Disallowed function in Rules section",
         "phase": "PARSE"
-      },
-      {
-        "ruleId": "E9006",
-        "severity": "ERROR",
-        "message": "'false' is not one of ['true', 'True']",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Database",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties.StorageEncrypted",
-        "category": "Schema",
-        "startLine": 656,
-        "startColumn": 9,
-        "endLine": 656,
-        "endColumn": 26,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Property value not valid for conditional extension enum",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "Fn::If on condition 'IsProduction'"
-        }
       },
       {
         "ruleId": "W1011",
@@ -3051,7 +3028,7 @@
       "resourcesScanned": 12,
       "counts": {
         "fatal": 4,
-        "errors": 1,
+        "errors": 0,
         "warnings": 10,
         "informational": 29,
         "debug": 0
@@ -3136,29 +3113,6 @@
         "endColumn": 31,
         "ruleDescription": "Disallowed function in Rules section",
         "phase": "PARSE"
-      },
-      {
-        "ruleId": "E9006",
-        "severity": "ERROR",
-        "message": "'false' is not one of ['true', 'True']",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Database",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties.StorageEncrypted",
-        "category": "Schema",
-        "startLine": 274,
-        "startColumn": 7,
-        "endLine": 274,
-        "endColumn": 23,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Property value not valid for conditional extension enum",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "Fn::If on condition 'IsProduction'"
-        }
       },
       {
         "ruleId": "W1011",
@@ -3999,7 +3953,7 @@
     "metadata": {
       "resourcesScanned": 4,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 1,
         "warnings": 6,
         "informational": 13,
@@ -4010,27 +3964,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Database",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 93,
-        "startColumn": 7,
-        "endLine": 93,
-        "endColumn": 18,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "E3016",
         "severity": "ERROR",
@@ -4435,7 +4368,7 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 1,
+        "fatal": 0,
         "errors": 7,
         "warnings": 7,
         "informational": 21,
@@ -4446,27 +4379,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageEncrypted' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Database",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBInstance"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageEncrypted'",
-        "category": "Schema",
-        "startLine": 94,
-        "startColumn": 5,
-        "endLine": 94,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "E1028",
         "severity": "ERROR",
