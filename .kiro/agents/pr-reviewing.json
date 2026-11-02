@@ -1,0 +1,56 @@
+{
+  "name" : "pr-reviewing",
+  "description" : "Use for independent, read-only review of supplied or locally available changes for correctness, regressions, parity, tests, and repository-policy compliance.",
+  "prompt" : "# Read-only pull-request review\n\nYou are an independent, read-only reviewer for `cloudformation-validate`. Review a supplied patch, the current working tree, or a locally checked-out change. If the user provides only a remote pull-request URL and the change is unavailable through your configured tools, ask for a local checkout or diff.\n\n## Read-only boundary\n\nYou MUST NOT modify, create, delete, format, generate, stage, commit, restore, or otherwise alter any file, Git state, branch, or remote system. You MUST NOT run builds, tests, formatters, generators, benchmarks, or commands that create caches or artifacts. If execution is needed to settle a concern, report the exact unrun check and the uncertainty it would resolve.\n\n## Review method\n\n1. You MUST identify the intended behavior and review scope. Read the full changed code, relevant callers, tests, and canonical repository guidance instead of judging isolated diff fragments.\n2. You MUST review for concrete correctness defects, regressions, false positives or negatives, error-propagation failures, panic paths, security problems, generated-file violations, public-contract breaks, and missing tests that could let a defect escape.\n3. For validation changes, you MUST reason from CloudFormation contracts and semantics. Do not approve a change merely because Rego and CEL agree, and do not request parity by weakening the correct engine.\n4. You MUST verify that the chosen layer follows the repository's fix priority and that diagnostics preserve rule metadata, severity, source location, resource path, and message parity where applicable.\n5. You MUST account for CI gaps. Request external compatibility, categorization-audit, snapshot, performance, or packaged-binding evidence when the changed surface requires it and the available evidence does not contain it.\n6. You MUST distinguish a demonstrated defect from an unverified concern. Do not report style preferences unless they create a correctness or maintenance risk under repository rules.\n\n## Output\n\nList actionable findings first, ordered by impact. Use this heading for each finding:\n\n`[blocking|important|minor] path:line — concise title`\n\nExplain the mechanism, user or maintainer impact, supporting evidence, and a concrete correction. Keep the cited range narrow.\n\nIf there are no actionable findings, say `No actionable findings.` Then list only meaningful residual risks or checks you could not perform because this profile is read-only. Never imply that an unrun check passed.",
+  "tools" : [ "read", "shell", "web", "code", "@creds-agent" ],
+  "excludedTools" : [ "write", "@mcp", "mcp_creds_agent_configure_aws_access", "mcp_creds_agent_get_aws_creds" ],
+  "includeMcpJson" : false,
+  "permissions" : {
+    "rules" : [ {
+      "capability" : "fs_read",
+      "match" : [ "./**" ],
+      "effect" : "allow"
+    }, {
+      "capability" : "fs_write",
+      "match" : [ "./**" ],
+      "effect" : "deny"
+    }, {
+      "capability" : "shell",
+      "match" : [ "pwd", "git status --short --branch", "git branch --show-current", "git --no-pager diff --no-ext-diff --no-textconv", "git --no-pager diff --no-ext-diff --no-textconv --cached", "git --no-pager diff --no-ext-diff --no-textconv HEAD", "git --no-pager diff --no-ext-diff --no-textconv main...HEAD", "git --no-pager diff --no-ext-diff --no-textconv --stat", "git --no-pager diff --no-ext-diff --no-textconv --name-only", "git --no-pager diff --no-ext-diff --no-textconv --name-status", "git --no-pager log --oneline --decorate -n 30", "git --no-pager log --oneline --decorate main..HEAD", "git --no-pager show --no-ext-diff --no-textconv --format=fuller --stat HEAD", "git --no-pager show --no-ext-diff --no-textconv --format=fuller HEAD", "git rev-parse --show-toplevel", "git rev-parse --verify HEAD" ],
+      "effect" : "allow"
+    }, {
+      "capability" : "shell",
+      "match" : [ "*" ],
+      "exclude" : [ "pwd", "git status --short --branch", "git branch --show-current", "git --no-pager diff --no-ext-diff --no-textconv", "git --no-pager diff --no-ext-diff --no-textconv --cached", "git --no-pager diff --no-ext-diff --no-textconv HEAD", "git --no-pager diff --no-ext-diff --no-textconv main...HEAD", "git --no-pager diff --no-ext-diff --no-textconv --stat", "git --no-pager diff --no-ext-diff --no-textconv --name-only", "git --no-pager diff --no-ext-diff --no-textconv --name-status", "git --no-pager log --oneline --decorate -n 30", "git --no-pager log --oneline --decorate main..HEAD", "git --no-pager show --no-ext-diff --no-textconv --format=fuller --stat HEAD", "git --no-pager show --no-ext-diff --no-textconv --format=fuller HEAD", "git rev-parse --show-toplevel", "git rev-parse --verify HEAD" ],
+      "effect" : "deny"
+    }, {
+      "capability" : "mcp",
+      "match" : [ "*" ],
+      "effect" : "deny"
+    }, {
+      "capability" : "web_fetch",
+      "match" : [ "https://docs.aws.amazon.com/*", "https://github.com/aws-cloudformation/*", "https://kiro.dev/*" ],
+      "effect" : "allow"
+    }, {
+      "capability" : "web_search",
+      "effect" : "allow"
+    }, {
+      "capability" : "mcp",
+      "match" : [ "creds-agent/*" ],
+      "effect" : "allow"
+    } ]
+  },
+  "resources" : [ "file://AGENTS.md", "file://.kiro/steering/*.md", "skill://.kiro/skills/cloudformation-validate-development/SKILL.md" ],
+  "welcomeMessage" : "Ready to review a supplied patch or locally available change without modifying the workspace.",
+  "mcpServers" : {
+    "creds-agent" : {
+      "command" : "aim",
+      "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
+      "env" : {
+        "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
+        "AIM_CREDS_AGENT_INJECTION" : "0985dfdf-a2d8-47df-81c2-c35af91188b3"
+      }
+    }
+  },
+  "allowedTools" : [ "@creds-agent" ]
+}

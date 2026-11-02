@@ -5,6 +5,7 @@ AWS CloudFormation templates: parse JSON/YAML → structured diagnostics (schema
 best-practice). Rules + schemas compile into the binary - no network, no credentials. Ships as a Rust CLI,
 Rust library, Node WASM package, Python package, Go module, and JVM (Kotlin/Java) library over one shared core.
 
+Read `AGENTS.md` for shared repository guidance and the authoring, development, and pull-request-review role boundaries.
 Deeper architecture notes live in `.kiro/steering/` (`product.md`, `structure.md`, `tech.md`, `private-context.md`,
 and `version-control.md`).
 
