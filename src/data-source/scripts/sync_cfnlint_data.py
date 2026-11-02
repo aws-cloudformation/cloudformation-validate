@@ -279,7 +279,6 @@ def extract_rule_tables(cfn_lint_root: Path) -> dict:
     from cfnlint.rules.resources.apigateway.RestApiMixingDefinitions import RestApiMixingDefinitions
     from cfnlint.rules.resources.ectwo.EbsIopsIgnored import EbsIopsIgnored, _no_iops_volume_types
     from cfnlint.rules.resources.iam.ResourcePolicy import ResourcePolicy
-    from cfnlint.rules.resources.iam.RoleArnPattern import RoleArnPattern
     from cfnlint.rules.resources.lmbd.SnapStartEnabled import SnapStartEnabled
     from cfnlint.rules.resources.lmbd.SnapStartSupported import SnapStartSupported
     from cfnlint.rules.resources.lmbd.ZipPackageRequiredProperties import ZipPackageRequiredProperties
@@ -302,7 +301,6 @@ def extract_rule_tables(cfn_lint_root: Path) -> dict:
         "api_gateway_mixing_resource_types": api_gateway_rule._mix_types,
         "ebs_iops_ignored_volume_types": sorted(_no_iops_volume_types),
         "ebs_iops_property_paths": EbsIopsIgnored().keywords,
-        "iam_role_arn_property_paths": RoleArnPattern().keywords,
         "image_id_parameter_types": extract_enum_list(image_id_rule.validate),
         "image_id_property_paths": image_id_rule.keywords,
         "lambda_zip_required_properties": extract_local_list(

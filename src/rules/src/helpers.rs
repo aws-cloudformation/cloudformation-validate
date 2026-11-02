@@ -87,6 +87,7 @@ pub fn format_rule_for_format(format: &str) -> Option<&'static str> {
         "AWS::EC2::Subnet.Id" => Some("E1154"),
         "AWS::Logs::LogGroup.Name" => Some("E1155"),
         "AWS::IAM::Role.Arn" => Some("E1156"),
+        "AWS::IAM::Role.Name" => Some("E1165"),
         _ => None,
     }
 }
@@ -231,6 +232,7 @@ mod tests {
         assert_eq!(format_rule_for_format("AWS::EC2::Subnet.Id"), Some("E1154"));
         assert_eq!(format_rule_for_format("AWS::Logs::LogGroup.Name"), Some("E1155"));
         assert_eq!(format_rule_for_format("AWS::IAM::Role.Arn"), Some("E1156"));
+        assert_eq!(format_rule_for_format("AWS::IAM::Role.Name"), Some("E1165"));
     }
 
     #[test]

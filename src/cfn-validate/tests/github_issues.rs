@@ -1297,32 +1297,22 @@ fn w9007_still_fires_when_two_entries_read_one_deploy_time_value() {
 }
 
 // ---------------------------------------------------------------------------
-// Issue #36 - the IAM-role-ARN checks use a future-proof `arn:aws[a-zA-Z-]*`
-// partition prefix, so ADC-partition ARNs no longer false-positive and the two
-// engines agree. The committed fixture uses `arn:aws-iso:` (snapshot-compatible);
-// the previously-divergent E3511 path is exercised here with inline bytes using
-// `arn:aws-isob:`, which both engines must now accept identically.
+// Issue #36 - IAM role ARN formats accept `aws`-prefixed partitions without a fixed allowlist.
 // ---------------------------------------------------------------------------
 
-/// Issue #36: the schema-validator's `AWS::IAM::Role.Arn` format check (E1156)
-/// must not fire on an `arn:aws-iso:` ADC-partition ARN in either engine - the
-/// partition list is no longer hardcoded.
+/// An `arn:aws-iso:` role ARN must be accepted without a partition allowlist.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/36
 #[test]
-fn issue_36_no_e1156_on_iso_partition_arn() {
-    let diags = validate_all("issue-36.yaml");
-    assert_absent(&diags, "E1156");
-    assert_count(&diags, "E1156", 0);
+fn issue_36_no_role_arn_format_error_on_iso_partition() {
+    let diagnostics = validate_all("issue-36.yaml");
+    assert_absent(&diagnostics, "E1156");
+    assert_count(&diagnostics, "E1156", 0);
 }
 
-/// Issue #36 (continued): the engine ARN rule (E3511) and the schema-validator
-/// format check (E1156) both accept an `arn:aws-isob:` ARN, and the two engines
-/// agree - the prior rego/cel divergence (CEL hardcoded the partition list) is
-/// gone. A genuinely malformed ARN still fires E3511 in both engines, so the
-/// future-proof prefix did not become a catch-all.
+/// An AWS partition outside a fixed allowlist is accepted while a malformed role ARN remains rejected at engine parity.
 /// https://github.com/aws-cloudformation/cloudformation-validate/issues/36
 #[test]
-fn issue_36_isob_partition_arn_accepted_at_parity() {
+fn issue_36_future_partition_arn_accepted_at_parity() {
     const VALID: &[u8] = br#"
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
@@ -1331,18 +1321,18 @@ Resources:
     Properties:
       ExecutionRoleArn: arn:aws-isob:iam::123456789012:role/my-task-role
 "#;
-    let sv = SchemaValidator::default();
-    let rego = validate_bytes(&*REGO, &sv, VALID, debug_config()).unwrap().diagnostics;
-    let cel = validate_bytes(&*CEL, &sv, VALID, debug_config()).unwrap().diagnostics;
-    let composite = validate_bytes(&*COMPOSITE, &sv, VALID, debug_config()).unwrap().diagnostics;
+    let schema_validator = SchemaValidator::default();
+    let rego = validate_bytes(&*REGO, &schema_validator, VALID, debug_config()).unwrap().diagnostics;
+    let cel = validate_bytes(&*CEL, &schema_validator, VALID, debug_config()).unwrap().diagnostics;
+    let composite = validate_bytes(&*COMPOSITE, &schema_validator, VALID, debug_config()).unwrap().diagnostics;
 
-    for (name, d) in [("rego", &rego), ("cel", &cel), ("composite", &composite)] {
-        assert!(!d.iter().any(|x| x.rule_id == "E1156"), "[{name}] E1156 must not fire on an aws-isob ARN");
-        assert!(!d.iter().any(|x| x.rule_id == "E3511"), "[{name}] E3511 must not fire on an aws-isob ARN");
+    for (engine_name, diagnostics) in [("rego", &rego), ("cel", &cel), ("composite", &composite)] {
+        assert!(
+            !diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "E1156"),
+            "[{engine_name}] role ARN format must accept an aws-isob ARN"
+        );
     }
 
-    // A malformed ARN (no partition at all) must still be rejected by E3511 in
-    // both engines - the future-proof prefix is not a catch-all.
     const MALFORMED: &[u8] = br#"
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
@@ -1351,12 +1341,15 @@ Resources:
     Properties:
       ExecutionRoleArn: not-an-arn
 "#;
-    let rego_bad = validate_bytes(&*REGO, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
-    let cel_bad = validate_bytes(&*CEL, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
-    let composite_bad = validate_bytes(&*COMPOSITE, &sv, MALFORMED, debug_config()).unwrap().diagnostics;
-    assert!(rego_bad.iter().any(|d| d.rule_id == "E3511"), "rego must still fire E3511 on a malformed ARN");
-    assert!(cel_bad.iter().any(|d| d.rule_id == "E3511"), "cel must still fire E3511 on a malformed ARN");
-    assert!(composite_bad.iter().any(|d| d.rule_id == "E3511"), "composite must still fire E3511 on a malformed ARN");
+    let rego_bad = validate_bytes(&*REGO, &schema_validator, MALFORMED, debug_config()).unwrap().diagnostics;
+    let cel_bad = validate_bytes(&*CEL, &schema_validator, MALFORMED, debug_config()).unwrap().diagnostics;
+    let composite_bad = validate_bytes(&*COMPOSITE, &schema_validator, MALFORMED, debug_config()).unwrap().diagnostics;
+    for (engine_name, diagnostics) in [("rego", &rego_bad), ("cel", &cel_bad), ("composite", &composite_bad)] {
+        assert!(
+            diagnostics.iter().any(|diagnostic| diagnostic.rule_id == "E1156"),
+            "[{engine_name}] malformed role ARN must be rejected"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
