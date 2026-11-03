@@ -335,7 +335,7 @@ fn lifecycle_w2531_deprecated_runtime() {
     let w2531 = diags_for(&diags, "W2531");
     assert!(w2531.iter().any(|diagnostic| {
         diagnostic.message
-            == "Runtime 'nodejs16.x' was deprecated on '2024-06-12'. Creation will be disabled on '2027-02-01', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'"
+            == "Runtime 'nodejs16.x' was deprecated on '2024-06-12'. Creation will be disabled on '2027-07-29', and updates will be disabled on '2027-08-31'. Please consider updating to 'nodejs24.x'"
     }));
 }
 
@@ -359,7 +359,7 @@ Resources:
 
     assert_eq!(
         finding.message,
-        "Runtime 'nodejs14.x' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09', and updates will be disabled on '2027-03-03'. Please consider updating to 'nodejs24.x'"
+        "Runtime 'nodejs14.x' was deprecated on '2023-12-04'. Creation was disabled on '2024-01-09', and updates will be disabled on '2027-08-31'. Please consider updating to 'nodejs24.x'"
     );
 }
 

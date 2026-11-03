@@ -778,12 +778,7 @@ fn collect_condition_property_names(condition: &ConditionSchema, names: &mut BTr
     names.extend(condition.properties.keys().cloned());
     names.extend(condition.required.iter().cloned());
     names.extend(condition.absent.iter().cloned());
-    for sub_condition in condition
-        .all_of
-        .iter()
-        .chain(condition.any_of.iter())
-        .chain(condition.one_of.iter())
-    {
+    for sub_condition in condition.all_of.iter().chain(condition.any_of.iter()).chain(condition.one_of.iter()) {
         collect_condition_property_names(sub_condition, names);
     }
     if let Some(negated) = &condition.not {
@@ -2114,27 +2109,17 @@ fn condition_schema_value_matches(
     }
 
     if !cond.all_of.is_empty()
-        && !cond
-            .all_of
-            .iter()
-            .all(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
+        && !cond.all_of.iter().all(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
     {
         return false;
     }
     if !cond.any_of.is_empty()
-        && !cond
-            .any_of
-            .iter()
-            .any(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
+        && !cond.any_of.iter().any(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
     {
         return false;
     }
     if !cond.one_of.is_empty()
-        && cond
-            .one_of
-            .iter()
-            .filter(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1))
-            .count()
+        && cond.one_of.iter().filter(|sub| condition_schema_value_matches(sub, obj, obj_keys, defs, depth + 1)).count()
             != 1
     {
         return false;
@@ -4695,10 +4680,7 @@ fn condition_matches_at(
     base_path: &str,
 ) -> bool {
     if !cond.all_of.is_empty()
-        && !cond
-            .all_of
-            .iter()
-            .all(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path))
+        && !cond.all_of.iter().all(|sub| condition_matches_at(sub, actual_keys, m, rid, defs, base_path))
     {
         return false;
     }
