@@ -2,12 +2,12 @@ package structure
 
 import rego.v1
 
-violation contains make_diag("F0001", "FATAL", "", "Resources section must exist and be non-empty") if {
+violation contains make_diag_full("F0001", "FATAL", "", "Resources", "Resources section must exist and be non-empty", "", "") if {
     cfn_rule_active("F0001")
     not input.resources
 }
 
-violation contains make_diag("F0001", "FATAL", "", "Resources section must exist and be non-empty") if {
+violation contains make_diag_full("F0001", "FATAL", "", "Resources", "Resources section must exist and be non-empty", "", "") if {
     cfn_rule_active("F0001")
     count(input.resources) == 0
 }

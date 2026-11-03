@@ -17100,6 +17100,7 @@
         "severity": "FATAL",
         "message": "Resources section must exist and be non-empty",
         "source": "SCHEMA",
+        "propertyPath": "Resources",
         "category": "Structure",
         "ruleDescription": "Resources section must exist and be non-empty",
         "phase": "SCHEMA"

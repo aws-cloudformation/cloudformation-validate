@@ -15205,6 +15205,7 @@
         "severity": "FATAL",
         "message": "Resources section must exist and be non-empty",
         "source": "SCHEMA",
+        "propertyPath": "Resources",
         "category": "Structure",
         "startLine": 21,
         "startColumn": 1,
