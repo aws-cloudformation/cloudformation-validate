@@ -10068,7 +10068,7 @@
       "counts": {
         "fatal": 0,
         "errors": 11,
-        "warnings": 4,
+        "warnings": 2,
         "informational": 25,
         "debug": 0
       },
@@ -10288,36 +10288,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'no_artifacts' is not one of ['CODEPIPELINE', 'NO_ARTIFACTS', 'S3']",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Project1",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Artifacts.Type",
-        "category": "Schema",
-        "startLine": 171,
-        "startColumn": 9,
-        "endLine": 171,
-        "endColumn": 13,
-        "ruleDescription": "Value not in allowed enum",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "no_artifacts",
-          "extra": {
-            "allowed_values": [
-              "CODEPIPELINE",
-              "NO_ARTIFACTS",
-              "S3"
-            ]
-          }
-        }
-      },
-      {
-        "ruleId": "W3030",
-        "severity": "WARN",
-        "message": "'varType' is not one of ['PARAMETER_STORE', 'PLAINTEXT', 'SECRETS_MANAGER']",
+        "message": "'varType' is not one of ['PARAMETER_STORE', 'PLAINTEXT', 'SECRETS_MANAGER'] (case-insensitive)",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Project1",
@@ -10346,36 +10317,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'no_artifacts' is not one of ['CODEPIPELINE', 'NO_ARTIFACTS', 'S3']",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Project2",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodeBuild::Project"
-        },
-        "propertyPath": "Properties.Artifacts.Type",
-        "category": "Schema",
-        "startLine": 191,
-        "startColumn": 9,
-        "endLine": 191,
-        "endColumn": 13,
-        "ruleDescription": "Value not in allowed enum",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "no_artifacts",
-          "extra": {
-            "allowed_values": [
-              "CODEPIPELINE",
-              "NO_ARTIFACTS",
-              "S3"
-            ]
-          }
-        }
-      },
-      {
-        "ruleId": "W3030",
-        "severity": "WARN",
-        "message": "'varType' is not one of ['PARAMETER_STORE', 'PLAINTEXT', 'SECRETS_MANAGER']",
+        "message": "'varType' is not one of ['PARAMETER_STORE', 'PLAINTEXT', 'SECRETS_MANAGER'] (case-insensitive)",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "Project2",

@@ -164,6 +164,9 @@ pub fn process_schemas(upstream_dir: &Path, generated_dir: &Path, handwritten_di
     }
     info!("Applied extensions to {} schemas", ext_count);
 
+    let case_insensitive_enums = promote_uppercase_transformed_enums(&mut raw_schemas)?;
+    info!("Promoted {} transformed enums to case-insensitive matching", case_insensitive_enums);
+
     // Run after the extension merge: some dependentExcluded constraints arrive as
     // extension fragments (the same fragments that back a dedicated engine rule),
     // so stripping them earlier would miss them and leave a duplicate finding.
@@ -432,6 +435,104 @@ fn generate_getatt_data(
         .unwrap()
 }
 
+fn follow_local_schema_refs(schema: &serde_json::Value, pointer: &str) -> Option<String> {
+    let mut current_pointer = pointer.to_string();
+    let mut visited = HashSet::new();
+    loop {
+        if !visited.insert(current_pointer.clone()) {
+            return None;
+        }
+        let current = schema.pointer(&current_pointer)?;
+        let Some(reference) = current.get("$ref").and_then(|value| value.as_str()) else {
+            return Some(current_pointer);
+        };
+        current_pointer = reference.strip_prefix('#')?.to_string();
+    }
+}
+
+fn transformed_property_schema_pointer(schema: &serde_json::Value, transformed_path: &str) -> Option<String> {
+    let mut segments = transformed_path.trim_start_matches('/').split('/');
+    if segments.next() != Some("properties") {
+        return None;
+    }
+
+    let mut pointer = String::new();
+    for segment in segments {
+        pointer = follow_local_schema_refs(schema, &pointer)?;
+        if segment == "*" {
+            pointer.push_str("/items");
+        } else {
+            let escaped = segment.replace('~', "~0").replace('/', "~1");
+            pointer.push_str("/properties/");
+            pointer.push_str(&escaped);
+        }
+        schema.pointer(&pointer)?;
+    }
+    follow_local_schema_refs(schema, &pointer)
+}
+
+fn promote_uppercase_transformed_enums(raw_schemas: &mut HashMap<String, serde_json::Value>) -> anyhow::Result<usize> {
+    let mut promoted = 0;
+    for (type_name, schema) in raw_schemas {
+        let transformed_paths: Vec<String> = schema
+            .get("propertyTransform")
+            .and_then(|value| value.as_object())
+            .into_iter()
+            .flatten()
+            .filter_map(|(path, transform)| {
+                transform.as_str().is_some_and(|expression| expression.starts_with("$uppercase(")).then(|| path.clone())
+            })
+            .collect();
+        let mut enum_pointers = BTreeSet::new();
+        for transformed_path in transformed_paths {
+            let pointer = transformed_property_schema_pointer(schema, &transformed_path).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "resource type '{}' has an unresolved uppercase propertyTransform path '{}'",
+                    type_name,
+                    transformed_path
+                )
+            })?;
+            let property = schema.pointer(&pointer).ok_or_else(|| {
+                anyhow::anyhow!("resource type '{}' has no schema at transformed path '{}'", type_name, pointer)
+            })?;
+            if property.get("enum").is_some() || property.get("enumCaseInsensitive").is_some() {
+                enum_pointers.insert(pointer);
+            }
+        }
+
+        for pointer in enum_pointers {
+            let property = schema.pointer_mut(&pointer).and_then(|value| value.as_object_mut()).ok_or_else(|| {
+                anyhow::anyhow!("resource type '{}' has no schema object at '{}'", type_name, pointer)
+            })?;
+            let exact_values = property.get("enum").cloned();
+            let case_insensitive_values = property.get("enumCaseInsensitive").cloned();
+            anyhow::ensure!(
+                !(exact_values.is_some() && case_insensitive_values.is_some()),
+                "resource type '{}' property '{}' contains both enum forms",
+                type_name,
+                pointer
+            );
+            let values = exact_values.as_ref().or(case_insensitive_values.as_ref()).ok_or_else(|| {
+                anyhow::anyhow!("resource type '{}' property '{}' has no enum values", type_name, pointer)
+            })?;
+            anyhow::ensure!(
+                values.as_array().is_some_and(|entries| {
+                    !entries.is_empty() && entries.iter().all(|entry| entry.as_str().is_some())
+                }),
+                "resource type '{}' property '{}' must contain a non-empty string enum",
+                type_name,
+                pointer
+            );
+            if let Some(values) = exact_values {
+                property.remove("enum");
+                property.insert("enumCaseInsensitive".to_string(), values);
+                promoted += 1;
+            }
+        }
+    }
+    Ok(promoted)
+}
+
 /// Reads the GetAtt attribute additions (extracted from cfn-lint during sync)
 /// Removes `dependentExcluded` trigger properties that a dedicated engine rule
 /// already enforces, so the schema validator's generic mutually-exclusive check
@@ -682,6 +783,85 @@ mod tests {
             "an empty enum list defers to the case-insensitive values"
         );
         assert_eq!(extract_property_enum(&json!({"type": "string"})), None);
+    }
+
+    #[test]
+    fn uppercase_transforms_promote_shared_and_nested_enums() {
+        let mut schemas = HashMap::from([(
+            "AWS::CodeBuild::Project".to_string(),
+            json!({
+                "properties": {
+                    "Artifacts": { "$ref": "#/definitions/Artifacts" },
+                    "SecondaryArtifacts": {
+                        "type": "array",
+                        "items": { "$ref": "#/definitions/Artifacts" }
+                    },
+                    "Environment": { "$ref": "#/definitions/Environment" },
+                    "Untransformed": { "enum": ["EXACT"] }
+                },
+                "definitions": {
+                    "Artifacts": { "properties": { "Type": { "enum": ["NO_ARTIFACTS", "S3"] } } },
+                    "Environment": {
+                        "properties": {
+                            "EnvironmentVariables": {
+                                "type": "array",
+                                "items": { "$ref": "#/definitions/EnvironmentVariable" }
+                            }
+                        }
+                    },
+                    "EnvironmentVariable": { "properties": { "Type": { "enum": ["PLAINTEXT"] } } }
+                },
+                "propertyTransform": {
+                    "/properties/Artifacts/Type": "$uppercase(Type)",
+                    "/properties/SecondaryArtifacts/*/Type": "$uppercase(Type)",
+                    "/properties/Environment/EnvironmentVariables/*/Type": "$uppercase(Type)"
+                }
+            }),
+        )]);
+
+        let promoted = promote_uppercase_transformed_enums(&mut schemas).unwrap();
+
+        assert_eq!(promoted, 2, "the two artifact paths share one schema definition");
+        let project = &schemas["AWS::CodeBuild::Project"];
+        let artifacts_type = project.pointer("/definitions/Artifacts/properties/Type").unwrap();
+        let environment_type = project.pointer("/definitions/EnvironmentVariable/properties/Type").unwrap();
+        assert_eq!(artifacts_type["enumCaseInsensitive"], json!(["NO_ARTIFACTS", "S3"]));
+        assert!(artifacts_type.get("enum").is_none());
+        assert_eq!(environment_type["enumCaseInsensitive"], json!(["PLAINTEXT"]));
+        assert!(environment_type.get("enum").is_none());
+        assert_eq!(project["properties"]["Untransformed"]["enum"], json!(["EXACT"]));
+    }
+
+    #[test]
+    fn uppercase_transform_preserves_an_existing_case_insensitive_enum() {
+        let mut schemas = HashMap::from([(
+            "AWS::Test::Type".to_string(),
+            json!({
+                "properties": { "Mode": { "enumCaseInsensitive": ["ENABLED"] } },
+                "propertyTransform": { "/properties/Mode": "$uppercase(Mode)" }
+            }),
+        )]);
+
+        let promoted = promote_uppercase_transformed_enums(&mut schemas).unwrap();
+
+        assert_eq!(promoted, 0);
+        assert_eq!(schemas["AWS::Test::Type"]["properties"]["Mode"]["enumCaseInsensitive"], json!(["ENABLED"]));
+    }
+
+    #[test]
+    fn uppercase_transform_rejects_an_unresolved_property_path() {
+        let mut schemas = HashMap::from([(
+            "AWS::Test::Type".to_string(),
+            json!({
+                "properties": {},
+                "propertyTransform": { "/properties/Missing": "$uppercase(Missing)" }
+            }),
+        )]);
+
+        let error = promote_uppercase_transformed_enums(&mut schemas)
+            .expect_err("a stale propertyTransform path must fail generation");
+
+        assert!(error.to_string().contains("/properties/Missing"), "{error}");
     }
 
     #[test]
