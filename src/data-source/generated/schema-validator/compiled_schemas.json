@@ -80462,7 +80462,7 @@
           },
           "NamespaceType": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "BUILD_ID",
               "NONE"
             ]
@@ -80472,7 +80472,7 @@
           },
           "Packaging": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "NONE",
               "ZIP"
             ]
@@ -80482,7 +80482,7 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "CODEPIPELINE",
               "NO_ARTIFACTS",
               "S3"
@@ -80537,7 +80537,7 @@
           },
           "Status": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "DISABLED",
               "ENABLED"
             ]
@@ -80637,7 +80637,7 @@
           },
           "ImagePullCredentialsType": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "CODEBUILD",
               "SERVICE_ROLE"
             ]
@@ -80650,7 +80650,7 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "ARM_CONTAINER",
               "ARM_EC2",
               "ARM_LAMBDA_CONTAINER",
@@ -80682,7 +80682,7 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "PARAMETER_STORE",
               "PLAINTEXT",
               "SECRETS_MANAGER"
@@ -80733,7 +80733,7 @@
         "properties": {
           "BatchReportMode": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "REPORT_AGGREGATED_BATCH",
               "REPORT_INDIVIDUAL_BUILDS"
             ]
@@ -80767,7 +80767,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
+              "enum_case_insensitive": [
                 "LOCAL_CUSTOM_CACHE",
                 "LOCAL_DOCKER_LAYER_CACHE",
                 "LOCAL_SOURCE_CACHE"
@@ -80776,7 +80776,7 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "LOCAL",
               "NO_CACHE",
               "S3"
@@ -80805,7 +80805,7 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "EFS"
             ]
           }
@@ -80893,7 +80893,7 @@
           },
           "CredentialProvider": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "SECRETS_MANAGER"
             ]
           }
@@ -80915,7 +80915,7 @@
           },
           "Status": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "DISABLED",
               "ENABLED"
             ]
@@ -80977,7 +80977,7 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "BITBUCKET",
               "CODECOMMIT",
               "CODEPIPELINE",
@@ -81003,7 +81003,7 @@
           },
           "Type": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "CODECONNECTIONS",
               "OAUTH",
               "SECRETS_MANAGER"
@@ -123547,7 +123547,11 @@
       {
         "condition": {
           "properties": {
-            "BillingMode": {}
+            "BillingMode": {
+              "not_enum": [
+                "PAY_PER_REQUEST"
+              ]
+            }
           }
         },
         "then_schema": {
@@ -146981,7 +146985,7 @@
         "properties": {
           "ReplicationOverwriteProtection": {
             "type": "string",
-            "enum": [
+            "enum_case_insensitive": [
               "DISABLED",
               "ENABLED"
             ]

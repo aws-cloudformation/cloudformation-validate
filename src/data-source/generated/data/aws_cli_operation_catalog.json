@@ -63754,7 +63754,7 @@
   "aws_cli_version": "2.39.3",
   "botocore_service_count": 437,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "421dd7dc9e30e2118dcb899738784af9fb7e98cbfd514b7a3c09e265d04678c5",
+  "compiled_schemas_sha256": "e72a47aa204fbc35561b61ab8716947bd1e8602ebbd4d310d3e0d730fb8fa5a2",
   "compiled_type_count": 1920,
   "provider_schemas_sha256": "4607fc21c6f6a624e82183b0e17fd040eba5fc2f1a11f8a97755bf36635180e3",
   "provider_type_count": 1918
