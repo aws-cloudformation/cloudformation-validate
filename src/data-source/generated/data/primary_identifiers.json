@@ -376,6 +376,9 @@
       "DomainName",
       "SegmentDefinitionName"
     ],
+    "AWS::DAX::Cluster": [
+      "ClusterName"
+    ],
     "AWS::DAX::ParameterGroup": [
       "ParameterGroupName"
     ],

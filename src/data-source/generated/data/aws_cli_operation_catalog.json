@@ -1701,7 +1701,13 @@
     },
     {
      "source": "kmsArn",
-     "target": "KMSArn"
+     "target": "KMSArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:kms:.*:[0-9]+:.*)$",
+       "cloudformation": "arn:aws[a-z\\-]*:kms:.*:[0-9]+:.*"
+      }
+     }
     }
    ],
    "operation": "CreateConnectorProfile",
@@ -1739,7 +1745,13 @@
     },
     {
      "source": "kmsArn",
-     "target": "KMSArn"
+     "target": "KMSArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:kms:.*:[0-9]+:.*)$",
+       "cloudformation": "arn:aws[a-z\\-]*:kms:.*:[0-9]+:.*"
+      }
+     }
     },
     {
      "source": "tags",
@@ -2135,7 +2147,13 @@
     },
     {
      "source": "IamRoleArn",
-     "target": "IamRoleArn"
+     "target": "IamRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$)$",
+       "cloudformation": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+      }
+     }
     },
     {
      "source": "InstanceType",
@@ -2175,7 +2193,13 @@
    "mappings": [
     {
      "source": "AppBlockArn",
-     "target": "AppBlockArn"
+     "target": "AppBlockArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$)$",
+       "cloudformation": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+      }
+     }
     },
     {
      "source": "Description",
@@ -2413,7 +2437,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$)$",
-       "cloudformation": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:iam::[0-9]{12}:role/.+$"
+       "cloudformation": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):iam::[0-9]{12}:role/.+$"
       }
      }
     },
@@ -2533,11 +2557,23 @@
     },
     {
      "source": "IamRoleArn",
-     "target": "IamRoleArn"
+     "target": "IamRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$)$",
+       "cloudformation": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+      }
+     }
     },
     {
      "source": "ImageArn",
-     "target": "ImageArn"
+     "target": "ImageArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$)$",
+       "cloudformation": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+      }
+     }
     },
     {
      "source": "ImageName",
@@ -4659,7 +4695,13 @@
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(^arn:(aws|aws-cn|aws-us-gov):kms:([a-zA-Z0-9-]+):([0-9]+):(key|alias)/(\\S+)$)|(^alias/(\\S+)$))$",
+       "cloudformation": "^(^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):kms:([a-zA-Z0-9-]+):([0-9]+):(key|alias)/(\\S+)$)|(^alias/(\\S+)$)$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -5409,7 +5451,13 @@
    "mappings": [
     {
      "source": "customerEncryptionKeyArn",
-     "target": "CustomerEncryptionKeyArn"
+     "target": "CustomerEncryptionKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "defaultVariant",
@@ -5519,7 +5567,13 @@
    "mappings": [
     {
      "source": "encryptionKeyArn",
-     "target": "EncryptionKeyArn"
+     "target": "EncryptionKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$)$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -5654,7 +5708,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:aws(-[^:]+)?:iam::([0-9]{12})?:role/.+)$",
-       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):iam::[0-9]{12}:role/.+$"
+       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):iam::[0-9]{12}:role/.+$"
       }
      }
     },
@@ -5691,7 +5745,13 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -5756,7 +5816,13 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "schemaType",
@@ -5798,7 +5864,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
-       "cloudformation": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]+:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]+:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
       }
      }
     },
@@ -6141,7 +6207,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:[a-z0-9-\\.]{1,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023})$",
-       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
+       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
       }
      }
     },
@@ -6155,7 +6221,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:[a-z0-9-\\.]{1,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023})$",
-       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
+       "cloudformation": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
       }
      }
     },
@@ -6418,7 +6484,13 @@
     },
     {
      "source": "encryptionKeyArn",
-     "target": "EncryptionKeyArn"
+     "target": "EncryptionKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "name",
@@ -6711,7 +6783,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:(arn:aws(-cn)?:billingconductor::[0-9]{12}:billinggroup/)?[a-zA-Z0-9]{10,12})$",
-       "cloudformation": "arn:aws(-cn)?:billingconductor::[0-9]{12}:billinggroup/?[a-zA-Z0-9]{10,12}"
+       "cloudformation": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:billinggroup/?[a-zA-Z0-9]{10,12}"
       }
      }
     },
@@ -6769,7 +6841,7 @@
       "items": {
        "pattern": {
         "api": "^(?:(arn:aws(-cn)?:billingconductor::[0-9]{12}:pricingrule/)?[a-zA-Z0-9]{10})$",
-        "cloudformation": "arn:aws(-cn)?:billingconductor::[0-9]{12}:pricingrule/[a-zA-Z0-9]{10}"
+        "cloudformation": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:pricingrule/[a-zA-Z0-9]{10}"
        }
       }
      }
@@ -7899,7 +7971,13 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:iam::[\\w]+:role/[\\w+=./@-]+)$",
+       "cloudformation": "^arn:aws[a-z\\-]*:iam::[\\w]+:role/[\\w+=./@-]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -7936,7 +8014,13 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+)$",
+       "cloudformation": "^arn:aws[a-z\\-]*:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "membershipIdentifier",
@@ -8022,7 +8106,13 @@
     },
     {
      "source": "kmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+)$",
+       "cloudformation": "^arn:aws[a-z\\-]*:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "membershipIdentifier",
@@ -8292,7 +8382,13 @@
     },
     {
      "source": "ownerArn",
-     "target": "OwnerArn"
+     "target": "OwnerArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):(iam|sts)::\\d+:(root|(user\\/[\\w+=/:,.@-]{1,64}|federated-user\\/[\\w+=/:,.@-]{2,32}|assumed-role\\/[\\w+=:,.@-]{1,64}\\/[\\w+=,.@-]{1,64}))$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b|aws[a-z\\-]*):(iam|sts)::\\d+:(root|(user\\/[\\w+=/:,.@-]{1,64}|federated-user\\/[\\w+=/:,.@-]{2,32}|assumed-role\\/[\\w+=:,.@-]{1,64}\\/[\\w+=,.@-]{1,64}))$"
+      }
+     }
     },
     {
      "source": "subnetId",
@@ -10316,7 +10412,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:aws(-[\\w]+)*:.+:.+:[0-9]{12}:.+)$",
-       "cloudformation": "arn:(aws|aws-us-gov|aws-cn):.+:.+:[0-9]{12}:.+"
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+"
       }
      }
     },
@@ -10326,7 +10422,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:aws(-[\\w]+)*:kms:[a-z\\-0-9]+:\\d{12}:key/[a-zA-Z0-9\\-]+)$",
-       "cloudformation": "arn:(aws|aws-us-gov|aws-cn):.+:.+:[0-9]{12}:.+"
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+"
       }
      }
     },
@@ -13530,6 +13626,114 @@
    "service": "customer-profiles"
   },
   {
+   "cfn_type": "AWS::DAX::Cluster",
+   "mappings": [
+    {
+     "source": "AvailabilityZones",
+     "target": "AvailabilityZones"
+    },
+    {
+     "source": "ClusterEndpointEncryptionType",
+     "target": "ClusterEndpointEncryptionType"
+    },
+    {
+     "source": "ClusterName",
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 20,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "Description",
+     "target": "Description",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "IamRoleArn",
+     "target": "IAMRoleARN",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "NetworkType",
+     "target": "NetworkType"
+    },
+    {
+     "source": "NodeType",
+     "target": "NodeType",
+     "unrepresentable": {
+      "max_length": 50,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "NotificationTopicArn",
+     "target": "NotificationTopicARN",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "ParameterGroupName",
+     "target": "ParameterGroupName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "PreferredMaintenanceWindow",
+     "target": "PreferredMaintenanceWindow",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    },
+    {
+     "source": "ReplicationFactor",
+     "target": "ReplicationFactor"
+    },
+    {
+     "source": "SecurityGroupIds",
+     "target": "SecurityGroupIds"
+    },
+    {
+     "source": "SubnetGroupName",
+     "target": "SubnetGroupName",
+     "unrepresentable": {
+      "max_length": 255,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "CreateCluster",
+   "phase": "create",
+   "service": "dax"
+  },
+  {
+   "cfn_type": "AWS::DAX::Cluster",
+   "mappings": [
+    {
+     "source": "ClusterName",
+     "target": "ClusterName",
+     "unrepresentable": {
+      "max_length": 20,
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteCluster",
+   "phase": "delete",
+   "service": "dax"
+  },
+  {
    "cfn_type": "AWS::DAX::ParameterGroup",
    "mappings": [
     {
@@ -13614,7 +13818,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:aws(-[a-z]{1,3}){0,2}:iam::\\d+:role/.*)$",
-       "cloudformation": "^arn:aws(-[a-z]{1,3}){0,2}:iam::\\d+:role/"
+       "cloudformation": "^arn:(?:aws(-[a-z]{1,3}){0,2}|aws[a-z\\-]*):iam::\\d+:role/"
       }
      }
     },
@@ -14716,7 +14920,7 @@
       "items": {
        "pattern": {
         "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$)$",
-        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$"
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$"
        }
       }
      }
@@ -14728,7 +14932,7 @@
       "items": {
        "pattern": {
         "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/subnet-[a-f0-9]+$)$",
-        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/.*$"
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/.*$"
        }
       }
      }
@@ -14754,7 +14958,15 @@
    "mappings": [
     {
      "source": "AgentArns",
-     "target": "AgentArns"
+     "target": "AgentArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$"
+       }
+      }
+     }
     },
     {
      "source": "Subdirectory",
@@ -14770,7 +14982,13 @@
    "mappings": [
     {
      "source": "AccessPointArn",
-     "target": "AccessPointArn"
+     "target": "AccessPointArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):elasticfilesystem:[a-z\\-0-9]+:[0-9]{12}:access-point/fsap-[0-9a-f]{8,40}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):elasticfilesystem:[a-z\\-0-9]+:[0-9]{12}:access-point/fsap-[0-9a-f]{8,40}$"
+      }
+     }
     },
     {
      "source": "EfsFilesystemArn",
@@ -14778,7 +14996,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):elasticfilesystem:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]{8,40}$)$",
-       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):elasticfilesystem:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$"
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):elasticfilesystem:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$"
       }
      }
     },
@@ -14786,7 +15004,11 @@
      "source": "FileSystemAccessRoleArn",
      "target": "FileSystemAccessRoleArn",
      "unrepresentable": {
-      "max_length": 128
+      "max_length": 128,
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*$"
+      }
      }
     },
     {
@@ -14807,11 +15029,25 @@
    "mappings": [
     {
      "source": "FsxFilesystemArn",
-     "target": "FsxFilesystemArn"
+     "target": "FsxFilesystemArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$"
+      }
+     }
     },
     {
      "source": "SecurityGroupArns",
-     "target": "SecurityGroupArns"
+     "target": "SecurityGroupArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$"
+       }
+      }
+     }
     },
     {
      "source": "Subdirectory",
@@ -14827,11 +15063,25 @@
    "mappings": [
     {
      "source": "SecurityGroupArns",
-     "target": "SecurityGroupArns"
+     "target": "SecurityGroupArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$"
+       }
+      }
+     }
     },
     {
      "source": "StorageVirtualMachineArn",
-     "target": "StorageVirtualMachineArn"
+     "target": "StorageVirtualMachineArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:storage-virtual-machine/fs-[0-9a-f]+/svm-[0-9a-f]{17,}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]+:[0-9]{12}:storage-virtual-machine/fs-[0-9a-f]+/svm-[0-9a-f]{17,}$"
+      }
+     }
     },
     {
      "source": "Subdirectory",
@@ -14853,11 +15103,25 @@
    "mappings": [
     {
      "source": "FsxFilesystemArn",
-     "target": "FsxFilesystemArn"
+     "target": "FsxFilesystemArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$"
+      }
+     }
     },
     {
      "source": "SecurityGroupArns",
-     "target": "SecurityGroupArns"
+     "target": "SecurityGroupArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$"
+       }
+      }
+     }
     },
     {
      "source": "Subdirectory",
@@ -14893,7 +15157,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$)$",
-       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$"
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$"
       }
      }
     },
@@ -14908,7 +15172,7 @@
       "items": {
        "pattern": {
         "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$)$",
-        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$"
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$"
        }
       }
      }
@@ -14937,7 +15201,15 @@
    "mappings": [
     {
      "source": "AgentArns",
-     "target": "AgentArns"
+     "target": "AgentArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$"
+       }
+      }
+     }
     },
     {
      "source": "AuthenticationType",
@@ -15010,7 +15282,15 @@
     },
     {
      "source": "AgentArns",
-     "target": "AgentArns"
+     "target": "AgentArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$"
+       }
+      }
+     }
     },
     {
      "source": "BucketName",
@@ -15064,7 +15344,7 @@
       "max_length": 156,
       "pattern": {
        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3:[a-z\\-0-9]*:[0-9]{12}:accesspoint[/:][a-zA-Z0-9\\-.]{1,63}$|^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3-outposts:[a-z\\-0-9]+:[0-9]{12}:outpost[/:][a-zA-Z0-9\\-]{1,63}[/:]accesspoint[/:][a-zA-Z0-9\\-]{1,63}$|^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3:::[a-zA-Z0-9.\\-_]{1,255}$)$",
-       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3:[a-z\\-0-9]*:[0-9]*:.*$"
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):s3:[a-z\\-0-9]*:[0-9]*:.*$"
       }
      }
     },
@@ -15094,7 +15374,15 @@
    "mappings": [
     {
      "source": "AgentArns",
-     "target": "AgentArns"
+     "target": "AgentArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$"
+       }
+      }
+     }
     },
     {
      "source": "AuthenticationType",
@@ -15165,13 +15453,19 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):logs:[a-z\\-0-9]+:[0-9]{12}:log-group:([^:\\*]*)(:\\*)?$)$",
-       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):logs:[a-z\\-0-9]*:[0-9]{12}:log-group:([^:\\*]*)(:\\*)?$"
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):logs:[a-z\\-0-9]*:[0-9]{12}:log-group:([^:\\*]*)(:\\*)?$"
       }
      }
     },
     {
      "source": "DestinationLocationArn",
-     "target": "DestinationLocationArn"
+     "target": "DestinationLocationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$"
+      }
+     }
     },
     {
      "source": "Name",
@@ -15182,7 +15476,13 @@
     },
     {
      "source": "SourceLocationArn",
-     "target": "SourceLocationArn"
+     "target": "SourceLocationArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$"
+      }
+     }
     },
     {
      "source": "TaskMode",
@@ -15351,7 +15651,13 @@
     },
     {
      "source": "kmsKeyIdentifier",
-     "target": "KmsKeyIdentifier"
+     "target": "KmsKeyIdentifier",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36})$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$"
+      }
+     }
     },
     {
      "source": "name",
@@ -16045,7 +16351,13 @@
     },
     {
      "source": "manageAccessRole",
-     "target": "ManageAccessRole"
+     "target": "ManageAccessRole",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov):iam::\\d{12}:(role|role/service-role)/[\\w+=,.@-]*)$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):iam::\\d{12}:(role|role/service-role)/[\\w+=,.@-]*$"
+      }
+     }
     },
     {
      "source": "name",
@@ -16100,7 +16412,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:.*(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws:iam::\\d{12}:.+$).*)$",
-       "cloudformation": "(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws:iam::\\d{12}:.+$)"
+       "cloudformation": "(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws[a-z\\-]*:iam::\\d{12}:.+$)"
       }
      }
     },
@@ -16418,7 +16730,13 @@
     },
     {
      "source": "identityCenterInstanceArn",
-     "target": "IdentityCenterInstanceArn"
+     "target": "IdentityCenterInstanceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16})$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
+      }
+     }
     },
     {
      "source": "identityCenterRegion",
@@ -25177,7 +25495,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:$|^arn:aws:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
-       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
       }
      }
     },
@@ -25223,7 +25541,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:aws:iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+)$",
-       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
       }
      }
     },
@@ -25264,7 +25582,7 @@
      "target": "RoleArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$"
       }
      }
     },
@@ -25302,7 +25620,13 @@
     },
     {
      "source": "arn",
-     "target": "Arn"
+     "target": "Arn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-us-gov|aws-cn):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:((schemamapping|matchingworkflow|idmappingworkflow|idnamespace)/[a-zA-Z_0-9-]{1,255}))$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:((schemamapping|matchingworkflow|idmappingworkflow|idnamespace)/[a-zA-Z_0-9-]{1,255})$"
+      }
+     }
     },
     {
      "source": "condition",
@@ -25338,7 +25662,13 @@
    "mappings": [
     {
      "source": "arn",
-     "target": "Arn"
+     "target": "Arn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-us-gov|aws-cn):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:((schemamapping|matchingworkflow|idmappingworkflow|idnamespace)/[a-zA-Z_0-9-]{1,255}))$",
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:((schemamapping|matchingworkflow|idmappingworkflow|idnamespace)/[a-zA-Z_0-9-]{1,255})$"
+      }
+     }
     },
     {
      "source": "statementId",
@@ -27823,7 +28153,7 @@
      "target": "InstanceArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
       }
      }
     },
@@ -27871,7 +28201,7 @@
      "target": "SourceArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+       "cloudformation": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*"
       }
      }
     },
@@ -27880,7 +28210,7 @@
      "target": "TargetArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+       "cloudformation": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*"
       }
      }
     }
@@ -27904,7 +28234,7 @@
      "target": "ResourceArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+       "cloudformation": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*"
       }
      }
     }
@@ -27921,7 +28251,7 @@
      "target": "ResourceArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:aws:.*:.*:[0-9]+:.*"
+       "cloudformation": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*"
       }
      }
     }
@@ -29806,7 +30136,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^$|^arn:aws:ivs:[a-z0-9-]+:[0-9]+:recording-configuration/[a-zA-Z0-9-]+$)$",
-       "cloudformation": "^$|arn:aws:ivs:[a-z0-9-]+:[0-9]+:recording-configuration/[a-zA-Z0-9-]+$"
+       "cloudformation": "^$|arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:recording-configuration/[a-zA-Z0-9-]+$"
       }
      }
     },
@@ -29874,7 +30204,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^$|^arn:aws:ivs:[a-z0-9-]+:[0-9]+:stage/[a-zA-Z0-9-]+$)$",
-       "cloudformation": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:stage/[a-zA-Z0-9-]+$"
+       "cloudformation": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:stage/[a-zA-Z0-9-]+$"
       }
      }
     },
@@ -30071,7 +30401,13 @@
    "mappings": [
     {
      "source": "channelArn",
-     "target": "ChannelArn"
+     "target": "ChannelArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:ivs:[a-z0-9-]+:[0-9]+:channel/[a-zA-Z0-9-]+)$",
+       "cloudformation": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:channel/[a-zA-Z0-9-]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -30117,7 +30453,15 @@
    "mappings": [
     {
      "source": "loggingConfigurationIdentifiers",
-     "target": "LoggingConfigurationIdentifiers"
+     "target": "LoggingConfigurationIdentifiers",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:arn:aws:ivschat:[a-z0-9-]+:[0-9]+:logging-configuration/[a-zA-Z0-9-]+)$",
+        "cloudformation": "^arn:aws[a-z\\-]*:ivschat:[a-z0-9-]+:[0-9]+:logging-configuration/[a-zA-Z0-9-]+$"
+       }
+      }
+     }
     },
     {
      "source": "maximumMessageLength",
@@ -31288,7 +31632,15 @@
     },
     {
      "source": "serverCertificateArns",
-     "target": "ServerCertificateArns"
+     "target": "ServerCertificateArns",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:arn:aws(-cn|-us-gov|-iso-b|-iso)?:acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+)$",
+        "cloudformation": "^arn:(?:aws(-cn|-us-gov|-iso-b|-iso)?|aws[a-z\\-]*):acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$"
+       }
+      }
+     }
     },
     {
      "source": "serviceType",
@@ -31296,7 +31648,13 @@
     },
     {
      "source": "validationCertificateArn",
-     "target": "ValidationCertificateArn"
+     "target": "ValidationCertificateArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-cn|-us-gov|-iso-b|-iso)?:acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+)$",
+       "cloudformation": "^arn:(?:aws(-cn|-us-gov|-iso-b|-iso)?|aws[a-z\\-]*):acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$"
+      }
+     }
     }
    ],
    "operation": "CreateDomainConfiguration",
@@ -32612,7 +32970,13 @@
     },
     {
      "source": "idcInstanceArn",
-     "target": "IdcInstanceArn"
+     "target": "IdcInstanceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$)$",
+       "cloudformation": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.]+$"
+      }
+     }
     },
     {
      "source": "name",
@@ -32953,7 +33317,13 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.\\+=,@]+$)$",
+       "cloudformation": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.\\+=,@]+$"
+      }
+     }
     },
     {
      "source": "tags",
@@ -33248,7 +33618,13 @@
    "mappings": [
     {
      "source": "syncRole",
-     "target": "SyncRole"
+     "target": "SyncRole",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:((aws)|(aws-cn)|(aws-us-gov)):iam::[0-9]{12}:role/.*)$",
+       "cloudformation": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iam::[0-9]{12}:role/.*"
+      }
+     }
     },
     {
      "source": "syncSource",
@@ -33299,7 +33675,13 @@
     },
     {
      "source": "role",
-     "target": "Role"
+     "target": "Role",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:((aws)|(aws-cn)|(aws-us-gov)):iam::[0-9]{12}:role/.*)$",
+       "cloudformation": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iam::[0-9]{12}:role/.*"
+      }
+     }
     },
     {
      "source": "s3Location",
@@ -33307,7 +33689,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:.*(^arn:((aws)|(aws-cn)|(aws-us-gov)):s3:::)([a-zA-Z0-9_-]+$).*)$",
-       "cloudformation": "(^arn:((aws)|(aws-cn)|(aws-us-gov)):s3:::)([a-zA-Z0-9_-]+$)"
+       "cloudformation": "(^arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):s3:::)([a-zA-Z0-9_-]+$)"
       }
      }
     },
@@ -33770,7 +34152,7 @@
      "target": "ServiceExecutionRoleArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:(aws|aws-us-gov|aws-cn|aws-eusc):iam:.*"
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn|aws-eusc|aws[a-z\\-]*):iam:.*"
       }
      }
     },
@@ -34525,6 +34907,62 @@
     }
    ],
    "operation": "RevokePermissions",
+   "phase": "delete",
+   "service": "lakeformation"
+  },
+  {
+   "cfn_type": "AWS::LakeFormation::Resource",
+   "mappings": [
+    {
+     "source": "HybridAccessEnabled",
+     "target": "HybridAccessEnabled"
+    },
+    {
+     "source": "ResourceArn",
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[a-z-]+:[a-z0-9-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:.+$"
+      }
+     }
+    },
+    {
+     "source": "RoleArn",
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:iam::[0-9]*:role/.*)$",
+       "cloudformation": "^arn:[a-z-]+:iam::([0-9]{12})?:.+$"
+      }
+     }
+    },
+    {
+     "source": "UseServiceLinkedRole",
+     "target": "UseServiceLinkedRole"
+    },
+    {
+     "source": "WithFederation",
+     "target": "WithFederation"
+    }
+   ],
+   "operation": "RegisterResource",
+   "phase": "create",
+   "service": "lakeformation"
+  },
+  {
+   "cfn_type": "AWS::LakeFormation::Resource",
+   "mappings": [
+    {
+     "source": "ResourceArn",
+     "target": "ResourceArn",
+     "unrepresentable": {
+      "pattern": {
+       "cloudformation": "^arn:[a-z-]+:[a-z0-9-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:.+$"
+      }
+     }
+    }
+   ],
+   "operation": "DeregisterResource",
    "phase": "delete",
    "service": "lakeformation"
   },
@@ -37722,7 +38160,13 @@
     },
     {
      "source": "roleArn",
-     "target": "RoleArn"
+     "target": "RoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]|):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]|):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+      }
+     }
     }
    ],
    "operation": "CreateApplication",
@@ -38301,7 +38745,7 @@
      "target": "ServiceExecutionRoleArn",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:(aws|aws-us-gov|aws-cn):iam:.*"
+       "cloudformation": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam:.*"
       }
      }
     },
@@ -38477,7 +38921,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:(((arn:aws(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?key\\/)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|(arn:aws(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?alias/.+))$",
-       "cloudformation": "^(((arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b)(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?key\\/)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|(arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?alias/.+)$"
+       "cloudformation": "^(((arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b)(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?key\\/)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|(arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?alias/.+)$"
       }
      }
     },
@@ -38605,7 +39049,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:iam::[0-9]{12}:role(/[a-zA-Z0-9+=,.@_\\-]{1,512})*?/[a-zA-Z0-9+=,.@_\\-]{1,64})$",
-       "cloudformation": "^arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:iam::[0-9]{12}:role(/[a-zA-Z0-9+=,.@_-]{1,512})*?/[a-zA-Z0-9+=,.@_-]{1,64}$"
+       "cloudformation": "^arn:(?:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?|aws[a-z\\-]*):iam::[0-9]{12}:role(/[a-zA-Z0-9+=,.@_-]{1,512})*?/[a-zA-Z0-9+=,.@_-]{1,64}$"
       }
      }
     },
@@ -43102,7 +43546,13 @@
     },
     {
      "source": "cloudExadataInfrastructureId",
-     "target": "CloudExadataInfrastructureId"
+     "target": "CloudExadataInfrastructureId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64}))$",
+       "cloudformation": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$"
+      }
+     }
     },
     {
      "source": "cpuCoreCountPerNode",
@@ -43134,7 +43584,13 @@
     },
     {
      "source": "odbNetworkId",
-     "target": "OdbNetworkId"
+     "target": "OdbNetworkId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64}))$",
+       "cloudformation": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$"
+      }
+     }
     },
     {
      "source": "scanListenerPortNonTls",
@@ -43230,7 +43686,13 @@
    "mappings": [
     {
      "source": "cloudExadataInfrastructureId",
-     "target": "CloudExadataInfrastructureId"
+     "target": "CloudExadataInfrastructureId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64}))$",
+       "cloudformation": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$"
+      }
+     }
     },
     {
      "source": "clusterName",
@@ -43285,7 +43747,13 @@
     },
     {
      "source": "odbNetworkId",
-     "target": "OdbNetworkId"
+     "target": "OdbNetworkId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64}))$",
+       "cloudformation": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$"
+      }
+     }
     },
     {
      "source": "scanListenerPortTcp",
@@ -43414,11 +43882,23 @@
     },
     {
      "source": "odbNetworkId",
-     "target": "OdbNetworkId"
+     "target": "OdbNetworkId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64}))$",
+       "cloudformation": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$"
+      }
+     }
     },
     {
      "source": "peerNetworkId",
-     "target": "PeerNetworkId"
+     "target": "PeerNetworkId",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64}))$",
+       "cloudformation": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$"
+      }
+     }
     },
     {
      "source": "peerNetworkRouteTableIds",
@@ -43467,7 +43947,13 @@
     },
     {
      "source": "PipelineRoleArn",
-     "target": "PipelineRoleArn"
+     "target": "PipelineRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws\\-cn|aws\\-us\\-gov|aws\\-iso|aws\\-iso\\-b|aws\\-iso\\-e|aws\\-iso\\-f):iam::[0-9]+:role\\/.*$)$",
+       "cloudformation": "^arn:(aws|aws\\-cn|aws\\-us\\-gov|aws\\-iso|aws\\-iso\\-b|aws\\-iso\\-e|aws\\-iso\\-f|aws[a-z\\-]*):iam::[0-9]+:role\\/.*$"
+      }
+     }
     }
    ],
    "operation": "CreatePipeline",
@@ -43495,7 +43981,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^arn:(aws|aws\\-cn|aws\\-us\\-gov|aws\\-iso|aws\\-iso\\-b):osis:.+:pipeline\\/.+$)$",
-       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):osis:.+:pipeline/.+$"
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b|aws[a-z\\-]*):osis:.+:pipeline/.+$"
       }
      }
     }
@@ -45160,7 +45646,13 @@
     },
     {
      "source": "KeyArn",
-     "target": "KeyArn"
+     "target": "KeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws:payment-cryptography:[a-z]{2}-[a-z]{1,16}-[0-9]+:[0-9]{12}:key/[0-9a-zA-Z]{16,64})$",
+       "cloudformation": "^arn:aws[a-z\\-]*:payment-cryptography:[a-z]{2}-[a-z]{1,16}-[0-9]+:[0-9]{12}:key/[0-9a-zA-Z]{16,64}$"
+      }
+     }
     }
    ],
    "operation": "CreateAlias",
@@ -45664,14 +46156,22 @@
      "source": "codebuildRoleArn",
      "target": "CodebuildRoleArn",
      "unrepresentable": {
-      "max_length": 200
+      "max_length": 200,
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$"
+      }
      }
     },
     {
      "source": "componentRoleArn",
      "target": "ComponentRoleArn",
      "unrepresentable": {
-      "max_length": 200
+      "max_length": 200,
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$"
+      }
      }
     },
     {
@@ -45686,7 +46186,11 @@
      "source": "roleArn",
      "target": "RoleArn",
      "unrepresentable": {
-      "max_length": 200
+      "max_length": 200,
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$"
+      }
      }
     }
    ],
@@ -45714,7 +46218,13 @@
     },
     {
      "source": "encryptionKey",
-     "target": "EncryptionKey"
+     "target": "EncryptionKey",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$"
+      }
+     }
     },
     {
      "source": "name",
@@ -45754,7 +46264,13 @@
     },
     {
      "source": "encryptionKey",
-     "target": "EncryptionKey"
+     "target": "EncryptionKey",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$"
+      }
+     }
     },
     {
      "source": "name",
@@ -45805,7 +46321,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:[a-z0-9-\\.]{1,63}:iam::\\d{12}:(oidc-provider|saml-provider)/[a-zA-Z0-9_\\.\\/@\\-]+)$",
-       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):iam::\\d{12}:(oidc-provider|saml-provider)/[a-zA-Z0-9_\\.\\/@\\-]+$"
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::\\d{12}:(oidc-provider|saml-provider)/[a-zA-Z0-9_\\.\\/@\\-]+$"
       }
      }
     },
@@ -45815,7 +46331,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:[a-z0-9-\\.]{1,63}:sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16})$",
-       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
+       "cloudformation": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
       }
      }
     },
@@ -45859,7 +46375,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:[a-z0-9-\\.]{1,63}:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+)$",
-       "cloudformation": "^arn:aws:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$"
+       "cloudformation": "^arn:aws[a-z\\-]*:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$"
       }
      }
     }
@@ -45987,7 +46503,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:arn:[a-z0-9-\\.]{1,63}:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+)$",
-       "cloudformation": "^arn:aws:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$"
+       "cloudformation": "^arn:aws[a-z\\-]*:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$"
       }
      }
     },
@@ -50558,7 +51074,13 @@
     },
     {
      "source": "policyArn",
-     "target": "PolicyArn"
+     "target": "PolicyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023})$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+      }
+     }
     },
     {
      "source": "regions",
@@ -50606,7 +51128,13 @@
     },
     {
      "source": "serviceArn",
-     "target": "ServiceArn"
+     "target": "ServiceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023})$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+      }
+     }
     }
    ],
    "operation": "CreateServiceFunction",
@@ -50618,7 +51146,13 @@
    "mappings": [
     {
      "source": "serviceArn",
-     "target": "ServiceArn"
+     "target": "ServiceArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023})$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+      }
+     }
     }
    ],
    "operation": "DeleteServiceFunction",
@@ -50684,7 +51218,13 @@
     },
     {
      "source": "policyArn",
-     "target": "PolicyArn"
+     "target": "PolicyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023})$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+      }
+     }
     }
    ],
    "operation": "CreateUserJourney",
@@ -53264,7 +53804,13 @@
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn"
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(|-cn|-us-gov|-eusc):kms:[a-z0-9-]{1,20}:[0-9]{12}:(key|alias)/.+)$",
+       "cloudformation": "^arn:(?:aws(|-cn|-us-gov|-eusc)|aws[a-z\\-]*):kms:[a-z0-9-]{1,20}:[0-9]{12}:(key|alias)/.+$"
+      }
+     }
     }
    ],
    "operation": "CreateArchive",
@@ -54051,7 +54597,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^arn:aws(-cn|-us-gov)?:config:([^:]+):\\d{12}:connector/.+$)$",
-       "cloudformation": "^arn:aws(-cn|-us-gov)?:config:[a-z0-9-]+:\\d{12}:connector/.+$"
+       "cloudformation": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):config:[a-z0-9-]+:\\d{12}:connector/.+$"
       }
      }
     },
@@ -54571,7 +55117,15 @@
    "mappings": [
     {
      "source": "ContactIds",
-     "target": "ContactIds"
+     "target": "ContactIds",
+     "unrepresentable": {
+      "items": {
+       "pattern": {
+        "api": "^(?:arn:(aws|aws-cn|aws-us-gov):ssm-contacts:[-\\w+=\\/,.@]*:[0-9]+:([\\w+=\\/,.@:-]+)*)$",
+        "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):ssm-contacts:[-\\w+=\\/,.@]*:[0-9]+:([\\w+=\\/,.@:-]+)*$"
+       }
+      }
+     }
     },
     {
      "source": "Name",
@@ -54663,7 +55217,7 @@
        "max_length": 1000,
        "pattern": {
         "api": "^(?:^arn:aws(-cn|-us-gov)?:ssm-contacts:[a-z0-9-]*:([0-9]{12}):contact/[a-z0-9_-]+$)$",
-        "cloudformation": "^arn:aws(-(cn|us-gov))?:ssm-contacts:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+        "cloudformation": "^arn:(?:aws(-(cn|us-gov))?|aws[a-z\\-]*):ssm-contacts:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
        }
       }
      }
@@ -58234,7 +58788,7 @@
      "target": "PrincipalARN",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role|user|group)\\/.*"
+       "cloudformation": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::[0-9]*:(role|user|group)\\/.*"
       }
      }
     },
@@ -58263,7 +58817,7 @@
      "target": "PrincipalARN",
      "unrepresentable": {
       "pattern": {
-       "cloudformation": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role|user|group)\\/.*"
+       "cloudformation": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::[0-9]*:(role|user|group)\\/.*"
       }
      }
     },
@@ -58930,7 +59484,7 @@
      "unrepresentable": {
       "pattern": {
        "api": "^(?:^arn:aws.*)$",
-       "cloudformation": "^arn:aws"
+       "cloudformation": "^arn:aws[a-z\\-]*"
       }
      }
     }
@@ -58960,7 +59514,7 @@
       "items": {
        "pattern": {
         "api": "^(?:^arn:aws.*)$",
-        "cloudformation": "^arn:aws"
+        "cloudformation": "^arn:aws[a-z\\-]*"
        }
       }
      }
@@ -60342,7 +60896,13 @@
    "mappings": [
     {
      "source": "DataAccessRoleArn",
-     "target": "DataAccessRoleArn"
+     "target": "DataAccessRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$"
+      }
+     }
     },
     {
      "source": "LanguageCode",
@@ -60382,7 +60942,13 @@
    "mappings": [
     {
      "source": "DataAccessRoleArn",
-     "target": "DataAccessRoleArn"
+     "target": "DataAccessRoleArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$)$",
+       "cloudformation": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$"
+      }
+     }
     },
     {
      "source": "LanguageCode",
@@ -63754,9 +64320,9 @@
   "aws_cli_version": "2.39.3",
   "botocore_service_count": 437,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "e72a47aa204fbc35561b61ab8716947bd1e8602ebbd4d310d3e0d730fb8fa5a2",
+  "compiled_schemas_sha256": "97217d307246eda7c37deb448471ee510d2b748bc125009e1419c6481efbb540",
   "compiled_type_count": 1920,
-  "provider_schemas_sha256": "4607fc21c6f6a624e82183b0e17fd040eba5fc2f1a11f8a97755bf36635180e3",
+  "provider_schemas_sha256": "8f6eafad71cf06dabc7b274b034943eb2f1ac2431416cf75647dff93fa7b4dc7",
   "provider_type_count": 1918
  }
 }

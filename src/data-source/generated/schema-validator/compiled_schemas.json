@@ -1182,7 +1182,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):aps:[a-z0-9-]+:[0-9]+:anomalydetector/[a-zA-Z0-9-]+/[0-9A-Za-z][-.0-9A-Z_a-z]*$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):aps:[a-z0-9-]+:[0-9]+:anomalydetector/[a-zA-Z0-9-]+/[0-9A-Za-z][-.0-9A-Z_a-z]*$"
       },
       "Configuration": {
         "ref_name": "AnomalyDetectorConfiguration"
@@ -1209,7 +1209,7 @@
       },
       "Workspace": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$"
       }
     },
     "definitions": {
@@ -1367,7 +1367,7 @@
       },
       "WorkspaceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$"
       }
     },
     "definitions": {},
@@ -1390,7 +1390,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):aps:[a-z0-9-]+:[0-9]+:rulegroupsnamespace/[a-zA-Z0-9-]+/[0-9A-Za-z][-.0-9A-Z_a-z]*$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):aps:[a-z0-9-]+:[0-9]+:rulegroupsnamespace/[a-zA-Z0-9-]+/[0-9A-Za-z][-.0-9A-Z_a-z]*$"
       },
       "Data": {
         "type": "string"
@@ -1409,7 +1409,7 @@
       },
       "Workspace": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$"
       }
     },
     "definitions": {
@@ -1463,14 +1463,14 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):aps:[a-z0-9-]+:[0-9]+:scraper/s-[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):aps:[a-z0-9-]+:[0-9]+:scraper/s-[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$"
       },
       "Destination": {
         "ref_name": "Destination"
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):iam::[0-9]{12}:role/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam::[0-9]{12}:role/[a-zA-Z0-9-]+$",
         "min_length": 20,
         "max_length": 2048,
         "format": "AWS::IAM::Role.Arn"
@@ -1785,7 +1785,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):aps:[a-z0-9-]+:[0-9]+:workspace/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -6548,7 +6548,7 @@
         "properties": {
           "StackArn": {
             "type": "string",
-            "pattern": "^arn:aws:cloudformation:[a-z0-9-]+:\\d{12}:stack/.+/.+$",
+            "pattern": "^arn:aws[a-z\\-]*:cloudformation:[a-z0-9-]+:\\d{12}:stack/.+/.+$",
             "min_length": 20,
             "max_length": 2048
           }
@@ -6714,7 +6714,7 @@
         "properties": {
           "CertificateArn": {
             "type": "string",
-            "pattern": "\"^arn:aws:acm:[a-z0-9-]+:\\d{12}:certificate\\/.+$\"",
+            "pattern": "\"^arn:aws[a-z\\-]*:acm:[a-z0-9-]+:\\d{12}:certificate\\/.+$\"",
             "format": "AWS::ACM::Certificate.Arn"
           },
           "CertificateType": {
@@ -6743,7 +6743,7 @@
           },
           "CustomCertificateArn": {
             "type": "string",
-            "pattern": "^arn:aws:acm:[a-z0-9-]+:\\d{12}:certificate\\/.+$",
+            "pattern": "^arn:aws[a-z\\-]*:acm:[a-z0-9-]+:\\d{12}:certificate\\/.+$",
             "min_length": 0,
             "max_length": 1000
           }
@@ -10580,7 +10580,7 @@
       },
       "CredentialsArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role|user|group)\\/.*"
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::[0-9]*:(role|user|group)\\/.*"
       },
       "Description": {
         "type": "string"
@@ -13143,7 +13143,7 @@
       },
       "ConnectorProfileArn": {
         "type": "string",
-        "pattern": "arn:aws:appflow:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:appflow:.*:[0-9]+:.*",
         "max_length": 512
       },
       "ConnectorProfileConfig": {
@@ -13160,12 +13160,12 @@
       },
       "CredentialsArn": {
         "type": "string",
-        "pattern": "arn:aws:.*:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*",
         "max_length": 512
       },
       "KMSArn": {
         "type": "string",
-        "pattern": "arn:aws:kms:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:kms:.*:[0-9]+:.*",
         "min_length": 20,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
@@ -13306,7 +13306,7 @@
       },
       "ClientCredentialsArn": {
         "type": "string",
-        "pattern": "arn:aws:secretsmanager:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:secretsmanager:.*:[0-9]+:.*",
         "min_length": 20,
         "max_length": 2048
       },
@@ -13562,7 +13562,7 @@
       },
       "DataApiRoleArn": {
         "type": "string",
-        "pattern": "arn:aws:iam:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:iam:.*:[0-9]+:.*",
         "min_length": 0,
         "max_length": 512,
         "format": "AWS::IAM::Role.Arn"
@@ -13939,7 +13939,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "arn:aws:iam:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:iam:.*:[0-9]+:.*",
         "min_length": 0,
         "max_length": 512,
         "format": "AWS::IAM::Role.Arn"
@@ -14304,7 +14304,7 @@
       },
       "FlowArn": {
         "type": "string",
-        "pattern": "arn:aws:appflow:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:appflow:.*:[0-9]+:.*",
         "max_length": 512
       },
       "FlowName": {
@@ -14323,7 +14323,7 @@
       },
       "KMSArn": {
         "type": "string",
-        "pattern": "arn:aws:kms:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:kms:.*:[0-9]+:.*",
         "min_length": 20,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
@@ -14776,7 +14776,7 @@
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "arn:aws:iam:.*:[0-9]+:.*",
+            "pattern": "arn:aws[a-z\\-]*:iam:.*:[0-9]+:.*",
             "min_length": 0,
             "max_length": 512,
             "format": "AWS::IAM::Role.Arn"
@@ -19574,7 +19574,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):iam::[0-9]{12}:role/[\\w+=,.@-]{1,64}",
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/[\\w+=,.@-]{1,64}",
         "min_length": 29,
         "max_length": 1024,
         "format": "AWS::IAM::Role.Arn"
@@ -20087,7 +20087,7 @@
       },
       "IamRoleArn": {
         "type": "string",
-        "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$",
+        "pattern": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$",
         "format": "AWS::IAM::Role.Arn"
       },
       "InstanceType": {
@@ -20284,7 +20284,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+        "pattern": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
       },
       "PlatformType": {
         "type": "string",
@@ -20481,7 +20481,7 @@
         "properties": {
           "CertificateAuthorityArn": {
             "type": "string",
-            "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+            "pattern": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
           },
           "Status": {
             "type": "string",
@@ -20666,7 +20666,7 @@
       },
       "IamRoleArn": {
         "type": "string",
-        "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:iam::[0-9]{12}:role/.+$",
+        "pattern": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):iam::[0-9]{12}:role/.+$",
         "format": "AWS::IAM::Role.Arn"
       },
       "IdleDisconnectTimeoutInSeconds": {
@@ -20914,12 +20914,12 @@
       },
       "IamRoleArn": {
         "type": "string",
-        "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$",
+        "pattern": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$",
         "format": "AWS::IAM::Role.Arn"
       },
       "ImageArn": {
         "type": "string",
-        "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
+        "pattern": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.\\\\-]{0,1023}$"
       },
       "ImageName": {
         "type": "string",
@@ -21200,7 +21200,7 @@
         "properties": {
           "S3BucketArn": {
             "type": "string",
-            "pattern": "^arn:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?:s3:::[a-z0-9][a-z0-9.\\-]{1,61}[a-z0-9]$"
+            "pattern": "^arn:(?:aws(?:\\-cn|\\-iso\\-b|\\-iso|\\-us\\-gov)?|aws[a-z\\-]*):s3:::[a-z0-9][a-z0-9.\\-]{1,61}[a-z0-9]$"
           },
           "ScreenImageFormat": {
             "type": "string",
@@ -23246,7 +23246,7 @@
       },
       "MergedApiArn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+        "pattern": "^arn:(?:aws(-(cn|us-gov))?|aws[a-z\\-]*):[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
       },
       "MergedApiId": {
         "type": "string"
@@ -23256,7 +23256,7 @@
       },
       "SourceApiArn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+        "pattern": "^arn:(?:aws(-(cn|us-gov))?|aws[a-z\\-]*):[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
       },
       "SourceApiAssociationConfig": {
         "ref_name": "SourceApiAssociationConfig"
@@ -23407,7 +23407,7 @@
       },
       "TestCaseArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$"
       },
       "TestCaseId": {
         "type": "string",
@@ -34655,20 +34655,20 @@
       },
       "HypervisorArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):backup-gateway(:[a-zA-Z-0-9]+){3}\\/[a-zA-Z-0-9]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):backup-gateway(:[a-zA-Z-0-9]+){3}\\/[a-zA-Z-0-9]+$",
         "min_length": 50,
         "max_length": 500
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^(^arn:(aws|aws-cn|aws-us-gov):kms:([a-zA-Z0-9-]+):([0-9]+):(key|alias)/(\\S+)$)|(^alias/(\\S+)$)$",
+        "pattern": "^(^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):kms:([a-zA-Z0-9-]+):([0-9]+):(key|alias)/(\\S+)$)|(^alias/(\\S+)$)$",
         "min_length": 50,
         "max_length": 500,
         "format": "AWS::KMS::Key.Arn"
       },
       "LogGroupArn": {
         "type": "string",
-        "pattern": "^$|^arn:(aws|aws-cn|aws-us-gov):logs:([a-zA-Z0-9-]+):([0-9]+):log-group:[a-zA-Z0-9_\\-\\/\\.]+:\\*$",
+        "pattern": "^$|^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):logs:([a-zA-Z0-9-]+):([0-9]+):log-group:[a-zA-Z0-9_\\-\\/\\.]+:\\*$",
         "min_length": 0,
         "max_length": 2048
       },
@@ -38186,7 +38186,7 @@
     "properties": {
       "AgentAliasArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):bedrock:[a-z0-9-]{1,20}:[0-9]{12}:agent-alias/[0-9a-zA-Z]{10}/[0-9a-zA-Z]{10}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):bedrock:[a-z0-9-]{1,20}:[0-9]{12}:agent-alias/[0-9a-zA-Z]{10}/[0-9a-zA-Z]{10}$",
         "max_length": 2048
       },
       "AgentAliasHistoryEvents": {
@@ -38330,7 +38330,7 @@
       },
       "InferenceProfileArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-us-gov|-cn|-iso|-iso-b):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|application-inference-profile)/[a-zA-Z0-9-:.]+$",
+        "pattern": "^arn:(?:aws(|-us-gov|-cn|-iso|-iso-b)|aws[a-z\\-]*):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|application-inference-profile)/[a-zA-Z0-9-:.]+$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -38342,7 +38342,7 @@
       },
       "InferenceProfileIdentifier": {
         "type": "string",
-        "pattern": "^(arn:aws(|-us-gov|-cn|-iso|-iso-b):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|application-inference-profile)/)?[a-zA-Z0-9-:.]+$",
+        "pattern": "^(arn:(?:aws(|-us-gov|-cn|-iso|-iso-b)|aws[a-z\\-]*):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|application-inference-profile)/)?[a-zA-Z0-9-:.]+$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -38400,7 +38400,7 @@
             "properties": {
               "CopyFrom": {
                 "type": "string",
-                "pattern": "^arn:aws(|-us-gov|-cn|-iso|-iso-b):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|foundation-model)/[a-zA-Z0-9-:.]+$",
+                "pattern": "^arn:(?:aws(|-us-gov|-cn|-iso|-iso-b)|aws[a-z\\-]*):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|foundation-model)/[a-zA-Z0-9-:.]+$",
                 "min_length": 1,
                 "max_length": 2048
               }
@@ -38934,7 +38934,7 @@
     "properties": {
       "BlueprintArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov|-iso|-iso-[a-z]):bedrock:[a-zA-Z0-9-]*:(aws|[0-9]{12}):blueprint/(bedrock-data-automation-public-[a-zA-Z0-9-_]{1,30}|[a-zA-Z0-9-]{12,36})$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov|-iso|-iso-[a-z])|aws[a-z\\-]*):bedrock:[a-zA-Z0-9-]*:(aws|[0-9]{12}):blueprint/(bedrock-data-automation-public-[a-zA-Z0-9-_]{1,30}|[a-zA-Z0-9-]{12,36})$",
         "max_length": 128
       },
       "BlueprintName": {
@@ -39071,7 +39071,7 @@
       },
       "LibraryArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-iso|-iso-[a-z]|-us-gov):bedrock:[a-zA-Z0-9-]*:[0-9]{12}:data-automation-library/[a-zA-Z0-9-]{12,36}$",
+        "pattern": "^arn:(?:aws(|-cn|-iso|-iso-[a-z]|-us-gov)|aws[a-z\\-]*):bedrock:[a-zA-Z0-9-]*:[0-9]{12}:data-automation-library/[a-zA-Z0-9-]{12,36}$",
         "max_length": 128
       },
       "LibraryDescription": {
@@ -39258,7 +39258,7 @@
       },
       "ProjectArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov|-iso|-iso-[a-z]):bedrock:[a-zA-Z0-9-]*:(aws|[0-9]{12}):data-automation-project/[a-zA-Z0-9-]{12,36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov|-iso|-iso-[a-z])|aws[a-z\\-]*):bedrock:[a-zA-Z0-9-]*:(aws|[0-9]{12}):data-automation-project/[a-zA-Z0-9-]{12,36}$",
         "max_length": 128
       },
       "ProjectDescription": {
@@ -39431,7 +39431,7 @@
         "properties": {
           "BlueprintArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov|-iso|-iso-[a-z]):bedrock:[a-zA-Z0-9-]*:(aws|[0-9]{12}):blueprint/(bedrock-data-automation-public-[a-zA-Z0-9-_]{1,30}|[a-zA-Z0-9-]{12,36})$",
+            "pattern": "^arn:(?:aws(|-cn|-us-gov|-iso|-iso-[a-z])|aws[a-z\\-]*):bedrock:[a-zA-Z0-9-]*:(aws|[0-9]{12}):blueprint/(bedrock-data-automation-public-[a-zA-Z0-9-_]{1,30}|[a-zA-Z0-9-]{12,36})$",
             "max_length": 128
           },
           "BlueprintStage": {
@@ -40288,7 +40288,7 @@
           },
           "CredentialsSecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
           },
           "HostType": {
             "type": "string",
@@ -40824,7 +40824,7 @@
           },
           "CredentialsSecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
           },
           "HostUrl": {
             "type": "string",
@@ -40935,7 +40935,7 @@
           },
           "CredentialsSecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
           },
           "Domain": {
             "type": "string",
@@ -41350,7 +41350,7 @@
       },
       "CustomerEncryptionKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -42106,7 +42106,7 @@
         "properties": {
           "BotAliasArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-us-gov):lex:[a-z]{2}(-gov)?-[a-z]+-\\d{1}:\\d{12}:bot-alias/[0-9a-zA-Z]+/[0-9a-zA-Z]+$",
+            "pattern": "^arn:(?:aws(|-us-gov)|aws[a-z\\-]*):lex:[a-z]{2}(-gov)?-[a-z]+-\\d{1}:\\d{12}:bot-alias/[0-9a-zA-Z]+/[0-9a-zA-Z]+$",
             "max_length": 78
           },
           "LocaleId": {
@@ -42746,7 +42746,7 @@
       },
       "CustomerEncryptionKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -43431,7 +43431,7 @@
         "properties": {
           "BotAliasArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-us-gov):lex:[a-z]{2}(-gov)?-[a-z]+-\\d{1}:\\d{12}:bot-alias/[0-9a-zA-Z]+/[0-9a-zA-Z]+$",
+            "pattern": "^arn:(?:aws(|-us-gov)|aws[a-z\\-]*):lex:[a-z]{2}(-gov)?-[a-z]+-\\d{1}:\\d{12}:bot-alias/[0-9a-zA-Z]+/[0-9a-zA-Z]+$",
             "max_length": 78
           },
           "LocaleId": {
@@ -44696,7 +44696,7 @@
         "properties": {
           "ModelArn": {
             "type": "string",
-            "pattern": "(^arn:aws(-[^:]+)?:bedrock:[a-z0-9-]{1,20}::foundation-model/[a-z0-9-]{1,63}[.]{1}([a-z0-9-]{1,63}[.]){0,2}[a-z0-9-]{1,63}([:][a-z0-9-]{1,63}){0,2})|(^arn:aws(|-us-gov|-cn|-iso|-iso-b):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|application-inference-profile)/[a-zA-Z0-9-:.]+)$",
+            "pattern": "(^arn:aws(-[^:]+)?:bedrock:[a-z0-9-]{1,20}::foundation-model/[a-z0-9-]{1,63}[.]{1}([a-z0-9-]{1,63}[.]){0,2}[a-z0-9-]{1,63}([:][a-z0-9-]{1,63}){0,2})|(^arn:(?:aws(|-us-gov|-cn|-iso|-iso-b)|aws[a-z\\-]*):bedrock:(|[0-9a-z-]{0,20}):(|[0-9]{12}):(inference-profile|application-inference-profile)/[a-zA-Z0-9-:.]+)$",
             "min_length": 1,
             "max_length": 2048
           }
@@ -44796,7 +44796,7 @@
       },
       "KnowledgeBaseArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):bedrock:[a-zA-Z0-9-]*:[0-9]{12}:knowledge-base/[0-9a-zA-Z]+$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):bedrock:[a-zA-Z0-9-]*:[0-9]{12}:knowledge-base/[0-9a-zA-Z]+$",
         "min_length": 0,
         "max_length": 128
       },
@@ -44962,7 +44962,7 @@
       },
       "KendraIndexArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kendra:[a-z0-9-]{1,20}:([0-9]{12}|):index/([a-zA-Z0-9][a-zA-Z0-9-]{35}|[a-zA-Z0-9][a-zA-Z0-9-]{35}-[a-zA-Z0-9][a-zA-Z0-9-]{35})$"
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kendra:[a-z0-9-]{1,20}:([0-9]{12}|):index/([a-zA-Z0-9][a-zA-Z0-9-]{35}|[a-zA-Z0-9][a-zA-Z0-9-]{35}-[a-zA-Z0-9][a-zA-Z0-9-]{35})$"
       },
       "KendraKnowledgeBaseConfiguration": {
         "type": "object",
@@ -45080,7 +45080,7 @@
           },
           "CredentialsSecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
           },
           "DatabaseName": {
             "type": "string",
@@ -45094,7 +45094,7 @@
           },
           "EndpointServiceName": {
             "type": "string",
-            "pattern": "^(?:arn:aws(?:-us-gov|-cn|-iso|-iso-[a-z])*:.+:.*:\\d+:.+/.+$|[a-zA-Z0-9*]+[a-zA-Z0-9._-]*)$",
+            "pattern": "^(?:arn:(?:aws(?:-us-gov|-cn|-iso|-iso-[a-z])*|aws[a-z\\-]*):.+:.*:\\d+:.+/.+$|[a-zA-Z0-9*]+[a-zA-Z0-9._-]*)$",
             "max_length": 255
           },
           "FieldMapping": {
@@ -45160,7 +45160,7 @@
           },
           "GraphArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):neptune-graph:[a-zA-Z0-9-]*:[0-9]{12}:graph\\/g-[a-zA-Z0-9]{10}$",
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):neptune-graph:[a-zA-Z0-9-]*:[0-9]{12}:graph\\/g-[a-zA-Z0-9]{10}$",
             "min_length": 1,
             "max_length": 255
           }
@@ -45253,7 +45253,7 @@
         "properties": {
           "CollectionArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov|-iso):aoss:[a-z]{2}(-gov)?-[a-z]+-\\d{1}:\\d{12}:collection/[a-z0-9-]{3,32}$",
+            "pattern": "^arn:(?:aws(|-cn|-us-gov|-iso)|aws[a-z\\-]*):aoss:[a-z]{2}(-gov)?-[a-z]+-\\d{1}:\\d{12}:collection/[a-z0-9-]{3,32}$",
             "max_length": 2048
           },
           "FieldMapping": {
@@ -45308,7 +45308,7 @@
           },
           "CredentialsSecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
           },
           "FieldMapping": {
             "ref_name": "PineconeFieldMapping"
@@ -45444,7 +45444,7 @@
         "properties": {
           "CredentialsSecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
           },
           "DatabaseName": {
             "type": "string",
@@ -45456,7 +45456,7 @@
           },
           "ResourceArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):rds:[a-zA-Z0-9-]*:[0-9]{12}:cluster:[a-zA-Z0-9-]{1,63}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):rds:[a-zA-Z0-9-]*:[0-9]{12}:cluster:[a-zA-Z0-9-]{1,63}$"
           },
           "TableName": {
             "type": "string",
@@ -45515,7 +45515,7 @@
         "properties": {
           "CredentialsSecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
           },
           "Endpoint": {
             "type": "string",
@@ -45803,7 +45803,7 @@
       },
       "SecretArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):secretsmanager:[a-z0-9-]{1,20}:([0-9]{12}|):secret:[a-zA-Z0-9!/_+=.@-]{1,512}$"
       },
       "SqlKnowledgeBaseConfiguration": {
         "type": "object",
@@ -46084,7 +46084,7 @@
       },
       "CustomerEncryptionKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -46709,7 +46709,7 @@
       },
       "CustomerEncryptionKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -47474,7 +47474,7 @@
       },
       "EncryptionKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -47589,7 +47589,7 @@
       },
       "CredentialProviderArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/apikeycredentialprovider/[a-zA-Z0-9-]+$"
+        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/apikeycredentialprovider/[a-zA-Z0-9-]+$"
       },
       "LastUpdatedTime": {
         "type": "string",
@@ -47615,7 +47615,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
+            "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
           }
         },
         "required": [
@@ -47743,7 +47743,7 @@
     "definitions": {
       "BrowserArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):bedrock-agentcore:[a-z0-9-]+:(aws|[0-9]{12}):browser(-custom)?\\/(aws\\.browser\\.v1|[a-zA-Z][a-zA-Z0-9_]{0,47}-[a-zA-Z0-9]{10})$"
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:(aws|[0-9]{12}):browser(-custom)?\\/(aws\\.browser\\.v1|[a-zA-Z][a-zA-Z0-9_]{0,47}-[a-zA-Z0-9]{10})$"
       },
       "BrowserEnterprisePolicies": {
         "type": "array",
@@ -47888,7 +47888,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=.@-]+$"
+            "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=.@-]+$"
           }
         },
         "required": [
@@ -47910,7 +47910,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):iam::[0-9]{12}:role/.+$",
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):iam::[0-9]{12}:role/.+$",
         "format": "AWS::IAM::Role.Arn"
       },
       "S3Location": {
@@ -48056,7 +48056,7 @@
     "definitions": {
       "BrowserProfileArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:browser-profile/[a-zA-Z][a-zA-Z0-9_]{0,47}-[a-zA-Z0-9]{10}$"
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:browser-profile/[a-zA-Z][a-zA-Z0-9_]{0,47}-[a-zA-Z0-9]{10}$"
       },
       "BrowserProfileDescription": {
         "type": "string"
@@ -48827,7 +48827,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=.@-]+$"
+            "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=.@-]+$"
           }
         },
         "required": [
@@ -48837,7 +48837,7 @@
       },
       "CodeInterpreterArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):bedrock-agentcore:[a-z0-9-]+:(aws|[0-9]{12}):code-interpreter(-custom)?\\/(aws\\.codeinterpreter\\.v1|[a-zA-Z][a-zA-Z0-9_]{0,47}-[a-zA-Z0-9]{10})$"
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:(aws|[0-9]{12}):code-interpreter(-custom)?\\/(aws\\.codeinterpreter\\.v1|[a-zA-Z][a-zA-Z0-9_]{0,47}-[a-zA-Z0-9]{10})$"
       },
       "CodeInterpreterId": {
         "type": "string",
@@ -48923,7 +48923,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):iam::[0-9]{12}:role/.+$",
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):iam::[0-9]{12}:role/.+$",
         "format": "AWS::IAM::Role.Arn"
       },
       "SandboxName": {
@@ -49022,7 +49022,7 @@
       },
       "BundleArn": {
         "type": "string",
-        "pattern": "^arn:aws:bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:configuration-bundle/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
+        "pattern": "^arn:aws[a-z\\-]*:bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:configuration-bundle/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
       },
       "BundleId": {
         "type": "string",
@@ -49061,7 +49061,7 @@
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
@@ -49389,7 +49389,7 @@
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
@@ -49534,7 +49534,7 @@
       },
       "EvaluatorArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:evaluator/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:evaluator/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
       },
       "EvaluatorConfig": {
         "ref_name": "EvaluatorConfig"
@@ -49552,7 +49552,7 @@
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]+:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]+:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
@@ -53289,7 +53289,7 @@
         "properties": {
           "GatewayArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway/([0-9a-z][-]?){1,48}-[a-z0-9]{10}$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]{1,20}:[0-9]{12}:gateway/([0-9a-z][-]?){1,48}-[a-z0-9]{10}$"
           },
           "OutboundAuth": {
             "ref_name": "HarnessGatewayOutboundAuth"
@@ -54604,7 +54604,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[a-z0-9-\\.]{0,63}:[^/].{0,1023}$"
       },
       "ConsolidationConfiguration": {
         "type": "object",
@@ -55018,7 +55018,7 @@
       },
       "MemoryArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:memory/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:memory/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
       },
       "MemoryId": {
         "type": "string",
@@ -55880,7 +55880,7 @@
       },
       "CredentialProviderArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/oauth2credentialprovider/[a-zA-Z0-9-]+$"
+        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/oauth2credentialprovider/[a-zA-Z0-9-]+$"
       },
       "CredentialProviderVendor": {
         "type": "string",
@@ -55995,7 +55995,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
+            "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
           }
         },
         "required": [
@@ -56161,7 +56161,7 @@
         "properties": {
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
             "min_length": 1,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
@@ -56699,7 +56699,7 @@
       },
       "OnlineEvaluationConfigArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:online-evaluation-config/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:online-evaluation-config/[a-zA-Z][a-zA-Z0-9-_]{0,99}-[a-zA-Z0-9]{10}$"
       },
       "OnlineEvaluationConfigId": {
         "type": "string",
@@ -57955,7 +57955,7 @@
       },
       "EncryptionKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -58165,7 +58165,7 @@
       },
       "AgentRuntimeArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[a-zA-Z][a-zA-Z0-9_]{0,99}-[a-zA-Z0-9]{10}$",
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[a-zA-Z][a-zA-Z0-9_]{0,99}-[a-zA-Z0-9]{10}$",
         "max_length": 2048
       },
       "AgentRuntimeArtifact": {
@@ -59007,11 +59007,11 @@
       },
       "AgentRuntimeArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[a-zA-Z][a-zA-Z0-9_]{0,99}-[a-zA-Z0-9]{10}$"
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[a-zA-Z][a-zA-Z0-9_]{0,99}-[a-zA-Z0-9]{10}$"
       },
       "AgentRuntimeEndpointArn": {
         "type": "string",
-        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[a-zA-Z0-9_-]+/runtime-endpoint/[a-zA-Z0-9_-]+$"
+        "pattern": "^arn:(aws(?:-cn|-us-gov|-iso(?:-[bef])?)?|aws[a-z\\-]*):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[a-zA-Z0-9_-]+/runtime-endpoint/[a-zA-Z0-9_-]+$"
       },
       "AgentRuntimeEndpointId": {
         "type": "string",
@@ -59416,7 +59416,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "arn:aws(-cn)?:billingconductor::[0-9]{12}:billinggroup/?[a-zA-Z0-9]{10,12}"
+        "pattern": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:billinggroup/?[a-zA-Z0-9]{10,12}"
       },
       "ComputationPreference": {
         "ref_name": "ComputationPreference"
@@ -59495,7 +59495,7 @@
         "properties": {
           "PricingPlanArn": {
             "type": "string",
-            "pattern": "arn:aws(-cn)?:billingconductor::(aws|[0-9]{12}):pricingplan/(BasicPricingPlan|Passthrough|[a-zA-Z0-9]{10})"
+            "pattern": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::(aws|[0-9]{12}):pricingplan/(BasicPricingPlan|Passthrough|[a-zA-Z0-9]{10})"
           }
         },
         "required": [
@@ -59581,14 +59581,14 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "(arn:aws(-cn)?:billingconductor::[0-9]{12}:customlineitem/)?[a-zA-Z0-9]{10}"
+        "pattern": "(arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:customlineitem/)?[a-zA-Z0-9]{10}"
       },
       "AssociationSize": {
         "type": "integer"
       },
       "BillingGroupArn": {
         "type": "string",
-        "pattern": "arn:aws(-cn)?:billingconductor::[0-9]{12}:billinggroup/?[a-zA-Z0-9]{10,12}"
+        "pattern": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:billinggroup/?[a-zA-Z0-9]{10,12}"
       },
       "BillingPeriodRange": {
         "ref_name": "BillingPeriodRange"
@@ -59717,7 +59717,7 @@
             "unique_items": true,
             "items": {
               "type": "string",
-              "pattern": "(arn:aws(-cn)?:billingconductor::[0-9]{12}:(customlineitem|billinggroup)/)?[a-zA-Z0-9]{10,12}"
+              "pattern": "(arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:(customlineitem|billinggroup)/)?[a-zA-Z0-9]{10,12}"
             }
           },
           "PercentageValue": {
@@ -59850,7 +59850,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:aws(-cn)?:billingconductor::(aws|[0-9]{12}):pricingplan/(BasicPricingPlan|Passthrough|[a-zA-Z0-9]{10})"
+        "pattern": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::(aws|[0-9]{12}):pricingplan/(BasicPricingPlan|Passthrough|[a-zA-Z0-9]{10})"
       },
       "CreationTime": {
         "type": "integer"
@@ -59891,7 +59891,7 @@
     "definitions": {
       "PricingRuleArn": {
         "type": "string",
-        "pattern": "arn:aws(-cn)?:billingconductor::[0-9]{12}:pricingrule/[a-zA-Z0-9]{10}"
+        "pattern": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:pricingrule/[a-zA-Z0-9]{10}"
       },
       "Tag": {
         "type": "object",
@@ -59934,7 +59934,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:aws(-cn)?:billingconductor::[0-9]{12}:pricingrule/[a-zA-Z0-9]{10}"
+        "pattern": "arn:(?:aws(-cn)?|aws[a-z\\-]*):billingconductor::[0-9]{12}:pricingrule/[a-zA-Z0-9]{10}"
       },
       "AssociatedPricingPlanCount": {
         "type": "integer",
@@ -61225,7 +61225,7 @@
       },
       "BillingViewArn": {
         "type": "string",
-        "pattern": "(arn:aws(-cn)?:billing::[0-9]{12}:billingview/)?[a-zA-Z0-9_\\+=\\.\\-@].{1,30}",
+        "pattern": "(arn:(?:aws(-cn)?|aws[a-z\\-]*):billing::[0-9]{12}:billingview/)?[a-zA-Z0-9_\\+=\\.\\-@].{1,30}",
         "min_length": 1,
         "max_length": 128
       },
@@ -63600,14 +63600,14 @@
         "type": "array",
         "items": {
           "type": "string",
-          "pattern": "^arn:aws:chatbot:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:custom-action/[a-zA-Z0-9_-]{1,64}$"
+          "pattern": "^arn:aws[a-z\\-]*:chatbot:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:custom-action/[a-zA-Z0-9_-]{1,64}$"
         }
       },
       "GuardrailPolicies": {
         "type": "array",
         "items": {
           "type": "string",
-          "pattern": "^(^$|arn:aws:iam:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_\\/+=,@.-]{0,1023})$"
+          "pattern": "^(^$|arn:aws[a-z\\-]*:iam:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_\\/+=,@.-]{0,1023})$"
         }
       },
       "IamRoleArn": {
@@ -63722,14 +63722,14 @@
         "type": "array",
         "items": {
           "type": "string",
-          "pattern": "^arn:aws:chatbot:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:custom-action/[a-zA-Z0-9_-]{1,64}$"
+          "pattern": "^arn:aws[a-z\\-]*:chatbot:[A-Za-z0-9_/.-]{0,63}:[A-Za-z0-9_/.-]{0,63}:custom-action/[a-zA-Z0-9_-]{1,64}$"
         }
       },
       "GuardrailPolicies": {
         "type": "array",
         "items": {
           "type": "string",
-          "pattern": "^(^$|arn:aws:iam:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_\\/+=,@.-]{0,1023})$"
+          "pattern": "^(^$|arn:aws[a-z\\-]*:iam:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9_\\/.-]{0,63}:[A-Za-z0-9][A-Za-z0-9:_\\/+=,@.-]{0,1023})$"
         }
       },
       "IamRoleArn": {
@@ -63974,7 +63974,7 @@
           },
           "LexBotAliasArn": {
             "type": "string",
-            "pattern": "^arn:aws:lex:[a-z]{2}-[a-z]+-\\d{1}:\\d{12}:bot-alias/[A-Z0-9]{10}/[A-Z0-9]{10}$",
+            "pattern": "^arn:aws[a-z\\-]*:lex:[a-z]{2}-[a-z]+-\\d{1}:\\d{12}:bot-alias/[A-Z0-9]{10}/[A-Z0-9]{10}$",
             "min_length": 15,
             "max_length": 2048
           },
@@ -64431,7 +64431,7 @@
           },
           "ResourceArn": {
             "type": "string",
-            "pattern": "^arn:aws:lambda:[a-z]{2}-[a-z]+-\\d{1}:\\d{12}:function:[a-zA-Z0-9\\-_\\.]+(:(\\$LATEST|[a-zA-Z0-9\\-_]+))?$",
+            "pattern": "^arn:aws[a-z\\-]*:lambda:[a-z]{2}-[a-z]+-\\d{1}:\\d{12}:function:[a-zA-Z0-9\\-_\\.]+(:(\\$LATEST|[a-zA-Z0-9\\-_]+))?$",
             "min_length": 15,
             "max_length": 2048
           }
@@ -66379,7 +66379,7 @@
       },
       "AllowedAnalysis": {
         "type": "string",
-        "pattern": "(ANY_QUERY|ANY_JOB|arn:[\\w]{3}:cleanrooms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:membership/[\\d\\w-]+/analysistemplate/[\\d\\w-]+)",
+        "pattern": "(ANY_QUERY|ANY_JOB|arn:(?:[\\w]{3}|aws[a-z\\-]*):cleanrooms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:membership/[\\d\\w-]+/analysistemplate/[\\d\\w-]+)",
         "min_length": 0,
         "max_length": 200
       },
@@ -67124,7 +67124,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:aws:iam::[\\w]+:role/[\\w+=./@-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:iam::[\\w]+:role/[\\w+=./@-]+$",
         "min_length": 32,
         "max_length": 512,
         "format": "AWS::IAM::Role.Arn"
@@ -67348,7 +67348,7 @@
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+$",
         "min_length": 4,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
@@ -67379,7 +67379,7 @@
         "properties": {
           "InputReferenceArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:.*:[0-9]+:(idmappingworkflow/.*)$",
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:.*:[0-9]+:(idmappingworkflow/.*)$",
             "min_length": 20,
             "max_length": 2048
           },
@@ -67559,7 +67559,7 @@
         "properties": {
           "InputReferenceArn": {
             "type": "string",
-            "pattern": "^arn:aws:entityresolution:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:idnamespace/[\\d\\w-]+$",
+            "pattern": "^arn:aws[a-z\\-]*:entityresolution:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:idnamespace/[\\d\\w-]+$",
             "max_length": 256
           },
           "ManageResourcePolicies": {
@@ -67674,7 +67674,7 @@
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:kms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:key/[a-zA-Z0-9-]+$",
         "min_length": 4,
         "max_length": 2048,
         "format": "AWS::KMS::Key.Arn"
@@ -67774,7 +67774,7 @@
       },
       "AllowedAnalysis": {
         "type": "string",
-        "pattern": "(ANY_QUERY|ANY_JOB|arn:[\\w]{3}:cleanrooms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:membership/[\\d\\w-]+/analysistemplate/[\\d\\w-]+)",
+        "pattern": "(ANY_QUERY|ANY_JOB|arn:(?:[\\w]{3}|aws[a-z\\-]*):cleanrooms:[\\w]{2}-[\\w]{4,9}-[\\d]:[\\d]{12}:membership/[\\d\\w-]+/analysistemplate/[\\d\\w-]+)",
         "min_length": 0,
         "max_length": 200
       },
@@ -68211,7 +68211,7 @@
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "^arn:aws:iam::[\\w]+:role/[\\w+=./@-]+$",
+            "pattern": "^arn:aws[a-z\\-]*:iam::[\\w]+:role/[\\w+=./@-]+$",
             "min_length": 32,
             "max_length": 512,
             "format": "AWS::IAM::Role.Arn"
@@ -68243,7 +68243,7 @@
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "^arn:aws:iam::[\\w]+:role/[\\w+=./@-]+$",
+            "pattern": "^arn:aws[a-z\\-]*:iam::[\\w]+:role/[\\w+=./@-]+$",
             "min_length": 32,
             "max_length": 512,
             "format": "AWS::IAM::Role.Arn"
@@ -69333,7 +69333,7 @@
       },
       "OwnerArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):(iam|sts)::\\d+:(root|(user\\/[\\w+=/:,.@-]{1,64}|federated-user\\/[\\w+=/:,.@-]{2,32}|assumed-role\\/[\\w+=:,.@-]{1,64}\\/[\\w+=,.@-]{1,64}))$"
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b|aws[a-z\\-]*):(iam|sts)::\\d+:(root|(user\\/[\\w+=/:,.@-]{1,64}|federated-user\\/[\\w+=/:,.@-]{2,32}|assumed-role\\/[\\w+=:,.@-]{1,64}\\/[\\w+=,.@-]{1,64}))$"
       },
       "Repositories": {
         "type": "array",
@@ -69505,7 +69505,7 @@
       },
       "StackName": {
         "type": "string",
-        "pattern": "^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\\b(aws|aws-us-gov|aws-cn)\\b:[-a-zA-Z0-9:/._+]*)$",
+        "pattern": "^([a-zA-Z][-a-zA-Z0-9]*)|(arn:(?:\\b(aws|aws-us-gov|aws-cn)\\b|aws[a-z\\-]*):[-a-zA-Z0-9:/._+]*)$",
         "min_length": 1
       },
       "Tags": {
@@ -70744,7 +70744,7 @@
       },
       "ConnectionArn": {
         "type": "string",
-        "pattern": "arn:aws(-[w]+)*:.+:.+:[0-9]{12}:.+",
+        "pattern": "arn:(?:aws(-[w]+)*|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+",
         "min_length": 1,
         "max_length": 256
       },
@@ -79598,7 +79598,7 @@
           },
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov):kms:[a-z0-9-]+:[0-9]{12}:key/(?:mrk-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):kms:[a-z0-9-]+:[0-9]{12}:key/(?:mrk-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
             "min_length": 1,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
@@ -83929,13 +83929,13 @@
     "properties": {
       "ConnectionArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn):.+:.+:[0-9]{12}:.+",
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+",
         "min_length": 0,
         "max_length": 256
       },
       "EncryptionKeyArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn):.+:.+:[0-9]{12}:.+",
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+",
         "min_length": 1,
         "max_length": 1024
       },
@@ -83957,7 +83957,7 @@
       },
       "RepositoryLinkArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn):.+:.+:[0-9]{12}:.+"
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+"
       },
       "RepositoryLinkId": {
         "type": "string",
@@ -88661,11 +88661,11 @@
       },
       "ResourceARN": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):config:\\w+(?:-\\w+)+:[0-9]*:.*"
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):config:\\w+(?:-\\w+)+:[0-9]*:.*"
       },
       "RoleARN": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role)\\/.*",
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::[0-9]*:(role)\\/.*",
         "format": "AWS::IAM::Role.Arn"
       },
       "StartedOnCreate": {
@@ -90548,11 +90548,11 @@
       },
       "EmailAddressArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/email-address/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/email-address/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
       },
       "InstanceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
         "min_length": 1,
         "max_length": 250
       },
@@ -90571,7 +90571,7 @@
         "properties": {
           "EmailAddressArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/email-address/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+            "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/email-address/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
           }
         },
         "required": [
@@ -95216,7 +95216,7 @@
       },
       "InstanceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
         "min_length": 1,
         "max_length": 250
       },
@@ -95250,7 +95250,7 @@
       },
       "TrafficDistributionGroupArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:traffic-distribution-group/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):connect:[a-z]{2}-[a-z]+-[0-9]{1}:[0-9]{1,20}:traffic-distribution-group/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
       }
     },
     "definitions": {
@@ -99313,7 +99313,7 @@
           },
           "KmsArn": {
             "type": "string",
-            "pattern": "arn:aws:kms:.*:[0-9]+:.*",
+            "pattern": "arn:aws[a-z\\-]*:kms:.*:[0-9]+:.*",
             "min_length": 20,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
@@ -101153,35 +101153,59 @@
         "type": "string"
       },
       "ClusterEndpointEncryptionType": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "NONE",
+          "TLS"
+        ],
+        "min_length": 1,
+        "max_length": 255
       },
       "ClusterName": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 20
       },
       "Description": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255
       },
       "IAMRoleARN": {
         "type": "string",
+        "min_length": 1,
+        "max_length": 255,
         "format": "AWS::IAM::Role.Arn"
       },
-      "Id": {
-        "type": "string"
-      },
       "NetworkType": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "dual_stack",
+          "ipv4",
+          "ipv6"
+        ],
+        "min_length": 4,
+        "max_length": 10
       },
       "NodeType": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 50
       },
       "NotificationTopicARN": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255
       },
       "ParameterGroupName": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255
       },
       "PreferredMaintenanceWindow": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255
       },
       "ReplicationFactor": {
         "type": "integer"
@@ -101198,7 +101222,9 @@
         }
       },
       "SubnetGroupName": {
-        "type": "string"
+        "type": "string",
+        "min_length": 1,
+        "max_length": 255
       },
       "Tags": {
         "type": [
@@ -101226,7 +101252,6 @@
     ],
     "additional_properties": false,
     "read_only_properties": [
-      "Id",
       "ClusterDiscoveryEndpoint",
       "Arn",
       "ClusterDiscoveryEndpointURL"
@@ -101241,7 +101266,7 @@
       "SubnetGroupName"
     ],
     "primary_identifier": [
-      "Id"
+      "ClusterName"
     ]
   },
   "AWS::DAX::ParameterGroup": {
@@ -101338,7 +101363,7 @@
       },
       "ExecutionRoleArn": {
         "type": "string",
-        "pattern": "^arn:aws(-[a-z]{1,3}){0,2}:iam::\\d+:role/",
+        "pattern": "^arn:(?:aws(-[a-z]{1,3}){0,2}|aws[a-z\\-]*):iam::\\d+:role/",
         "min_length": 0,
         "max_length": 2048,
         "format": "AWS::IAM::Role.Arn"
@@ -101537,7 +101562,7 @@
         "properties": {
           "CmkArn": {
             "type": "string",
-            "pattern": "^arn:aws(-[a-z]{1,3}){0,2}:kms:([a-z]+-){2,3}\\d:\\d+:key/",
+            "pattern": "^arn:(?:aws(-[a-z]{1,3}){0,2}|aws[a-z\\-]*):kms:([a-z]+-){2,3}\\d:\\d+:key/",
             "min_length": 0,
             "max_length": 2048
           },
@@ -101620,7 +101645,7 @@
         "properties": {
           "CmkArn": {
             "type": "string",
-            "pattern": "^arn:aws(-[a-z]{1,3}){0,2}:kms:([a-z]+-){2,3}\\d:\\d+:key/",
+            "pattern": "^arn:(?:aws(-[a-z]{1,3}){0,2}|aws[a-z\\-]*):kms:([a-z]+-){2,3}\\d:\\d+:key/",
             "min_length": 0,
             "max_length": 2048
           },
@@ -102098,7 +102123,7 @@
     "properties": {
       "CertificateArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):dms:[\\w-]+:[0-9]+:cert:[A-Z0-9]+"
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):dms:[\\w-]+:[0-9]+:cert:[A-Z0-9]+"
       },
       "CertificateIdentifier": {
         "type": "string"
@@ -107471,7 +107496,7 @@
       },
       "AgentArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
         "max_length": 128
       },
       "AgentName": {
@@ -107494,7 +107519,7 @@
         "max_items": 1,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$",
           "min_length": 0,
           "max_length": 128
         }
@@ -107505,7 +107530,7 @@
         "max_items": 1,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/.*$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/.*$",
           "min_length": 0,
           "max_length": 128
         }
@@ -107577,7 +107602,7 @@
         "max_items": 8,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
           "min_length": 0,
           "max_length": 128
         }
@@ -107623,7 +107648,7 @@
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -107671,7 +107696,7 @@
         "properties": {
           "AwsIamRole": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "max_length": 2048
           },
           "AzureOidc": {
@@ -107707,14 +107732,14 @@
         "properties": {
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -107726,14 +107751,14 @@
         "properties": {
           "SecretAccessRoleArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -107749,7 +107774,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "max_length": 2048
           }
         },
@@ -107809,7 +107834,7 @@
     "properties": {
       "AccessPointArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):elasticfilesystem:[a-z\\-0-9]+:[0-9]{12}:access-point/fsap-[0-9a-f]{8,40}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):elasticfilesystem:[a-z\\-0-9]+:[0-9]{12}:access-point/fsap-[0-9a-f]{8,40}$",
         "max_length": 128
       },
       "Ec2Config": {
@@ -107817,13 +107842,13 @@
       },
       "EfsFilesystemArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):elasticfilesystem:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):elasticfilesystem:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$",
         "min_length": 0,
         "max_length": 128
       },
       "FileSystemAccessRoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*$",
         "min_length": 0,
         "max_length": 128,
         "format": "AWS::IAM::Role.Arn"
@@ -107837,7 +107862,7 @@
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -107871,14 +107896,14 @@
             "max_items": 5,
             "items": {
               "type": "string",
-              "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$",
+              "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$",
               "min_length": 0,
               "max_length": 128
             }
           },
           "SubnetArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/.*$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:subnet/.*$",
             "min_length": 0,
             "max_length": 128
           }
@@ -107938,13 +107963,13 @@
     "properties": {
       "FsxFilesystemArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$",
         "min_length": 0,
         "max_length": 128
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -107958,7 +107983,7 @@
         "max_items": 5,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$",
           "min_length": 0,
           "max_length": 128
         }
@@ -108029,12 +108054,12 @@
     "properties": {
       "FsxFilesystemArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$",
         "max_length": 128
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -108051,14 +108076,14 @@
         "max_items": 5,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$",
           "min_length": 0,
           "max_length": 128
         }
       },
       "StorageVirtualMachineArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:storage-virtual-machine/fs-[0-9a-f]+/svm-[0-9a-f]{17,}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]+:[0-9]{12}:storage-virtual-machine/fs-[0-9a-f]+/svm-[0-9a-f]{17,}$",
         "min_length": 0,
         "max_length": 162
       },
@@ -108084,14 +108109,14 @@
         "properties": {
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -108103,14 +108128,14 @@
         "properties": {
           "SecretAccessRoleArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -108126,7 +108151,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -108280,13 +108305,13 @@
     "properties": {
       "FsxFilesystemArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]+:[0-9]{12}:file-system/fs-[0-9a-f]+$",
         "min_length": 0,
         "max_length": 128
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -108303,7 +108328,7 @@
         "max_items": 5,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/sg-[a-f0-9]+$",
           "min_length": 0,
           "max_length": 128
         }
@@ -108424,13 +108449,13 @@
       },
       "FsxFilesystemArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):fsx:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):fsx:[a-z\\-0-9]*:[0-9]{12}:file-system/fs-.*$",
         "min_length": 0,
         "max_length": 128
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -108452,7 +108477,7 @@
         "max_items": 5,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):ec2:[a-z\\-0-9]*:[0-9]{12}:security-group/.*$",
           "min_length": 0,
           "max_length": 128
         }
@@ -108484,14 +108509,14 @@
         "properties": {
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -108503,14 +108528,14 @@
         "properties": {
           "SecretAccessRoleArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -108526,7 +108551,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "max_length": 2048
           }
         },
@@ -108592,7 +108617,7 @@
         "max_items": 8,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
           "min_length": 0,
           "max_length": 128
         }
@@ -108638,7 +108663,7 @@
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -108693,14 +108718,14 @@
         "properties": {
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -108712,14 +108737,14 @@
         "properties": {
           "SecretAccessRoleArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -108735,7 +108760,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "max_length": 2048
           }
         },
@@ -108839,7 +108864,7 @@
     "properties": {
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -108901,7 +108926,7 @@
             "max_items": 8,
             "items": {
               "type": "string",
-              "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
+              "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
               "min_length": 0,
               "max_length": 128
             }
@@ -108967,7 +108992,7 @@
         "max_items": 8,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
           "min_length": 0,
           "max_length": 128
         }
@@ -108990,7 +109015,7 @@
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -109051,14 +109076,14 @@
         "properties": {
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -109070,14 +109095,14 @@
         "properties": {
           "SecretAccessRoleArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -109129,7 +109154,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "max_length": 2048
           }
         },
@@ -109152,7 +109177,7 @@
         "properties": {
           "AwsIamRole": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "max_length": 2048
           },
           "ExternalIdentity": {
@@ -109211,7 +109236,7 @@
     "properties": {
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -109221,7 +109246,7 @@
       },
       "S3BucketArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):s3:[a-z\\-0-9]*:[0-9]*:.*$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):s3:[a-z\\-0-9]*:[0-9]*:.*$",
         "min_length": 0,
         "max_length": 156
       },
@@ -109262,7 +109287,7 @@
         "properties": {
           "BucketAccessRoleArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
@@ -109325,7 +109350,7 @@
         "max_items": 8,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:agent/agent-[0-9a-z]{17}$",
           "min_length": 0,
           "max_length": 128
         }
@@ -109376,7 +109401,7 @@
       },
       "LocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "max_length": 128
       },
       "LocationUri": {
@@ -109428,14 +109453,14 @@
         "properties": {
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z-0-9]+:[0-9]{12}:key/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::KMS::Key.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -109447,14 +109472,14 @@
         "properties": {
           "SecretAccessRoleArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*|)$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "min_length": 0,
             "max_length": 2048
           }
@@ -109470,7 +109495,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
+            "pattern": "^(arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):secretsmanager:[a-z-0-9]+:[0-9]{12}:secret:.*|)$",
             "max_length": 2048
           }
         },
@@ -109545,13 +109570,13 @@
     "properties": {
       "CloudWatchLogGroupArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):logs:[a-z\\-0-9]*:[0-9]{12}:log-group:([^:\\*]*)(:\\*)?$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):logs:[a-z\\-0-9]*:[0-9]{12}:log-group:([^:\\*]*)(:\\*)?$",
         "min_length": 0,
         "max_length": 562
       },
       "DestinationLocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "min_length": 0,
         "max_length": 128
       },
@@ -109591,7 +109616,7 @@
       },
       "SourceLocationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]+:[0-9]{12}:location/loc-[0-9a-z]{17}$",
         "min_length": 0,
         "max_length": 128
       },
@@ -109619,7 +109644,7 @@
       },
       "TaskArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):datasync:[a-z\\-0-9]*:[0-9]{12}:task/task-[0-9a-f]{17}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):datasync:[a-z\\-0-9]*:[0-9]{12}:task/task-[0-9a-f]{17}$",
         "max_length": 128
       },
       "TaskMode": {
@@ -109697,7 +109722,7 @@
         "properties": {
           "BucketAccessRoleArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
@@ -109716,7 +109741,7 @@
           },
           "S3BucketArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):(s3|s3-outposts):[a-z\\-0-9]*:[0-9]*:.*$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):(s3|s3-outposts):[a-z\\-0-9]*:[0-9]*:.*$",
             "min_length": 0,
             "max_length": 156
           }
@@ -109979,14 +110004,14 @@
         "properties": {
           "BucketAccessRoleArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):iam::[0-9]{12}:role/.*$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::[0-9]{12}:role/.*$",
             "min_length": 0,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
           },
           "S3BucketArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b):(s3|s3-outposts):[a-z\\-0-9]*:[0-9]*:.*$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws-iso|aws-iso-b|aws[a-z\\-]*):(s3|s3-outposts):[a-z\\-0-9]*:[0-9]*:.*$",
             "min_length": 0,
             "max_length": 156
           },
@@ -110173,7 +110198,7 @@
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:secretsmanager:.*$"
+            "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):secretsmanager:.*$"
           }
         },
         "additional_properties": false
@@ -110843,7 +110868,7 @@
         "properties": {
           "ComputeArn": {
             "type": "string",
-            "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:(elasticmapreduce|emr-serverless|emr-containers):.*",
+            "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):(elasticmapreduce|emr-serverless|emr-containers):.*",
             "max_length": 2048
           },
           "InstanceProfileArn": {
@@ -111563,7 +111588,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):datazone:\\w+(?:-\\w+)+:\\d{12}:domain/dzd[-_][a-zA-Z0-9_-]{1,36}$"
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):datazone:\\w+(?:-\\w+)+:\\d{12}:domain/dzd[-_][a-zA-Z0-9_-]{1,36}$"
       },
       "CreatedAt": {
         "type": "string",
@@ -111589,7 +111614,7 @@
       },
       "KmsKeyIdentifier": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):kms:[a-zA-Z0-9-]*:[0-9]{12}:key/[a-zA-Z0-9-]{36}$",
         "min_length": 1,
         "max_length": 1024
       },
@@ -111651,7 +111676,7 @@
       },
       "IdcInstanceArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}",
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}",
         "min_length": 10,
         "max_length": 1224
       },
@@ -112657,7 +112682,7 @@
         "properties": {
           "UserIdentifier": {
             "type": "string",
-            "pattern": "(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws:iam::\\d{12}:.+$)"
+            "pattern": "(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws[a-z\\-]*:iam::\\d{12}:.+$)"
           }
         },
         "additional_properties": false
@@ -114017,7 +114042,7 @@
       },
       "ManageAccessRole": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov):iam::\\d{12}:(role|role/service-role)/[\\w+=,.@-]*$"
+        "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):iam::\\d{12}:(role|role/service-role)/[\\w+=,.@-]*$"
       },
       "Name": {
         "type": "string",
@@ -114135,7 +114160,7 @@
       },
       "UserIdentifier": {
         "type": "string",
-        "pattern": "(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws:iam::\\d{12}:.+$)"
+        "pattern": "(^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$|^[a-zA-Z_0-9+=,.@-]+$|^arn:aws[a-z\\-]*:iam::\\d{12}:.+$)"
       },
       "UserType": {
         "ref_name": "UserType"
@@ -115474,7 +115499,7 @@
       },
       "IdentityCenterInstanceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$"
       },
       "IdentityCenterRegion": {
         "type": "string",
@@ -117325,7 +117350,7 @@
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov):iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
             "min_length": 1,
             "max_length": 255,
             "format": "AWS::IAM::Role.Arn"
@@ -118236,7 +118261,7 @@
           },
           "McpRoleArn": {
             "type": "string",
-            "pattern": "^arn:aws:iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
+            "pattern": "^arn:aws[a-z\\-]*:iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
             "format": "AWS::IAM::Role.Arn"
           },
           "Region": {
@@ -118245,7 +118270,7 @@
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "^$|^arn:aws:iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
+            "pattern": "^$|^arn:aws[a-z\\-]*:iam::\\d{12}:role/[a-zA-Z0-9+=,.@_/-]+$",
             "any_of": [
               {
                 "format": "AWS::IAM::Role.Arn"
@@ -150949,7 +150974,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov|iso-f|iso-e))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
+        "pattern": "^arn:(?:aws(-(cn|us-gov|iso-f|iso-e))?|aws[a-z\\-]*):[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
         "min_length": 0,
         "max_length": 10280
       },
@@ -151048,7 +151073,7 @@
     "definitions": {
       "IamPolicyArn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov|iso-f|iso-e))?:iam::([0-9]{12})?:policy\\/[^.]+$",
+        "pattern": "^arn:(?:aws(-(cn|us-gov|iso-f|iso-e))?|aws[a-z\\-]*):iam::([0-9]{12})?:policy\\/[^.]+$",
         "min_length": 0,
         "max_length": 256
       }
@@ -151858,7 +151883,7 @@
         "properties": {
           "SystemRole": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):iam::\\d{12}:role/.+$",
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::\\d{12}:role/.+$",
             "min_length": 20,
             "max_length": 2048
           }
@@ -151876,7 +151901,7 @@
           },
           "IdentityCenterInstanceARN": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
             "min_length": 10,
             "max_length": 1224
           }
@@ -151906,7 +151931,7 @@
           },
           "QueryEngineRoleArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):iam::\\d{12}:role/.+$",
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::\\d{12}:role/.+$",
             "min_length": 20,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
@@ -152790,7 +152815,7 @@
       },
       "EnvironmentArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):evs:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:environment/[a-zA-Z0-9_-]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):evs:[a-z]{2}-[a-z]+-[0-9]:[0-9]{12}:environment/[a-zA-Z0-9_-]+$",
         "min_length": 1,
         "max_length": 1011
       },
@@ -158691,7 +158716,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
         "min_length": 0,
         "max_length": 512,
         "format": "AWS::IAM::Role.Arn"
@@ -158814,14 +158839,14 @@
       },
       "IdMappingWorkflowArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:.*:[0-9]+:(idmappingworkflow/.*)$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:.*:[0-9]+:(idmappingworkflow/.*)$"
       },
       "IdMappingWorkflowInputSource": {
         "type": "object",
         "properties": {
           "InputSourceARN": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(idnamespace/[a-zA-Z_0-9-]{1,255})$|^arn:(aws|aws-us-gov|aws-cn):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(matchingworkflow/[a-zA-Z_0-9-]{1,255})$|^arn:(aws|aws-us-gov|aws-cn):glue:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(table/[a-zA-Z_0-9-]{1,255}/[a-zA-Z_0-9-]{1,255})$"
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(idnamespace/[a-zA-Z_0-9-]{1,255})$|^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(matchingworkflow/[a-zA-Z_0-9-]{1,255})$|^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):glue:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(table/[a-zA-Z_0-9-]{1,255}/[a-zA-Z_0-9-]{1,255})$"
           },
           "SchemaArn": {
             "ref_name": "SchemaMappingArn"
@@ -158874,7 +158899,7 @@
       },
       "KMSArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):kms:.*:[0-9]+:.*$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):kms:.*:[0-9]+:.*$",
         "format": "AWS::KMS::Key.Arn"
       },
       "ProviderProperties": {
@@ -158894,7 +158919,7 @@
           },
           "ProviderServiceArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn):(entityresolution):([a-z]{2}-[a-z]{1,10}-[0-9])::providerservice/([a-zA-Z0-9_-]{1,255})/([a-zA-Z0-9_-]{1,255})$",
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):(entityresolution):([a-z]{2}-[a-z]{1,10}-[0-9])::providerservice/([a-zA-Z0-9_-]{1,255})/([a-zA-Z0-9_-]{1,255})$",
             "min_length": 20,
             "max_length": 255
           }
@@ -158930,7 +158955,7 @@
       },
       "SchemaMappingArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:.*:[0-9]+:(schemamapping/.*)$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:.*:[0-9]+:(schemamapping/.*)$"
       },
       "Tag": {
         "type": "object",
@@ -158997,7 +159022,7 @@
       },
       "IdNamespaceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(idnamespace/[a-zA-Z_0-9-]{1,255})$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(idnamespace/[a-zA-Z_0-9-]{1,255})$"
       },
       "IdNamespaceName": {
         "ref_name": "EntityName"
@@ -159012,7 +159037,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
         "min_length": 32,
         "max_length": 512,
         "format": "AWS::IAM::Role.Arn"
@@ -159077,7 +159102,7 @@
         "properties": {
           "InputSourceARN": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(matchingworkflow/[a-zA-Z_0-9-]{1,255})$|^arn:(aws|aws-us-gov|aws-cn):glue:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(table/[a-zA-Z_0-9-]{1,255}/[a-zA-Z_0-9-]{1,255})$"
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(matchingworkflow/[a-zA-Z_0-9-]{1,255})$|^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):glue:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(table/[a-zA-Z_0-9-]{1,255}/[a-zA-Z_0-9-]{1,255})$"
           },
           "SchemaName": {
             "ref_name": "EntityName"
@@ -159144,7 +159169,7 @@
       },
       "ProviderServiceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):(entityresolution):([a-z]{2}-[a-z]{1,10}-[0-9])::providerservice/([a-zA-Z0-9_-]{1,255})/([a-zA-Z0-9_-]{1,255})$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):(entityresolution):([a-z]{2}-[a-z]{1,10}-[0-9])::providerservice/([a-zA-Z0-9_-]{1,255})/([a-zA-Z0-9_-]{1,255})$",
         "min_length": 20,
         "max_length": 255
       },
@@ -159258,7 +159283,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam::\\d{12}:role/?[a-zA-Z_0-9+=,.@\\-_/]+$",
         "format": "AWS::IAM::Role.Arn"
       },
       "Tags": {
@@ -159292,7 +159317,7 @@
       },
       "CustomerProfilesDomainArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):profile:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(domains/[a-zA-Z_0-9-]{1,255})$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):profile:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(domains/[a-zA-Z_0-9-]{1,255})$"
       },
       "CustomerProfilesIntegrationConfig": {
         "type": "object",
@@ -159312,7 +159337,7 @@
       },
       "CustomerProfilesObjectTypeArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):profile:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(domains/[a-zA-Z_0-9-]{1,255}/object-types/[a-zA-Z_0-9-]{1,255})$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):profile:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:(domains/[a-zA-Z_0-9-]{1,255}/object-types/[a-zA-Z_0-9-]{1,255})$"
       },
       "Description": {
         "type": "string",
@@ -159348,7 +159373,7 @@
           },
           "InputSourceARN": {
             "type": "string",
-            "pattern": "arn:(aws|aws-us-gov|aws-cn):.*:.*:[0-9]+:.*$"
+            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):.*:.*:[0-9]+:.*$"
           },
           "SchemaArn": {
             "ref_name": "SchemaMappingArn"
@@ -159377,7 +159402,7 @@
       },
       "KMSArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):kms:.*:[0-9]+:.*$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):kms:.*:[0-9]+:.*$",
         "format": "AWS::KMS::Key.Arn"
       },
       "MatchingConfig": {
@@ -159391,7 +159416,7 @@
       },
       "MatchingWorkflowArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:.*:[0-9]+:(matchingworkflow/.*)$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:.*:[0-9]+:(matchingworkflow/.*)$"
       },
       "OutputAttribute": {
         "type": "object",
@@ -159457,7 +159482,7 @@
           },
           "ProviderServiceArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws-cn):(entityresolution):([a-z]{2}-[a-z]{1,10}-[0-9])::providerservice/([a-zA-Z0-9_-]{1,255})/([a-zA-Z0-9_-]{1,255})$",
+            "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):(entityresolution):([a-z]{2}-[a-z]{1,10}-[0-9])::providerservice/([a-zA-Z0-9_-]{1,255})/([a-zA-Z0-9_-]{1,255})$",
             "min_length": 20,
             "max_length": 255
           }
@@ -159586,7 +159611,7 @@
       },
       "SchemaMappingArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:.*:[0-9]+:(schemamapping/.*)$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:.*:[0-9]+:(schemamapping/.*)$"
       },
       "Tag": {
         "type": "object",
@@ -159703,7 +159728,7 @@
       },
       "VeniceGlobalArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:((schemamapping|matchingworkflow|idmappingworkflow|idnamespace)/[a-zA-Z_0-9-]{1,255})$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:[a-z]{2}-[a-z]{1,10}-[0-9]:[0-9]{12}:((schemamapping|matchingworkflow|idmappingworkflow|idnamespace)/[a-zA-Z_0-9-]{1,255})$"
       }
     },
     "required": [
@@ -159848,7 +159873,7 @@
       },
       "SchemaMappingArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn):entityresolution:.*:[0-9]+:(schemamapping/.*)$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):entityresolution:.*:[0-9]+:(schemamapping/.*)$"
       },
       "Tag": {
         "type": "object",
@@ -166851,7 +166876,7 @@
       },
       "EnvironmentArn": {
         "type": "string",
-        "pattern": "^arn:aws:finspace:[A-Za-z0-9_/.-]{0,63}:\\d+:environment/[0-9A-Za-z_-]{1,128}$"
+        "pattern": "^arn:aws[a-z\\-]*:finspace:[A-Za-z0-9_/.-]{0,63}:\\d+:environment/[0-9A-Za-z_-]{1,128}$"
       },
       "EnvironmentId": {
         "type": "string",
@@ -166922,7 +166947,7 @@
     "definitions": {
       "DataBundleArn": {
         "type": "string",
-        "pattern": "^arn:aws:finspace:[A-Za-z0-9_/.-]{0,63}:\\d*:data-bundle/[0-9A-Za-z_-]{1,128}$"
+        "pattern": "^arn:aws[a-z\\-]*:finspace:[A-Za-z0-9_/.-]{0,63}:\\d*:data-bundle/[0-9A-Za-z_-]{1,128}$"
       },
       "FederationParameters": {
         "type": "object",
@@ -171204,7 +171229,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^(^[a-zA-Z0-9-]+$)|(^arn:aws:gameliftstreams:([^:\n]*):([0-9]{12}):([^:\n]*)$)$",
+        "pattern": "^(^[a-zA-Z0-9-]+$)|(^arn:aws[a-z\\-]*:gameliftstreams:([^:\n]*):([0-9]{12}):([^:\n]*)$)$",
         "min_length": 1,
         "max_length": 128
       },
@@ -171292,7 +171317,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^(^[a-zA-Z0-9-]+$)|(^arn:aws:gameliftstreams:([^:\n]*):([0-9]{12}):([^:\n]*)$)$",
+        "pattern": "^(^[a-zA-Z0-9-]+$)|(^arn:aws[a-z\\-]*:gameliftstreams:([^:\n]*):([0-9]{12}):([^:\n]*)$)$",
         "min_length": 1,
         "max_length": 128
       },
@@ -171333,7 +171358,7 @@
         "properties": {
           "Arn": {
             "type": "string",
-            "pattern": "^arn:aws:gameliftstreams:([^:\n]*):([0-9]{12}):([^:\n]*)$",
+            "pattern": "^arn:aws[a-z\\-]*:gameliftstreams:([^:\n]*):([0-9]{12}):([^:\n]*)$",
             "min_length": 1,
             "max_length": 128
           },
@@ -173415,7 +173440,7 @@
           },
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:secretsmanager:.*$"
+            "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):secretsmanager:.*$"
           }
         },
         "required": [
@@ -173685,7 +173710,7 @@
       },
       "ConnectionTypeArn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:glue:",
+        "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):glue:",
         "min_length": 1,
         "max_length": 10240
       },
@@ -174899,7 +174924,7 @@
           },
           "CatalogEncryptionServiceRole": {
             "type": "string",
-            "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:iam::[0-9]{12}:role/.+$"
+            "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):iam::[0-9]{12}:role/.+$"
           },
           "SseAwsKmsKeyId": {
             "type": "string",
@@ -175233,13 +175258,13 @@
       },
       "ApplicationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso::\\d{12}:application/(sso)?ins-[a-zA-Z0-9-.]{16}/apl-[a-zA-Z0-9]{16}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso::\\d{12}:application/(sso)?ins-[a-zA-Z0-9-.]{16}/apl-[a-zA-Z0-9]{16}$",
         "min_length": 10,
         "max_length": 1224
       },
       "InstanceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
         "min_length": 10,
         "max_length": 1224
       },
@@ -175298,7 +175323,7 @@
       },
       "IntegrationArn": {
         "type": "string",
-        "pattern": "arn:aws:.*:.*:[0-9]+:.*"
+        "pattern": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*"
       },
       "IntegrationConfig": {
         "ref_name": "IntegrationConfig"
@@ -175326,7 +175351,7 @@
       },
       "SourceArn": {
         "type": "string",
-        "pattern": "arn:aws:.*:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*",
         "min_length": 1,
         "max_length": 512
       },
@@ -175343,7 +175368,7 @@
       },
       "TargetArn": {
         "type": "string",
-        "pattern": "arn:aws:.*:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*",
         "min_length": 1,
         "max_length": 512
       }
@@ -175449,13 +175474,13 @@
     "properties": {
       "ResourceArn": {
         "type": "string",
-        "pattern": "arn:aws:.*:.*:[0-9]+:.*",
+        "pattern": "arn:aws[a-z\\-]*:.*:.*:[0-9]+:.*",
         "min_length": 1,
         "max_length": 512
       },
       "ResourcePropertyArn": {
         "type": "string",
-        "pattern": "arn:aws:glue:.*:[0-9]+:.*"
+        "pattern": "arn:aws[a-z\\-]*:glue:.*:[0-9]+:.*"
       },
       "SourceProcessingProperties": {
         "type": "object",
@@ -175495,14 +175520,14 @@
           },
           "KmsArn": {
             "type": "string",
-            "pattern": "arn:aws:kms:.*:[0-9]+:.*",
+            "pattern": "arn:aws[a-z\\-]*:kms:.*:[0-9]+:.*",
             "min_length": 1,
             "max_length": 128,
             "format": "AWS::KMS::Key.Arn"
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "arn:aws:iam:.*:[0-9]+:.*",
+            "pattern": "arn:aws[a-z\\-]*:iam:.*:[0-9]+:.*",
             "min_length": 1,
             "max_length": 128,
             "format": "AWS::IAM::Role.Arn"
@@ -176110,7 +176135,7 @@
           },
           "SchemaArn": {
             "type": "string",
-            "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:glue:",
+            "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):glue:",
             "min_length": 1,
             "max_length": 10240
           },
@@ -176288,7 +176313,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:aws(-(cn|us-gov|iso(-[bef])?))?:glue:.*"
+        "pattern": "arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):glue:.*"
       },
       "Description": {
         "type": "string",
@@ -176351,7 +176376,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:aws(-(cn|us-gov|iso(-[bef])?))?:glue:.*"
+        "pattern": "arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):glue:.*"
       },
       "CheckpointVersion": {
         "ref_name": "SchemaVersion"
@@ -176415,7 +176440,7 @@
         "properties": {
           "Arn": {
             "type": "string",
-            "pattern": "arn:aws(-(cn|us-gov|iso(-[bef])?))?:glue:.*"
+            "pattern": "arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):glue:.*"
           },
           "Name": {
             "type": "string",
@@ -176512,7 +176537,7 @@
           },
           "SchemaArn": {
             "type": "string",
-            "pattern": "arn:(aws|aws-us-gov|aws-cn):glue:.*"
+            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):glue:.*"
           },
           "SchemaName": {
             "type": "string",
@@ -177168,7 +177193,7 @@
           },
           "SchemaArn": {
             "type": "string",
-            "pattern": "^arn:aws(-(cn|us-gov|iso(-[bef])?))?:glue:",
+            "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-[bef])?))?|aws[a-z\\-]*):glue:",
             "min_length": 1,
             "max_length": 10240
           },
@@ -183182,7 +183207,7 @@
       },
       "DatastoreArn": {
         "type": "string",
-        "pattern": "^arn:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?:medical-imaging:[a-z0-9-]+:[0-9]{12}:datastore/[0-9a-z]{32}(/imageset/[0-9a-z]{32})?$",
+        "pattern": "^arn:(?:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?|aws[a-z\\-]*):medical-imaging:[a-z0-9-]+:[0-9]{12}:datastore/[0-9a-z]{32}(/imageset/[0-9a-z]{32})?$",
         "min_length": 1,
         "max_length": 127
       },
@@ -183507,7 +183532,7 @@
       },
       "DatastoreArn": {
         "type": "string",
-        "pattern": "^arn:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?:healthlake:[a-zA-Z0-9-]+:[0-9]{12}:datastore/.+?"
+        "pattern": "^arn:(?:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?|aws[a-z\\-]*):healthlake:[a-zA-Z0-9-]+:[0-9]{12}:datastore/.+?"
       },
       "DatastoreEndpoint": {
         "type": "string",
@@ -183582,7 +183607,7 @@
           },
           "KmsKeyId": {
             "type": "string",
-            "pattern": "(arn:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?:kms:)?([a-z]{2}-[a-z]+(-[a-z]+)?-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))",
+            "pattern": "(arn:(?:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?|aws[a-z\\-]*):kms:)?([a-z]{2}-[a-z]+(-[a-z]+)?-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))",
             "min_length": 1,
             "max_length": 400,
             "any_of": [
@@ -184855,7 +184880,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:ad-configuration/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:ad-configuration/[a-zA-Z0-9-]+$",
         "min_length": 0,
         "max_length": 128
       },
@@ -184891,7 +184916,7 @@
         "properties": {
           "PlaybackConfigurationArn": {
             "type": "string",
-            "pattern": "^arn:aws:mediatailor:[a-z0-9-]+:[0-9]+:playbackConfiguration/[a-zA-Z0-9-]+$",
+            "pattern": "^arn:aws[a-z\\-]*:mediatailor:[a-z0-9-]+:[0-9]+:playbackConfiguration/[a-zA-Z0-9-]+$",
             "min_length": 0,
             "max_length": 128
           }
@@ -184955,7 +184980,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:channel/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:channel/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -185004,7 +185029,7 @@
       },
       "RecordingConfigurationArn": {
         "type": "string",
-        "pattern": "^$|arn:aws:ivs:[a-z0-9-]+:[0-9]+:recording-configuration/[a-zA-Z0-9-]+$",
+        "pattern": "^$|arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:recording-configuration/[a-zA-Z0-9-]+$",
         "min_length": 0,
         "max_length": 128
       },
@@ -185089,7 +185114,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:encoder-configuration/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:encoder-configuration/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -185179,7 +185204,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:ingest-configuration/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:ingest-configuration/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -185207,7 +185232,7 @@
       },
       "StageArn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:stage/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:stage/[a-zA-Z0-9-]+$",
         "min_length": 0,
         "max_length": 128
       },
@@ -185282,7 +185307,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:playback-key/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:playback-key/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -185369,7 +185394,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:playback-restriction-policy/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:playback-restriction-policy/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -185428,7 +185453,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:public-key/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:public-key/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -185740,7 +185765,7 @@
           },
           "StorageConfigurationArn": {
             "type": "string",
-            "pattern": "^$|^arn:aws:ivs:[a-z0-9-]+:[0-9]+:storage-configuration/[a-zA-Z0-9-]+$",
+            "pattern": "^$|^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:storage-configuration/[a-zA-Z0-9-]+$",
             "min_length": 0,
             "max_length": 128
           },
@@ -185929,13 +185954,13 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:stream-key/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:stream-key/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
       "ChannelArn": {
         "type": "string",
-        "pattern": "^arn:aws:ivs:[a-z0-9-]+:[0-9]+:channel/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivs:[a-z0-9-]+:[0-9]+:channel/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -185995,7 +186020,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivschat:[a-z0-9-]+:[0-9]+:logging-configuration/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivschat:[a-z0-9-]+:[0-9]+:logging-configuration/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -186137,7 +186162,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:ivschat:[a-z0-9-]+:[0-9]+:room/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:ivschat:[a-z0-9-]+:[0-9]+:room/[a-zA-Z0-9-]+$",
         "min_length": 1,
         "max_length": 128
       },
@@ -186154,7 +186179,7 @@
         "unique_items": true,
         "items": {
           "type": "string",
-          "pattern": "^arn:aws:ivschat:[a-z0-9-]+:[0-9]+:logging-configuration/[a-zA-Z0-9-]+$",
+          "pattern": "^arn:aws[a-z\\-]*:ivschat:[a-z0-9-]+:[0-9]+:logging-configuration/[a-zA-Z0-9-]+$",
           "min_length": 1,
           "max_length": 128
         }
@@ -186199,7 +186224,7 @@
           },
           "Uri": {
             "type": "string",
-            "pattern": "^$|^arn:aws:lambda:[a-z0-9-]+:[0-9]{12}:function:.+",
+            "pattern": "^$|^arn:aws[a-z\\-]*:lambda:[a-z0-9-]+:[0-9]{12}:function:.+",
             "min_length": 0,
             "max_length": 170
           }
@@ -189669,7 +189694,7 @@
     "properties": {
       "ConnectorArn": {
         "type": "string",
-        "pattern": "^arn:aws(-[a-z]+)?:inspector2:[a-z0-9-]+:[0-9]{12}:connector/[a-f0-9-]+$",
+        "pattern": "^arn:(?:aws(-[a-z]+)?|aws[a-z\\-]*):inspector2:[a-z0-9-]+:[0-9]{12}:connector/[a-f0-9-]+$",
         "max_length": 128
       },
       "CreatedAt": {
@@ -190888,7 +190913,7 @@
       },
       "ProcurementPortalPreferenceArn": {
         "type": "string",
-        "pattern": "^arn:aws:invoicing::[0-9]{12}:procurement-portal-preference/[-a-zA-Z0-9]+$",
+        "pattern": "^arn:aws[a-z\\-]*:invoicing::[0-9]{12}:procurement-portal-preference/[-a-zA-Z0-9]+$",
         "min_length": 1,
         "max_length": 256
       },
@@ -192341,7 +192366,7 @@
         "max_items": 1,
         "items": {
           "type": "string",
-          "pattern": "^arn:aws(-cn|-us-gov|-iso-b|-iso)?:acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
+          "pattern": "^arn:(?:aws(-cn|-us-gov|-iso-b|-iso)?|aws[a-z\\-]*):acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
           "min_length": 1,
           "max_length": 2048
         }
@@ -192375,7 +192400,7 @@
       },
       "ValidationCertificateArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov|-iso-b|-iso)?:acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov|-iso-b|-iso)?|aws[a-z\\-]*):acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
         "min_length": 1,
         "max_length": 2048
       }
@@ -192416,7 +192441,7 @@
           },
           "OcspAuthorizedResponderArn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov|-iso-b|-iso)?:acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov|-iso-b|-iso)?|aws[a-z\\-]*):acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
             "min_length": 1,
             "max_length": 2048
           },
@@ -192433,7 +192458,7 @@
         "properties": {
           "ServerCertificateArn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov|-iso-b|-iso)?:acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov|-iso-b|-iso)?|aws[a-z\\-]*):acm:[a-z]{2}-(gov-|iso-|isob-)?[a-z]{4,9}-\\d{1}:\\d{12}:certificate/[a-zA-Z0-9/-]+$",
             "min_length": 1,
             "max_length": 2048
           },
@@ -200508,7 +200533,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:iotmanagedintegrations:[0-9a-zA-Z-]+:[0-9]+:cloud-connector/[A-Za-z0-9_-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:iotmanagedintegrations:[0-9a-zA-Z-]+:[0-9]+:cloud-connector/[A-Za-z0-9_-]+$",
         "min_length": 63,
         "max_length": 1011
       },
@@ -200562,7 +200587,7 @@
         "properties": {
           "Arn": {
             "type": "string",
-            "pattern": "^(arn:aws:lambda:[0-9a-zA-Z-]+:[0-9]+:function:)?([a-zA-Z0-9-_]+(:(\\$LATEST|[a-zA-Z0-9-_]+))?)$"
+            "pattern": "^(arn:aws[a-z\\-]*:lambda:[0-9a-zA-Z-]+:[0-9]+:function:)?([a-zA-Z0-9-_]+(:(\\$LATEST|[a-zA-Z0-9-_]+))?)$"
           }
         },
         "required": [
@@ -201598,7 +201623,7 @@
         "properties": {
           "arn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
             "min_length": 1,
             "max_length": 1600
           }
@@ -201610,7 +201635,7 @@
         "properties": {
           "arn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
             "min_length": 1,
             "max_length": 1600
           }
@@ -201680,7 +201705,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.]+$",
         "min_length": 1,
         "max_length": 1600
       },
@@ -201702,13 +201727,13 @@
       },
       "IdcApplicationArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.]+$",
         "min_length": 1,
         "max_length": 1600
       },
       "IdcInstanceArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.]+$",
         "min_length": 1,
         "max_length": 1600
       },
@@ -202487,7 +202512,7 @@
     "properties": {
       "ComputationModelArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:/_\\.]+$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:/_\\.]+$",
         "min_length": 1,
         "max_length": 1600
       },
@@ -202832,13 +202857,13 @@
         "properties": {
           "KnowledgeBaseArn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.]+$",
             "min_length": 1,
             "max_length": 1600
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.]+$",
             "min_length": 1,
             "max_length": 1600,
             "format": "AWS::IAM::Role.Arn"
@@ -203217,13 +203242,13 @@
         "properties": {
           "AlarmRoleArn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
             "min_length": 1,
             "max_length": 1600
           },
           "NotificationLambdaArn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.]+$",
             "min_length": 1,
             "max_length": 1600
           }
@@ -203285,7 +203310,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):[a-zA-Z0-9-:\\/_\\.\\+=,@]+$",
         "min_length": 1,
         "max_length": 1600,
         "format": "AWS::IAM::Role.Arn"
@@ -203651,7 +203676,7 @@
         "properties": {
           "AccessPointArn": {
             "type": "string",
-            "pattern": "^arn:aws(-cn|-us-gov)?:s3:[a-z0-9-]*:\\d{12}:accesspoint[/:][a-zA-Z0-9._-]+$",
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):s3:[a-z0-9-]*:\\d{12}:accesspoint[/:][a-zA-Z0-9._-]+$",
             "min_length": 4,
             "max_length": 128
           },
@@ -203889,7 +203914,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
+        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
         "min_length": 20,
         "max_length": 2048
       },
@@ -204152,7 +204177,7 @@
         "properties": {
           "Arn": {
             "type": "string",
-            "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):lambda:[a-z0-9-]+:[0-9]{12}:function:[\\/a-zA-Z0-9_-]+",
+            "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):lambda:[a-z0-9-]+:[0-9]{12}:function:[\\/a-zA-Z0-9_-]+",
             "min_length": 1,
             "max_length": 128
           }
@@ -204323,7 +204348,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
+        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
         "min_length": 20,
         "max_length": 2048
       },
@@ -204780,7 +204805,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
+        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
         "min_length": 20,
         "max_length": 2048
       },
@@ -204896,7 +204921,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
+        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
         "min_length": 20,
         "max_length": 2048
       },
@@ -204911,7 +204936,7 @@
       },
       "SyncRole": {
         "type": "string",
-        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):iam::[0-9]{12}:role/.*",
+        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iam::[0-9]{12}:role/.*",
         "min_length": 20,
         "max_length": 2048
       },
@@ -204978,7 +205003,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
+        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iottwinmaker:[a-z0-9-]+:[0-9]{12}:[\\/a-zA-Z0-9_\\-\\.:]+",
         "min_length": 20,
         "max_length": 2048
       },
@@ -204992,13 +205017,13 @@
       },
       "Role": {
         "type": "string",
-        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)):iam::[0-9]{12}:role/.*",
+        "pattern": "arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):iam::[0-9]{12}:role/.*",
         "min_length": 20,
         "max_length": 2048
       },
       "S3Location": {
         "type": "string",
-        "pattern": "(^arn:((aws)|(aws-cn)|(aws-us-gov)):s3:::)([a-zA-Z0-9_-]+$)",
+        "pattern": "(^arn:((aws)|(aws-cn)|(aws-us-gov)|aws[a-z\\-]*):s3:::)([a-zA-Z0-9_-]+$)",
         "min_length": 0,
         "max_length": 1024
       },
@@ -206865,7 +206890,7 @@
       },
       "ConnectorArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc):kafkaconnect:.*"
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc|aws[a-z\\-]*):kafkaconnect:.*"
       },
       "ConnectorConfiguration": {
         "type": "object",
@@ -206918,7 +206943,7 @@
       },
       "ServiceExecutionRoleArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc):iam:.*",
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc|aws[a-z\\-]*):iam:.*",
         "format": "AWS::IAM::Role.Arn"
       },
       "Tags": {
@@ -207032,7 +207057,7 @@
         "properties": {
           "CustomPluginArn": {
             "type": "string",
-            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc):kafkaconnect:.*"
+            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc|aws[a-z\\-]*):kafkaconnect:.*"
           },
           "Revision": {
             "type": "integer",
@@ -207265,7 +207290,7 @@
           },
           "WorkerConfigurationArn": {
             "type": "string",
-            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc):kafkaconnect:.*"
+            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc|aws[a-z\\-]*):kafkaconnect:.*"
           }
         },
         "required": [
@@ -207334,7 +207359,7 @@
       },
       "CustomPluginArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc):kafkaconnect:.*"
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc|aws[a-z\\-]*):kafkaconnect:.*"
       },
       "Description": {
         "type": "string",
@@ -207480,7 +207505,7 @@
       },
       "WorkerConfigurationArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc):kafkaconnect:.*"
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws-eusc|aws[a-z\\-]*):kafkaconnect:.*"
       }
     },
     "definitions": {
@@ -215625,10 +215650,12 @@
         "type": "string"
       },
       "ResourceArn": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^arn:[a-z-]+:[a-z0-9-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:.+$"
       },
       "RoleArn": {
         "type": "string",
+        "pattern": "^arn:[a-z-]+:iam::([0-9]{12})?:.+$",
         "format": "AWS::IAM::Role.Arn"
       },
       "UseServiceLinkedRole": {
@@ -215647,12 +215674,16 @@
     "read_only_properties": [
       "Id"
     ],
+    "write_only_properties": [
+      "UseServiceLinkedRole"
+    ],
     "create_only_properties": [
       "ResourceArn"
     ],
     "primary_identifier": [
       "Id"
-    ]
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git"
   },
   "AWS::LakeFormation::Tag": {
     "type_name": "AWS::LakeFormation::Tag",
@@ -219519,7 +219550,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:launchwizard:[a-z0-9-]+:[0-9]{12}:deployment/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):launchwizard:[a-z0-9-]+:[0-9]{12}:deployment/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
       },
       "CreatedAt": {
         "type": "string",
@@ -229508,7 +229539,7 @@
     "properties": {
       "ApplicationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$"
       },
       "ApplicationId": {
         "type": "string",
@@ -229546,7 +229577,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]|):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$",
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]|):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$",
         "format": "AWS::IAM::Role.Arn"
       },
       "Tags": {
@@ -229688,7 +229719,7 @@
       },
       "EnvironmentArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+=,@.-]{0,1023}$"
       },
       "EnvironmentId": {
         "type": "string",
@@ -232447,7 +232478,7 @@
       },
       "ReplicatorArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn):kafka:.*"
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):kafka:.*"
       },
       "ReplicatorName": {
         "type": "string",
@@ -232457,7 +232488,7 @@
       },
       "ServiceExecutionRoleArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-us-gov|aws-cn):iam:.*",
+        "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):iam:.*",
         "format": "AWS::IAM::Role.Arn"
       },
       "Tags": {
@@ -232474,7 +232505,7 @@
         "properties": {
           "MskClusterArn": {
             "type": "string",
-            "pattern": "arn:(aws|aws-us-gov|aws-cn):kafka:.*"
+            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):kafka:.*"
           }
         },
         "required": [
@@ -232801,7 +232832,7 @@
           },
           "SourceKafkaClusterArn": {
             "type": "string",
-            "pattern": "arn:(aws|aws-us-gov|aws-cn):kafka:.*"
+            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):kafka:.*"
           },
           "SourceKafkaClusterId": {
             "type": "string"
@@ -232818,7 +232849,7 @@
           },
           "TargetKafkaClusterArn": {
             "type": "string",
-            "pattern": "arn:(aws|aws-us-gov|aws-cn):kafka:.*"
+            "pattern": "arn:(aws|aws-us-gov|aws-cn|aws[a-z\\-]*):kafka:.*"
           },
           "TargetKafkaClusterId": {
             "type": "string"
@@ -233453,7 +233484,7 @@
       },
       "KmsKey": {
         "type": "string",
-        "pattern": "^(((arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b)(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?key\\/)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|(arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?alias/.+)$",
+        "pattern": "^(((arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b)(-[a-z]+)?:kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?key\\/)?[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|(arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):kms:[a-z]{2}-[a-z]+-\\d:\\d+:)?alias/.+)$",
         "min_length": 1,
         "max_length": 1224
       },
@@ -233779,7 +233810,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:airflow-serverless:([a-z]{2}-(?:[a-z]+-)+[0-9]{1}):([0-9]{12}):workflow/([a-zA-Z0-9][a-zA-Z0-9\\.\\-_]{0,254}-[a-zA-Z0-9]{10})$",
+        "pattern": "^arn:(?:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?|aws[a-z\\-]*):airflow-serverless:([a-z]{2}-(?:[a-z]+-)+[0-9]{1}):([0-9]{12}):workflow/([a-zA-Z0-9][a-zA-Z0-9\\.\\-_]{0,254}-[a-zA-Z0-9]{10})$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -233901,7 +233932,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?:iam::[0-9]{12}:role(/[a-zA-Z0-9+=,.@_-]{1,512})*?/[a-zA-Z0-9+=,.@_-]{1,64}$",
+        "pattern": "^arn:(?:aws(?:-(?:cn|us-gov|iso|iso-b|iso-e|iso-f))?|aws[a-z\\-]*):iam::[0-9]{12}:role(/[a-zA-Z0-9+=,.@_-]{1,512})*?/[a-zA-Z0-9+=,.@_-]{1,64}$",
         "min_length": 1,
         "max_length": 2048,
         "format": "AWS::IAM::Role.Arn"
@@ -240273,7 +240304,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):mediaconvert:\\w+(?:-\\w+)+:\\d{12}(:jobTemplates/.+)?"
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):mediaconvert:\\w+(?:-\\w+)+:\\d{12}(:jobTemplates/.+)?"
       },
       "Category": {
         "type": "string"
@@ -240435,7 +240466,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):mediaconvert:\\w+(?:-\\w+)+:[0-9]*(:queues/.*)?"
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):mediaconvert:\\w+(?:-\\w+)+:[0-9]*(:queues/.*)?"
       },
       "ConcurrentJobs": {
         "type": "integer"
@@ -253417,7 +253448,7 @@
     "properties": {
       "ContainerAssociationArn": {
         "type": "string",
-        "pattern": "^arn:aws",
+        "pattern": "^arn:aws[a-z\\-]*",
         "min_length": 1,
         "max_length": 256
       },
@@ -253506,7 +253537,7 @@
           },
           "ClusterArn": {
             "type": "string",
-            "pattern": "^arn:aws",
+            "pattern": "^arn:aws[a-z\\-]*",
             "min_length": 1,
             "max_length": 256
           }
@@ -258996,7 +259027,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:notifications-contacts::[0-9]{12}:emailcontact/[a-z0-9]{27}$"
+        "pattern": "^arn:aws[a-z\\-]*:notifications-contacts::[0-9]{12}:emailcontact/[a-z0-9]{27}$"
       },
       "EmailAddress": {
         "type": "string",
@@ -259029,7 +259060,7 @@
           },
           "Arn": {
             "type": "string",
-            "pattern": "^arn:aws:notifications-contacts::[0-9]{12}:emailcontact/[a-z0-9]{27}$"
+            "pattern": "^arn:aws[a-z\\-]*:notifications-contacts::[0-9]{12}:emailcontact/[a-z0-9]{27}$"
           },
           "CreationTime": {
             "type": "string",
@@ -259122,7 +259153,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):nova-act:[a-z0-9-]+:[0-9]{12}:workflow-definition/[a-zA-Z0-9_-]{1,40}$"
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):nova-act:[a-z0-9-]+:[0-9]{12}:workflow-definition/[a-zA-Z0-9_-]{1,40}$"
       },
       "CreatedAt": {
         "type": "string",
@@ -259218,7 +259249,7 @@
       },
       "CloudExadataInfrastructureId": {
         "type": "string",
-        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
+        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
         "min_length": 6,
         "max_length": 2048
       },
@@ -259319,7 +259350,7 @@
       },
       "OdbNetworkId": {
         "type": "string",
-        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
+        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
         "min_length": 6,
         "max_length": 2048
       },
@@ -259808,7 +259839,7 @@
     "properties": {
       "CloudExadataInfrastructureId": {
         "type": "string",
-        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
+        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
         "min_length": 6,
         "max_length": 2048
       },
@@ -259920,7 +259951,7 @@
       },
       "OdbNetworkId": {
         "type": "string",
-        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
+        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
         "min_length": 6,
         "max_length": 2048
       },
@@ -260514,7 +260545,7 @@
       },
       "OdbNetworkId": {
         "type": "string",
-        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
+        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
         "min_length": 6,
         "max_length": 2048
       },
@@ -260535,7 +260566,7 @@
       },
       "PeerNetworkId": {
         "type": "string",
-        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
+        "pattern": "^(arn:(?:aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):[a-z0-9-]+:[a-z0-9-]*:[0-9]+:[a-z0-9-]+/[a-zA-Z0-9_~.-]{6,64}|[a-zA-Z0-9_~.-]{6,64})$",
         "min_length": 6,
         "max_length": 2048
       },
@@ -260631,7 +260662,7 @@
       },
       "PipelineArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws\\-cn|aws\\-us\\-gov|aws\\-iso|aws\\-iso\\-b):osis:.+:pipeline\\/.+$",
+        "pattern": "^arn:(aws|aws\\-cn|aws\\-us\\-gov|aws\\-iso|aws\\-iso\\-b|aws[a-z\\-]*):osis:.+:pipeline\\/.+$",
         "min_length": 46,
         "max_length": 78
       },
@@ -260648,7 +260679,7 @@
       },
       "PipelineRoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws\\-cn|aws\\-us\\-gov|aws\\-iso|aws\\-iso\\-b|aws\\-iso\\-e|aws\\-iso\\-f):iam::[0-9]+:role\\/.*$",
+        "pattern": "^arn:(aws|aws\\-cn|aws\\-us\\-gov|aws\\-iso|aws\\-iso\\-b|aws\\-iso\\-e|aws\\-iso\\-f|aws[a-z\\-]*):iam::[0-9]+:role\\/.*$",
         "min_length": 20,
         "max_length": 2048,
         "format": "AWS::IAM::Role.Arn"
@@ -260866,7 +260897,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):osis:.+:endpoint/.+$"
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b|aws[a-z\\-]*):osis:.+:endpoint/.+$"
       },
       "EndpointId": {
         "type": "string",
@@ -260879,7 +260910,7 @@
       },
       "PipelineArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):osis:.+:pipeline/.+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b|aws[a-z\\-]*):osis:.+:pipeline/.+$",
         "min_length": 46,
         "max_length": 76
       },
@@ -264004,7 +264035,7 @@
         "properties": {
           "connectionArn": {
             "type": "string",
-            "pattern": "^arn:aws(-[\\\\w]+)*:.+:.+:[0-9]{12}:.+$",
+            "pattern": "^arn:(?:aws(-[\\\\w]+)*|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+$",
             "min_length": 1,
             "max_length": 256
           },
@@ -264353,7 +264384,7 @@
         "properties": {
           "connectionArn": {
             "type": "string",
-            "pattern": "^arn:aws(-[\\\\w]+)*:.+:.+:[0-9]{12}:.+$",
+            "pattern": "^arn:(?:aws(-[\\\\w]+)*|aws[a-z\\-]*):.+:.+:[0-9]{12}:.+$",
             "min_length": 1,
             "max_length": 256
           },
@@ -265387,7 +265418,7 @@
       },
       "IamIdentityCenterInstanceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
         "min_length": 10,
         "max_length": 1224
       },
@@ -271071,7 +271102,7 @@
       },
       "KeyArn": {
         "type": "string",
-        "pattern": "^arn:aws:payment-cryptography:[a-z]{2}-[a-z]{1,16}-[0-9]+:[0-9]{12}:key/[0-9a-zA-Z]{16,64}$",
+        "pattern": "^arn:aws[a-z\\-]*:payment-cryptography:[a-z]{2}-[a-z]{1,16}-[0-9]+:[0-9]{12}:key/[0-9a-zA-Z]{16,64}$",
         "min_length": 70,
         "max_length": 150
       }
@@ -271109,7 +271140,7 @@
       },
       "KeyIdentifier": {
         "type": "string",
-        "pattern": "^arn:aws:payment-cryptography:[a-z]{2}-[a-z]{1,16}-[0-9]+:[0-9]{12}:(key/[0-9a-zA-Z]{16,64}|alias/[a-zA-Z0-9/_-]+)$|^alias/[a-zA-Z0-9/_-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:payment-cryptography:[a-z]{2}-[a-z]{1,16}-[0-9]+:[0-9]{12}:(key/[0-9a-zA-Z]{16,64}|alias/[a-zA-Z0-9/_-]+)$|^alias/[a-zA-Z0-9/_-]+$",
         "min_length": 7,
         "max_length": 322
       },
@@ -276631,14 +276662,14 @@
       },
       "CodebuildRoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$",
         "min_length": 1,
         "max_length": 200,
         "format": "AWS::IAM::Role.Arn"
       },
       "ComponentRoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$",
         "min_length": 1,
         "max_length": 200,
         "format": "AWS::IAM::Role.Arn"
@@ -276663,7 +276694,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::\\d{12}:role/([\\w+=,.@-]{1,512}[/:])*([\\w+=,.@-]{1,64})$",
         "min_length": 1,
         "max_length": 200,
         "format": "AWS::IAM::Role.Arn"
@@ -276741,7 +276772,7 @@
       },
       "EncryptionKey": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$",
         "min_length": 1,
         "max_length": 200
       },
@@ -276812,7 +276843,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$",
         "min_length": 1,
         "max_length": 200
       },
@@ -276828,7 +276859,7 @@
       },
       "EncryptionKey": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\\d{12}:([\\w+=,.@-]+[/:])*[\\w+=,.@-]+$",
         "min_length": 1,
         "max_length": 200
       },
@@ -276945,19 +276976,19 @@
       },
       "IamIdentityProviderArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):iam::\\d{12}:(oidc-provider|saml-provider)/[a-zA-Z0-9_\\.\\/@\\-]+$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):iam::\\d{12}:(oidc-provider|saml-provider)/[a-zA-Z0-9_\\.\\/@\\-]+$",
         "min_length": 20,
         "max_length": 2048
       },
       "IdentityCenterApplicationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso::\\d{12}:application/(sso)?ins-[a-zA-Z0-9-.]{16}/apl-[a-zA-Z0-9]{16}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso::\\d{12}:application/(sso)?ins-[a-zA-Z0-9-.]{16}/apl-[a-zA-Z0-9]{16}$",
         "min_length": 10,
         "max_length": 1224
       },
       "IdentityCenterInstanceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}$",
         "min_length": 10,
         "max_length": 1224
       },
@@ -277231,13 +277262,13 @@
       },
       "IdcApplicationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso::\\d{12}:application/(sso)?ins-[a-zA-Z0-9-.]{16}/apl-[a-zA-Z0-9]{16}$",
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso::\\d{12}:application/(sso)?ins-[a-zA-Z0-9-.]{16}/apl-[a-zA-Z0-9]{16}$",
         "min_length": 10,
         "max_length": 1224
       },
       "Principal": {
         "type": "string",
-        "pattern": "^arn:aws:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$",
         "min_length": 1,
         "max_length": 1284
       },
@@ -277379,7 +277410,7 @@
         "properties": {
           "IdcTrustedTokenIssuerArn": {
             "type": "string",
-            "pattern": "^arn:aws:sso::[0-9]{12}:trustedTokenIssuer/(sso)?ins-[a-zA-Z0-9-.]{16}/tti-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            "pattern": "^arn:aws[a-z\\-]*:sso::[0-9]{12}:trustedTokenIssuer/(sso)?ins-[a-zA-Z0-9-.]{16}/tti-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
             "min_length": 0,
             "max_length": 1284
           }
@@ -278193,7 +278224,7 @@
       },
       "Principal": {
         "type": "string",
-        "pattern": "^arn:aws:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:iam::[0-9]{12}:role/[a-zA-Z0-9_/+=,.@-]+$",
         "min_length": 1,
         "max_length": 1284
       },
@@ -337216,7 +337247,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+$",
         "min_length": 20,
         "max_length": 2048
       },
@@ -337456,7 +337487,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+$",
         "min_length": 20,
         "max_length": 2048
       },
@@ -337899,7 +337930,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+/routing-rule/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+/routing-rule/[a-zA-Z0-9-]+$",
         "min_length": 20,
         "max_length": 2048
       },
@@ -338087,7 +338118,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+/link/[a-zA-Z0-9-]+$",
         "min_length": 20,
         "max_length": 2048
       },
@@ -338333,7 +338364,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+$",
         "min_length": 20,
         "max_length": 2048
       },
@@ -338531,7 +338562,7 @@
     "definitions": {
       "AcmCertificateArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):acm:([a-z0-9-]+):[0-9]{12}:certificate/.{1,2048}",
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):acm:([a-z0-9-]+):[0-9]{12}:certificate/.{1,2048}",
         "format": "AWS::ACM::Certificate.Arn"
       },
       "ActiveLinksCount": {
@@ -338539,7 +338570,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+$",
+        "pattern": "^arn:aws[a-z\\-]*:rtbfabric:[a-zA-Z0-9_-]+:[0-9]{12}:gateway/[a-zA-Z0-9-]+$",
         "min_length": 20,
         "max_length": 2048
       },
@@ -343262,7 +343293,7 @@
     "properties": {
       "AppArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
       },
       "AppAssessmentSchedule": {
         "type": "string",
@@ -343307,7 +343338,7 @@
       },
       "ResiliencyPolicyArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
       },
       "ResourceMappings": {
         "type": "array",
@@ -343337,7 +343368,7 @@
           },
           "SnsTopicArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$",
+            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$",
             "format": "AWS::SNS::Topic.Arn"
           }
         },
@@ -343349,7 +343380,7 @@
       },
       "IamRoleArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):iam::[0-9]{12}:role\\/(([\\u0021-\\u007E]+\\u002F){1,511})?[A-Za-z0-9+=,.@_/-]{1,64}$"
+        "pattern": "arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):iam::[0-9]{12}:role\\/(([\\u0021-\\u007E]+\\u002F){1,511})?[A-Za-z0-9+=,.@_/-]{1,64}$"
       },
       "PermissionModel": {
         "type": "object",
@@ -343490,7 +343521,7 @@
       },
       "PolicyArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9][A-Za-z0-9:_/+=,@.-]{0,1023}$"
       },
       "PolicyDescription": {
         "type": "string",
@@ -343632,7 +343663,7 @@
       },
       "PolicyArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
       },
       "SharingEnabled": {
         "type": "boolean"
@@ -343837,7 +343868,7 @@
       },
       "PolicyArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
       },
       "Regions": {
         "type": "array",
@@ -343854,7 +343885,7 @@
       },
       "ServiceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
       },
       "Tags": {
         "type": "array",
@@ -343889,7 +343920,7 @@
         "properties": {
           "SystemArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
           },
           "UserJourneyIds": {
             "type": "array",
@@ -343910,7 +343941,7 @@
         "properties": {
           "CrossAccountRoleArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):iam::[0-9]{12}:role\\/(([^\\/][\\x21-\\x7E]+\\/){1,511})?[A-Za-z0-9_+=,.@-]{1,64}$",
+            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):iam::[0-9]{12}:role\\/(([^\\/][\\x21-\\x7E]+\\/){1,511})?[A-Za-z0-9_+=,.@-]{1,64}$",
             "min_length": 20,
             "max_length": 2048,
             "format": "AWS::IAM::Role.Arn"
@@ -343929,7 +343960,7 @@
         "properties": {
           "AgentSpaceArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
           }
         },
         "required": [
@@ -344043,7 +344074,7 @@
         "properties": {
           "ClusterArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
           },
           "LabelSelector": {
             "ref_name": "EksLabelSelector"
@@ -344116,7 +344147,7 @@
         "properties": {
           "CfnStackArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+            "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
           },
           "DesignFileS3Url": {
             "type": "string"
@@ -344320,7 +344351,7 @@
       },
       "ServiceArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
       },
       "ServiceFunctionId": {
         "type": "string"
@@ -344396,7 +344427,7 @@
       },
       "SystemArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
       },
       "SystemId": {
         "type": "string",
@@ -344474,7 +344505,7 @@
       },
       "PolicyArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
+        "pattern": "^arn:(aws|aws-cn|aws-iso|aws-iso-[a-z]{1}|aws-us-gov|aws[a-z\\-]*):[A-Za-z0-9][A-Za-z0-9_/.-]{0,62}:([a-z]{2}-((iso[a-z]{0,1}-)|(gov-)){0,1}[a-z]+-[0-9]):[0-9]{12}:[A-Za-z0-9/][A-Za-z0-9:_/+.-]{0,1023}$"
       },
       "SystemIdentifier": {
         "type": "string",
@@ -356135,7 +356166,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+        "pattern": "^arn:aws[a-z\\-]*:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
         "min_length": 20,
         "max_length": 1011
       },
@@ -356463,7 +356494,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+        "pattern": "^arn:aws[a-z\\-]*:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
         "min_length": 20,
         "max_length": 1011
       },
@@ -356685,7 +356716,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+        "pattern": "^arn:aws[a-z\\-]*:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
         "min_length": 20,
         "max_length": 1011
       },
@@ -356791,7 +356822,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
+        "pattern": "^arn:aws[a-z\\-]*:scn(?::([a-z0-9-]+):([0-9]+):instance)?/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})[-_./A-Za-z0-9]*$",
         "min_length": 20,
         "max_length": 1011
       },
@@ -357892,7 +357923,7 @@
       },
       "KmsKeyArn": {
         "type": "string",
-        "pattern": "^arn:aws(|-cn|-us-gov|-eusc):kms:[a-z0-9-]{1,20}:[0-9]{12}:(key|alias)/.+$",
+        "pattern": "^arn:(?:aws(|-cn|-us-gov|-eusc)|aws[a-z\\-]*):kms:[a-z0-9-]{1,20}:[0-9]{12}:(key|alias)/.+$",
         "format": "AWS::KMS::Key.Arn"
       },
       "Retention": {
@@ -358068,7 +358099,7 @@
             "properties": {
               "SecretArn": {
                 "type": "string",
-                "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=,.@-]+$"
+                "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws[a-z\\-]*):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=,.@-]+$"
               }
             },
             "required": [
@@ -358238,7 +358269,7 @@
           },
           "KmsKeyArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc):kms:[a-z0-9-]+:\\d{12}:(key|alias)/[a-zA-Z0-9/_-]+$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws[a-z\\-]*):kms:[a-z0-9-]+:\\d{12}:(key|alias)/[a-zA-Z0-9/_-]+$",
             "format": "AWS::KMS::Key.Arn"
           }
         },
@@ -358325,7 +358356,7 @@
             "properties": {
               "SecretArn": {
                 "type": "string",
-                "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=,.@-]+$"
+                "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws[a-z\\-]*):secretsmanager:[a-z0-9-]+:\\d{12}:secret:[a-zA-Z0-9/_+=,.@-]+$"
               }
             },
             "required": [
@@ -359473,7 +359504,7 @@
           },
           "TopicArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc):sns:[a-z]{2}-([a-z]+-)+\\d{1}:\\d{12}:[\\w\\-]{1,256}$",
+            "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-eusc|aws[a-z\\-]*):sns:[a-z]{2}-([a-z]+-)+\\d{1}:\\d{12}:[\\w\\-]{1,256}$",
             "min_length": 20,
             "max_length": 2048,
             "format": "AWS::SNS::Topic.Arn"
@@ -360284,7 +360315,7 @@
           },
           "InstanceARN": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov):connect:[a-z]{2}-[a-z]+-[0-9-]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+            "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):connect:[a-z]{2}-[a-z]+-[0-9-]{1}:[0-9]{1,20}:instance/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
           }
         },
         "required": [
@@ -362932,7 +362963,7 @@
     "properties": {
       "CloudConnectorArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:ssm:[a-z0-9-]+:\\d{12}:cloud-connector/[a-f0-9-]+$"
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):ssm:[a-z0-9-]+:\\d{12}:cloud-connector/[a-f0-9-]+$"
       },
       "CloudConnectorId": {
         "type": "string",
@@ -362940,7 +362971,7 @@
       },
       "ConfigConnectorArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov)?:config:[a-z0-9-]+:\\d{12}:connector/.+$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):config:[a-z0-9-]+:\\d{12}:connector/.+$",
         "min_length": 1,
         "max_length": 512
       },
@@ -364894,7 +364925,7 @@
         "max_items": 30,
         "items": {
           "type": "string",
-          "pattern": "^arn:(aws|aws-cn|aws-us-gov):ssm-contacts:[-\\w+=\\/,.@]*:[0-9]+:([\\w+=\\/,.@:-]+)*$",
+          "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):ssm-contacts:[-\\w+=\\/,.@]*:[0-9]+:([\\w+=\\/,.@:-]+)*$",
           "min_length": 1,
           "max_length": 2048
         }
@@ -365238,7 +365269,7 @@
     "definitions": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov|iso(-b)?))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
+        "pattern": "^arn:(?:aws(-(cn|us-gov|iso(-b)?))?|aws[a-z\\-]*):[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
         "max_length": 1000
       },
       "DeletionProtected": {
@@ -365329,7 +365360,7 @@
       },
       "Arn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
+        "pattern": "^arn:(?:aws(-(cn|us-gov))?|aws[a-z\\-]*):[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
         "max_length": 1000
       },
       "ChatChannel": {
@@ -365537,12 +365568,12 @@
       },
       "SSMContact": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov))?:ssm-contacts:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
+        "pattern": "^arn:(?:aws(-(cn|us-gov))?|aws[a-z\\-]*):ssm-contacts:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
         "max_length": 1000
       },
       "SnsArn": {
         "type": "string",
-        "pattern": "^arn:aws(-(cn|us-gov))?:sns:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
+        "pattern": "^arn:(?:aws(-(cn|us-gov))?|aws[a-z\\-]*):sns:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
         "max_length": 1000,
         "format": "AWS::SNS::Topic.Arn"
       },
@@ -365576,7 +365607,7 @@
           },
           "RoleArn": {
             "type": "string",
-            "pattern": "^arn:aws(-(cn|us-gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
+            "pattern": "^arn:(?:aws(-(cn|us-gov))?|aws[a-z\\-]*):[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$",
             "max_length": 1000,
             "format": "AWS::IAM::Role.Arn"
           },
@@ -371194,7 +371225,7 @@
       },
       "SingleSignOnApplicationArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b):sso::[0-9]+:application/[a-zA-Z0-9-_.]+/apl-[a-zA-Z0-9]+$"
+        "pattern": "^arn:(aws|aws-us-gov|aws-cn|aws-iso|aws-iso-b|aws[a-z\\-]*):sso::[0-9]+:application/[a-zA-Z0-9-_.]+/apl-[a-zA-Z0-9]+$"
       },
       "SingleSignOnManagedApplicationInstanceId": {
         "type": "string",
@@ -372529,7 +372560,7 @@
       },
       "EndpointConfigArn": {
         "type": "string",
-        "pattern": "^arn:aws(-[a-z]+)?:sagemaker:[a-z0-9-]+:[0-9]{12}:endpoint-config\\/.+$"
+        "pattern": "^arn:(?:aws(-[a-z]+)?|aws[a-z\\-]*):sagemaker:[a-z0-9-]+:[0-9]{12}:endpoint-config\\/.+$"
       },
       "EndpointConfigName": {
         "type": "string",
@@ -378921,7 +378952,7 @@
       },
       "ModelPackageArn": {
         "type": "string",
-        "pattern": "^arn:aws(-cn|-us-gov|-iso-f)?:sagemaker:[a-z0-9\\-]{9,16}:[0-9]{12}:model-package/[\\S]{1,2048}$",
+        "pattern": "^arn:(?:aws(-cn|-us-gov|-iso-f)?|aws[a-z\\-]*):sagemaker:[a-z0-9\\-]{9,16}:[0-9]{12}:model-package/[\\S]{1,2048}$",
         "min_length": 1,
         "max_length": 2048
       },
@@ -388325,7 +388356,7 @@
       },
       "arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-?[a-z]{0,2}):[A-Za-z0-9]{1,63}:[a-z]+-([a-z]{1,10}-)?[a-z]+-[0-9]+:([0-9]{12})?:.+$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-?[a-z]{0,2}|aws[a-z\\-]*):[A-Za-z0-9]{1,63}:[a-z]+-([a-z]{1,10}-)?[a-z]+-[0-9]+:([0-9]{12})?:.+$",
         "min_length": 12,
         "max_length": 2048
       },
@@ -399447,7 +399478,7 @@
       },
       "RoleArn": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role)\\/.*",
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::[0-9]*:(role)\\/.*",
         "format": "AWS::IAM::Role.Arn"
       }
     },
@@ -399627,7 +399658,7 @@
       },
       "PrincipalARN": {
         "type": "string",
-        "pattern": "arn:(aws|aws-cn|aws-us-gov):iam::[0-9]*:(role|user|group)\\/.*"
+        "pattern": "arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):iam::[0-9]*:(role|user|group)\\/.*"
       },
       "PrincipalType": {
         "type": "string"
@@ -400286,7 +400317,7 @@
     "properties": {
       "Arn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov):servicediscovery:\\w+(?:-\\w+)+:[0-9]*:namespace\\/.*"
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws[a-z\\-]*):servicediscovery:\\w+(?:-\\w+)+:[0-9]*:namespace\\/.*"
       },
       "Description": {
         "type": "string",
@@ -400925,7 +400956,7 @@
       },
       "ResourceArn": {
         "type": "string",
-        "pattern": "^arn:aws",
+        "pattern": "^arn:aws[a-z\\-]*",
         "min_length": 1,
         "max_length": 2048
       },
@@ -401038,7 +401069,7 @@
         "max_items": 10000,
         "items": {
           "type": "string",
-          "pattern": "^arn:aws",
+          "pattern": "^arn:aws[a-z\\-]*",
           "min_length": 1,
           "max_length": 2048
         }
@@ -404376,7 +404407,7 @@
       },
       "InfluxAuthParametersSecretArn": {
         "type": "string",
-        "pattern": "^arn:[a-z]*:secretsmanager:[a-z\\-0-9]*:[0-9]*:secret:[a-zA-Z0-9\\-]*"
+        "pattern": "^arn:(?:[a-z]*|aws[a-z\\-]*):secretsmanager:[a-z\\-0-9]*:[0-9]*:secret:[a-zA-Z0-9\\-]*"
       },
       "KmsKeyId": {
         "any_of": [
@@ -404660,7 +404691,7 @@
       },
       "InfluxAuthParametersSecretArn": {
         "type": "string",
-        "pattern": "^arn:[a-z]*:secretsmanager:[a-z\\-0-9]*:[0-9]*:secret:[a-zA-Z0-9\\-]*"
+        "pattern": "^arn:(?:[a-z]*|aws[a-z\\-]*):secretsmanager:[a-z\\-0-9]*:[0-9]*:secret:[a-zA-Z0-9\\-]*"
       },
       "KmsKeyId": {
         "any_of": [
@@ -405933,7 +405964,7 @@
       },
       "DataAccessRoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$",
         "min_length": 20,
         "max_length": 2048,
         "format": "AWS::IAM::Role.Arn"
@@ -406156,7 +406187,7 @@
       },
       "DataAccessRoleArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$",
+        "pattern": "^arn:(aws|aws-cn|aws-us-gov|aws-iso-{0,1}[a-z]{0,1}|aws[a-z\\-]*):iam::[0-9]{0,63}:role/[A-Za-z0-9:_/+=,@.-]{0,1024}$",
         "min_length": 20,
         "max_length": 2048,
         "format": "AWS::IAM::Role.Arn"
@@ -408378,7 +408409,7 @@
         "properties": {
           "Id": {
             "type": "string",
-            "pattern": "^(arn:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?:kms:)?([a-z]{2}-[a-z]+(-[a-z]+)?-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))$",
+            "pattern": "^(arn:(?:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?|aws[a-z\\-]*):kms:)?([a-z]{2}-[a-z]+(-[a-z]+)?-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))$",
             "min_length": 1,
             "max_length": 400
           },
@@ -408546,7 +408577,7 @@
         "properties": {
           "Id": {
             "type": "string",
-            "pattern": "^(arn:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?:kms:)?([a-z]{2}-[a-z]+(-[a-z]+)?-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))$",
+            "pattern": "^(arn:(?:aws((-us-gov)|(-iso)|(-iso-b)|(-cn))?|aws[a-z\\-]*):kms:)?([a-z]{2}-[a-z]+(-[a-z]+)?-\\d:)?(\\d{12}:)?(((key/)?[a-zA-Z0-9-_]+)|(alias/[a-zA-Z0-9:/_-]+))$",
             "min_length": 1,
             "max_length": 400
           },
@@ -418391,7 +418422,7 @@
       },
       "TemplateArn": {
         "type": "string",
-        "pattern": "^arn:aws(-us-gov|-iso(-[a-z])?|-cn)?:wellarchitected:[a-z]{2}(-gov|-iso([a-z])?)?-[a-z]+-\\d:\\d{12}:(review-template)/[a-f0-9]{32}$",
+        "pattern": "^arn:(?:aws(-us-gov|-iso(-[a-z])?|-cn)?|aws[a-z\\-]*):wellarchitected:[a-z]{2}(-gov|-iso([a-z])?)?-[a-z]+-\\d:\\d{12}:(review-template)/[a-f0-9]{32}$",
         "min_length": 50,
         "max_length": 250
       },
@@ -420337,12 +420368,12 @@
         "properties": {
           "AccessRoleArn": {
             "type": "string",
-            "pattern": "^arn:aws:iam::[0-9]{12}:role/(?:service-role/)?[a-zA-Z0-9_+=,.@-]{1,64}$",
+            "pattern": "^arn:aws[a-z\\-]*:iam::[0-9]{12}:role/(?:service-role/)?[a-zA-Z0-9_+=,.@-]{1,64}$",
             "format": "AWS::IAM::Role.Arn"
           },
           "BedrockKnowledgeBaseArn": {
             "type": "string",
-            "pattern": "^arn:aws(|-cn|-us-gov):bedrock:[a-zA-Z0-9-]*:[0-9]{12}:knowledge-base/[0-9a-zA-Z]+$"
+            "pattern": "^arn:(?:aws(|-cn|-us-gov)|aws[a-z\\-]*):bedrock:[a-zA-Z0-9-]*:[0-9]{12}:knowledge-base/[0-9a-zA-Z]+$"
           }
         },
         "required": [
