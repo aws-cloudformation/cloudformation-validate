@@ -58,8 +58,6 @@ src/bindings-python/generated/**/*
 
 # AI
 .kiro/*
-!.kiro/agents/
-!.kiro/agents/**
 !.kiro/settings/
 .kiro/settings/*
 !.kiro/settings/lsp.json

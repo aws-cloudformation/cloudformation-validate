@@ -17,11 +17,13 @@ The steering files and development skill are the canonical detailed guidance. Ke
 
 ## Agent roles
 
-- **authoring** owns requirements, technical designs, implementation plans, project documentation, and pull-request descriptions. It does not implement source, tests, fixtures, build logic, workflows, agent configuration, or steering.
+Each role is a Kiro skill at `.kiro/skills/<role>/SKILL.md`. Skills are instructions only; they do not restrict tools or permissions, so the agent applying a role must enforce its boundaries itself.
+
+- **authoring** owns requirements, technical designs, implementation plans, project documentation, and pull-request descriptions. It does not implement source, tests, fixtures, build logic, workflows, skills, agent configuration, or steering.
 - **development** owns scoped implementation and change-appropriate verification. It may update documentation when that work is part of the implementation.
 - **pr-reviewing** is read-only. It reviews a supplied patch or locally available changes and does not alter files, Git state, branches, or remote systems.
 
-If a request crosses a role boundary, stop at the boundary and ask the user to continue with the appropriate agent rather than silently broadening the task.
+If a request crosses a role boundary, stop at the boundary and ask the user to continue with the appropriate role rather than silently broadening the task.
 
 ## Architecture and correctness
 
