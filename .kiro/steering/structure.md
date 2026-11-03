@@ -83,9 +83,9 @@ src/
 ## Top-level directories
 
 - `AGENTS.md` — shared, tool-neutral repository guidance and boundaries for the authoring, development, and review roles
-- `.kiro/agents/` — self-contained repository-scoped Kiro agent profiles with inline role prompts
 - `.kiro/settings/lsp.json` — workspace-scoped language-server configuration for Kiro code intelligence
-- `.kiro/skills/` — progressively loaded Kiro workflows and reference guidance
+- `.kiro/skills/` — progressively loaded Kiro workflows and reference guidance, including the `authoring`,
+  `development`, and `pr-reviewing` role skills
 - `.kiro/steering/` — persistent guidance recursively loaded by Kiro; tracked files contain shared project rules
 - `.kiro/steering/private/` — gitignored machine-local confidential agent context and skills; its filenames and
   contents must never be committed
