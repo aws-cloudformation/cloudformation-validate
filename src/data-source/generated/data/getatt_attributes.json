@@ -2390,8 +2390,7 @@
     "AWS::DAX::Cluster": [
       "Arn",
       "ClusterDiscoveryEndpoint",
-      "ClusterDiscoveryEndpointURL",
-      "Id"
+      "ClusterDiscoveryEndpointURL"
     ],
     "AWS::DLM::LifecyclePolicy": [
       "Arn",
@@ -15636,7 +15635,6 @@
       "ClusterName": "string",
       "Description": "string",
       "IAMRoleARN": "string",
-      "Id": "string",
       "NetworkType": "string",
       "NodeType": "string",
       "NotificationTopicARN": "string",

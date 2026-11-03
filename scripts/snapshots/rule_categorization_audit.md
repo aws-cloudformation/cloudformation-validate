@@ -5,13 +5,13 @@ severity model documented in `product.md`.
 
 ## Summary
 
-- Total rules: **318**
-- By severity: Fatal=69, Error=154, Warn=72, Info=23
-- By true origin: CfnLint=218, Engine=30, Engine(collision)=1, Schema=69
-- By category: BestPractice=59, Deprecation=8, Intrinsic=52, Parameter=8, Reference=2, Resource=93, Schema=25, Security=14, Structure=57
-- cfn-lint reference: 329 rule IDs loaded
+- Total rules: **319**
+- By severity: Fatal=69, Error=155, Warn=72, Info=23
+- By true origin: CfnLint=219, Engine=30, Engine(collision)=1, Schema=69
+- By category: BestPractice=59, Deprecation=8, Intrinsic=53, Parameter=8, Reference=2, Resource=93, Schema=25, Security=14, Structure=57
+- cfn-lint reference: 331 rule IDs loaded
 - E→F promoted rules: 51
-- Engine-extra rules: 61
+- Engine-extra rules: 60
 
 ## 1. Origin correctness
 
@@ -41,7 +41,7 @@ cfn-lint's `shortdesc`. Fatal rules are exempt
 | `E1024` | Error | 0.09 | Fn::Cidr requires a CIDR-format ipBlock string and integer count/cidrBits | Cidr validation of parameters |
 | `E1031` | Error | 0.09 | Fn::ToJsonString argument must be a non-empty array/object or a supported function | ToJsonString validation of parameters |
 
-### Soft mismatches (23) - wording divergence
+### Soft mismatches (24) - wording divergence
 
 | ID | Sev | Sim | Our description | cfn-lint shortdesc |
 |----|-----|----:|------------------|--------------------|
@@ -68,6 +68,7 @@ cfn-lint's `shortdesc`. Fatal rules are exempt
 | `E1029` | Error | 0.25 | Substitution variable ${X} requires Fn::Sub | Sub is required if a variable is used in a string |
 | `E8001` | Error | 0.25 | Conditions section must have valid structure | Conditions have appropriate properties |
 | `W1019` | Warn | 0.25 | Parameter in Fn::Sub variable map is not used in the template string | Validate that parameters to a Fn::Sub are used |
+| `E3720` | Error | 0.27 | RDS DB instances with KmsKeyId must set StorageEncrypted to true for non-custom engines | Validate StorageEncrypted is set when KmsKeyId is specified |
 
 ## 3. Severity/category model compliance
 
@@ -111,7 +112,7 @@ cfn-lint rules that have no corresponding rule in our registry
 (neither same ID, nor F-promoted equivalent, nor logically-covered via
 schema-validator extensions or Fatal schema rules).
 
-### Not implemented (23)
+### Not implemented (24)
 
 | cfn-lint ID | Severity | Description | Source file |
 |-------------|----------|-------------|-------------|
@@ -124,13 +125,14 @@ schema-validator extensions or Fatal schema rules).
 | `E3066` | Error | SAM resource attributes require the Serverless Transform | ServerlessTransformAttributes.py |
 | `E3514` | Error | Validate IAM resource policy resource ARNs | ResourcePolicyResourceArn.py |
 | `E3673` | Error | Validate if an ImageId is required | InstanceImageId.py |
-| `E3720` | Error | Validate StorageEncrypted is set when KmsKeyId is specified | DbInstanceKmsKeyStorageEncrypted.py |
 | `E3721` | Error | Validate ReplicaMode value for Oracle and Db2 engines | DbInstanceReplicaMode.py |
 | `E3722` | Error | Cookies Forward must be a valid enum when CachePolicyId is absent | DistributionCacheBehaviorForwardEnum.py |
 | `E3724` | Error | Validate Globals section and IgnoreGlobals entries | GlobalsTransform.py |
 | `E3725` | Error | Validate FSx file system StorageCapacity based on FileSystemType | FileSystemStorageCapacity.py |
 | `W1101` | Warn | Validate if the template is using YAML aliases | UsingAlias.py |
 | `W3001` | Warn | SAM resource-level properties are ignored | Configuration.py |
+| `W3672` | Warn | Validate block device mappings that are only checked at launch | EbsWarning.py |
+| `W3673` | Warn | Iops below the gp3 baseline is raised rather than rejected | EbsIopsAdjusted.py |
 | `W3699` | Warn | ReplicaMode is ignored for non-Oracle/Db2 engines | DbInstanceReplicaModeIgnored.py |
 | `W3700` | Warn | Non-standard Domain values are converted to vpc | EipDomain.py |
 | `W3701` | Warn | SSM Parameter Name should not use /aws/ or /ssm/ prefix | ParameterNamePrefix.py |
@@ -149,7 +151,7 @@ via a Fatal schema rule covering the same concern.
 |-------------|----------------------|---------------|------|
 | `E0100` | Validate deployment file configuration | `out-of-scope` | CLI deployment file |
 | `E0200` | Validate parameter file configuration | `out-of-scope` | CLI parameter file |
-| `E1001` | Basic CloudFormation Template Configuration | `F0002/F0005` | Base template JSON schema (top-level structure) |
+| `E1001` | Basic CloudFormation Template Configuration | `F0001/F0002/F0005` | Resources presence/non-empty and top-level structure |
 | `E1003` | Validate the max size of a description | `F0011` | description max length 1024 |
 | `E1157` | Validate KMS key ARN format | `schema-format` | KMS key ARN format (schema format field) |
 | `E1158` | Validate SNS topic ARN format | `schema-format` | SNS topic ARN format (schema format field) |
@@ -301,7 +303,7 @@ with `cargo test -p cfn-validate --test engine_parity` for ground truth.
 
 **CEL only (4):** `E3023`, `E3024`, `E3510`, `W2530`
 
-_Scanned 258 CEL sites (198 IDs), 283 Rego sites (194 IDs)._
+_Scanned 257 CEL sites (197 IDs), 282 Rego sites (193 IDs)._
 
 ## Appendix: full rule inventory
 
@@ -338,6 +340,7 @@ _Scanned 258 CEL sites (198 IDs), 283 Rego sites (194 IDs)._
 | `E1154` | Error | Intrinsic | CfnLint | CfnLint | Validate VPC subnet id format |
 | `E1155` | Error | Intrinsic | CfnLint | CfnLint | Validate CloudWatch logs group name |
 | `E1156` | Error | Intrinsic | CfnLint | CfnLint | Validate IAM role ARN format |
+| `E1165` | Error | Intrinsic | CfnLint | CfnLint | Validate IAM role name format |
 | `E2001` | Error | Parameter | CfnLint | CfnLint | Parameters have appropriate properties |
 | `E2504` | Error | Resource | Engine | Engine | FIFO queue name must end with .fifo |
 | `E2529` | Error | Resource | CfnLint | CfnLint | Check for SubscriptionFilters beyond 2 attachments to a CloudWatch Log Group |
@@ -390,7 +393,6 @@ _Scanned 258 CEL sites (198 IDs), 283 Rego sites (194 IDs)._
 | `E3504` | Error | Resource | CfnLint | CfnLint | Check minimum 90 period is met between BackupPlan cold and delete |
 | `E3505` | Error | Resource | CfnLint | CfnLint | Validate SQS VisibilityTimeout is greater than a function's Timeout |
 | `E3510` | Error | Resource | CfnLint | CfnLint | Validate identity based IAM policies |
-| `E3511` | Error | Resource | CfnLint | CfnLint | Validate IAM role arn pattern |
 | `E3512` | Error | Resource | CfnLint | CfnLint | Validate resource based IAM policies |
 | `E3513` | Error | Resource | CfnLint | CfnLint | Validate ECR repository policy |
 | `E3530` | Error | Resource | CfnLint | CfnLint | Validate IAM trust policies |
@@ -441,6 +443,7 @@ _Scanned 258 CEL sites (198 IDs), 283 Rego sites (194 IDs)._
 | `E3717` | Error | Resource | CfnLint | CfnLint | Lambda function Timeout may exceed 900 seconds only with CapacityProviderConfig |
 | `E3718` | Error | Resource | CfnLint | CfnLint | API Gateway TOKEN and REQUEST authorizers must keep AuthorizerResultTtlInSeconds within 0 to 3600 |
 | `E3719` | Error | Resource | CfnLint | CfnLint | RDS DB instances on non-Aurora engines must keep BackupRetentionPeriod at most 35 days |
+| `E3720` | Error | Resource | CfnLint | CfnLint | RDS DB instances with KmsKeyId must set StorageEncrypted to true for non-custom engines |
 | `E3723` | Error | Resource | CfnLint | CfnLint | API Gateway Stage method setting ResourcePath must start with '/' when a setting is configured |
 | `E5001` | Error | Structure | CfnLint | CfnLint | Check that Modules resources are valid |
 | `E6001` | Error | Structure | CfnLint | CfnLint | Outputs have appropriate properties |
