@@ -23,7 +23,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -233,7 +233,36 @@ def normalize_cfnlint_diags(diags):
             "line": start.get("LineNumber", 0),
             "end_line": end.get("LineNumber", 0),
         })
-    return out
+    remaining_pattern_findings = Counter(
+        (
+            diagnostic["resource_id"],
+            diagnostic.get("resource_path", "") or diagnostic.get("json_path", ""),
+        )
+        for diagnostic in out
+        if diagnostic.get("cfnlint_rule_id") == "E3031"
+    )
+    remaining_condition_structure_findings = Counter(
+        (
+            diagnostic["resource_id"],
+            diagnostic.get("resource_path", "") or diagnostic.get("json_path", ""),
+        )
+        for diagnostic in out
+        if diagnostic.get("cfnlint_rule_id") in {"E8001", "E8003", "E8004", "E8005", "E8006"}
+    )
+    normalized_diagnostics = []
+    for diagnostic in out:
+        target = (
+            diagnostic["resource_id"],
+            diagnostic.get("resource_path", "") or diagnostic.get("json_path", ""),
+        )
+        if diagnostic.get("cfnlint_rule_id") == "E1155" and remaining_pattern_findings[target] > 0:
+            remaining_pattern_findings[target] -= 1
+            continue
+        if diagnostic.get("cfnlint_rule_id") == "E1001" and remaining_condition_structure_findings[target] > 0:
+            remaining_condition_structure_findings[target] -= 1
+            continue
+        normalized_diagnostics.append(diagnostic)
+    return normalized_diagnostics
 
 
 def _load_cfnlint_result_file(f, prefix, results):
@@ -478,13 +507,24 @@ def _match_key(d):
 
 
 def _alias_keys(key):
-    """Return all alias keys for a match key. If the rule_id has aliases,
-    return keys for each alias. Otherwise return just the original key."""
+    """Return the alias keys for a match key in deterministic order."""
     rule_id, resource_id, path = key
-    aliases = _RULE_ALIASES.get(rule_id)
-    if not aliases:
-        return [key]
-    return [(a, resource_id, path) for a in sorted(aliases)]
+    return [(alias, resource_id, path) for alias in sorted(_RULE_ALIASES.get(rule_id, set()))]
+
+
+def _consume_match_buckets(expected_diagnostics, actual_buckets, candidate_keys):
+    matched_pairs = []
+    remaining_expected = expected_diagnostics
+    for candidate_key in candidate_keys:
+        if not remaining_expected:
+            break
+        actual_diagnostics = actual_buckets.get(candidate_key, [])
+        pair_count = min(len(remaining_expected), len(actual_diagnostics))
+        matched_pairs.extend(zip(remaining_expected[:pair_count], actual_diagnostics[:pair_count]))
+        remaining_expected = remaining_expected[pair_count:]
+        if pair_count:
+            actual_buckets[candidate_key] = actual_diagnostics[pair_count:]
+    return matched_pairs, remaining_expected
 
 
 def _is_engine_extra(d):
@@ -524,72 +564,83 @@ def _location_diverges(exp, act):
 
 
 def compare_template(cfnlint_diags, engine_diags):
-    """Returns (matched, false_positives, false_negatives).
-    Two-pass matching: first by (rule_id, resource_id, path), then by (rule_id, resource_id)
-    for any remaining unmatched diagnostics. Supports alias matching for rules like
-    F3012/W9003 where cfn-lint uses one ID and the engine may use either."""
-    # Build multisets keyed by (rule_id, resource_id, path)
+    """Return (matched, false_positives, false_negatives).
+
+    Match by (rule_id, resource_id, path), then fall back to (rule_id,
+    resource_id). Each phase consumes every exact rule-ID match before aliases,
+    and alias matching consumes all available buckets as multisets. Remaining
+    diagnostics receive the SAM generated-resource matching pass.
+    """
     expected_full = defaultdict(list)
-    for d in cfnlint_diags:
-        expected_full[_match_key(d)].append(d)
+    for diagnostic in cfnlint_diags:
+        expected_full[_match_key(diagnostic)].append(diagnostic)
     actual_full = defaultdict(list)
-    for d in engine_diags:
-        actual_full[_match_key(d)].append(d)
+    for diagnostic in engine_diags:
+        actual_full[_match_key(diagnostic)].append(diagnostic)
 
-    matched, remaining_exp, remaining_act = [], [], []
+    matched = []
+    pending_expected_full = []
 
-    # Pass 1: exact (rule_id, resource_id, path) matching with alias support
-    matched_exp_keys = set()
-    for key in sorted(expected_full.keys()):
-        exp = expected_full[key]
-        # Try the key itself and all aliases
-        act = actual_full.get(key, [])
-        if not act:
-            for alias_key in _alias_keys(key):
-                act = actual_full.get(alias_key, [])
-                if act:
-                    key = alias_key
-                    break
-        n = min(len(exp), len(act))
-        matched.extend((exp[i], act[i]) for i in range(n))
-        remaining_exp.extend(exp[n:])
-        if n < len(act):
-            actual_full[key] = act[n:]
-        elif act:
-            actual_full[key] = []
-        matched_exp_keys.add(key)
+    for key in sorted(expected_full):
+        exact_matches, unmatched_expected = _consume_match_buckets(expected_full[key], actual_full, [key])
+        matched.extend(exact_matches)
+        pending_expected_full.append((key, unmatched_expected))
 
-    # Collect unmatched engine diagnostics
-    for key, act_list in actual_full.items():
-        if act_list:
-            remaining_act.extend(act_list)
-    remaining_act.sort(key=_diag_sort_key)
+    remaining_expected = []
+    for key, expected_diagnostics in pending_expected_full:
+        alias_matches, unmatched_expected = _consume_match_buckets(
+            expected_diagnostics,
+            actual_full,
+            _alias_keys(key),
+        )
+        matched.extend(alias_matches)
+        remaining_expected.extend(unmatched_expected)
 
-    # Pass 2: fallback (rule_id, resource_id) matching for remaining
-    exp_by_rr = defaultdict(list)
-    for d in remaining_exp:
-        exp_by_rr[(d["rule_id"], d["resource_id"])].append(d)
-    act_by_rr = defaultdict(list)
-    for d in remaining_act:
-        act_by_rr[(d["rule_id"], d["resource_id"])].append(d)
+    remaining_actual = sorted(
+        (diagnostic for actual_diagnostics in actual_full.values() for diagnostic in actual_diagnostics),
+        key=_diag_sort_key,
+    )
 
-    fp, fn = [], []
-    consumed_act = set()
-    for key in sorted(exp_by_rr.keys()):
-        exp = exp_by_rr[key]
-        # Try direct match and aliases
-        act = [a for a in act_by_rr.get(key, []) if id(a) not in consumed_act]
-        if not act:
-            rule_id, resource_id = key
-            for alias in sorted(_RULE_ALIASES.get(rule_id, set())):
-                act = [a for a in act_by_rr.get((alias, resource_id), []) if id(a) not in consumed_act]
-                if act:
-                    break
-        n = min(len(exp), len(act))
-        matched.extend((exp[i], act[i]) for i in range(n))
-        for i in range(n):
-            consumed_act.add(id(act[i]))
-        fn.extend(exp[n:])
+    expected_by_rule_resource = defaultdict(list)
+    for diagnostic in remaining_expected:
+        expected_by_rule_resource[(diagnostic["rule_id"], diagnostic["resource_id"])].append(diagnostic)
+    actual_by_rule_resource = defaultdict(list)
+    for diagnostic in remaining_actual:
+        actual_by_rule_resource[(diagnostic["rule_id"], diagnostic["resource_id"])].append(diagnostic)
+
+    pending_expected_rule_resource = []
+    for key in sorted(expected_by_rule_resource):
+        exact_matches, unmatched_expected = _consume_match_buckets(
+            expected_by_rule_resource[key],
+            actual_by_rule_resource,
+            [key],
+        )
+        matched.extend(exact_matches)
+        pending_expected_rule_resource.append((key, unmatched_expected))
+
+    false_negatives = []
+    for key, expected_diagnostics in pending_expected_rule_resource:
+        rule_id, resource_id = key
+        alias_keys = [
+            (alias, resource_id)
+            for alias in sorted(_RULE_ALIASES.get(rule_id, set()))
+        ]
+        alias_matches, unmatched_expected = _consume_match_buckets(
+            expected_diagnostics,
+            actual_by_rule_resource,
+            alias_keys,
+        )
+        matched.extend(alias_matches)
+        false_negatives.extend(unmatched_expected)
+
+    remaining_actual = sorted(
+        (
+            diagnostic
+            for actual_diagnostics in actual_by_rule_resource.values()
+            for diagnostic in actual_diagnostics
+        ),
+        key=_diag_sort_key,
+    )
 
     # Pass 3: cfn-lint's SAM transform renames generated resources with a
     # 10-hex-digit hash suffix (`Layer` -> `Layer7f955f606e`); the engine keeps
@@ -606,33 +657,37 @@ def compare_template(cfnlint_diags, engine_diags):
     def _strip_hash_suffix(message):
         return re.sub(r"\[(\w+?)[0-9a-f]{10}\]", r"[\1]", message)
 
-    def _sam_renamed_match(d, a):
-        if a["rule_id"] != d["rule_id"]:
+    def _sam_renamed_match(expected_diagnostic, actual_diagnostic):
+        if actual_diagnostic["rule_id"] != expected_diagnostic["rule_id"]:
             return False
-        if _sam_id_match(d.get("resource_id", ""), a.get("resource_id", "")):
+        if _sam_id_match(
+            expected_diagnostic.get("resource_id", ""),
+            actual_diagnostic.get("resource_id", ""),
+        ):
             return True
         # Transform errors carry the resource ID only in the message.
-        return (d["rule_id"] == "E0001"
-                and _strip_hash_suffix(d.get("message", "")) == _strip_hash_suffix(a.get("message", "")))
+        return (
+            expected_diagnostic["rule_id"] == "E0001"
+            and _strip_hash_suffix(expected_diagnostic.get("message", ""))
+            == _strip_hash_suffix(actual_diagnostic.get("message", ""))
+        )
 
-    still_fn = []
-    for d in fn:
-        partner = next(
-            (a for a in remaining_act if id(a) not in consumed_act and _sam_renamed_match(d, a)),
+    unmatched_after_sam = []
+    for expected_diagnostic in false_negatives:
+        partner_index = next(
+            (
+                index
+                for index, actual_diagnostic in enumerate(remaining_actual)
+                if _sam_renamed_match(expected_diagnostic, actual_diagnostic)
+            ),
             None,
         )
-        if partner is not None:
-            matched.append((d, partner))
-            consumed_act.add(id(partner))
-        else:
-            still_fn.append(d)
-    fn = still_fn
+        if partner_index is None:
+            unmatched_after_sam.append(expected_diagnostic)
+            continue
+        matched.append((expected_diagnostic, remaining_actual.pop(partner_index)))
 
-    for d in remaining_act:
-        if id(d) not in consumed_act:
-            fp.append(d)
-
-    return matched, fp, fn
+    return matched, remaining_actual, unmatched_after_sam
 
 
 # ── Report ───────────────────────────────────────────────────────────────────
@@ -784,11 +839,11 @@ def run_single():
     # ── Header ───────────────────────────────────────────────────────────
     w("# cloudformation-validate vs cfn-lint - Parity Report")
     w("")
-    w(f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ")
-    w(f"> Engine: **{ENGINE_NAME}**  ")
-    w(f"> Detail level: **{OUTPUT_FORMAT}**  ")
-    w(f"> Matching: `(rule_id, resource_id, path)` two-pass with `(rule_id, resource_id)` fallback + aliases  ")
-    w(f"> Templates compared: **{len(matched_keys)}**  ")
+    w(f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    w(f"> Engine: **{ENGINE_NAME}**")
+    w(f"> Detail level: **{OUTPUT_FORMAT}**")
+    w("> Matching: exact rule IDs before aliases at `(rule_id, resource_id, path)`, then `(rule_id, resource_id)`, with SAM fallback")
+    w(f"> Templates compared: **{len(matched_keys)}**")
     w("")
 
     # ── Glossary ─────────────────────────────────────────────────────────

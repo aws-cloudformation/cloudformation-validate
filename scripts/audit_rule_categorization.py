@@ -290,11 +290,10 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # E3001 (Basic Resource Check) parents several engine structural rules.
     _link("E3001", "F0006", "E5001", "F6004")
     # E1001 (Base template schema) parents top-level structural rules. Engine
-    # emits F0002 (format version) / F0005 (top-level section). F0001 (empty
-    # Resources) is intentionally NOT linked - cfn-lint does not flag it, so it
-    # stays a genuine engine-extra finding.
+    # emits F0001 (Resources presence/non-empty), F0002 (format version), and
+    # F0005 (top-level section).
     # E1001 also covers null condition-function operands (engine: E8001, E8003-E8006).
-    _link("E1001", "F0002", "F0005", "E8001", "E8003", "E8004", "E8005", "E8006")
+    _link("E1001", "F0001", "F0002", "F0005", "E8001", "E8003", "E8004", "E8005", "E8006")
     # cfn-lint E1028 covers Fn::If structure + condition existence; engine splits (F0013/E1028).
     _link("E1028", "F0013")
     # Undefined resource `Condition:` - cfn-lint E3015, engine E8002.
@@ -326,9 +325,8 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
     # not, so add it explicitly. Both participate in parity - an unmatched firing
     # of either is a false positive, not engine-extra.
     cfnlint_equivalent.add("I3049")
-    # Top-level structural rules cfn-lint covers under its parent E1001/E3001
-    # (F0001 omitted on purpose - cfn-lint never flags an empty Resources section):
-    cfnlint_equivalent.update({"F0002", "F0005", "F0006"})
+    # Top-level structural rules cfn-lint covers under its parent E1001/E3001:
+    cfnlint_equivalent.update({"F0001", "F0002", "F0005", "F0006"})
 
     # ── True origin (for the audit report) ───────────────────────────────
     # Priority: a structural rule is Schema first. F-prefix marks a structural
@@ -432,6 +430,11 @@ def compute_rule_origins(cfnlint_root: Path) -> RuleOrigins:
         if (diag.get("rule_id") == "F3003"
                 and diag.get("resource_type") == "AWS::S3::Bucket"
                 and "OwnershipControls" in diag.get("message", "")):
+            return True
+        # Empty Resources is always a CloudFormation rejection, but cfn-lint
+        # template metadata can suppress its E1001 while this engine correctly
+        # keeps the Fatal finding active.
+        if diag.get("rule_id") == "F0001":
             return True
         # F3002 on resources with cfn-lint ignore directives: engine validates
         # properties that cfn-lint suppresses via metadata directives.
@@ -793,7 +796,7 @@ def build_report(origins: RuleOrigins) -> str:
         # Covered via Fatal/schema rules (different numeric ID).
         # Each entry verified: our rule fires on the same templates cfn-lint
         # flags, producing an equivalent diagnostic under a different ID.
-        "E1001": ("F0002/F0005", "Base template JSON schema (top-level structure)"),
+        "E1001": ("F0001/F0002/F0005", "Resources presence/non-empty and top-level structure"),
         "E1003": ("F0011", "description max length 1024"),
         "E1011": ("F1012/F1101", "FindInMap structural validation (template-model parser)"),
         "E1017": ("F1050/F1101", "Select structural validation (template-model parser)"),

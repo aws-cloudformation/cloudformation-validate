@@ -41,7 +41,14 @@ fn eval_structure(ctx: &EvalContext) -> Vec<Diagnostic> {
     let input = ctx.input;
 
     if m.resources.is_empty() {
-        out.push(make_resource_diagnostic("F0001", "Resources section must exist and be non-empty", m, "", "", None));
+        out.push(make_resource_diagnostic(
+            "F0001",
+            "Resources section must exist and be non-empty",
+            m,
+            "",
+            SECTION_RESOURCES,
+            None,
+        ));
     }
 
     if let Some(fv) = input.get("template").and_then(|t| t.get("formatVersion")).and_then(|v| v.as_str())
