@@ -115,16 +115,7 @@ impl ConditionSchema {
     /// compiled `allOf`/`not`/`oneOf` conditions this way), and evaluating it as
     /// always-true would apply its branch to every resource of the type.
     pub fn states_nothing(&self) -> bool {
-        let ConditionSchema {
-            properties,
-            required,
-            absent,
-            prop_type,
-            all_of,
-            any_of,
-            one_of,
-            not,
-        } = self;
+        let ConditionSchema { properties, required, absent, prop_type, all_of, any_of, one_of, not } = self;
         properties.is_empty()
             && required.is_empty()
             && absent.is_empty()

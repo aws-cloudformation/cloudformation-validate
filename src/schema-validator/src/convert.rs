@@ -32,16 +32,7 @@ impl From<build::PropType> for PropType {
 
 impl From<build::ConditionSchema> for ConditionSchema {
     fn from(source: build::ConditionSchema) -> Self {
-        let build::ConditionSchema {
-            properties,
-            required,
-            absent,
-            prop_type,
-            all_of,
-            any_of,
-            one_of,
-            not,
-        } = source;
+        let build::ConditionSchema { properties, required, absent, prop_type, all_of, any_of, one_of, not } = source;
         ConditionSchema {
             properties: props(properties),
             required,

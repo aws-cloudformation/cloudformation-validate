@@ -251,8 +251,7 @@ pub mod keywords {
 
     /// Fields read by `compile_condition_schema`: what a conditional `if` block
     /// may contain.
-    pub const COMPILE_CONDITION_SCHEMA_FIELDS: &[&str] =
-        &[PROPERTIES, REQUIRED, TYPE, ALL_OF, ANY_OF, ONE_OF, NOT];
+    pub const COMPILE_CONDITION_SCHEMA_FIELDS: &[&str] = &[PROPERTIES, REQUIRED, TYPE, ALL_OF, ANY_OF, ONE_OF, NOT];
 }
 
 #[derive(Serialize, Deserialize)]
