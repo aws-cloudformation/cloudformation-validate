@@ -120,17 +120,21 @@ jobs:
         with:
           toolchain: ${{ steps.configs.outputs.rust-toolchain }}
 
-      - name: Setup Python 3.13 for current cfn-lint
+      - name: Setup Python 3.13 for current data sources
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: pip
-          cache-dependency-path: external/cfn-lint/pyproject.toml
+          cache-dependency-path: |
+            external/cfn-lint/pyproject.toml
+            external/aws-cli/pyproject.toml
 
-      - name: Install cfn-lint and refresh its schema cache
+      - name: Install data source dependencies and refresh the cfn-lint schema cache
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check ./external/cfn-lint
+          python -m pip install --disable-pip-version-check \
+            ./external/cfn-lint \
+            ./external/aws-cli
           cfn-lint --update-specs --force
 
       - name: Synchronize and generate validation data
