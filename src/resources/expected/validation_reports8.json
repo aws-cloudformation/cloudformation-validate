@@ -1,4 +1,22 @@
 {
+  "integration/module-sub-resources.yaml": {
+    "filePath": "integration/module-sub-resources.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": []
+  },
   "integration/ref-no-value.yaml": {
     "filePath": "integration/ref-no-value.yaml",
     "status": "OK",

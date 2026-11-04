@@ -859,3 +859,41 @@ Resources:
             && diagnostic.message == "'ApplyOn' is a required property"
     }));
 }
+
+#[test]
+fn lambda_extension_distinguishes_intrinsic_image_uri_from_zip_file() {
+    const TEMPLATE: &[u8] = br#"
+Parameters:
+  FunctionCode:
+    Type: String
+Resources:
+  ImageFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      Code:
+        ImageUri: !Ref FunctionCode
+      Role: arn:aws:iam::123456789012:role/example
+  ZipFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Code:
+        ZipFile: !Ref FunctionCode
+      Role: arn:aws:iam::123456789012:role/example
+"#;
+    let model = Arc::new(SemanticModel::from_bytes(TEMPLATE).expect("template must parse"));
+    let runtime_requirements: Vec<_> = SV
+        .validate(&model, Some("us-east-1"))
+        .diagnostics
+        .into_iter()
+        .filter(|diagnostic| diagnostic.rule_id == "F3003" && diagnostic.message.contains("'Runtime'"))
+        .collect();
+
+    assert_eq!(
+        runtime_requirements.len(),
+        1,
+        "only the ZipFile function must require Runtime: {runtime_requirements:?}"
+    );
+    assert_eq!(runtime_requirements[0].resource_logical_id(), Some("ZipFunction"));
+}

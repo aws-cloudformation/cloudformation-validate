@@ -431,6 +431,24 @@ fn condition_property_fields_are_evaluated() {
             conforming: "Resources:\n  R:\n    Type: TYPE\n    Properties:\n      A:\n        Other: v\n",
         },
         Case {
+            name: "if property nested required with opaque parent",
+            overlay: json!({
+                "properties": {
+                    "A": {
+                        "type": "object",
+                        "properties": {
+                            "Inner": { "type": "string" },
+                            "Other": { "type": "string" }
+                        }
+                    },
+                    "B": { "type": "string" }
+                },
+                "allOf": [{ "if": { "properties": { "A": { "required": ["Inner"] } }, "required": ["A"] }, "then": then_dep }]
+            }),
+            violating: "Parameters:\n  Value:\n    Type: String\nResources:\n  R:\n    Type: TYPE\n    Properties:\n      A:\n        Inner: !Ref Value\n",
+            conforming: "Parameters:\n  Value:\n    Type: String\nResources:\n  R:\n    Type: TYPE\n    Properties:\n      A:\n        Other: !Ref Value\n",
+        },
+        Case {
             name: "if property $ref",
             overlay: json!({
                 "properties": { "A": { "type": "string" }, "B": { "type": "string" } },
