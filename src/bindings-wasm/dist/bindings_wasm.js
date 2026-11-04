@@ -602,7 +602,7 @@ function __wbg_get_imports() {
                 return ret;
             }, arguments);
         },
-        __wbg_call_c35aad36e2abab13: function () {
+        __wbg_call_d63b787898359fb6: function () {
             return handleError(function (arg0, arg1, arg2, arg3) {
                 const ret = arg0.call(arg1, getStringFromWasm0(arg2, arg3));
                 return ret;
