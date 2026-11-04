@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda container-image function with an intrinsic image URI.
+Parameters:
+  ImageUri:
+    Type: String
+Resources:
+  ImageFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      Role: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda-role'

@@ -4724,6 +4724,14 @@ fn condition_matches_at(
     for (property_name, property_schema) in &cond.properties {
         let resolved_schema = property_schema.resolve(defs);
         let property_path = format!("{}.{}", base_path, property_name);
+        for nested_required_property in &resolved_schema.required {
+            let nested_path = format!("{}.{}", property_path, nested_required_property);
+            if !m.has_property(rid, &nested_path)
+                || !property_present_under(m, rid, &property_path, nested_required_property, &HashMap::new())
+            {
+                return false;
+            }
+        }
         let scenarios = m.resolve_scenarios_json(rid, &property_path);
         let has_concrete_constraint = resolved_schema.pattern.is_some()
             || !resolved_schema.enum_values.is_empty()
@@ -4741,16 +4749,6 @@ fn condition_matches_at(
             .collect();
         if reachable_scenarios.is_empty() || reachable_scenarios.iter().all(|(value, _)| value.is_null()) {
             continue;
-        }
-        for nested_required_property in &resolved_schema.required {
-            let nested_path = format!("{}.{}", property_path, nested_required_property);
-            let nested_property_exists =
-                m.resolve_scenarios_json(rid, &nested_path).iter().any(|(value, conditions)| {
-                    is_satisfiable(m, conditions) && scenario_consistent_with_filter(m, conditions) && !value.is_null()
-                });
-            if !nested_property_exists {
-                return false;
-            }
         }
         let compiled_pattern = resolved_schema.pattern.as_ref().and_then(|pattern| compile_pattern(pattern));
         if resolved_schema.pattern.is_some() && compiled_pattern.is_none() {
