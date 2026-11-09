@@ -388,7 +388,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { os: ubuntu-latest, platform: linux, arch: x64 }
+        - { os: ubuntu-24.04, platform: linux, arch: x64 }
         - { os: ubuntu-24.04-arm, platform: linux, arch: aarch64 }
         - { os: macos-latest, platform: darwin, arch: aarch64 }
         - { os: macos-15-intel, platform: darwin, arch: x64 }
@@ -411,10 +411,10 @@ jobs:
       with:
         toolchain: ${{ steps.configs.outputs.rust-toolchain }}
 
-    - name: Setup Python ${{ steps.configs.outputs.python-version }}
+    - name: Setup Python 3.9
       uses: actions/setup-python@v6
       with:
-        python-version: ${{ steps.configs.outputs.python-version }}
+        python-version: '3.9'
 
     - name: Log tool versions
       uses: ./.github/actions/print-build-versions
