@@ -135,7 +135,22 @@ jobs:
           python -m pip install --disable-pip-version-check \
             ./external/cfn-lint \
             ./external/aws-cli
-          cfn-lint --update-specs --force
+
+          max_attempts=3
+          base_retry_delay_seconds=5
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "attempt $attempt/$max_attempts: refreshing the cfn-lint schema cache"
+            if cfn-lint --update-specs --force; then
+              break
+            else
+              refresh_status=$?
+            fi
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "::error::Failed to refresh the cfn-lint schema cache after $max_attempts attempts (exit $refresh_status)."
+              exit "$refresh_status"
+            fi
+            sleep "$((base_retry_delay_seconds * attempt))"
+          done
 
       - name: Synchronize and generate validation data
         working-directory: src
