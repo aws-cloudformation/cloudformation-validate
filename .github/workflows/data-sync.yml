@@ -273,30 +273,26 @@ jobs:
       candidate-branch: ${{ steps.candidate.outputs.branch }}
       head-sha: ${{ steps.candidate.outputs.head-sha }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          fetch-depth: 0
+
       - name: Create or verify the stable release branch
         env:
           BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
-          GH_TOKEN: ${{ github.token }}
           RELEASE_BRANCH: ${{ needs.prepare.outputs.release-branch }}
         run: |
           set -euo pipefail
-          branch_sha="$(git ls-remote --heads "https://github.com/$GITHUB_REPOSITORY.git" "refs/heads/$RELEASE_BRANCH" | awk '{print $1}')"
+          branch_sha="$(git ls-remote --heads origin "refs/heads/$RELEASE_BRANCH" | awk '{print $1}')"
           if [ -z "$branch_sha" ]; then
-            gh api \
-              --method POST \
-              "repos/$GITHUB_REPOSITORY/git/refs" \
-              -f ref="refs/heads/$RELEASE_BRANCH" \
-              -f sha="$BASE_SHA" >/dev/null
-            echo "Created $RELEASE_BRANCH at $BASE_SHA."
-          elif [ "$branch_sha" != "$BASE_SHA" ]; then
-            echo "::error::$RELEASE_BRANCH advanced from $BASE_SHA to $branch_sha while the sync was running."
+            git push origin "$BASE_SHA:refs/heads/$RELEASE_BRANCH"
+            branch_sha="$(git ls-remote --heads origin "refs/heads/$RELEASE_BRANCH" | awk '{print $1}')"
+          fi
+          if [ "$branch_sha" != "$BASE_SHA" ]; then
+            echo "::error::$RELEASE_BRANCH is at ${branch_sha:-missing}, expected $BASE_SHA."
             exit 1
           fi
-
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.release-branch }}
-          fetch-depth: 0
 
       - uses: actions/download-artifact@v8
         with:
