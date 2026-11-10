@@ -12,7 +12,7 @@ on:
   workflow_call:
     inputs:
       source-ref:
-        description: 'Exact source commit to build; defaults to the triggering commit'
+        description: 'Exact source commit to build; requires explicit PR base and branch inputs when set'
         required: false
         type: string
       pull-request-base:
@@ -57,10 +57,22 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      pull-requests: read
     outputs:
       relevant: ${{ steps.decision.outputs.relevant }}
     steps:
+    - name: Validate pull request inputs
+      env:
+        PR_BASE: ${{ inputs.pull-request-base }}
+        PR_BRANCH: ${{ inputs.pull-request-branch }}
+        SOURCE_REF: ${{ inputs.source-ref }}
+      run: |
+        set -euo pipefail
+        if { [ -n "$PR_BASE" ] || [ -n "$PR_BRANCH" ] || [ -n "$SOURCE_REF" ]; } \
+          && { [ -z "$PR_BASE" ] || [ -z "$PR_BRANCH" ] || [ -z "$SOURCE_REF" ]; }; then
+          echo '::error::source-ref, pull-request-base, and pull-request-branch must be supplied together.'
+          exit 1
+        fi
+
     - uses: actions/checkout@v6
       with:
         ref: ${{ inputs.source-ref || github.sha }}
@@ -510,19 +522,37 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{ inputs.pull-request-branch || inputs.source-ref || github.sha }}
+        ref: ${{ inputs.pull-request-branch != '' && inputs.pull-request-base || inputs.source-ref || github.sha }}
+        fetch-depth: 0
 
-    - name: Verify requested source branch
-      if: inputs.pull-request-branch != ''
+    - name: Prepare requested source commit
+      if: inputs.source-ref != ''
       env:
+        EXPECTED_BASE_BRANCH: ${{ inputs.pull-request-base }}
+        EXPECTED_SOURCE_BRANCH: ${{ inputs.pull-request-branch }}
         EXPECTED_SOURCE_COMMIT: ${{ inputs.source-ref }}
       run: |
         set -euo pipefail
-        actual_source_commit="$(git rev-parse HEAD)"
-        if [ -z "$EXPECTED_SOURCE_COMMIT" ] || [ "$actual_source_commit" != "$EXPECTED_SOURCE_COMMIT" ]; then
-          echo "::error::Artifact PR branch is at $actual_source_commit, expected $EXPECTED_SOURCE_COMMIT."
+        if [ -z "$EXPECTED_BASE_BRANCH" ] || [ -z "$EXPECTED_SOURCE_BRANCH" ]; then
+          echo '::error::source-ref requires pull-request-base and pull-request-branch.'
           exit 1
         fi
+        git check-ref-format --branch "$EXPECTED_BASE_BRANCH" >/dev/null
+        git check-ref-format --branch "$EXPECTED_SOURCE_BRANCH" >/dev/null
+        git fetch --no-tags origin "refs/heads/$EXPECTED_SOURCE_BRANCH"
+        source_commit="$(git rev-parse 'FETCH_HEAD^{commit}')"
+        base_commit="$(git rev-parse 'HEAD^{commit}')"
+        source_parent="$(git rev-parse "$source_commit^")"
+        if [ "$source_commit" != "$EXPECTED_SOURCE_COMMIT" ]; then
+          echo "::error::Artifact PR branch is at $source_commit, expected $EXPECTED_SOURCE_COMMIT."
+          exit 1
+        fi
+        if [ "$source_parent" != "$base_commit" ]; then
+          echo "::error::Artifact source parent is $source_parent, expected base commit $base_commit."
+          exit 1
+        fi
+        git merge --ff-only "$source_commit"
+        echo "Prepared artifact source $source_commit on $EXPECTED_BASE_BRANCH."
 
     - name: Load build configs
       id: configs
@@ -714,6 +744,8 @@ jobs:
     - name: Verify requested PR update
       if: inputs.source-ref != ''
       env:
+        EXPECTED_SOURCE_COMMIT: ${{ inputs.source-ref }}
+        GH_TOKEN: ${{ github.token }}
         PR_HEAD_SHA: ${{ steps.create-pull-request.outputs.pull-request-head-sha }}
         PR_NUMBER: ${{ steps.create-pull-request.outputs.pull-request-number }}
       run: |
@@ -722,3 +754,23 @@ jobs:
           echo '::error::The reusable artifact build did not create or update the requested pull request.'
           exit 1
         fi
+        pr_head_parent="$(gh api \
+          "repos/$GITHUB_REPOSITORY/git/commits/$PR_HEAD_SHA" \
+          --jq 'if (.parents | length) == 1 then .parents[0].sha else empty end')"
+        if [ "$pr_head_parent" != "$EXPECTED_SOURCE_COMMIT" ]; then
+          echo "::error::Artifact PR head parent is ${pr_head_parent:-missing}, expected source commit $EXPECTED_SOURCE_COMMIT."
+          exit 1
+        fi
+
+  validate-pull-request:
+    needs: [ prepare, pull-request ]
+    if: needs.prepare.outputs.relevant == 'true' && needs.pull-request.outputs.pull-request-head-sha != ''
+    uses: ./.github/workflows/validate.yml
+    permissions:
+      contents: read
+      pull-requests: read
+    with:
+      ref: ${{ needs.pull-request.outputs.pull-request-head-sha }}
+      fail-fast: true
+      release-run: true
+      performance-gate: true

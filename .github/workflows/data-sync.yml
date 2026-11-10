@@ -20,21 +20,118 @@ jobs:
   guard:
     if: github.repository == 'aws-cloudformation/cloudformation-validate'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
     outputs:
-      should-run: ${{ steps.open-pr.outputs.should-run }}
+      should-run: ${{ steps.tag-decision.outputs.should-run || 'false' }}
     steps:
-      - name: Stop when a data sync PR is open
-        id: open-pr
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Dispatch Data Sync from the latest production tag
+        if: github.ref_type != 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          open_pr_count="$(gh pr list \
+          if [ "$GITHUB_REF" != 'refs/heads/main' ]; then
+            echo "::error::Data Sync must be dispatched from main or a production tag, not $GITHUB_REF."
+            exit 1
+          fi
+          mapfile -t production_tags < <(
+            git tag --list \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V
+          )
+          if [ ${#production_tags[@]} -eq 0 ]; then
+            echo '::error::No production release tag matching MAJOR.MINOR.PATCH exists.'
+            exit 1
+          fi
+          latest_index=$((${#production_tags[@]} - 1))
+          release_tag="${production_tags[$latest_index]}"
+          if ! git diff --quiet "$release_tag" HEAD -- .github/workflows; then
+            echo "The latest production tag $release_tag does not contain the current workflows; waiting for the next production release."
+            exit 0
+          fi
+          successful_release_count="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?event=workflow_dispatch&per_page=100" \
+              | jq -r \
+                --arg prefix "Release $release_tag " \
+                '[.[] | .workflow_runs[] | select(.display_title | startswith($prefix)) | select(.status == "completed" and .conclusion == "success")] | length'
+          )"
+          if [ "$successful_release_count" -eq 0 ]; then
+            echo "Production release $release_tag has not completed successfully; waiting before starting Data Sync."
+            exit 0
+          fi
+          gh workflow run data-sync.yml \
             --repo "$GITHUB_REPOSITORY" \
-            --state open \
-            --limit 100 \
-            --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("automated/data-sync-"))] | length')"
+            --ref "$release_tag"
+          echo "Dispatched Data Sync from production tag $release_tag."
+
+      - name: Verify the production tag workflow source
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          mapfile -t production_tags < <(
+            git tag --list \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V
+          )
+          if [ ${#production_tags[@]} -eq 0 ]; then
+            echo '::error::No production release tag matching MAJOR.MINOR.PATCH exists.'
+            exit 1
+          fi
+          latest_index=$((${#production_tags[@]} - 1))
+          latest_production_tag="${production_tags[$latest_index]}"
+          if [ "$GITHUB_REF_NAME" != "$latest_production_tag" ]; then
+            echo "::error::Data Sync must run from latest production tag $latest_production_tag, not $GITHUB_REF_NAME."
+            exit 1
+          fi
+          git fetch --no-tags origin refs/heads/main
+          main_commit="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          if ! git diff --quiet "$GITHUB_SHA" "$main_commit" -- .github/workflows; then
+            echo "::error::Production tag $GITHUB_REF_NAME no longer contains the current workflows; wait for the next production release."
+            exit 1
+          fi
+
+      - name: Decide whether Data Sync should run
+        if: github.ref_type == 'tag'
+        id: tag-decision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          successful_release_count="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?event=workflow_dispatch&per_page=100" \
+              | jq -r \
+                --arg prefix "Release $GITHUB_REF_NAME " \
+                '[.[] | .workflow_runs[] | select(.display_title | startswith($prefix)) | select(.status == "completed" and .conclusion == "success")] | length'
+          )"
+          if [ "$successful_release_count" -eq 0 ]; then
+            echo 'should-run=false' >> "$GITHUB_OUTPUT"
+            echo "Production release $GITHUB_REF_NAME has not completed successfully; skipping Data Sync."
+            exit 0
+          fi
+          open_pr_count="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+              | jq -r \
+                --arg repository "$GITHUB_REPOSITORY" \
+                '[.[][] | select(.head.repo.full_name == $repository and (.head.ref | startswith("automated/data-sync-")))] | length'
+          )"
           if [ "$open_pr_count" -gt 0 ]; then
             echo 'should-run=false' >> "$GITHUB_OUTPUT"
             echo "A data sync PR from ${DATA_SYNC_BRANCH_PREFIX}* is already open; skipping this run."
@@ -78,6 +175,10 @@ jobs:
 
           latest_index=$((${#production_tags[@]} - 1))
           base_tag="${production_tags[$latest_index]}"
+          if [ "$base_tag" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Workflow source tag $GITHUB_REF_NAME is not latest production tag $base_tag."
+            exit 1
+          fi
           release_line="${base_tag%.*}"
           release_branch="release/$release_line"
           tag_sha="$(git rev-parse "$base_tag^{commit}")"
@@ -299,6 +400,11 @@ jobs:
           RELEASE_BRANCH: ${{ needs.prepare.outputs.release-branch }}
         run: |
           set -euo pipefail
+          git fetch --no-tags origin refs/heads/main
+          if ! git diff --quiet "$BASE_SHA" FETCH_HEAD -- .github/workflows; then
+            echo '::error::The production tag workflows no longer match main; wait for the next production release.'
+            exit 1
+          fi
           branch_sha="$(git ls-remote --heads origin "refs/heads/$RELEASE_BRANCH" | awk '{print $1}')"
           if [ -z "$branch_sha" ]; then
             git push origin "$BASE_SHA:refs/heads/$RELEASE_BRANCH"
@@ -354,7 +460,8 @@ jobs:
         - Base release: `${{ needs.prepare.outputs.base-tag }}`
         - Proposed release: `${{ needs.prepare.outputs.release-version }}`
         - Release branch: `${{ needs.prepare.outputs.release-branch }}`
+        - Validation run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-        This PR contains the synchronized data, validation snapshots, and all cross-platform release artifacts. The normal Pull Request workflow validates the completed PR head.
+        This PR contains the synchronized data, validation snapshots, and all cross-platform release artifacts. The Build Artifacts workflow validates the completed PR head before this Data Sync run succeeds. Merge only after that run succeeds.
 
         **Merging this PR authorizes the Release workflow to publish `${{ needs.prepare.outputs.release-version }}` from the exact merge commit.**
