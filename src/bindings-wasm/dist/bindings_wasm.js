@@ -596,15 +596,15 @@ function __wbg_get_imports() {
         __wbg___wbindgen_throw_344f42d3211c4765: function (arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
-        __wbg_call_8a2dd23819f8a60a: function () {
-            return handleError(function (arg0, arg1) {
-                const ret = arg0.call(arg1);
+        __wbg_call_3682498ccf02a352: function () {
+            return handleError(function (arg0, arg1, arg2, arg3) {
+                const ret = arg0.call(arg1, getStringFromWasm0(arg2, arg3));
                 return ret;
             }, arguments);
         },
-        __wbg_call_d63b787898359fb6: function () {
-            return handleError(function (arg0, arg1, arg2, arg3) {
-                const ret = arg0.call(arg1, getStringFromWasm0(arg2, arg3));
+        __wbg_call_8a2dd23819f8a60a: function () {
+            return handleError(function (arg0, arg1) {
+                const ret = arg0.call(arg1);
                 return ret;
             }, arguments);
         },
