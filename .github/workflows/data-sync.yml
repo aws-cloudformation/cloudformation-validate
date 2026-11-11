@@ -20,22 +20,138 @@ jobs:
   guard:
     if: github.repository == 'aws-cloudformation/cloudformation-validate'
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
     outputs:
-      should-run: ${{ steps.open-pr.outputs.should-run }}
+      should-run: ${{ steps.tag-decision.outputs.should-run || 'false' }}
     steps:
-      - name: Stop when a data sync PR is open
-        id: open-pr
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Dispatch Data Sync from the latest production tag
+        if: github.ref_type != 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          open_pr_count="$(gh pr list \
+          if [ "$GITHUB_REF" != 'refs/heads/main' ]; then
+            echo "::error::Data Sync must be dispatched from main or a production tag, not $GITHUB_REF."
+            exit 1
+          fi
+          mapfile -t production_tags < <(
+            git tag --list \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V
+          )
+          if [ ${#production_tags[@]} -eq 0 ]; then
+            echo '::error::No production release tag matching MAJOR.MINOR.PATCH exists.'
+            exit 1
+          fi
+          latest_index=$((${#production_tags[@]} - 1))
+          release_tag="${production_tags[$latest_index]}"
+          if ! git diff --quiet "$release_tag" HEAD -- .github/workflows; then
+            echo "The latest production tag $release_tag does not contain the current workflows; waiting for the next production release."
+            exit 0
+          fi
+          successful_release_count="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?event=workflow_dispatch&per_page=100" \
+              | jq -r \
+                --arg prefix "Release $release_tag " \
+                '[.[] | .workflow_runs[] | select(.display_title | startswith($prefix)) | select(.status == "completed" and .conclusion == "success")] | length'
+          )"
+          if [ "$successful_release_count" -eq 0 ]; then
+            echo "Production release $release_tag has not completed successfully; waiting before starting Data Sync."
+            exit 0
+          fi
+          gh workflow run data-sync.yml \
             --repo "$GITHUB_REPOSITORY" \
-            --state open \
-            --limit 100 \
-            --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("automated/data-sync-"))] | length')"
-          if [ "$open_pr_count" -gt 0 ]; then
+            --ref "$release_tag"
+          echo "Dispatched Data Sync from production tag $release_tag."
+
+      - name: Verify the production tag workflow source
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          mapfile -t production_tags < <(
+            git tag --list \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V
+          )
+          if [ ${#production_tags[@]} -eq 0 ]; then
+            echo '::error::No production release tag matching MAJOR.MINOR.PATCH exists.'
+            exit 1
+          fi
+          latest_index=$((${#production_tags[@]} - 1))
+          latest_production_tag="${production_tags[$latest_index]}"
+          if [ "$GITHUB_REF_NAME" != "$latest_production_tag" ]; then
+            echo "::error::Data Sync must run from latest production tag $latest_production_tag, not $GITHUB_REF_NAME."
+            exit 1
+          fi
+          git fetch --no-tags origin refs/heads/main
+          main_commit="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          if ! git diff --quiet "$GITHUB_SHA" "$main_commit" -- .github/workflows; then
+            echo "::error::Production tag $GITHUB_REF_NAME no longer contains the current workflows; wait for the next production release."
+            exit 1
+          fi
+
+      - name: Decide whether Data Sync should run
+        if: github.ref_type == 'tag'
+        id: tag-decision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          successful_release_count="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?event=workflow_dispatch&per_page=100" \
+              | jq -r \
+                --arg prefix "Release $GITHUB_REF_NAME " \
+                '[.[] | .workflow_runs[] | select(.display_title | startswith($prefix)) | select(.status == "completed" and .conclusion == "success")] | length'
+          )"
+          if [ "$successful_release_count" -eq 0 ]; then
+            echo 'should-run=false' >> "$GITHUB_OUTPUT"
+            echo "Production release $GITHUB_REF_NAME has not completed successfully; skipping Data Sync."
+            exit 0
+          fi
+          release_branch="release/${GITHUB_REF_NAME%.*}"
+          tag_sha="$(git rev-parse "$GITHUB_REF_NAME^{commit}")"
+          release_branch_sha="$(git ls-remote --heads origin "refs/heads/$release_branch" | awk '{print $1}')"
+          if [ -n "$release_branch_sha" ] && [ "$release_branch_sha" != "$tag_sha" ]; then
+            echo 'should-run=false' >> "$GITHUB_OUTPUT"
+            echo "$release_branch is awaiting release or manual repair at $release_branch_sha; skipping Data Sync from $GITHUB_REF_NAME."
+            exit 0
+          fi
+          open_pr_counts="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+              | jq -c \
+                --arg repository "$GITHUB_REPOSITORY" \
+                --arg run_suffix "-$GITHUB_RUN_ID" \
+                '[.[][] | select(.head.repo.full_name == $repository and (.head.ref | startswith("automated/data-sync-")))]
+                | {
+                    current_run: [.[] | select(.head.ref | endswith($run_suffix))] | length,
+                    other_runs: [.[] | select((.head.ref | endswith($run_suffix)) | not)] | length
+                  }'
+          )"
+          current_run_pr_count="$(jq -r '.current_run' <<< "$open_pr_counts")"
+          other_run_pr_count="$(jq -r '.other_runs' <<< "$open_pr_counts")"
+          if [ "$current_run_pr_count" -gt 0 ]; then
+            echo "::error::This Data Sync run already has an open PR. Re-run only the failed jobs so the immutable candidate can be reused."
+            exit 1
+          fi
+          if [ "$other_run_pr_count" -gt 0 ]; then
             echo 'should-run=false' >> "$GITHUB_OUTPUT"
             echo "A data sync PR from ${DATA_SYNC_BRANCH_PREFIX}* is already open; skipping this run."
           else
@@ -78,6 +194,10 @@ jobs:
 
           latest_index=$((${#production_tags[@]} - 1))
           base_tag="${production_tags[$latest_index]}"
+          if [ "$base_tag" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Workflow source tag $GITHUB_REF_NAME is not latest production tag $base_tag."
+            exit 1
+          fi
           release_line="${base_tag%.*}"
           release_branch="release/$release_line"
           tag_sha="$(git rev-parse "$base_tag^{commit}")"
@@ -292,13 +412,39 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Create or verify the stable release branch
         env:
           BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
+          BASE_TAG: ${{ needs.prepare.outputs.base-tag }}
           RELEASE_BRANCH: ${{ needs.prepare.outputs.release-branch }}
         run: |
           set -euo pipefail
+          mapfile -t production_tags < <(
+            git tag --list \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V
+          )
+          if [ ${#production_tags[@]} -eq 0 ]; then
+            echo '::error::No production release tag matching MAJOR.MINOR.PATCH exists.'
+            exit 1
+          fi
+          latest_index=$((${#production_tags[@]} - 1))
+          verified_base_tag="${production_tags[$latest_index]}"
+          verified_base_sha="$(git rev-parse "$verified_base_tag^{commit}")"
+          verified_release_branch="release/${verified_base_tag%.*}"
+          if [ "$BASE_TAG" != "$verified_base_tag" ] \
+            || [ "$BASE_SHA" != "$verified_base_sha" ] \
+            || [ "$RELEASE_BRANCH" != "$verified_release_branch" ]; then
+            echo '::error::Data Sync preparation outputs do not match the latest production release line.'
+            exit 1
+          fi
+          git fetch --no-tags origin refs/heads/main
+          if ! git diff --quiet "$BASE_SHA" FETCH_HEAD -- .github/workflows; then
+            echo '::error::The production tag workflows no longer match main; wait for the next production release.'
+            exit 1
+          fi
           branch_sha="$(git ls-remote --heads origin "refs/heads/$RELEASE_BRANCH" | awk '{print $1}')"
           if [ -z "$branch_sha" ]; then
             git push origin "$BASE_SHA:refs/heads/$RELEASE_BRANCH"
@@ -314,25 +460,104 @@ jobs:
           name: data-sync-patch
           path: ${{ runner.temp }}
 
-      - name: Apply the generated change set
-        run: git apply --index "${{ runner.temp }}/data-sync.patch"
+      - name: Apply and verify the generated change set
+        env:
+          BASE_TAG: ${{ needs.prepare.outputs.base-tag }}
+          RELEASE_BRANCH: ${{ needs.prepare.outputs.release-branch }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.release-version }}
+        run: |
+          set -euo pipefail
+          git apply --index "${{ runner.temp }}/data-sync.patch"
+          release_intent="$(git show ':./.github/data-sync-release.json')"
+          cargo_manifest="$(git show ':./src/Cargo.toml')"
+          manifest_version="$(
+            awk '
+              $0 == "[workspace.package]" { in_workspace_package = 1; next }
+              /^\[/ { in_workspace_package = 0 }
+              in_workspace_package && /^version = "/ {
+                value = $0
+                sub(/^version = "/, "", value)
+                sub(/"$/, "", value)
+                print value
+                exit
+              }
+            ' <<< "$cargo_manifest"
+          )"
+          if [ "$(jq -er '.base_tag' <<< "$release_intent")" != "$BASE_TAG" ] \
+            || [ "$(jq -er '.release_branch' <<< "$release_intent")" != "$RELEASE_BRANCH" ] \
+            || [ "$(jq -er '.version' <<< "$release_intent")" != "$RELEASE_VERSION" ] \
+            || [ "$manifest_version" != "$RELEASE_VERSION" ]; then
+            echo '::error::Data synchronization patch does not match the verified release line and version.'
+            exit 1
+          fi
+          while IFS= read -r -d '' changed_path; do
+            case "$changed_path" in
+              .github/data-sync-release.json|\
+              src/Cargo.toml|\
+              src/Cargo.lock|\
+              src/data-source/generated/*|\
+              src/resources/expected/version.txt|\
+              src/resources/expected/validation_reports*.json)
+                ;;
+              *)
+                echo "::error::Data synchronization patch contains an unapproved path: $changed_path"
+                exit 1
+                ;;
+            esac
+          done < <(git diff --cached --no-renames --name-only -z)
 
-      - name: Push the artifact build candidate
+      - name: Push or reuse the artifact build candidate
         id: candidate
         env:
+          BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
           RELEASE_VERSION: ${{ needs.prepare.outputs.release-version }}
         run: |
           set -euo pipefail
           candidate_branch="${DATA_SYNC_BRANCH_PREFIX}${RELEASE_VERSION}-${GITHUB_RUN_ID}"
           git check-ref-format --branch "$candidate_branch" >/dev/null
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git switch -c "$candidate_branch"
-          git commit -m "chore: Sync data sources for $RELEASE_VERSION"
-          git push origin "HEAD:refs/heads/$candidate_branch"
+          candidate_tree="$(git write-tree)"
+          branch_sha="$(git ls-remote --heads origin "refs/heads/$candidate_branch" | awk '{print $1}')"
+          candidate_sha=''
+
+          if [ -n "$branch_sha" ]; then
+            git fetch --no-tags origin "refs/heads/$candidate_branch"
+            branch_sha="$(git rev-parse 'FETCH_HEAD^{commit}')"
+            read -r resolved_branch branch_parent branch_extra \
+              <<< "$(git rev-list --parents -n 1 "$branch_sha")"
+            if [ "$resolved_branch" = "$branch_sha" ] \
+              && [ "$branch_parent" = "$BASE_SHA" ] \
+              && [ -z "${branch_extra:-}" ] \
+              && [ "$(git rev-parse "$branch_sha^{tree}")" = "$candidate_tree" ]; then
+              candidate_sha="$branch_sha"
+            elif [ "$resolved_branch" = "$branch_sha" ] \
+              && [ -n "$branch_parent" ] \
+              && [ -z "${branch_extra:-}" ]; then
+              read -r resolved_candidate candidate_parent candidate_extra \
+                <<< "$(git rev-list --parents -n 1 "$branch_parent")"
+              if [ "$resolved_candidate" = "$branch_parent" ] \
+                && [ "$candidate_parent" = "$BASE_SHA" ] \
+                && [ -z "${candidate_extra:-}" ] \
+                && [ "$(git rev-parse "$branch_parent^{tree}")" = "$candidate_tree" ]; then
+                candidate_sha="$branch_parent"
+              fi
+            fi
+            if [ -z "$candidate_sha" ]; then
+              echo "::error::Existing candidate branch $candidate_branch does not contain this run's generated source commit."
+              exit 1
+            fi
+            echo "Reusing artifact source $candidate_sha from $candidate_branch."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git switch -c "$candidate_branch"
+            git commit -m "chore: Sync data sources for $RELEASE_VERSION"
+            candidate_sha="$(git rev-parse HEAD)"
+            git push origin "$candidate_sha:refs/heads/$candidate_branch"
+          fi
+
           {
             echo "branch=$candidate_branch"
-            echo "head-sha=$(git rev-parse HEAD)"
+            echo "head-sha=$candidate_sha"
           } >> "$GITHUB_OUTPUT"
 
   build-artifacts:
@@ -354,7 +579,50 @@ jobs:
         - Base release: `${{ needs.prepare.outputs.base-tag }}`
         - Proposed release: `${{ needs.prepare.outputs.release-version }}`
         - Release branch: `${{ needs.prepare.outputs.release-branch }}`
+        - Validation run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-        This PR contains the synchronized data, validation snapshots, and all cross-platform release artifacts. The normal Pull Request workflow validates the completed PR head.
+        This PR contains the synchronized data, validation snapshots, and all cross-platform release artifacts. The Build Artifacts workflow validates the completed PR head before this Data Sync run succeeds. Merge only after that run succeeds.
 
         **Merging this PR authorizes the Release workflow to publish `${{ needs.prepare.outputs.release-version }}` from the exact merge commit.**
+
+  record-provenance:
+    needs: [ prepare, create-candidate, build-artifacts ]
+    if: needs.prepare.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Record validated data sync provenance
+        env:
+          BASE_TAG: ${{ needs.prepare.outputs.base-tag }}
+          CANDIDATE_COMMIT: ${{ needs.create-candidate.outputs.head-sha }}
+          PR_HEAD_COMMIT: ${{ needs.build-artifacts.outputs.pull-request-head-sha }}
+          PR_NUMBER: ${{ needs.build-artifacts.outputs.pull-request-number }}
+          RELEASE_BRANCH: ${{ needs.prepare.outputs.release-branch }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.release-version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_COMMIT" =~ ^[0-9a-f]{40,64}$ ]] \
+            || [[ ! "$PR_HEAD_COMMIT" =~ ^[0-9a-f]{40,64}$ ]] \
+            || [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo '::error::The artifact build did not return valid pull request provenance.'
+            exit 1
+          fi
+          jq -n \
+            --arg base_tag "$BASE_TAG" \
+            --arg candidate_commit "$CANDIDATE_COMMIT" \
+            --arg pr_head_commit "$PR_HEAD_COMMIT" \
+            --arg pr_number "$PR_NUMBER" \
+            --arg release_branch "$RELEASE_BRANCH" \
+            --arg release_version "$RELEASE_VERSION" \
+            '{base_tag: $base_tag, candidate_commit: $candidate_commit, pr_head_commit: $pr_head_commit, pr_number: $pr_number, release_branch: $release_branch, release_version: $release_version}' \
+            > "$RUNNER_TEMP/data-sync-provenance.json"
+
+      - name: Upload validated data sync provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: data-sync-provenance
+          path: ${{ runner.temp }}/data-sync-provenance.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 90
