@@ -23,13 +23,20 @@ generates all outputs. `generate` reruns code generation from the existing upstr
 
 ## Automated sync and patch release
 
-`.github/workflows/data-sync.yml` runs daily at 08:00 UTC. It skips the run when an `automated/data-sync-*` PR is
-open; otherwise, it checks out current cfn-lint and AWS CLI `v2`, then runs the full sync against the latest production
-release line. A changed sync receives the next patch version, builds every release artifact, and opens one published PR
-containing the data, snapshots, and artifacts. The normal Pull Request workflow then validates the completed PR.
+`.github/workflows/data-sync.yml` runs daily at 08:00 UTC. The default-branch run dispatches the workflow from
+the latest production tag after confirming that the tag contains the current workflow definitions and completed its
+production release successfully. The tagged run skips synchronization when an `automated/data-sync-*` PR is open;
+otherwise, it checks out current cfn-lint and AWS CLI `v2`, then runs the full sync against that production release
+line. A changed sync receives the next patch version, builds every release artifact, opens one published PR containing
+the data, snapshots, and artifacts, and directly validates the completed PR head through the reusable validation
+workflow. If a run fails after opening its PR, rerun only the failed jobs so it reuses the immutable candidate. Changes
+to this automation take effect for tagged runs after the next successful production release includes the same workflow
+definitions.
 
-Merging that PR authorizes `.github/workflows/data-sync-release.yml` to dispatch the production release from the exact
-merge commit within 60 minutes. Beta releases are excluded, and unreleased minor-version work on `main` is unaffected.
+After the PR merges, `.github/workflows/data-sync-release.yml` checks hourly. It verifies the immutable candidate and
+validated PR head recorded by the originating Data Sync run, then dispatches the Release workflow from protected
+`main` with the exact release-branch merge commit pinned as its source once every release precondition passes. Beta
+releases are excluded, and unreleased minor-version work on `main` is unaffected.
 
 `--cfn-lint-root` is required by `sync`, which fails before starting work when it is absent. A successful sync records
 its source-qualified versions only after all source processing succeeds.

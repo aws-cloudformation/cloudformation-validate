@@ -122,13 +122,47 @@ jobs:
             echo "::error::Release intent ($intent_version), artifacts ($artifact_version), and workspace ($release_version) do not agree."
             exit 1
           fi
+
+          release_tag_commit="$(
+            git ls-remote \
+              --refs \
+              --tags \
+              "https://github.com/$GITHUB_REPOSITORY.git" \
+              "refs/tags/$release_version" \
+              | awk '{print $1}'
+          )"
+          if [ -n "$release_tag_commit" ] && [ "$release_tag_commit" != "$MERGE_COMMIT" ]; then
+            echo "::error::Tag $release_version points to $release_tag_commit, not merged commit $MERGE_COMMIT."
+            exit 1
+          fi
+          release_runs="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?event=workflow_dispatch&per_page=100" \
+              | jq -c \
+                --arg prefix "Release $release_version " \
+                '[.[] | .workflow_runs[] | select(.display_title | startswith($prefix))] | sort_by(.created_at)'
+          )"
+          latest_release_run="$(jq -cr 'last // empty' <<< "$release_runs")"
+          successful_release_run="$(jq -cr '[.[] | select(.status == "completed" and .conclusion == "success")] | last // empty' <<< "$release_runs")"
+          if [ -n "$successful_release_run" ]; then
+            successful_release_run_url="$(jq -r '.html_url' <<< "$successful_release_run")"
+            if [ -z "$release_tag_commit" ]; then
+              echo "::error::Successful release run $successful_release_run_url did not create tag $release_version."
+              exit 1
+            fi
+            echo "Release $release_version already completed successfully: $successful_release_run_url"
+            exit 0
+          fi
+
           expected_head_branch="automated/data-sync-$release_version-$SYNC_RUN_ID"
           if [ "$PR_HEAD_BRANCH" != "$expected_head_branch" ]; then
             echo "::error::Data Sync PR head $PR_HEAD_BRANCH does not match expected branch $expected_head_branch."
             exit 1
           fi
           data_sync_run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SYNC_RUN_ID")"
-          data_sync_run_path="$(jq -r '.path' <<< "$data_sync_run")"
+          data_sync_run_workflow_id="$(jq -r '.workflow_id' <<< "$data_sync_run")"
           data_sync_run_event="$(jq -r '.event' <<< "$data_sync_run")"
           data_sync_run_status="$(jq -r '.status' <<< "$data_sync_run")"
           data_sync_run_conclusion="$(jq -r '.conclusion // ""' <<< "$data_sync_run")"
@@ -136,7 +170,10 @@ jobs:
           base_tag_commit="$(gh api \
             "repos/$GITHUB_REPOSITORY/commits/$intent_base_tag" \
             --jq '.sha')"
-          if [ "$data_sync_run_path" != '.github/workflows/data-sync.yml' ] \
+          expected_data_sync_workflow_id="$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/data-sync.yml" \
+            --jq '.id')"
+          if [ "$data_sync_run_workflow_id" != "$expected_data_sync_workflow_id" ] \
             || [ "$data_sync_run_event" != 'workflow_dispatch' ] \
             || [ "$data_sync_run_head" != "$base_tag_commit" ]; then
             echo "::error::Data Sync run $SYNC_RUN_ID does not match base tag $intent_base_tag."
@@ -148,6 +185,40 @@ jobs:
           fi
           if [ "$data_sync_run_conclusion" != 'success' ]; then
             echo "::error::Data Sync run $SYNC_RUN_ID completed with $data_sync_run_conclusion; refusing to release."
+            exit 1
+          fi
+
+          provenance_directory="$RUNNER_TEMP/data-sync-provenance"
+          mkdir -p "$provenance_directory"
+          gh run download "$SYNC_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name data-sync-provenance \
+            --dir "$provenance_directory"
+          provenance_file="$provenance_directory/data-sync-provenance.json"
+          if [ ! -f "$provenance_file" ]; then
+            echo "::error::Data Sync run $SYNC_RUN_ID has no validated provenance record."
+            exit 1
+          fi
+          validated_base_tag="$(jq -er '.base_tag' "$provenance_file")"
+          validated_candidate_commit="$(jq -er '.candidate_commit' "$provenance_file")"
+          validated_pr_head_commit="$(jq -er '.pr_head_commit' "$provenance_file")"
+          validated_pr_number="$(jq -er '.pr_number' "$provenance_file")"
+          validated_release_branch="$(jq -er '.release_branch' "$provenance_file")"
+          validated_release_version="$(jq -er '.release_version' "$provenance_file")"
+          if [ "$validated_base_tag" != "$intent_base_tag" ] \
+            || [ "$validated_candidate_commit" != "$artifact_source_commit" ] \
+            || [ "$validated_pr_head_commit" != "$PR_HEAD_COMMIT" ] \
+            || [ "$validated_pr_number" != "$PR_NUMBER" ] \
+            || [ "$validated_release_branch" != "$BASE_BRANCH" ] \
+            || [ "$validated_release_version" != "$release_version" ]; then
+            echo "::error::Merged PR #$PR_NUMBER does not match the source and head validated by Data Sync run $SYNC_RUN_ID."
+            exit 1
+          fi
+          candidate_parent="$(gh api \
+            "repos/$GITHUB_REPOSITORY/git/commits/$validated_candidate_commit" \
+            --jq 'if (.parents | length) == 1 then .parents[0].sha else empty end')"
+          if [ "$candidate_parent" != "$base_tag_commit" ]; then
+            echo "::error::Validated candidate $validated_candidate_commit must have base tag commit $base_tag_commit as its sole parent."
             exit 1
           fi
           if [ "$intent_branch" != "$BASE_BRANCH" ]; then
@@ -252,39 +323,6 @@ jobs:
           fi
           latest_index=$((${#production_tags[@]} - 1))
           latest_production_tag="${production_tags[$latest_index]}"
-          release_tag_commit="$(
-            git ls-remote \
-              --refs \
-              --tags \
-              "https://github.com/$GITHUB_REPOSITORY.git" \
-              "refs/tags/$release_version" \
-              | awk '{print $1}'
-          )"
-          if [ -n "$release_tag_commit" ] && [ "$release_tag_commit" != "$MERGE_COMMIT" ]; then
-            echo "::error::Tag $release_version points to $release_tag_commit, not merged commit $MERGE_COMMIT."
-            exit 1
-          fi
-
-          release_runs="$(
-            gh api \
-              --paginate \
-              --slurp \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?event=workflow_dispatch&per_page=100" \
-              | jq -c \
-                --arg prefix "Release $release_version " \
-                '[.[] | .workflow_runs[] | select(.display_title | startswith($prefix))] | sort_by(.created_at)'
-          )"
-          latest_release_run="$(jq -cr 'last // empty' <<< "$release_runs")"
-          successful_release_run="$(jq -cr '[.[] | select(.status == "completed" and .conclusion == "success")] | last // empty' <<< "$release_runs")"
-          if [ -n "$successful_release_run" ]; then
-            successful_release_run_url="$(jq -r '.html_url' <<< "$successful_release_run")"
-            if [ -z "$release_tag_commit" ]; then
-              echo "::error::Successful release run $successful_release_run_url did not create tag $release_version."
-              exit 1
-            fi
-            echo "Release $release_version already completed successfully: $successful_release_run_url"
-            exit 0
-          fi
           if [ -n "$latest_release_run" ]; then
             release_run_status="$(jq -r '.status' <<< "$latest_release_run")"
             release_run_conclusion="$(jq -r '.conclusion // ""' <<< "$latest_release_run")"
@@ -314,12 +352,29 @@ jobs:
 
           if [ -n "$release_tag_commit" ]; then
             if [ "$latest_production_tag" != "$release_version" ]; then
-              echo "::error::Production releases advanced beyond incomplete data sync release $release_version to $latest_production_tag."
-              exit 1
+              echo "Incomplete data sync release $release_version was superseded by production release $latest_production_tag; automatic publication has stopped."
+              exit 0
             fi
           elif [ "$latest_production_tag" != "$intent_base_tag" ]; then
-            echo "::error::Latest production tag advanced from $intent_base_tag to $latest_production_tag before this PR merged."
-            exit 1
+            echo "Data sync release $release_version was superseded when production advanced from $intent_base_tag to $latest_production_tag."
+            exit 0
+          fi
+
+          if [ -z "$release_tag_commit" ]; then
+            release_workflows="$(gh api \
+              --method GET \
+              "repos/$GITHUB_REPOSITORY/contents/.github/workflows" \
+              -f ref="$MERGE_COMMIT" \
+              | jq -c 'sort_by(.name) | map([.name, .sha, .type])')"
+            main_workflows="$(gh api \
+              --method GET \
+              "repos/$GITHUB_REPOSITORY/contents/.github/workflows" \
+              -f ref=main \
+              | jq -c 'sort_by(.name) | map([.name, .sha, .type])')"
+            if [ "$release_workflows" != "$main_workflows" ]; then
+              echo "::warning::Release $release_version is waiting because its workflow definitions no longer match main."
+              exit 0
+            fi
           fi
 
           gh workflow run release.yml \
