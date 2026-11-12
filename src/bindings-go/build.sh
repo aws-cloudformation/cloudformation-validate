@@ -81,6 +81,21 @@ if [ -n "$CARGO_TARGET" ]; then
     fi
 fi
 
+RUST_HOST_TRIPLE="$(cd "$WORKSPACE" && rustc -vV | sed -n 's/^host: //p' | tr -d '\r')"
+RUST_SYSROOT="$(cd "$WORKSPACE" && rustc --print sysroot | tr -d '\r')"
+RUST_LLVM_BIN="$RUST_SYSROOT/lib/rustlib/$RUST_HOST_TRIPLE/bin"
+RUST_BINARY_SUFFIX=""
+[ "$OS" = "win32" ] && RUST_BINARY_SUFFIX=".exe"
+LLVM_OBJCOPY="$RUST_LLVM_BIN/llvm-objcopy$RUST_BINARY_SUFFIX"
+LLVM_OBJDUMP="$RUST_LLVM_BIN/llvm-objdump$RUST_BINARY_SUFFIX"
+for REQUIRED_LLVM_TOOL in "$LLVM_OBJCOPY" "$LLVM_OBJDUMP"; do
+    [ -f "$REQUIRED_LLVM_TOOL" ] || {
+        echo "Error: required Rust LLVM tool not found: $REQUIRED_LLVM_TOOL" >&2
+        echo "Install the llvm-tools-preview component for the active Rust toolchain." >&2
+        exit 1
+    }
+done
+
 # ── Clean ─────────────────────────────────────────────────────────────────────
 echo "Cleaning previous build..."
 rm -rf "$GO_DIR/internal" "$GO_DIR/libs"
@@ -103,14 +118,30 @@ cp "$SCRIPT_DIR/native/link.go" "$GENERATED_PKG/link.go"
 echo "Staging native library..."
 mkdir -p "$LIBS_DIR"
 cp "$RELEASE_DIR/$LIB_NAME" "$LIBS_DIR/"
-# Static archives never go through a link step, so the debug sections of
-# prebuilt standard-library members survive into the archive. Strip them from
-# the staged copy - consumers only need the symbol table and machine code.
-command -v strip &>/dev/null || { echo "Error: strip not found on PATH" >&2; exit 1; }
+# Static archives never go through a final link step, so embedded LTO IR and
+# debug sections survive into the archive. Go rejects LTO IR in direct cgo
+# linker inputs; removing it here preserves Cargo's optimized machine code.
 case "$OS" in
-    darwin) strip -S "$LIBS_DIR/$LIB_NAME" ;;
-    *)      strip --strip-debug "$LIBS_DIR/$LIB_NAME" ;;
+    darwin)
+        "$LLVM_OBJCOPY" \
+            --strip-debug \
+            --remove-section=__LLVM,__bitcode \
+            --remove-section=__LLVM,__cmdline \
+            "$LIBS_DIR/$LIB_NAME"
+        ;;
+    *)
+        "$LLVM_OBJCOPY" \
+            --strip-debug \
+            --remove-section=.llvmbc \
+            --remove-section=.llvmcmd \
+            "$LIBS_DIR/$LIB_NAME"
+        ;;
 esac
+if "$LLVM_OBJDUMP" --section-headers "$LIBS_DIR/$LIB_NAME" \
+    | grep -E '(__bitcode|__cmdline|\.llvmbc|\.llvmcmd)' >/dev/null; then
+    echo "Error: staged static library still contains LLVM LTO sections: $LIBS_DIR/$LIB_NAME" >&2
+    exit 1
+fi
 LOCAL_LIBRARY_COUNT=$(find "$GO_DIR/libs" -type f -name 'libbindings_go.a' | wc -l | tr -d ' ')
 if [ "$LOCAL_LIBRARY_COUNT" -ne 1 ] || [ ! -f "$LIBS_DIR/$LIB_NAME" ]; then
     echo "Error: local build must contain exactly the host static library at $LIBS_DIR/$LIB_NAME" >&2

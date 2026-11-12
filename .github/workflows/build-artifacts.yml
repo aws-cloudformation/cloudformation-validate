@@ -479,6 +479,7 @@ jobs:
       with:
         toolchain: ${{ steps.configs.outputs.rust-toolchain }}${{ matrix.target && format('-{0}', matrix.target) || '' }}
         targets: ${{ matrix.target || '' }}
+        components: llvm-tools-preview
 
     - name: Setup Go ${{ steps.configs.outputs.go-version }}
       uses: actions/setup-go@v6
