@@ -1827,7 +1827,14 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateApplication",
@@ -1870,11 +1877,24 @@
     },
     {
      "source": "SourceURI",
-     "target": "SourceURI"
+     "target": "SourceURI",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^((\\w+\\:\\/\\/[\\w.-]+[\\w/!@#+=.-]+)|(\\w+\\:\\/\\/[\\w.-]+[\\w/!@#+=.-]+[\\w/!@#+=.-]+[\\w/!@#+=.,-]+))$)$",
+       "cloudformation": "^(\\w+\\:\\/\\/[\\w.-]+[\\w/!@#+=.-]+$)|(\\w+\\:\\/\\/[\\w.-]+[\\w/!@#+=.-]+[\\w/!@#+=.-]+[\\w/!@#+=.,-]+$)"
+      }
+     }
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateDataIntegration",
@@ -1923,7 +1943,14 @@
     },
     {
      "source": "Tags",
-     "target": "Tags"
+     "target": "Tags",
+     "unrepresentable": {
+      "tag_key": {
+       "pattern": {
+        "cloudformation": "^(?!aws:)[a-zA-Z+-=._:/]+$"
+       }
+      }
+     }
     }
    ],
    "operation": "CreateEventIntegration",
@@ -3674,6 +3701,31 @@
    ],
    "operation": "DeletePreparedStatement",
    "phase": "delete",
+   "service": "athena"
+  },
+  {
+   "cfn_type": "AWS::Athena::SystemTables",
+   "ignored_inputs": [
+    "ClientRequestToken"
+   ],
+   "mappings": [
+    {
+     "source": "KmsKeyArn",
+     "target": "KmsKeyArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^arn:aws[a-z\\-]*:kms:[a-z0-9\\-]+:\\d{12}:(key/(mrk-)?[0-9a-f\\-]+|alias/[a-zA-Z0-9/_\\-]+)$)$",
+       "cloudformation": "^arn:aws[a-z\\-]*:kms:[a-z0-9\\-]+:[0-9]{12}:key/(mrk-)?[0-9a-f\\-]+$"
+      }
+     }
+    },
+    {
+     "source": "TableName",
+     "target": "TableName"
+    }
+   ],
+   "operation": "CreateSystemTableConfiguration",
+   "phase": "create",
    "service": "athena"
   },
   {
@@ -6213,7 +6265,10 @@
     },
     {
      "source": "eventExpiryDuration",
-     "target": "EventExpiryDuration"
+     "target": "EventExpiryDuration",
+     "unrepresentable": {
+      "maximum": 365.0
+     }
     },
     {
      "source": "memoryExecutionRoleArn",
@@ -7788,12 +7843,7 @@
     },
     {
      "source": "format",
-     "target": "Format",
-     "unrepresentable": {
-      "rejected_values": [
-       "PYSPARK_2_0"
-      ]
-     }
+     "target": "Format"
     },
     {
      "source": "membershipIdentifier",
@@ -8937,6 +8987,10 @@
      }
     },
     {
+     "source": "RecursiveLogging",
+     "target": "RecursiveLogging"
+    },
+    {
      "source": "S3BucketName",
      "target": "S3BucketName"
     },
@@ -9186,6 +9240,53 @@
    "operation": "DeleteAlarmMuteRule",
    "phase": "delete",
    "service": "cloudwatch"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::Alert",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "notificationsEnabled",
+     "target": "NotificationsEnabled"
+    },
+    {
+     "source": "profileId",
+     "target": "ProfileId"
+    },
+    {
+     "source": "spaceId",
+     "target": "SpaceId"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreateAlert",
+   "phase": "create",
+   "service": "cloudwatchomni"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::Alert",
+   "mappings": [
+    {
+     "source": "spaceId",
+     "target": "SpaceId"
+    }
+   ],
+   "operation": "DeleteAlert",
+   "phase": "delete",
+   "service": "cloudwatchomni"
   },
   {
    "cfn_type": "AWS::CloudWatch::CompositeAlarm",
@@ -9500,6 +9601,33 @@
    ],
    "operation": "PutLogAlarm",
    "phase": "create",
+   "service": "cloudwatch"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::MetricDataQueryDefinition",
+   "mappings": [
+    {
+     "source": "Expression",
+     "target": "Expression"
+    },
+    {
+     "source": "Path",
+     "target": "Path"
+    },
+    {
+     "source": "Type",
+     "target": "Type"
+    }
+   ],
+   "operation": "PutMetricDataQueryDefinition",
+   "phase": "create",
+   "service": "cloudwatch"
+  },
+  {
+   "cfn_type": "AWS::CloudWatch::MetricDataQueryDefinition",
+   "mappings": [],
+   "operation": "DeleteMetricDataQueryDefinition",
+   "phase": "delete",
    "service": "cloudwatch"
   },
   {
@@ -9937,7 +10065,13 @@
     },
     {
      "source": "name",
-     "target": "Name"
+     "target": "Name",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[A-Za-z0-9][A-Za-z0-9\\-_]{1,149})$",
+       "cloudformation": "^(?:arn:aws[a-zA-Z-]*:codebuild:[a-z0-9-]+:\\d{12}:project/)?[A-Za-z0-9][A-Za-z0-9\\-_]{1,149}$"
+      }
+     }
     },
     {
      "source": "queuedTimeoutInMinutes",
@@ -9967,10 +10101,10 @@
      "source": "name",
      "target": "Name",
      "unrepresentable": {
-      "max_length": 150,
+      "max_length": 255,
       "min_length": 2,
       "pattern": {
-       "cloudformation": "^[A-Za-z0-9][A-Za-z0-9\\-_]{1,149}$"
+       "cloudformation": "^(?:arn:aws[a-zA-Z-]*:codebuild:[a-z0-9-]+:\\d{12}:project/)?[A-Za-z0-9][A-Za-z0-9\\-_]{1,149}$"
       }
      }
     }
@@ -14279,6 +14413,81 @@
    "cfn_type": "AWS::DMS::ReplicationConfig",
    "mappings": [],
    "operation": "DeleteReplicationConfig",
+   "phase": "delete",
+   "service": "dms"
+  },
+  {
+   "cfn_type": "AWS::DMS::ReplicationInstance",
+   "mappings": [
+    {
+     "source": "AllocatedStorage",
+     "target": "AllocatedStorage"
+    },
+    {
+     "source": "AutoMinorVersionUpgrade",
+     "target": "AutoMinorVersionUpgrade"
+    },
+    {
+     "source": "AvailabilityZone",
+     "target": "AvailabilityZone"
+    },
+    {
+     "source": "DnsNameServers",
+     "target": "DnsNameServers"
+    },
+    {
+     "source": "EngineVersion",
+     "target": "EngineVersion"
+    },
+    {
+     "source": "KmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
+     "source": "MultiAZ",
+     "target": "MultiAZ"
+    },
+    {
+     "source": "NetworkType",
+     "target": "NetworkType"
+    },
+    {
+     "source": "PreferredMaintenanceWindow",
+     "target": "PreferredMaintenanceWindow"
+    },
+    {
+     "source": "PubliclyAccessible",
+     "target": "PubliclyAccessible"
+    },
+    {
+     "source": "ReplicationInstanceClass",
+     "target": "ReplicationInstanceClass"
+    },
+    {
+     "source": "ReplicationInstanceIdentifier",
+     "target": "ReplicationInstanceIdentifier"
+    },
+    {
+     "source": "ReplicationSubnetGroupIdentifier",
+     "target": "ReplicationSubnetGroupIdentifier"
+    },
+    {
+     "source": "ResourceIdentifier",
+     "target": "ResourceIdentifier"
+    },
+    {
+     "source": "VpcSecurityGroupIds",
+     "target": "VpcSecurityGroupIds"
+    }
+   ],
+   "operation": "CreateReplicationInstance",
+   "phase": "create",
+   "service": "dms"
+  },
+  {
+   "cfn_type": "AWS::DMS::ReplicationInstance",
+   "mappings": [],
+   "operation": "DeleteReplicationInstance",
    "phase": "delete",
    "service": "dms"
   },
@@ -18597,6 +18806,84 @@
    "service": "ec2"
   },
   {
+   "cfn_type": "AWS::EC2::ClientVpnEndpoint",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "ClientCidrBlock",
+     "target": "ClientCidrBlock"
+    },
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "DisconnectOnSessionTimeout",
+     "target": "DisconnectOnSessionTimeout"
+    },
+    {
+     "source": "DnsServers",
+     "target": "DnsServers"
+    },
+    {
+     "source": "EndpointIpAddressType",
+     "target": "EndpointIpAddressType"
+    },
+    {
+     "source": "SecurityGroupIds",
+     "target": "SecurityGroupIds"
+    },
+    {
+     "source": "SelfServicePortal",
+     "target": "SelfServicePortal"
+    },
+    {
+     "source": "ServerCertificateArn",
+     "target": "ServerCertificateArn"
+    },
+    {
+     "source": "SessionTimeoutHours",
+     "target": "SessionTimeoutHours"
+    },
+    {
+     "source": "SplitTunnel",
+     "target": "SplitTunnel"
+    },
+    {
+     "source": "TrafficIpAddressType",
+     "target": "TrafficIpAddressType"
+    },
+    {
+     "source": "TransportProtocol",
+     "target": "TransportProtocol"
+    },
+    {
+     "source": "VpcId",
+     "target": "VpcId"
+    },
+    {
+     "source": "VpnPort",
+     "target": "VpnPort"
+    }
+   ],
+   "operation": "CreateClientVpnEndpoint",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::ClientVpnEndpoint",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteClientVpnEndpoint",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
    "cfn_type": "AWS::EC2::ClientVpnRoute",
    "ignored_inputs": [
     "ClientToken",
@@ -18645,6 +18932,34 @@
    ],
    "operation": "DeleteClientVpnRoute",
    "phase": "delete",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::ClientVpnTargetNetworkAssociation",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "AvailabilityZone",
+     "target": "AvailabilityZone"
+    },
+    {
+     "source": "AvailabilityZoneId",
+     "target": "AvailabilityZoneId"
+    },
+    {
+     "source": "ClientVpnEndpointId",
+     "target": "ClientVpnEndpointId"
+    },
+    {
+     "source": "SubnetId",
+     "target": "SubnetId"
+    }
+   ],
+   "operation": "AssociateClientVpnTargetNetwork",
+   "phase": "create",
    "service": "ec2"
   },
   {
@@ -18860,6 +19175,30 @@
    ],
    "operation": "DisassociateEnclaveCertificateIamRole",
    "phase": "delete",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::FcaPolicy",
+   "ignored_inputs": [
+    "ClientToken",
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "NetworkResourceType",
+     "target": "NetworkResourceType"
+    },
+    {
+     "source": "ShowBackEnabled",
+     "target": "ShowBackEnabled"
+    }
+   ],
+   "operation": "CreateNetworkingFlexCostAllocationPolicy",
+   "phase": "create",
    "service": "ec2"
   },
   {
@@ -28592,7 +28931,13 @@
     },
     {
      "source": "GlueVersion",
-     "target": "GlueVersion"
+     "target": "GlueVersion",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:^((\\w+\\.)+\\w+|auto)$)$",
+       "cloudformation": "^(\\w+\\.)+\\w+$"
+      }
+     }
     },
     {
      "source": "Id",
@@ -34730,6 +35075,38 @@
    "service": "kinesisanalyticsv2"
   },
   {
+   "cfn_type": "AWS::KinesisAnalyticsV2::Snapshot",
+   "mappings": [
+    {
+     "source": "ApplicationName",
+     "target": "ApplicationName"
+    },
+    {
+     "source": "SnapshotDescription",
+     "target": "SnapshotDescription"
+    },
+    {
+     "source": "SnapshotName",
+     "target": "SnapshotName"
+    }
+   ],
+   "operation": "CreateSnapshot",
+   "phase": "create",
+   "service": "kinesisanalyticsv2"
+  },
+  {
+   "cfn_type": "AWS::KinesisAnalyticsV2::Snapshot",
+   "mappings": [
+    {
+     "source": "SnapshotName",
+     "target": "SnapshotName"
+    }
+   ],
+   "operation": "DeleteSnapshot",
+   "phase": "delete",
+   "service": "kinesisanalyticsv2"
+  },
+  {
    "cfn_type": "AWS::KinesisFirehose::DeliveryStream",
    "mappings": [
     {
@@ -34853,6 +35230,7 @@
        "rejected_values": [
         "CREATE_CATALOG",
         "CREATE_LF_TAG_EXPRESSION",
+        "EXECUTE",
         "SUPER_USER"
        ]
       }
@@ -34866,6 +35244,7 @@
        "rejected_values": [
         "CREATE_CATALOG",
         "CREATE_LF_TAG_EXPRESSION",
+        "EXECUTE",
         "SUPER_USER"
        ]
       }
@@ -34887,6 +35266,7 @@
        "rejected_values": [
         "CREATE_CATALOG",
         "CREATE_LF_TAG_EXPRESSION",
+        "EXECUTE",
         "SUPER_USER"
        ]
       }
@@ -34900,6 +35280,7 @@
        "rejected_values": [
         "CREATE_CATALOG",
         "CREATE_LF_TAG_EXPRESSION",
+        "EXECUTE",
         "SUPER_USER"
        ]
       }
@@ -37688,7 +38069,12 @@
     },
     {
      "source": "logGroupClass",
-     "target": "LogGroupClass"
+     "target": "LogGroupClass",
+     "unrepresentable": {
+      "rejected_values": [
+       "ESSENTIALS"
+      ]
+     }
     },
     {
      "source": "logGroupName",
@@ -38412,6 +38798,9 @@
   },
   {
    "cfn_type": "AWS::MGN::NetworkMigrationDefinition",
+   "ignored_inputs": [
+    "clientToken"
+   ],
    "mappings": [
     {
      "source": "description",
@@ -39975,12 +40364,7 @@
     },
     {
      "source": "TargetResourceType",
-     "target": "TargetResourceType",
-     "unrepresentable": {
-      "rejected_values": [
-       "ELEMENTAL_INFERENCE_FEED"
-      ]
-     }
+     "target": "TargetResourceType"
     },
     {
      "source": "Threshold",
@@ -40989,7 +41373,12 @@
     },
     {
      "source": "FunctionType",
-     "target": "FunctionType"
+     "target": "FunctionType",
+     "unrepresentable": {
+      "rejected_values": [
+       "HLS_TAG_PROCESSOR"
+      ]
+     }
     },
     {
      "source": "Tags",
@@ -42156,10 +42545,6 @@
      "target": "FirewallPolicyChangeProtection"
     },
     {
-     "source": "NoSourcePreservation",
-     "target": "NoSourcePreservation"
-    },
-    {
      "source": "SubnetChangeProtection",
      "target": "SubnetChangeProtection"
     },
@@ -42248,6 +42633,8 @@
      "target": "Type",
      "unrepresentable": {
       "rejected_values": [
+       "FIREWALL",
+       "IPS",
        "STATEFUL_DOMAIN"
       ]
      }
@@ -42269,6 +42656,8 @@
      "target": "Type",
      "unrepresentable": {
       "rejected_values": [
+       "FIREWALL",
+       "IPS",
        "STATEFUL_DOMAIN"
       ]
      }
@@ -42412,6 +42801,10 @@
     {
      "source": "EdgeLocation",
      "target": "EdgeLocation"
+    },
+    {
+     "source": "NatGatewaySupport",
+     "target": "NatGatewaySupport"
     },
     {
      "source": "RoutingPolicyLabel",
@@ -42729,6 +43122,14 @@
      "target": "EdgeLocations"
     },
     {
+     "source": "NatGatewaySupport",
+     "target": "NatGatewaySupport"
+    },
+    {
+     "source": "NatSystemRouteSupport",
+     "target": "NatSystemRouteSupport"
+    },
+    {
      "source": "RoutingPolicyLabel",
      "target": "RoutingPolicyLabel"
     }
@@ -42875,6 +43276,14 @@
      "target": "CoreNetworkId"
     },
     {
+     "source": "NatGatewaySupport",
+     "target": "NatGatewaySupport"
+    },
+    {
+     "source": "NatSystemRouteSupport",
+     "target": "NatSystemRouteSupport"
+    },
+    {
      "source": "RoutingPolicyLabel",
      "target": "RoutingPolicyLabel"
     },
@@ -42970,6 +43379,10 @@
     {
      "source": "CoreNetworkId",
      "target": "CoreNetworkId"
+    },
+    {
+     "source": "NatGatewaySupport",
+     "target": "NatGatewaySupport"
     },
     {
      "source": "RoutingPolicyLabel",
@@ -45171,7 +45584,12 @@
     },
     {
      "source": "Type",
-     "target": "Type"
+     "target": "Type",
+     "unrepresentable": {
+      "rejected_values": [
+       "SECURITYHUB_CSPM_POLICY"
+      ]
+     }
     }
    ],
    "operation": "CreatePolicy",
@@ -45573,8 +45991,20 @@
      }
     },
     {
+     "source": "launchTemplateMode",
+     "target": "LaunchTemplateMode"
+    },
+    {
      "source": "purchaseOption",
      "target": "PurchaseOption"
+    },
+    {
+     "source": "securityGroupIds",
+     "target": "SecurityGroupIds"
+    },
+    {
+     "source": "sshKeyName",
+     "target": "SshKeyName"
     },
     {
      "source": "subnetIds",
@@ -51355,7 +51785,13 @@
     },
     {
      "source": "trustAnchorArn",
-     "target": "TrustAnchorArn"
+     "target": "TrustAnchorArn",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:arn:aws(-[^:]+)?:rolesanywhere(:.*){2}(:trust-anchor.*|:alias/trust-anchor/.*))$",
+       "cloudformation": "^arn:aws(-[^:]+)?:rolesanywhere(:.*){2}(:trust-anchor.*)$"
+      }
+     }
     }
    ],
    "operation": "ImportCrl",
@@ -52096,6 +52532,10 @@
     {
      "source": "Name",
      "target": "Name"
+    },
+    {
+     "source": "Priority",
+     "target": "Priority"
     },
     {
      "source": "ProfileId",
@@ -54629,6 +55069,25 @@
    "service": "ssm"
   },
   {
+   "cfn_type": "AWS::SSM::DefaultHostManagementConfiguration",
+   "mappings": [
+    {
+     "source": "PermissionModel",
+     "target": "PermissionModel"
+    }
+   ],
+   "operation": "RegisterDefaultHostManagementConfiguration",
+   "phase": "create",
+   "service": "ssm"
+  },
+  {
+   "cfn_type": "AWS::SSM::DefaultHostManagementConfiguration",
+   "mappings": [],
+   "operation": "DeregisterDefaultHostManagementConfiguration",
+   "phase": "delete",
+   "service": "ssm"
+  },
+  {
    "cfn_type": "AWS::SSM::Document",
    "mappings": [
     {
@@ -55523,6 +55982,36 @@
    "service": "sso-admin"
   },
   {
+   "cfn_type": "AWS::SSO::TrustedTokenIssuer",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "InstanceArn",
+     "target": "InstanceArn"
+    },
+    {
+     "source": "Name",
+     "target": "Name"
+    },
+    {
+     "source": "TrustedTokenIssuerType",
+     "target": "TrustedTokenIssuerType"
+    }
+   ],
+   "operation": "CreateTrustedTokenIssuer",
+   "phase": "create",
+   "service": "sso-admin"
+  },
+  {
+   "cfn_type": "AWS::SSO::TrustedTokenIssuer",
+   "mappings": [],
+   "operation": "DeleteTrustedTokenIssuer",
+   "phase": "delete",
+   "service": "sso-admin"
+  },
+  {
    "cfn_type": "AWS::SageMaker::AIWorkloadConfig",
    "mappings": [
     {
@@ -55805,7 +56294,7 @@
       "max_length": 63,
       "min_length": 1,
       "pattern": {
-       "api": "^(?:(arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:cluster/[a-z0-9]{12})|([a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}))$",
+       "api": "^(?:((arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:cluster/[a-z0-9]{12})|([a-zA-Z0-9](-*[a-zA-Z0-9]){0,62})))$",
        "cloudformation": "^[a-zA-Z0-9](-*[a-zA-Z0-9]){0,62}$"
       }
      }
@@ -57588,13 +58077,7 @@
     },
     {
      "source": "KmsKeyArn",
-     "target": "KmsKeyArn",
-     "unrepresentable": {
-      "pattern": {
-       "api": "^(?:^arn:aws(-[a-z]+)?:kms:[a-z0-9\\-]+:\\d{12}:(key|alias)\\/[0-9a-zA-Z-_]*$)$",
-       "cloudformation": "^arn:aws[a-z-]*:kms:[a-z0-9\\-]+:\\d{12}:(key|alias)\\/[0-9a-zA-Z-_]*$"
-      }
-     }
+     "target": "KmsKeyArn"
     },
     {
      "source": "Name",
@@ -57909,6 +58392,10 @@
      "target": "AgentSpaceId"
     },
     {
+     "source": "cleanUpStrategy",
+     "target": "CleanUpStrategy"
+    },
+    {
      "source": "codeRemediationStrategy",
      "target": "CodeRemediationStrategy"
     },
@@ -57919,6 +58406,10 @@
     {
      "source": "excludeRiskTypes",
      "target": "ExcludeRiskTypes"
+    },
+    {
+     "source": "maxTaskHours",
+     "target": "MaxTaskHours"
     },
     {
      "source": "serviceRole",
@@ -58350,7 +58841,8 @@
       "allowed_values": [
        "ALL_REGIONS",
        "ALL_REGIONS_EXCEPT_SPECIFIED",
-       "SPECIFIED_REGIONS"
+       "SPECIFIED_REGIONS",
+       "NO_REGIONS"
       ]
      }
     },
@@ -60523,6 +61015,10 @@
      "target": "FailoverMode"
     },
     {
+     "source": "kmsKeyId",
+     "target": "KmsKeyId"
+    },
+    {
      "source": "name",
      "target": "Name"
     },
@@ -60602,6 +61098,10 @@
     {
      "source": "deploymentType",
      "target": "DeploymentType"
+    },
+    {
+     "source": "kmsKeyId",
+     "target": "KmsKeyId"
     },
     {
      "source": "name",
@@ -64317,12 +64817,12 @@
  ],
  "format_version": 1,
  "source": {
-  "aws_cli_version": "2.39.3",
-  "botocore_service_count": 437,
+  "aws_cli_version": "2.40.3",
+  "botocore_service_count": 436,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "97217d307246eda7c37deb448471ee510d2b748bc125009e1419c6481efbb540",
-  "compiled_type_count": 1920,
-  "provider_schemas_sha256": "8f6eafad71cf06dabc7b274b034943eb2f1ac2431416cf75647dff93fa7b4dc7",
-  "provider_type_count": 1918
+  "compiled_schemas_sha256": "cc14be244e7b2fe13396ff2151bfd14f5bc22b9a62a0767d129578b7eec83047",
+  "compiled_type_count": 1933,
+  "provider_schemas_sha256": "ce81f2ff3e28d0a4c44eb1dcdc11a2893ca5c556791971df0a25b3d40268c586",
+  "provider_type_count": 1931
  }
 }

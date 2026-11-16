@@ -115,6 +115,9 @@
       "StatementName",
       "WorkGroup"
     ],
+    "AWS::Athena::SystemTables": [
+      "TableName"
+    ],
     "AWS::Athena::WorkGroup": [
       "Name"
     ],
@@ -1193,6 +1196,10 @@
     "AWS::NetworkFirewall::LoggingConfiguration": [
       "FirewallArn"
     ],
+    "AWS::NetworkManager::ContextStoreAssociation": [
+      "ContextStoreId",
+      "ResourceArn"
+    ],
     "AWS::NetworkManager::CoreNetworkPrefixListAssociation": [
       "CoreNetworkId",
       "PrefixListArn"
@@ -1732,6 +1739,9 @@
     "AWS::WAFv2::WebACLAssociation": [
       "ResourceArn",
       "WebACLArn"
+    ],
+    "AWS::WellArchitected::AgentProfilePolicy": [
+      "ProfileArn"
     ],
     "AWS::WorkspacesInstances::VolumeAssociation": [
       "WorkspaceInstanceId",

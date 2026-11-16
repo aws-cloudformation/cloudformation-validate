@@ -269,7 +269,7 @@
       "counts": {
         "fatal": 0,
         "errors": 2,
-        "warnings": 3,
+        "warnings": 4,
         "informational": 6,
         "debug": 0
       },
@@ -360,6 +360,29 @@
         "endColumn": 16,
         "ruleDescription": "Validate that SnapStart is properly configured",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "W2531",
+        "severity": "WARN",
+        "message": "Runtime 'dotnet8' was deprecated on '2026-11-10'. Creation will be disabled on '2027-07-29', and updates will be disabled on '2027-08-31'. Please consider updating to 'dotnet10'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "NotRecommendedDotNet",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Runtime",
+        "category": "Deprecation",
+        "startLine": 24,
+        "startColumn": 7,
+        "endLine": 24,
+        "endColumn": 14,
+        "ruleDescription": "Check if EOL Lambda Function Runtimes are used",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": "dotnet8",
+          "lifecycle": "deprecated"
+        }
       },
       {
         "ruleId": "W2531",
@@ -20667,13 +20690,13 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 4,
+        "fatal": 3,
         "errors": 11,
         "warnings": 3,
         "informational": 17,
         "debug": 0
       },
-      "suppressed": 3,
+      "suppressed": 1,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -20738,33 +20761,6 @@
         },
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
         "ruleDescription": "Required property missing",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "Fn::If on condition 'isPrimaryAndProduction'"
-        }
-      },
-      {
-        "ruleId": "F3014",
-        "severity": "FATAL",
-        "message": "Exactly one of ['VirtualName', 'Ebs', 'NoDevice'] must be specified",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "myInstance2",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.BlockDeviceMappings.{}",
-        "category": "Schema",
-        "startLine": 36,
-        "startColumn": 7,
-        "endLine": 36,
-        "endColumn": 26,
-        "conditionScenario": {
-          "isPrimary": true,
-          "isPrimaryAndProduction": true
-        },
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Exactly one of properties required (requiredXor)",
         "phase": "SCHEMA",
         "context": {
           "resolutionSource": "Fn::If on condition 'isPrimaryAndProduction'"

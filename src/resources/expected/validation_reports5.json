@@ -7516,8 +7516,8 @@
       "counts": {
         "fatal": 0,
         "errors": 0,
-        "warnings": 0,
-        "informational": 33,
+        "warnings": 1,
+        "informational": 34,
         "debug": 0
       },
       "suppressed": 0,
@@ -7525,6 +7525,29 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "W9009",
+        "severity": "WARN",
+        "message": "Property 'VisibleToAllUsers' is deprecated",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "emrcluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::EMR::Cluster"
+        },
+        "propertyPath": "Properties.VisibleToAllUsers",
+        "category": "Deprecation",
+        "startLine": 398,
+        "startColumn": 5,
+        "endLine": 398,
+        "endColumn": 23,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
+        "ruleDescription": "Resource type sunset or shutdown",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "deprecated"
+        }
+      },
       {
         "ruleId": "I3011",
         "severity": "INFO",
@@ -8054,6 +8077,7 @@
         "startColumn": 5,
         "endLine": 317,
         "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -8076,10 +8100,34 @@
         "startColumn": 5,
         "endLine": 322,
         "endColumn": 20,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
           "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Instances' is conditionally create-only; updating it may cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "emrcluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::EMR::Cluster"
+        },
+        "propertyPath": "Properties.Instances",
+        "category": "Best Practice",
+        "startLine": 348,
+        "startColumn": 5,
+        "endLine": 348,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "conditional-create-only"
         }
       },
       {
@@ -8098,6 +8146,7 @@
         "startColumn": 5,
         "endLine": 365,
         "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -8120,6 +8169,7 @@
         "startColumn": 5,
         "endLine": 366,
         "endColumn": 12,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -8142,6 +8192,7 @@
         "startColumn": 5,
         "endLine": 378,
         "endColumn": 10,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -8164,6 +8215,7 @@
         "startColumn": 5,
         "endLine": 379,
         "endColumn": 18,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -8186,6 +8238,7 @@
         "startColumn": 5,
         "endLine": 380,
         "endColumn": 17,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -8209,6 +8262,7 @@
         "startColumn": 5,
         "endLine": 383,
         "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-emr.git",
         "ruleDescription": "Create-only property updated triggers resource replacement",
         "phase": "SCHEMA",
         "context": {
@@ -24677,7 +24731,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'node99.x' is not one of ['custom', 'dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunction",
@@ -24696,6 +24750,7 @@
           "actualValue": "node99.x",
           "extra": {
             "allowed_values": [
+              "custom",
               "dotnet10",
               "dotnet6",
               "dotnet8",
@@ -27977,7 +28032,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'nodejs99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'nodejs99.x' is not one of ['custom', 'dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "MyFunc",
@@ -27996,6 +28051,7 @@
           "actualValue": "nodejs99.x",
           "extra": {
             "allowed_values": [
+              "custom",
               "dotnet10",
               "dotnet6",
               "dotnet8",
@@ -28054,7 +28110,7 @@
       {
         "ruleId": "W3030",
         "severity": "WARN",
-        "message": "'node99.x' is not one of ['dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
+        "message": "'node99.x' is not one of ['custom', 'dotnet10', 'dotnet6', 'dotnet8', 'dotnetcore1.0', 'dotnetcore2.0', 'dotnetcore2.1', 'dotnetcore3.1', 'go1.x', 'java11', 'java11.al2023', 'java17', 'java17.al2023', 'java21', 'java25', 'java8', 'java8.al2', 'java8.al2023', 'nodejs', 'nodejs10.x', 'nodejs12.x', 'nodejs14.x', 'nodejs16.x', 'nodejs18.x', 'nodejs20.x', 'nodejs22.x', 'nodejs24.x', 'nodejs26.x', 'nodejs4.3', 'nodejs4.3-edge', 'nodejs6.10', 'nodejs8.10', 'provided', 'provided.al2', 'provided.al2023', 'python2.7', 'python3.10', 'python3.11', 'python3.12', 'python3.13', 'python3.14', 'python3.15', 'python3.6', 'python3.7', 'python3.8', 'python3.9', 'ruby2.5', 'ruby2.7', 'ruby3.2', 'ruby3.3', 'ruby3.4', 'ruby4.0']",
         "source": "CFN_LINT",
         "entity": {
           "logicalId": "FutureNodeFunc",
@@ -28073,6 +28129,7 @@
           "actualValue": "node99.x",
           "extra": {
             "allowed_values": [
+              "custom",
               "dotnet10",
               "dotnet6",
               "dotnet8",
