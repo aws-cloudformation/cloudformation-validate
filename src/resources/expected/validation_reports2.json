@@ -79739,7 +79739,7 @@
     "metadata": {
       "resourcesScanned": 1,
       "counts": {
-        "fatal": 3,
+        "fatal": 0,
         "errors": 1,
         "warnings": 1,
         "informational": 7,
@@ -79750,69 +79750,6 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'AllocatedStorage' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Cluster",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'AllocatedStorage'",
-        "category": "Schema",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'Iops' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Cluster",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'Iops'",
-        "category": "Schema",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'StorageType' is a required property (from extension)",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "Cluster",
-          "entityType": "Resource",
-          "resourceType": "AWS::RDS::DBCluster"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add 'StorageType'",
-        "category": "Schema",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-rds",
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
       {
         "ruleId": "E3694",
         "severity": "ERROR",

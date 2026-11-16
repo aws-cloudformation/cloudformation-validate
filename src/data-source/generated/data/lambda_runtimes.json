@@ -2,8 +2,6 @@
   "lambda_runtimes": {
     "current": [
       "dotnet10",
-      "dotnet8",
-      "dotnet9",
       "java11",
       "java11.al2023",
       "java17",
@@ -25,6 +23,8 @@
     ],
     "deprecated": [
       "dotnet6",
+      "dotnet8",
+      "dotnet9",
       "nodejs16.x",
       "nodejs18.x",
       "nodejs20.x",

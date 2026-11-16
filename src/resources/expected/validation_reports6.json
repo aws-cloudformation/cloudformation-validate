@@ -573,13 +573,13 @@
     "metadata": {
       "resourcesScanned": 8,
       "counts": {
-        "fatal": 2,
+        "fatal": 1,
         "errors": 0,
         "warnings": 9,
         "informational": 18,
         "debug": 0
       },
-      "suppressed": 2,
+      "suppressed": 0,
       "strict": false,
       "severityLevel": "DEBUG"
     },
@@ -606,33 +606,6 @@
         },
         "ruleDescription": "Required property missing",
         "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3014",
-        "severity": "FATAL",
-        "message": "Exactly one of ['VirtualName', 'Ebs', 'NoDevice'] must be specified",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "myInstance2",
-          "entityType": "Resource",
-          "resourceType": "AWS::EC2::Instance"
-        },
-        "propertyPath": "Properties.BlockDeviceMappings.{}",
-        "category": "Schema",
-        "startLine": 36,
-        "startColumn": 7,
-        "endLine": 36,
-        "endColumn": 26,
-        "conditionScenario": {
-          "isPrimary": true,
-          "isPrimaryAndProduction": true
-        },
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-ec2.git",
-        "ruleDescription": "Exactly one of properties required (requiredXor)",
-        "phase": "SCHEMA",
-        "context": {
-          "resolutionSource": "Fn::If on condition 'isPrimaryAndProduction'"
-        }
       },
       {
         "ruleId": "W1028",
