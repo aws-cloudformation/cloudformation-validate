@@ -1,6 +1,6 @@
 {
     "name": "@aws/cloudformation-validate",
-    "version": "1.17.1",
+    "version": "1.17.2",
     "description": "Fast, offline, embeddable validation for AWS CloudFormation templates",
     "keywords": [
         "aws",
