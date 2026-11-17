@@ -2,7 +2,7 @@ name: Data Sync
 run-name: Data Sync ${{ github.actor }} ${{ github.event_name }}
 
 on:
-  schedule: [{ cron: '0 8 * * *' }]
+  schedule: [{ cron: '0 8 * * 1,4' }]
   workflow_dispatch:
 
 concurrency:
