@@ -10959,7 +10959,15 @@
     },
     {
      "source": "ExplicitAuthFlows",
-     "target": "ExplicitAuthFlows"
+     "target": "ExplicitAuthFlows",
+     "unrepresentable": {
+      "items": {
+       "rejected_values": [
+        "ALLOW_TOKEN_EXCHANGE_DELEGATION",
+        "ALLOW_TOKEN_EXCHANGE_IMPERSONATION"
+       ]
+      }
+     }
     },
     {
      "source": "GenerateSecret",
@@ -11015,6 +11023,22 @@
    ],
    "operation": "DeleteUserPoolClient",
    "phase": "delete",
+   "service": "cognito-idp"
+  },
+  {
+   "cfn_type": "AWS::Cognito::UserPoolClientSessionConfigurationAttachment",
+   "mappings": [
+    {
+     "source": "ClientId",
+     "target": "ClientId"
+    },
+    {
+     "source": "UserPoolId",
+     "target": "UserPoolId"
+    }
+   ],
+   "operation": "SetUserPoolClientSessionConfiguration",
+   "phase": "create",
    "service": "cognito-idp"
   },
   {
@@ -11218,6 +11242,22 @@
     }
    ],
    "operation": "SetRiskConfiguration",
+   "phase": "create",
+   "service": "cognito-idp"
+  },
+  {
+   "cfn_type": "AWS::Cognito::UserPoolSessionConfigurationAttachment",
+   "mappings": [
+    {
+     "source": "UserPoolId",
+     "target": "UserPoolId"
+    },
+    {
+     "source": "UserSessionTracking",
+     "target": "UserSessionTracking"
+    }
+   ],
+   "operation": "SetUserPoolSessionConfiguration",
    "phase": "create",
    "service": "cognito-idp"
   },
@@ -21820,6 +21860,43 @@
     }
    ],
    "operation": "DeregisterTransitGatewayMulticastGroupSources",
+   "phase": "delete",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::TransitGatewayNetworkFunctionAttachment",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [
+    {
+     "source": "AvailabilityZoneIds",
+     "target": "AvailabilityZoneIds"
+    },
+    {
+     "source": "AvailabilityZones",
+     "target": "AvailabilityZones"
+    },
+    {
+     "source": "ServiceName",
+     "target": "ServiceName"
+    },
+    {
+     "source": "TransitGatewayId",
+     "target": "TransitGatewayId"
+    }
+   ],
+   "operation": "CreateTransitGatewayNetworkFunctionAttachment",
+   "phase": "create",
+   "service": "ec2"
+  },
+  {
+   "cfn_type": "AWS::EC2::TransitGatewayNetworkFunctionAttachment",
+   "ignored_inputs": [
+    "DryRun"
+   ],
+   "mappings": [],
+   "operation": "DeleteTransitGatewayNetworkFunctionAttachment",
    "phase": "delete",
    "service": "ec2"
   },
@@ -42767,6 +42844,41 @@
    "service": "networkflowmonitor"
   },
   {
+   "cfn_type": "AWS::NetworkFlowMonitor::PerformanceMonitor",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "monitorName",
+     "target": "MonitorName"
+    },
+    {
+     "source": "scopeArn",
+     "target": "ScopeArn"
+    },
+    {
+     "source": "tags",
+     "target": "Tags"
+    }
+   ],
+   "operation": "CreatePerformanceMonitor",
+   "phase": "create",
+   "service": "networkflowmonitor"
+  },
+  {
+   "cfn_type": "AWS::NetworkFlowMonitor::PerformanceMonitor",
+   "mappings": [
+    {
+     "source": "monitorName",
+     "target": "MonitorName"
+    }
+   ],
+   "operation": "DeletePerformanceMonitor",
+   "phase": "delete",
+   "service": "networkflowmonitor"
+  },
+  {
    "cfn_type": "AWS::NetworkFlowMonitor::Scope",
    "ignored_inputs": [
     "clientToken"
@@ -42943,6 +43055,32 @@
     }
    ],
    "operation": "DeleteConnection",
+   "phase": "delete",
+   "service": "networkmanager"
+  },
+  {
+   "cfn_type": "AWS::NetworkManager::ContextStore",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "Description",
+     "target": "Description"
+    },
+    {
+     "source": "GlobalNetworkId",
+     "target": "GlobalNetworkId"
+    }
+   ],
+   "operation": "CreateContextStore",
+   "phase": "create",
+   "service": "networkmanager"
+  },
+  {
+   "cfn_type": "AWS::NetworkManager::ContextStore",
+   "mappings": [],
+   "operation": "DeleteContextStore",
    "phase": "delete",
    "service": "networkmanager"
   },
@@ -52042,6 +52180,36 @@
    "service": "route53"
   },
   {
+   "cfn_type": "AWS::Route53::RecordSetProtection",
+   "mappings": [
+    {
+     "source": "HostedZoneId",
+     "target": "HostedZoneId",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "CreateResourceRecordSetProtections",
+   "phase": "create",
+   "service": "route53"
+  },
+  {
+   "cfn_type": "AWS::Route53::RecordSetProtection",
+   "mappings": [
+    {
+     "source": "HostedZoneId",
+     "target": "HostedZoneId",
+     "unrepresentable": {
+      "min_length": 1
+     }
+    }
+   ],
+   "operation": "DeleteResourceRecordSetProtections",
+   "phase": "delete",
+   "service": "route53"
+  },
+  {
    "cfn_type": "AWS::Route53::TrafficPolicy",
    "mappings": [
     {
@@ -56712,6 +56880,51 @@
     }
    ],
    "operation": "DeleteExperiment",
+   "phase": "delete",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::Extension",
+   "ignored_inputs": [
+    "ClientToken"
+   ],
+   "mappings": [
+    {
+     "source": "ClusterArn",
+     "target": "ClusterArn"
+    },
+    {
+     "source": "ConfigurationValues",
+     "target": "ConfigurationValues"
+    },
+    {
+     "source": "ExtensionName",
+     "target": "ExtensionName",
+     "unrepresentable": {
+      "pattern": {
+       "api": "^(?:[a-z]([a-z0-9]|-[a-z0-9])*)$",
+       "cloudformation": "^[a-z][a-z0-9-]*$"
+      }
+     }
+    },
+    {
+     "source": "ExtensionVersion",
+     "target": "ExtensionVersion"
+    }
+   ],
+   "operation": "CreateClusterExtension",
+   "phase": "create",
+   "service": "sagemaker"
+  },
+  {
+   "cfn_type": "AWS::SageMaker::Extension",
+   "mappings": [
+    {
+     "source": "ClusterArn",
+     "target": "ClusterArn"
+    }
+   ],
+   "operation": "DeleteClusterExtension",
    "phase": "delete",
    "service": "sagemaker"
   },
@@ -63138,6 +63351,41 @@
    "service": "wellarchitected"
   },
   {
+   "cfn_type": "AWS::WellArchitected::AgentOrganizationalProfile",
+   "ignored_inputs": [
+    "clientToken"
+   ],
+   "mappings": [
+    {
+     "source": "businessOverview",
+     "target": "BusinessOverview"
+    },
+    {
+     "source": "deletionProtection",
+     "target": "DeletionProtection"
+    },
+    {
+     "source": "description",
+     "target": "Description"
+    },
+    {
+     "source": "displayName",
+     "target": "DisplayName"
+    },
+    {
+     "source": "name",
+     "target": "Name"
+    },
+    {
+     "source": "pillars",
+     "target": "Pillars"
+    }
+   ],
+   "operation": "CreateAgentOrganizationalProfile",
+   "phase": "create",
+   "service": "wellarchitected"
+  },
+  {
    "cfn_type": "AWS::WellArchitected::AgentProfile",
    "ignored_inputs": [
     "clientToken"
@@ -63195,6 +63443,48 @@
    "cfn_type": "AWS::WellArchitected::AgentProfile",
    "mappings": [],
    "operation": "DeleteAgentProfile",
+   "phase": "delete",
+   "service": "wellarchitected"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentProfilePolicy",
+   "mappings": [
+    {
+     "source": "policy",
+     "target": "Policy"
+    },
+    {
+     "source": "profileArn",
+     "target": "ProfileArn",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:\\d{12}:agent-profile/([a-zA-Z0-9_-]+))$",
+       "cloudformation": "^arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:[0-9]{12}:agent-profile/[a-zA-Z0-9_-]+$"
+      }
+     }
+    }
+   ],
+   "operation": "PutAgentProfilePolicy",
+   "phase": "create",
+   "service": "wellarchitected"
+  },
+  {
+   "cfn_type": "AWS::WellArchitected::AgentProfilePolicy",
+   "mappings": [
+    {
+     "source": "profileArn",
+     "target": "ProfileArn",
+     "unrepresentable": {
+      "min_length": 1,
+      "pattern": {
+       "api": "^(?:arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:\\d{12}:agent-profile/([a-zA-Z0-9_-]+))$",
+       "cloudformation": "^arn:aws([a-z0-9-]+)?:wellarchitected:[a-z0-9-]{6,64}:[0-9]{12}:agent-profile/[a-zA-Z0-9_-]+$"
+      }
+     }
+    }
+   ],
+   "operation": "DeleteAgentProfilePolicy",
    "phase": "delete",
    "service": "wellarchitected"
   },
@@ -64817,12 +65107,12 @@
  ],
  "format_version": 1,
  "source": {
-  "aws_cli_version": "2.40.3",
-  "botocore_service_count": 436,
+  "aws_cli_version": "2.40.4",
+  "botocore_service_count": 439,
   "botocore_version": "2.0.0dev155",
-  "compiled_schemas_sha256": "cc14be244e7b2fe13396ff2151bfd14f5bc22b9a62a0767d129578b7eec83047",
-  "compiled_type_count": 1933,
-  "provider_schemas_sha256": "ce81f2ff3e28d0a4c44eb1dcdc11a2893ca5c556791971df0a25b3d40268c586",
-  "provider_type_count": 1931
+  "compiled_schemas_sha256": "599e4315b20a7b3d5ad82ec06242fbb5bcaf993dc8255101679963f8756a1d5a",
+  "compiled_type_count": 1938,
+  "provider_schemas_sha256": "b45b556d63d42dbc6ab34a0313c35bd243fa9dc3edc6a4733c32587157f0e974",
+  "provider_type_count": 1936
  }
 }

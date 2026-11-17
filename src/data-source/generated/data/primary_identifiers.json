@@ -251,6 +251,10 @@
       "IdentityPoolId",
       "IdentityProviderName"
     ],
+    "AWS::Cognito::UserPoolClientSessionConfigurationAttachment": [
+      "UserPoolId",
+      "ClientId"
+    ],
     "AWS::Cognito::UserPoolDomain": [
       "UserPoolId",
       "Domain"
@@ -277,6 +281,9 @@
     "AWS::Cognito::UserPoolRiskConfigurationAttachment": [
       "UserPoolId",
       "ClientId"
+    ],
+    "AWS::Cognito::UserPoolSessionConfigurationAttachment": [
+      "UserPoolId"
     ],
     "AWS::Cognito::UserPoolUICustomizationAttachment": [
       "UserPoolId",
@@ -1475,6 +1482,11 @@
       "HostedZoneId",
       "Type",
       "SetIdentifier"
+    ],
+    "AWS::Route53::RecordSetProtection": [
+      "HostedZoneId",
+      "RecordName",
+      "RecordType"
     ],
     "AWS::Route53RecoveryReadiness::Cell": [
       "CellName"

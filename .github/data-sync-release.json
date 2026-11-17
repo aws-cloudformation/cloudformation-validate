@@ -1,6 +1,6 @@
 {
-  "base_tag": "1.17.0",
+  "base_tag": "1.17.1",
   "release_branch": "release/1.17",
-  "source_versions_sha256": "64e8266379dc9636df3b774eb70c406aa51893ad7b6cbde3e33f7414b9d3a2e8",
-  "version": "1.17.1"
+  "source_versions_sha256": "9a0b4157f0401810b3a4f9babb4214ab31d8c63dec4688ed8130706b671c7f0a",
+  "version": "1.17.2"
 }
