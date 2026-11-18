@@ -47737,7 +47737,7 @@
       },
       "CredentialProviderArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/apikeycredentialprovider/[a-zA-Z0-9-]+$"
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/apikeycredentialprovider/[a-zA-Z0-9-]+$"
       },
       "LastUpdatedTime": {
         "type": "string",
@@ -47763,7 +47763,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
           }
         },
         "required": [
@@ -56078,7 +56078,7 @@
       },
       "CredentialProviderArn": {
         "type": "string",
-        "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/oauth2credentialprovider/[a-zA-Z0-9-]+$"
+        "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/oauth2credentialprovider/[a-zA-Z0-9-]+$"
       },
       "CredentialProviderVendor": {
         "type": "string",
@@ -56225,7 +56225,7 @@
         "properties": {
           "SecretArn": {
             "type": "string",
-            "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
+            "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):secretsmanager:[A-Za-z0-9-]{1,64}:[0-9]{12}:secret:[a-zA-Z0-9-_/+=.@!]+$"
           }
         },
         "required": [
@@ -86641,6 +86641,52 @@
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git"
   },
+  "AWS::Cognito::UserPoolClientSessionConfigurationAttachment": {
+    "type_name": "AWS::Cognito::UserPoolClientSessionConfigurationAttachment",
+    "properties": {
+      "ClientId": {
+        "type": "string"
+      },
+      "SSOSession": {
+        "ref_name": "SSOSession"
+      },
+      "UserPoolId": {
+        "type": "string"
+      }
+    },
+    "definitions": {
+      "SSOSession": {
+        "type": "object",
+        "properties": {
+          "MaxValidityMinutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 129600.0
+          }
+        },
+        "required": [
+          "MaxValidityMinutes"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "UserPoolId",
+      "ClientId",
+      "SSOSession"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [],
+    "create_only_properties": [
+      "UserPoolId",
+      "ClientId"
+    ],
+    "primary_identifier": [
+      "UserPoolId",
+      "ClientId"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git"
+  },
   "AWS::Cognito::UserPoolDomain": {
     "type_name": "AWS::Cognito::UserPoolDomain",
     "properties": {
@@ -87402,6 +87448,54 @@
     "primary_identifier": [
       "UserPoolId",
       "ClientId"
+    ],
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git"
+  },
+  "AWS::Cognito::UserPoolSessionConfigurationAttachment": {
+    "type_name": "AWS::Cognito::UserPoolSessionConfigurationAttachment",
+    "properties": {
+      "TokenSession": {
+        "ref_name": "TokenSession"
+      },
+      "UserPoolId": {
+        "type": "string"
+      },
+      "UserSessionTracking": {
+        "type": "string",
+        "enum": [
+          "ENABLED",
+          "DISABLED"
+        ]
+      }
+    },
+    "definitions": {
+      "TokenSession": {
+        "type": "object",
+        "properties": {
+          "MaxPerUser": {
+            "type": "integer",
+            "minimum": 1.0,
+            "maximum": 100.0
+          }
+        },
+        "required": [
+          "MaxPerUser"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "UserPoolId",
+      "UserSessionTracking",
+      "TokenSession"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [],
+    "create_only_properties": [
+      "UserPoolId"
+    ],
+    "primary_identifier": [
+      "UserPoolId"
     ],
     "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-rpdk.git"
   },
@@ -96455,7 +96549,7 @@
       },
       "SecurityProfileArn": {
         "type": "string",
-        "pattern": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]*:[0-9]{12}:instance/[-a-zA-Z0-9]*/security-profile/[-a-zA-Z0-9]*$"
+        "pattern": "^arn:aws[-a-z0-9]*:connect:[-a-z0-9]*:(?:[0-9]{12}:instance/[-a-zA-Z0-9]*/security-profile/[-a-zA-Z0-9]*|aws:security-profile/[a-zA-Z][a-zA-Z0-9_-]{0,127})$"
       },
       "Tag": {
         "type": "object",
@@ -142531,6 +142625,18 @@
       }
     },
     "definitions": {
+      "DeleteReplication": {
+        "type": "object",
+        "properties": {
+          "Enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "Enabled"
+        ],
+        "additional_properties": false
+      },
       "Filter": {
         "type": "string",
         "pattern": "^(?:[a-z0-9]+(?:[._-][a-z0-9]*)*/)*[a-z0-9]*(?:[._-][a-z0-9]*)*$",
@@ -142587,6 +142693,9 @@
       "ReplicationRule": {
         "type": "object",
         "properties": {
+          "DeleteReplication": {
+            "ref_name": "DeleteReplication"
+          },
           "Destinations": {
             "type": "array",
             "min_items": 1,
@@ -145966,6 +146075,9 @@
       "GatewayConnector": {
         "type": "object",
         "properties": {
+          "DeregistrationDelay": {
+            "ref_name": "GatewayConnectorDeregistrationDelay"
+          },
           "Filters": {
             "ref_name": "GatewayConnectorFilters"
           },
@@ -145979,6 +146091,17 @@
         "required": [
           "PortName"
         ],
+        "additional_properties": false
+      },
+      "GatewayConnectorDeregistrationDelay": {
+        "type": "object",
+        "properties": {
+          "TimeoutSeconds": {
+            "type": "integer",
+            "minimum": 0.0,
+            "maximum": 3600.0
+          }
+        },
         "additional_properties": false
       },
       "GatewayConnectorFilters": {
@@ -151019,6 +151142,9 @@
         "type": "string",
         "min_length": 1,
         "format": "AWS::IAM::Role.Arn"
+      },
+      "WorkloadIdentityConfig": {
+        "ref_name": "WorkloadIdentityConfig"
       }
     },
     "definitions": {
@@ -151041,6 +151167,36 @@
           "Value"
         ],
         "additional_properties": false
+      },
+      "WorkloadIdentityConfig": {
+        "type": "object",
+        "properties": {
+          "Enabled": {
+            "type": "boolean"
+          },
+          "ProviderArn": {
+            "type": "string",
+            "pattern": "^arn:aws[a-zA-Z-]*:iam::([0-9]{12}|o-[a-z0-9]{10,32}):workload-identity-provider/[^/]+$",
+            "min_length": 1
+          },
+          "TemplateArn": {
+            "type": "string",
+            "pattern": "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:workload-identity-template/[^/]+$",
+            "min_length": 1
+          }
+        },
+        "required": [
+          "Enabled"
+        ],
+        "additional_properties": false,
+        "dependent_required": {
+          "ProviderArn": [
+            "TemplateArn"
+          ],
+          "TemplateArn": [
+            "ProviderArn"
+          ]
+        }
       }
     },
     "required": [
@@ -175109,6 +175265,30 @@
       }
     },
     "definitions": {
+      "AssetsSyncConfiguration": {
+        "type": "object",
+        "properties": {
+          "ManagedCrawlerDetails": {
+            "ref_name": "ManagedCrawlerDetails"
+          },
+          "RefreshIntervalMinutes": {
+            "type": "integer",
+            "minimum": 15.0,
+            "maximum": 10080.0
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "ENABLED",
+              "DISABLED"
+            ]
+          }
+        },
+        "required": [
+          "Status"
+        ],
+        "additional_properties": false
+      },
       "CatalogProperties": {
         "type": "object",
         "properties": {
@@ -175172,14 +175352,76 @@
         },
         "additional_properties": false
       },
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "ErrorCode": {
+            "type": "string"
+          },
+          "ErrorMessage": {
+            "type": "string"
+          }
+        },
+        "additional_properties": false
+      },
       "FederatedCatalog": {
         "type": "object",
         "properties": {
           "ConnectionName": {
             "type": "string"
           },
+          "ConnectionType": {
+            "type": "string"
+          },
           "Identifier": {
             "type": "string"
+          },
+          "SyncConfiguration": {
+            "ref_name": "SyncConfiguration"
+          }
+        },
+        "additional_properties": false
+      },
+      "LineageSyncConfiguration": {
+        "type": "object",
+        "properties": {
+          "ManagedCrawlerDetails": {
+            "ref_name": "ManagedCrawlerDetails"
+          },
+          "RefreshIntervalMinutes": {
+            "type": "integer",
+            "minimum": 15.0,
+            "maximum": 10080.0
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "ENABLED",
+              "DISABLED"
+            ]
+          }
+        },
+        "required": [
+          "Status"
+        ],
+        "additional_properties": false
+      },
+      "ManagedCrawlerDetails": {
+        "type": "object",
+        "properties": {
+          "CrawlerArn": {
+            "type": "string"
+          },
+          "Error": {
+            "ref_name": "ErrorDetail"
+          },
+          "Status": {
+            "type": "string",
+            "enum": [
+              "PROVISIONING",
+              "PROVISIONED",
+              "FAILED"
+            ]
           }
         },
         "additional_properties": false
@@ -175208,6 +175450,25 @@
             "ref_name": "DataLakePrincipal"
           }
         },
+        "additional_properties": false
+      },
+      "SyncConfiguration": {
+        "type": "object",
+        "properties": {
+          "AssetsSyncConfiguration": {
+            "ref_name": "AssetsSyncConfiguration"
+          },
+          "LineageSyncConfiguration": {
+            "ref_name": "LineageSyncConfiguration"
+          },
+          "RoleArn": {
+            "type": "string",
+            "format": "AWS::IAM::Role.Arn"
+          }
+        },
+        "required": [
+          "RoleArn"
+        ],
         "additional_properties": false
       },
       "Tag": {
@@ -175256,6 +175517,18 @@
       "CatalogProperties.DataLakeAccessProperties.ManagedWorkgroupStatus",
       "CatalogProperties.DataLakeAccessProperties.RedshiftDatabaseName",
       "CatalogProperties.CustomProperties",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.CrawlerArn",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Status",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error.ErrorCode",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error.ErrorMessage",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.CrawlerArn",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Status",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error.ErrorCode",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error.ErrorMessage",
       "CreateDatabaseDefaultPermissions.*.Principal",
       "CreateDatabaseDefaultPermissions.*.Principal.DataLakePrincipalIdentifier",
       "CreateDatabaseDefaultPermissions.*.Permissions",
@@ -199020,7 +199293,8 @@
         "enum": [
           "ENABLED",
           "IN_PROGRESS",
-          "DISABLED"
+          "DISABLED",
+          "ERROR"
         ]
       },
       "VpcDestinationProperties": {
@@ -207370,7 +207644,7 @@
           },
           "PingSlotPeriod": {
             "type": "integer",
-            "minimum": 128.0,
+            "minimum": 32.0,
             "maximum": 4096.0
           },
           "RegParamsRevision": {
@@ -236015,6 +236289,9 @@
       "EncryptionConfiguration": {
         "ref_name": "EncryptionConfiguration"
       },
+      "Environment": {
+        "ref_name": "Environment"
+      },
       "LoggingConfiguration": {
         "ref_name": "LoggingConfiguration"
       },
@@ -236125,6 +236402,30 @@
           "Type"
         ],
         "additional_properties": false
+      },
+      "Environment": {
+        "type": "object",
+        "properties": {
+          "Variables": {
+            "ref_name": "EnvironmentVariables"
+          }
+        },
+        "required": [
+          "Variables"
+        ],
+        "additional_properties": false
+      },
+      "EnvironmentVariables": {
+        "type": "object",
+        "min_properties": 1,
+        "max_properties": 50,
+        "additional_properties": false,
+        "pattern_properties": {
+          "^[a-zA-Z][a-zA-Z0-9_]{0,127}$": {
+            "type": "string",
+            "max_length": 255
+          }
+        }
       },
       "LoggingConfiguration": {
         "type": "object",
@@ -238097,6 +238398,10 @@
         "type": "object",
         "additional_properties": false
       },
+      "AutomaticRtmpPushNamingConfiguration": {
+        "type": "object",
+        "additional_properties": false
+      },
       "BlackFrames": {
         "type": "object",
         "properties": {
@@ -238408,6 +238713,22 @@
         ],
         "additional_properties": false
       },
+      "ManualRtmpPushNamingConfiguration": {
+        "type": "object",
+        "properties": {
+          "ApplicationName": {
+            "type": "string"
+          },
+          "StreamName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ApplicationName",
+          "StreamName"
+        ],
+        "additional_properties": false
+      },
       "MediaStream": {
         "type": "object",
         "properties": {
@@ -238559,6 +238880,62 @@
           "DISABLED"
         ]
       },
+      "RtmpPushDetails": {
+        "type": "object",
+        "properties": {
+          "ApplicationName": {
+            "type": "string"
+          },
+          "StreamName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ApplicationName",
+          "StreamName"
+        ],
+        "additional_properties": false
+      },
+      "RtmpPushNamingConfiguration": {
+        "one_of": [
+          {
+            "type": "object",
+            "properties": {
+              "Manual": {
+                "ref_name": "ManualRtmpPushNamingConfiguration"
+              }
+            },
+            "required": [
+              "Manual"
+            ],
+            "additional_properties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Automatic": {
+                "ref_name": "AutomaticRtmpPushNamingConfiguration"
+              }
+            },
+            "required": [
+              "Automatic"
+            ],
+            "additional_properties": false
+          }
+        ]
+      },
+      "RtmpPushSettings": {
+        "type": "object",
+        "properties": {
+          "NamingConfiguration": {
+            "ref_name": "RtmpPushNamingConfiguration"
+          }
+        },
+        "required": [
+          "NamingConfiguration"
+        ],
+        "additional_properties": false
+      },
       "SecretsManagerEncryptionKeyConfiguration": {
         "type": "object",
         "properties": {
@@ -238651,7 +239028,8 @@
               "srt-caller",
               "st2110-jpegxs",
               "cdi",
-              "ndi-speed-hq"
+              "ndi-speed-hq",
+              "rtmp-push"
             ]
           },
           "RouterIntegrationState": {
@@ -238663,6 +239041,12 @@
           },
           "RouterIntegrationTransitDecryption": {
             "ref_name": "FlowTransitEncryption"
+          },
+          "RtmpPushDetails": {
+            "ref_name": "RtmpPushDetails"
+          },
+          "RtmpPushSettings": {
+            "ref_name": "RtmpPushSettings"
           },
           "SenderControlPort": {
             "type": "integer"
@@ -238833,6 +239217,9 @@
       "Source.SourceArn",
       "Source.IngestIp",
       "Source.SourceIngestPort",
+      "Source.RtmpPushDetails",
+      "Source.RtmpPushDetails.ApplicationName",
+      "Source.RtmpPushDetails.StreamName",
       "EgressIp",
       "FlowNdiMachineName"
     ],
@@ -239233,7 +239620,8 @@
           "srt-caller",
           "st2110-jpegxs",
           "cdi",
-          "ndi-speed-hq"
+          "ndi-speed-hq",
+          "rtmp-push"
         ]
       },
       "RemoteId": {
@@ -239248,6 +239636,9 @@
       },
       "RouterIntegrationTransitEncryption": {
         "ref_name": "FlowTransitEncryption"
+      },
+      "RtmpPushSettings": {
+        "ref_name": "RtmpPushSettings"
       },
       "SmoothingLatency": {
         "type": "integer"
@@ -239437,6 +239828,29 @@
         ],
         "additional_properties": false
       },
+      "PublicTlsEncryptionConfiguration": {
+        "type": "object",
+        "additional_properties": false
+      },
+      "RtmpPushSettings": {
+        "type": "object",
+        "properties": {
+          "ApplicationName": {
+            "type": "string"
+          },
+          "StreamName": {
+            "type": "string"
+          },
+          "TlsEncryption": {
+            "ref_name": "TlsEncryption"
+          }
+        },
+        "required": [
+          "ApplicationName",
+          "StreamName"
+        ],
+        "additional_properties": false
+      },
       "SecretsManagerEncryptionKeyConfiguration": {
         "type": "object",
         "properties": {
@@ -239471,6 +239885,43 @@
           "Value"
         ],
         "additional_properties": false
+      },
+      "TlsEncryption": {
+        "type": "object",
+        "properties": {
+          "EncryptionConfiguration": {
+            "ref_name": "TlsEncryptionConfiguration"
+          },
+          "EncryptionType": {
+            "ref_name": "TlsEncryptionType"
+          }
+        },
+        "required": [
+          "EncryptionConfiguration"
+        ],
+        "additional_properties": false
+      },
+      "TlsEncryptionConfiguration": {
+        "one_of": [
+          {
+            "type": "object",
+            "properties": {
+              "Public": {
+                "ref_name": "PublicTlsEncryptionConfiguration"
+              }
+            },
+            "required": [
+              "Public"
+            ],
+            "additional_properties": false
+          }
+        ]
+      },
+      "TlsEncryptionType": {
+        "type": "string",
+        "enum": [
+          "PUBLIC"
+        ]
       },
       "VpcInterfaceAttachment": {
         "type": "object",
@@ -239544,8 +239995,15 @@
           "rtp",
           "rist",
           "srt-listener",
-          "srt-caller"
+          "srt-caller",
+          "rtmp-push"
         ]
+      },
+      "RtmpPushDetails": {
+        "ref_name": "RtmpPushDetails"
+      },
+      "RtmpPushSettings": {
+        "ref_name": "RtmpPushSettings"
       },
       "SenderControlPort": {
         "type": "integer"
@@ -239583,6 +240041,10 @@
       }
     },
     "definitions": {
+      "AutomaticRtmpPushNamingConfiguration": {
+        "type": "object",
+        "additional_properties": false
+      },
       "Encryption": {
         "type": "object",
         "properties": {
@@ -239648,6 +240110,78 @@
         ],
         "additional_properties": false
       },
+      "ManualRtmpPushNamingConfiguration": {
+        "type": "object",
+        "properties": {
+          "ApplicationName": {
+            "type": "string"
+          },
+          "StreamName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ApplicationName",
+          "StreamName"
+        ],
+        "additional_properties": false
+      },
+      "RtmpPushDetails": {
+        "type": "object",
+        "properties": {
+          "ApplicationName": {
+            "type": "string"
+          },
+          "StreamName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ApplicationName",
+          "StreamName"
+        ],
+        "additional_properties": false
+      },
+      "RtmpPushNamingConfiguration": {
+        "one_of": [
+          {
+            "type": "object",
+            "properties": {
+              "Manual": {
+                "ref_name": "ManualRtmpPushNamingConfiguration"
+              }
+            },
+            "required": [
+              "Manual"
+            ],
+            "additional_properties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Automatic": {
+                "ref_name": "AutomaticRtmpPushNamingConfiguration"
+              }
+            },
+            "required": [
+              "Automatic"
+            ],
+            "additional_properties": false
+          }
+        ]
+      },
+      "RtmpPushSettings": {
+        "type": "object",
+        "properties": {
+          "NamingConfiguration": {
+            "ref_name": "RtmpPushNamingConfiguration"
+          }
+        },
+        "required": [
+          "NamingConfiguration"
+        ],
+        "additional_properties": false
+      },
       "Tag": {
         "type": "object",
         "properties": {
@@ -239683,7 +240217,10 @@
     "read_only_properties": [
       "IngestIp",
       "SourceArn",
-      "SourceIngestPort"
+      "SourceIngestPort",
+      "RtmpPushDetails",
+      "RtmpPushDetails.ApplicationName",
+      "RtmpPushDetails.StreamName"
     ],
     "create_only_properties": [
       "FlowArn",
@@ -258140,6 +258677,134 @@
       "Arn"
     ]
   },
+  "AWS::NetworkFlowMonitor::PerformanceMonitor": {
+    "type_name": "AWS::NetworkFlowMonitor::PerformanceMonitor",
+    "properties": {
+      "Arn": {
+        "type": "string",
+        "pattern": "^arn:.*$",
+        "min_length": 20,
+        "max_length": 512
+      },
+      "CreatedAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ModifiedAt": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "MonitorName": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_.-]+$",
+        "min_length": 1,
+        "max_length": 255
+      },
+      "MonitorStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "ACTIVE",
+          "INACTIVE",
+          "ERROR",
+          "DELETING"
+        ]
+      },
+      "MonitorType": {
+        "type": "string",
+        "enum": [
+          "VPC"
+        ]
+      },
+      "ScopeArn": {
+        "type": "string",
+        "pattern": "^arn:.*$",
+        "min_length": 20,
+        "max_length": 2048
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 200,
+        "items": {
+          "ref_name": "Tag"
+        }
+      },
+      "Targets": {
+        "type": "array",
+        "min_items": 1,
+        "max_items": 100,
+        "items": {
+          "ref_name": "PerformanceMonitorTarget"
+        }
+      }
+    },
+    "definitions": {
+      "PerformanceMonitorTarget": {
+        "type": "object",
+        "properties": {
+          "Identifier": {
+            "type": "string",
+            "pattern": "^arn:.*$",
+            "min_length": 20,
+            "max_length": 128
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "AWS::EC2::VPC"
+            ]
+          }
+        },
+        "required": [
+          "Type",
+          "Identifier"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "MonitorName",
+      "Targets"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "Arn",
+      "MonitorType",
+      "MonitorStatus",
+      "CreatedAt",
+      "ModifiedAt"
+    ],
+    "write_only_properties": [
+      "ScopeArn"
+    ],
+    "create_only_properties": [
+      "MonitorName",
+      "ScopeArn"
+    ],
+    "primary_identifier": [
+      "Arn"
+    ]
+  },
   "AWS::NetworkFlowMonitor::Scope": {
     "type_name": "AWS::NetworkFlowMonitor::Scope",
     "properties": {
@@ -258820,10 +259485,16 @@
         "type": "string"
       },
       "Description": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[\\s\\S]*$",
+        "min_length": 0,
+        "max_length": 256
       },
       "GlobalNetworkId": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[\\s\\S]*$",
+        "min_length": 0,
+        "max_length": 50
       },
       "State": {
         "type": "string"
@@ -258841,10 +259512,16 @@
         "type": "object",
         "properties": {
           "Key": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[\\s\\S]*$",
+            "min_length": 0,
+            "max_length": 10000000
           },
           "Value": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[\\s\\S]*$",
+            "min_length": 0,
+            "max_length": 10000000
           }
         },
         "required": [
@@ -267863,12 +268540,10 @@
       "KmsKeyArn"
     ],
     "write_only_properties": [
-      "Tags",
       "EncryptionConfig"
     ],
     "create_only_properties": [
       "Name",
-      "Tags",
       "Type",
       "StandbyReplicas",
       "CollectionGroupName",
@@ -350488,6 +351163,61 @@
       "HostedZoneName"
     ]
   },
+  "AWS::Route53::RecordSetProtection": {
+    "type_name": "AWS::Route53::RecordSetProtection",
+    "properties": {
+      "Comment": {
+        "ref_name": "Comment"
+      },
+      "HostedZoneId": {
+        "ref_name": "HostedZoneId"
+      },
+      "RecordName": {
+        "ref_name": "RecordName"
+      },
+      "RecordType": {
+        "ref_name": "RecordType"
+      }
+    },
+    "definitions": {
+      "Comment": {
+        "type": "string",
+        "max_length": 256
+      },
+      "HostedZoneId": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 44
+      },
+      "RecordName": {
+        "type": "string",
+        "max_length": 1024
+      },
+      "RecordType": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "HostedZoneId",
+      "RecordName",
+      "RecordType"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [],
+    "create_only_properties": [
+      "HostedZoneId",
+      "RecordName",
+      "RecordType",
+      "Comment"
+    ],
+    "primary_identifier": [
+      "HostedZoneId",
+      "RecordName",
+      "RecordType"
+    ],
+    "replacement_strategy": "delete_then_create",
+    "source_url": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-route53.git"
+  },
   "AWS::Route53::TrafficPolicy": {
     "type_name": "AWS::Route53::TrafficPolicy",
     "properties": {
@@ -377419,6 +378149,7 @@
           "RoutingStrategy": {
             "type": "string",
             "enum": [
+              "KV_AWARE",
               "LEAST_OUTSTANDING_REQUESTS",
               "PREFIX_AWARE",
               "RANDOM"
@@ -377752,6 +378483,134 @@
     "primary_identifier": [
       "Id"
     ]
+  },
+  "AWS::SageMaker::Extension": {
+    "type_name": "AWS::SageMaker::Extension",
+    "properties": {
+      "ClusterArn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:cluster/[a-z0-9]{12}$",
+        "min_length": 0,
+        "max_length": 256
+      },
+      "ConfigurationValues": {
+        "type": "string",
+        "min_length": 1,
+        "max_length": 10240
+      },
+      "CreationTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ExtensionArn": {
+        "type": "string",
+        "pattern": "^arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:extension/(sagemaker|eks|pcs)-[a-z0-9-]+/[a-z0-9-]+/[a-z0-9]+$",
+        "min_length": 1,
+        "max_length": 256
+      },
+      "ExtensionName": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$",
+        "min_length": 1,
+        "max_length": 128
+      },
+      "ExtensionVersion": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+        "min_length": 1,
+        "max_length": 64
+      },
+      "LastModifiedTime": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "NodeSummary": {
+        "ref_name": "ExtensionNodeSummary"
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "Creating",
+          "Active",
+          "CreateFailed",
+          "Updating",
+          "Deleting",
+          "DeleteFailed",
+          "Degraded",
+          "UpdateFailed"
+        ]
+      },
+      "Tags": {
+        "type": "array",
+        "max_items": 50,
+        "unique_items": true,
+        "items": {
+          "ref_name": "Tag"
+        }
+      }
+    },
+    "definitions": {
+      "ExtensionNodeSummary": {
+        "type": "object",
+        "properties": {
+          "ActiveCount": {
+            "type": "integer",
+            "minimum": 0.0
+          },
+          "TotalCount": {
+            "type": "integer",
+            "minimum": 0.0
+          }
+        },
+        "required": [
+          "TotalCount",
+          "ActiveCount"
+        ],
+        "additional_properties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "Key": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 1,
+            "max_length": 128
+          },
+          "Value": {
+            "type": "string",
+            "pattern": "^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+            "min_length": 0,
+            "max_length": 256
+          }
+        },
+        "required": [
+          "Key",
+          "Value"
+        ],
+        "additional_properties": false
+      }
+    },
+    "required": [
+      "ClusterArn",
+      "ExtensionName"
+    ],
+    "additional_properties": false,
+    "read_only_properties": [
+      "ExtensionArn",
+      "Status",
+      "NodeSummary",
+      "CreationTime",
+      "LastModifiedTime"
+    ],
+    "create_only_properties": [
+      "ClusterArn",
+      "ExtensionName"
+    ],
+    "primary_identifier": [
+      "ExtensionArn"
+    ],
+    "replacement_strategy": "delete_then_create"
   },
   "AWS::SageMaker::FeatureGroup": {
     "type_name": "AWS::SageMaker::FeatureGroup",
@@ -396389,6 +397248,16 @@
               }
             ]
           },
+          "AverageGPUUtilization": {
+            "any_of": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
           "MaxVCpuCount": {
             "any_of": [
               {
@@ -396560,6 +397429,16 @@
   "AWS::Serverless::Function": {
     "type_name": "AWS::Serverless::Function",
     "properties": {
+      "AcceleratorConfig": {
+        "any_of": [
+          {
+            "type": "object"
+          },
+          {
+            "ref_name": "AcceleratorConfig"
+          }
+        ]
+      },
       "Architectures": {
         "type": "array",
         "items": {
@@ -397033,6 +397912,25 @@
         },
         "required": [
           "TenantIsolationMode"
+        ],
+        "additional_properties": false
+      },
+      "AcceleratorConfig": {
+        "type": "object",
+        "properties": {
+          "AcceleratorMemorySize": {
+            "any_of": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          }
+        },
+        "required": [
+          "AcceleratorMemorySize"
         ],
         "additional_properties": false
       },
@@ -401028,9 +401926,39 @@
       }
     },
     "definitions": {
+      "ElasticIpConfiguration": {
+        "type": "object",
+        "properties": {
+          "Type": {
+            "any_of": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "None",
+                  "ServiceManaged"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "Type"
+        ],
+        "additional_properties": false
+      },
       "samtranslator__internal__schema_source__aws_serverless_networkconnector__VpcConfig": {
         "type": "object",
         "properties": {
+          "ElasticIpConfiguration": {
+            "all_of": [
+              {
+                "ref_name": "ElasticIpConfiguration"
+              }
+            ]
+          },
           "NetworkProtocol": {
             "any_of": [
               {
@@ -420914,7 +421842,7 @@
         "type": "object",
         "additional_properties": false,
         "pattern_properties": {
-          "^(CLOUDFRONT|API_GATEWAY|COGNITO_USER_POOL|APP_RUNNER_SERVICE|VERIFIED_ACCESS_INSTANCE)$": {
+          "^(CLOUDFRONT|API_GATEWAY|COGNITO_USER_POOL|APP_RUNNER_SERVICE|VERIFIED_ACCESS_INSTANCE|AGENTCORE_GATEWAY|APPLICATION_LOAD_BALANCER)$": {
             "ref_name": "RequestBodyAssociatedResourceTypeConfig"
           }
         }
@@ -421391,6 +422319,7 @@
       "SizeInspectionLimit": {
         "type": "string",
         "enum": [
+          "KB_8",
           "KB_16",
           "KB_32",
           "KB_48",
@@ -422218,6 +423147,7 @@
     "properties": {
       "Policy": {
         "type": "string",
+        "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\u00FF]+$",
         "min_length": 1,
         "max_length": 51200
       },

@@ -4584,6 +4584,18 @@
       "CreateTableDefaultPermissions.*.Principal",
       "CreateTableDefaultPermissions.*.Principal.DataLakePrincipalIdentifier",
       "CreateTime",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.CrawlerArn",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error.ErrorCode",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error.ErrorMessage",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Status",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.CrawlerArn",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error.ErrorCode",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error.ErrorMessage",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Status",
       "ResourceArn",
       "UpdateTime"
     ],
@@ -6269,6 +6281,9 @@
       "FlowAvailabilityZone",
       "FlowNdiMachineName",
       "Source.IngestIp",
+      "Source.RtmpPushDetails",
+      "Source.RtmpPushDetails.ApplicationName",
+      "Source.RtmpPushDetails.StreamName",
       "Source.SourceArn",
       "Source.SourceIngestPort"
     ],
@@ -6284,6 +6299,9 @@
     ],
     "AWS::MediaConnect::FlowSource": [
       "IngestIp",
+      "RtmpPushDetails",
+      "RtmpPushDetails.ApplicationName",
+      "RtmpPushDetails.StreamName",
       "SourceArn",
       "SourceIngestPort"
     ],
@@ -6691,6 +6709,13 @@
       "CreatedAt",
       "ModifiedAt",
       "MonitorStatus"
+    ],
+    "AWS::NetworkFlowMonitor::PerformanceMonitor": [
+      "Arn",
+      "CreatedAt",
+      "ModifiedAt",
+      "MonitorStatus",
+      "MonitorType"
     ],
     "AWS::NetworkFlowMonitor::Scope": [
       "ScopeArn",
@@ -9144,6 +9169,13 @@
       "Id",
       "LastModifiedTime",
       "LineageGroupArn"
+    ],
+    "AWS::SageMaker::Extension": [
+      "CreationTime",
+      "ExtensionArn",
+      "LastModifiedTime",
+      "NodeSummary",
+      "Status"
     ],
     "AWS::SageMaker::FeatureGroup": [
       "CreationTime",
@@ -14901,6 +14933,11 @@
       "UserPoolId": "string",
       "WriteAttributes": "array"
     },
+    "AWS::Cognito::UserPoolClientSessionConfigurationAttachment": {
+      "ClientId": "string",
+      "SSOSession": "object",
+      "UserPoolId": "string"
+    },
     "AWS::Cognito::UserPoolDomain": {
       "CloudFrontDistribution": "string",
       "CustomDomainConfig": "object",
@@ -14949,6 +14986,11 @@
       "CompromisedCredentialsRiskConfiguration": "object",
       "RiskExceptionConfiguration": "object",
       "UserPoolId": "string"
+    },
+    "AWS::Cognito::UserPoolSessionConfigurationAttachment": {
+      "TokenSession": "object",
+      "UserPoolId": "string",
+      "UserSessionTracking": "string"
     },
     "AWS::Cognito::UserPoolUICustomizationAttachment": {
       "CSS": "string",
@@ -19060,7 +19102,8 @@
       "RoleArn": "string",
       "ServiceAccount": "string",
       "Tags": "array",
-      "TargetRoleArn": "string"
+      "TargetRoleArn": "string",
+      "WorkloadIdentityConfig": "object"
     },
     "AWS::EMR::Cluster": {
       "AdditionalInfo": "object",
@@ -20485,6 +20528,18 @@
       "CreateTime": "string",
       "Description": "string",
       "FederatedCatalog": "object",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails": "object",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.CrawlerArn": "string",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error": "object",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error.ErrorCode": "string",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Error.ErrorMessage": "string",
+      "FederatedCatalog.SyncConfiguration.AssetsSyncConfiguration.ManagedCrawlerDetails.Status": "string",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails": "object",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.CrawlerArn": "string",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error": "object",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error.ErrorCode": "string",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Error.ErrorMessage": "string",
+      "FederatedCatalog.SyncConfiguration.LineageSyncConfiguration.ManagedCrawlerDetails.Status": "string",
       "Name": "string",
       "OverwriteChildResourcePermissionsWithDefault": "string",
       "Parameters": "object",
@@ -24068,6 +24123,7 @@
       "DefinitionS3Location": "object",
       "Description": "string",
       "EncryptionConfiguration": "object",
+      "Environment": "object",
       "LoggingConfiguration": "object",
       "ModifiedAt": "string",
       "Name": "string",
@@ -24202,6 +24258,9 @@
       "NdiConfig": "object",
       "Source": "object",
       "Source.IngestIp": "string",
+      "Source.RtmpPushDetails": "object",
+      "Source.RtmpPushDetails.ApplicationName": "string",
+      "Source.RtmpPushDetails.StreamName": "string",
       "Source.SourceArn": "string",
       "Source.SourceIngestPort": "string",
       "SourceFailoverConfig": "object",
@@ -24254,6 +24313,7 @@
       "RemoteId": "string",
       "RouterIntegrationState": "string",
       "RouterIntegrationTransitEncryption": "object",
+      "RtmpPushSettings": "object",
       "SmoothingLatency": "integer",
       "StreamId": "string",
       "Tags": "array",
@@ -24272,6 +24332,10 @@
       "MinLatency": "integer",
       "Name": "string",
       "Protocol": "string",
+      "RtmpPushDetails": "object",
+      "RtmpPushDetails.ApplicationName": "string",
+      "RtmpPushDetails.StreamName": "string",
+      "RtmpPushSettings": "object",
       "SenderControlPort": "integer",
       "SenderIpAddress": "string",
       "SourceArn": "string",
@@ -25153,6 +25217,17 @@
       "RemoteResources": "array",
       "ScopeArn": "string",
       "Tags": "array"
+    },
+    "AWS::NetworkFlowMonitor::PerformanceMonitor": {
+      "Arn": "string",
+      "CreatedAt": "string",
+      "ModifiedAt": "string",
+      "MonitorName": "string",
+      "MonitorStatus": "string",
+      "MonitorType": "string",
+      "ScopeArn": "string",
+      "Tags": "array",
+      "Targets": "array"
     },
     "AWS::NetworkFlowMonitor::Scope": {
       "ScopeArn": "string",
@@ -28604,6 +28679,12 @@
       "Id": "string",
       "RecordSets": "array"
     },
+    "AWS::Route53::RecordSetProtection": {
+      "Comment": "string",
+      "HostedZoneId": "string",
+      "RecordName": "string",
+      "RecordType": "string"
+    },
     "AWS::Route53::TrafficPolicy": {
       "Arn": "string",
       "Comment": "string",
@@ -30160,6 +30241,18 @@
       "Status": "object",
       "Tags": "array",
       "TrialComponentName": "string"
+    },
+    "AWS::SageMaker::Extension": {
+      "ClusterArn": "string",
+      "ConfigurationValues": "string",
+      "CreationTime": "string",
+      "ExtensionArn": "string",
+      "ExtensionName": "string",
+      "ExtensionVersion": "string",
+      "LastModifiedTime": "string",
+      "NodeSummary": "object",
+      "Status": "string",
+      "Tags": "array"
     },
     "AWS::SageMaker::FeatureGroup": {
       "CreationTime": "string",

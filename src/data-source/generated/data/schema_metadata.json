@@ -10601,7 +10601,7 @@
           "format": "date-time"
         },
         "CredentialProviderArn": {
-          "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/apikeycredentialprovider/[a-zA-Z0-9-]+$"
+          "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/apikeycredentialprovider/[a-zA-Z0-9-]+$"
         },
         "LastUpdatedTime": {
           "format": "date-time"
@@ -11939,7 +11939,7 @@
           "format": "date-time"
         },
         "CredentialProviderArn": {
-          "pattern": "^arn:(aws|aws-us-gov|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/oauth2credentialprovider/[a-zA-Z0-9-]+$"
+          "pattern": "^arn:(?:aws(-cn|-us-gov)?|aws[a-z\\-]*):bedrock-agentcore:[A-Za-z0-9-]{1,64}:[0-9]{12}:token-vault/[a-zA-Z0-9-.]+/oauth2credentialprovider/[a-zA-Z0-9-]+$"
         },
         "LastUpdatedTime": {
           "format": "date-time"
@@ -21290,6 +21290,24 @@
         }
       }
     },
+    "AWS::Cognito::UserPoolClientSessionConfigurationAttachment": {
+      "properties": [
+        "ClientId",
+        "SSOSession",
+        "UserPoolId"
+      ],
+      "required": [
+        "UserPoolId",
+        "ClientId",
+        "SSOSession"
+      ],
+      "property_types": {
+        "ClientId": "string",
+        "SSOSession": "object",
+        "UserPoolId": "string"
+      },
+      "property_enums": {}
+    },
     "AWS::Cognito::UserPoolDomain": {
       "properties": [
         "CloudFrontDistribution",
@@ -21536,6 +21554,29 @@
         "UserPoolId": "string"
       },
       "property_enums": {}
+    },
+    "AWS::Cognito::UserPoolSessionConfigurationAttachment": {
+      "properties": [
+        "TokenSession",
+        "UserPoolId",
+        "UserSessionTracking"
+      ],
+      "required": [
+        "UserPoolId",
+        "UserSessionTracking",
+        "TokenSession"
+      ],
+      "property_types": {
+        "TokenSession": "object",
+        "UserPoolId": "string",
+        "UserSessionTracking": "string"
+      },
+      "property_enums": {
+        "UserSessionTracking": [
+          "ENABLED",
+          "DISABLED"
+        ]
+      }
     },
     "AWS::Cognito::UserPoolUICustomizationAttachment": {
       "properties": [
@@ -39346,7 +39387,8 @@
         "RoleArn",
         "ServiceAccount",
         "Tags",
-        "TargetRoleArn"
+        "TargetRoleArn",
+        "WorkloadIdentityConfig"
       ],
       "required": [
         "ClusterName",
@@ -39365,7 +39407,8 @@
         "RoleArn": "string",
         "ServiceAccount": "string",
         "Tags": "array",
-        "TargetRoleArn": "string"
+        "TargetRoleArn": "string",
+        "WorkloadIdentityConfig": "object"
       },
       "property_enums": {},
       "property_constraints": {
@@ -53183,7 +53226,8 @@
         "Status": [
           "ENABLED",
           "IN_PROGRESS",
-          "DISABLED"
+          "DISABLED",
+          "ERROR"
         ]
       }
     },
@@ -63400,6 +63444,7 @@
         "DefinitionS3Location",
         "Description",
         "EncryptionConfiguration",
+        "Environment",
         "LoggingConfiguration",
         "ModifiedAt",
         "Name",
@@ -63423,6 +63468,7 @@
         "DefinitionS3Location": "object",
         "Description": "string",
         "EncryptionConfiguration": "object",
+        "Environment": "object",
         "LoggingConfiguration": "object",
         "ModifiedAt": "string",
         "Name": "string",
@@ -64096,6 +64142,7 @@
         "RemoteId",
         "RouterIntegrationState",
         "RouterIntegrationTransitEncryption",
+        "RtmpPushSettings",
         "SmoothingLatency",
         "StreamId",
         "Tags",
@@ -64125,6 +64172,7 @@
         "RemoteId": "string",
         "RouterIntegrationState": "string",
         "RouterIntegrationTransitEncryption": "object",
+        "RtmpPushSettings": "object",
         "SmoothingLatency": "integer",
         "StreamId": "string",
         "Tags": "array",
@@ -64149,7 +64197,8 @@
           "srt-caller",
           "st2110-jpegxs",
           "cdi",
-          "ndi-speed-hq"
+          "ndi-speed-hq",
+          "rtmp-push"
         ],
         "RouterIntegrationState": [
           "ENABLED",
@@ -64186,6 +64235,8 @@
         "MinLatency",
         "Name",
         "Protocol",
+        "RtmpPushDetails",
+        "RtmpPushSettings",
         "SenderControlPort",
         "SenderIpAddress",
         "SourceArn",
@@ -64215,6 +64266,8 @@
         "MinLatency": "integer",
         "Name": "string",
         "Protocol": "string",
+        "RtmpPushDetails": "object",
+        "RtmpPushSettings": "object",
         "SenderControlPort": "integer",
         "SenderIpAddress": "string",
         "SourceArn": "string",
@@ -64233,7 +64286,8 @@
           "rtp",
           "rist",
           "srt-listener",
-          "srt-caller"
+          "srt-caller",
+          "rtmp-push"
         ]
       },
       "property_constraints": {
@@ -67915,6 +67969,76 @@
         }
       }
     },
+    "AWS::NetworkFlowMonitor::PerformanceMonitor": {
+      "properties": [
+        "Arn",
+        "CreatedAt",
+        "ModifiedAt",
+        "MonitorName",
+        "MonitorStatus",
+        "MonitorType",
+        "ScopeArn",
+        "Tags",
+        "Targets"
+      ],
+      "required": [
+        "MonitorName",
+        "Targets"
+      ],
+      "property_types": {
+        "Arn": "string",
+        "CreatedAt": "string",
+        "ModifiedAt": "string",
+        "MonitorName": "string",
+        "MonitorStatus": "string",
+        "MonitorType": "string",
+        "ScopeArn": "string",
+        "Tags": "array",
+        "Targets": "array"
+      },
+      "property_enums": {
+        "MonitorStatus": [
+          "PENDING",
+          "ACTIVE",
+          "INACTIVE",
+          "ERROR",
+          "DELETING"
+        ],
+        "MonitorType": [
+          "VPC"
+        ]
+      },
+      "property_constraints": {
+        "Arn": {
+          "pattern": "^arn:.*$",
+          "minLength": 20,
+          "maxLength": 512
+        },
+        "CreatedAt": {
+          "format": "date-time"
+        },
+        "ModifiedAt": {
+          "format": "date-time"
+        },
+        "MonitorName": {
+          "pattern": "^[a-zA-Z0-9_.-]+$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "ScopeArn": {
+          "pattern": "^arn:.*$",
+          "minLength": 20,
+          "maxLength": 2048
+        },
+        "Tags": {
+          "maxItems": 200
+        },
+        "Targets": {
+          "minItems": 1,
+          "maxItems": 100
+        }
+      }
+    },
     "AWS::NetworkFlowMonitor::Scope": {
       "properties": [
         "ScopeArn",
@@ -68221,6 +68345,16 @@
       },
       "property_enums": {},
       "property_constraints": {
+        "Description": {
+          "pattern": "^[\\s\\S]*$",
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "GlobalNetworkId": {
+          "pattern": "^[\\s\\S]*$",
+          "minLength": 0,
+          "maxLength": 50
+        },
         "Tags": {
           "uniqueItems": true
         }
@@ -83736,6 +83870,38 @@
         "HostedZoneName"
       ]
     },
+    "AWS::Route53::RecordSetProtection": {
+      "properties": [
+        "Comment",
+        "HostedZoneId",
+        "RecordName",
+        "RecordType"
+      ],
+      "required": [
+        "HostedZoneId",
+        "RecordName",
+        "RecordType"
+      ],
+      "property_types": {
+        "Comment": "string",
+        "HostedZoneId": "string",
+        "RecordName": "string",
+        "RecordType": "string"
+      },
+      "property_enums": {},
+      "property_constraints": {
+        "Comment": {
+          "maxLength": 256
+        },
+        "HostedZoneId": {
+          "minLength": 1,
+          "maxLength": 44
+        },
+        "RecordName": {
+          "maxLength": 1024
+        }
+      }
+    },
     "AWS::Route53::TrafficPolicy": {
       "properties": [
         "Arn",
@@ -91568,6 +91734,84 @@
       },
       "property_enums": {}
     },
+    "AWS::SageMaker::Extension": {
+      "properties": [
+        "ClusterArn",
+        "ConfigurationValues",
+        "CreationTime",
+        "ExtensionArn",
+        "ExtensionName",
+        "ExtensionVersion",
+        "LastModifiedTime",
+        "NodeSummary",
+        "Status",
+        "Tags"
+      ],
+      "required": [
+        "ClusterArn",
+        "ExtensionName"
+      ],
+      "property_types": {
+        "ClusterArn": "string",
+        "ConfigurationValues": "string",
+        "CreationTime": "string",
+        "ExtensionArn": "string",
+        "ExtensionName": "string",
+        "ExtensionVersion": "string",
+        "LastModifiedTime": "string",
+        "NodeSummary": "object",
+        "Status": "string",
+        "Tags": "array"
+      },
+      "property_enums": {
+        "Status": [
+          "Creating",
+          "Active",
+          "CreateFailed",
+          "Updating",
+          "Deleting",
+          "DeleteFailed",
+          "Degraded",
+          "UpdateFailed"
+        ]
+      },
+      "property_constraints": {
+        "ClusterArn": {
+          "pattern": "^arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:cluster/[a-z0-9]{12}$",
+          "minLength": 0,
+          "maxLength": 256
+        },
+        "ConfigurationValues": {
+          "minLength": 1,
+          "maxLength": 10240
+        },
+        "CreationTime": {
+          "format": "date-time"
+        },
+        "ExtensionArn": {
+          "pattern": "^arn:aws[a-z\\-]*:sagemaker:[a-z0-9\\-]*:[0-9]{12}:extension/(sagemaker|eks|pcs)-[a-z0-9-]+/[a-z0-9-]+/[a-z0-9]+$",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "ExtensionName": {
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "ExtensionVersion": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "LastModifiedTime": {
+          "format": "date-time"
+        },
+        "Tags": {
+          "maxItems": 50,
+          "uniqueItems": true
+        }
+      }
+    },
     "AWS::SageMaker::FeatureGroup": {
       "properties": [
         "CreationTime",
@@ -95495,6 +95739,7 @@
     },
     "AWS::Serverless::Function": {
       "properties": [
+        "AcceleratorConfig",
         "Architectures",
         "AssumeRolePolicyDocument",
         "AutoPublishAlias",
@@ -102775,6 +103020,7 @@
       "property_enums": {},
       "property_constraints": {
         "Policy": {
+          "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\u00FF]+$",
           "minLength": 1,
           "maxLength": 51200
         },
