@@ -54,6 +54,12 @@ const TYPE_CHECK_EXEMPT_PATHS: &[(&str, &str)] = &[
     ("AWS::Lambda::Function", "Properties.Environment"),
 ];
 
+const LAMBDA_FUNCTION_TYPE: &str = "AWS::Lambda::Function";
+const LAMBDA_TIMEOUT_PROPERTY: &str = "Timeout";
+const LAMBDA_CAPACITY_PROVIDER_PROPERTY: &str = "CapacityProviderConfig";
+const LAMBDA_TIMEOUT_WITHOUT_CAPACITY_PROVIDER_MAXIMUM: f64 = 1800.0;
+const LAMBDA_TIMEOUT_WITHOUT_CAPACITY_PROVIDER_CONTEXT: &str = "for a function without CapacityProviderConfig";
+
 /// Returns true if the value is an unresolved or malformed intrinsic function:
 /// a JSON object with a single *known* function key (`Fn::<name>`, `Ref`,
 /// `Condition`, or an `Fn::ForEach::` loop key). Only known names are skipped -
@@ -193,6 +199,7 @@ pub fn validate_all_resources(
     let relevant: HashSet<&str> = model.resources_by_type.keys().map(String::as_str).collect();
 
     validate_lifecycle(&mut out, store, model);
+    validate_lambda_timeout_without_capacity_provider(&mut out, model);
 
     for rtype in &relevant {
         // Custom resources, modules, and SAM resources (rewritten by the SAM
@@ -3047,13 +3054,13 @@ struct ConditionalConstraintRule {
     rule_id: &'static str,
     /// Names the configuration under which the constraint applies, so the
     /// finding does not read as contradicting the unconditional schema bounds
-    /// (a Lambda `Timeout` of 901 is valid in general, just not for a function
+    /// (a Lambda `Timeout` of 1801 is valid in general, just not for a function
     /// without `CapacityProviderConfig`). `None` when the constraint itself
     /// says enough, as a pattern does.
     context: Option<&'static str>,
 }
 
-const CONDITIONAL_CONSTRAINT_RULES: [ConditionalConstraintRule; 9] = [
+const CONDITIONAL_CONSTRAINT_RULES: [ConditionalConstraintRule; 8] = [
     ConditionalConstraintRule {
         resource_type: "AWS::Cognito::UserPoolDomain",
         property_name: "Domain",
@@ -3083,12 +3090,6 @@ const CONDITIONAL_CONSTRAINT_RULES: [ConditionalConstraintRule; 9] = [
         property_name: "KeySchema",
         rule_id: "E3032",
         context: Some("for a table with local secondary indexes"),
-    },
-    ConditionalConstraintRule {
-        resource_type: "AWS::Lambda::Function",
-        property_name: "Timeout",
-        rule_id: "E3717",
-        context: Some("for a function without CapacityProviderConfig"),
     },
     ConditionalConstraintRule {
         resource_type: "AWS::ApiGateway::Authorizer",
@@ -3163,35 +3164,100 @@ fn validate_owned_conditional_value_constraints(
             continue;
         }
         let property_path = format!("{}.{}", base_path, property_name);
-        let mut reported_messages: HashSet<String> = HashSet::new();
-        for (value, conditions) in m.resolve_scenarios_json_shared(rid, &property_path).iter() {
-            if value.is_null()
-                || !is_satisfiable(m, conditions)
-                || !scenario_consistent_with_filter(m, conditions)
-                || defer_value_constraints(m, rid, &property_path, value, conditions)
-                || schema_value_matches(value, &constraint, defs, 0)
-            {
+        validate_conditional_constraint_values(
+            out,
+            m,
+            rid,
+            &property_path,
+            &constraint,
+            defs,
+            rule.rule_id,
+            rule.context,
+        );
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn validate_conditional_constraint_values(
+    out: &mut Vec<Diagnostic>,
+    m: &Arc<SemanticModel>,
+    rid: &str,
+    property_path: &str,
+    constraint: &PropSchema,
+    defs: &HashMap<String, PropSchema>,
+    rule_id: &str,
+    context: Option<&str>,
+) {
+    let mut reported_messages: HashSet<String> = HashSet::new();
+    for (value, conditions) in m.resolve_scenarios_json_shared(rid, property_path).iter() {
+        if value.is_null()
+            || !is_satisfiable(m, conditions)
+            || !scenario_consistent_with_filter(m, conditions)
+            || defer_value_constraints(m, rid, property_path, value, conditions)
+            || schema_value_matches(value, constraint, defs, 0)
+        {
+            continue;
+        }
+        let reasons = schema_value_failure_reasons(value, constraint, defs, 0, property_path);
+        let failure = render_composition_reasons(&reasons, property_path);
+        let message = match context {
+            Some(context) => format!("{failure} {context}"),
+            None => failure,
+        };
+        if reported_messages.insert(message.clone()) {
+            // The finding belongs to the world being decided, not only to the
+            // conditions on the value itself (a fixed value has none).
+            let world = merged_scenario_filter(conditions).unwrap_or_else(|| conditions.clone());
+            out.push(build_diagnostic_conditional(
+                rule_id,
+                &message,
+                m,
+                rid,
+                property_path,
+                None,
+                condition_map(&world),
+            ));
+        }
+    }
+}
+
+fn validate_lambda_timeout_without_capacity_provider(out: &mut Vec<Diagnostic>, m: &Arc<SemanticModel>) {
+    let timeout_constraint =
+        PropSchema { maximum: Some(LAMBDA_TIMEOUT_WITHOUT_CAPACITY_PROVIDER_MAXIMUM), ..Default::default() };
+    let definitions = HashMap::new();
+    let timeout_path = format!("{KEY_PROPERTIES}.{LAMBDA_TIMEOUT_PROPERTY}");
+    let capacity_provider_path = format!("{KEY_PROPERTIES}.{LAMBDA_CAPACITY_PROVIDER_PROPERTY}");
+    let property_paths = [timeout_path.as_str(), capacity_provider_path.as_str()];
+
+    for resource_type in [LAMBDA_FUNCTION_TYPE, SAM_FUNCTION_TYPE] {
+        for rid in m.resources_of_type(resource_type) {
+            if !is_valid_logical_id(rid) {
                 continue;
             }
-            let reasons = schema_value_failure_reasons(value, &constraint, defs, 0, &property_path);
-            let failure = render_composition_reasons(&reasons, &property_path);
-            let message = match rule.context {
-                Some(context) => format!("{failure} {context}"),
-                None => failure,
+            let Some(resource) = m.resources.get(rid.as_str()) else {
+                continue;
             };
-            if reported_messages.insert(message.clone()) {
-                // The finding belongs to the world being decided, not only to the
-                // conditions on the value itself (a fixed value has none).
-                let world = merged_scenario_filter(conditions).unwrap_or_else(|| conditions.clone());
-                out.push(build_diagnostic_conditional(
-                    rule.rule_id,
-                    &message,
+            let Some(assignments) = property_scenario_assignments(m, rid, &property_paths) else {
+                continue;
+            };
+
+            for assignment in assignments {
+                let _scenario_filter_scope = ScenarioFilterScope::enter(assignment.clone());
+                let has_capacity_provider = resource.properties.contains_key(LAMBDA_CAPACITY_PROVIDER_PROPERTY)
+                    && property_present_under(m, rid, KEY_PROPERTIES, LAMBDA_CAPACITY_PROVIDER_PROPERTY, &assignment);
+                if has_capacity_provider {
+                    continue;
+                }
+                validate_conditional_constraint_values(
+                    out,
                     m,
                     rid,
-                    &property_path,
-                    None,
-                    condition_map(&world),
-                ));
+                    &timeout_path,
+                    &timeout_constraint,
+                    &definitions,
+                    "E3717",
+                    Some(LAMBDA_TIMEOUT_WITHOUT_CAPACITY_PROVIDER_CONTEXT),
+                );
             }
         }
     }
@@ -6371,21 +6437,39 @@ mod tests {
             "allOf": [
                 {
                     "if": { "not": { "required": ["CapacityProviderConfig"] } },
-                    "then": { "properties": { "Timeout": { "maximum": 900 } } }
+                    "then": { "properties": { "Timeout": { "maximum": 1800 } } }
                 }
             ]
         })
     }
 
     #[test]
-    fn lambda_timeout_above_900_is_reported_only_without_a_capacity_provider() {
+    fn lambda_and_sam_timeouts_above_1800_are_reported_only_without_a_capacity_provider() {
         let template = json!({
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Parameters": { "FunctionTimeout": { "Type": "Number" } },
             "Resources": {
-                "TooLong": { "Type": "AWS::Lambda::Function", "Properties": { "Timeout": 901 } },
-                "AtTheLimit": { "Type": "AWS::Lambda::Function", "Properties": { "Timeout": 900 } },
-                "ManagedInstances": {
+                "LambdaTooLong": { "Type": "AWS::Lambda::Function", "Properties": { "Timeout": 1801 } },
+                "LambdaAtTheLimit": { "Type": "AWS::Lambda::Function", "Properties": { "Timeout": 1800 } },
+                "LambdaAboveTheOldLimit": { "Type": "AWS::Lambda::Function", "Properties": { "Timeout": 901 } },
+                "LambdaManagedInstances": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": { "Timeout": 901, "CapacityProviderConfig": { "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/x" } }
+                    "Properties": { "Timeout": 5400, "CapacityProviderConfig": { "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/x" } }
+                },
+                "LambdaUnresolved": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": { "Timeout": { "Ref": "FunctionTimeout" } }
+                },
+                "SamTooLong": { "Type": "AWS::Serverless::Function", "Properties": { "Timeout": 1801 } },
+                "SamAtTheLimit": { "Type": "AWS::Serverless::Function", "Properties": { "Timeout": 1800 } },
+                "SamAboveTheOldLimit": { "Type": "AWS::Serverless::Function", "Properties": { "Timeout": 901 } },
+                "SamManagedInstances": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": { "Timeout": 5400, "CapacityProviderConfig": { "Arn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/x" } }
+                },
+                "SamUnresolved": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": { "Timeout": { "Ref": "FunctionTimeout" } }
                 }
             }
         });
@@ -6396,15 +6480,63 @@ mod tests {
 
         assert_eq!(
             findings_by_resource(&diagnostics, "E3717"),
-            vec![(
-                "TooLong".to_string(),
-                "901 exceeds maximum 900 for a function without CapacityProviderConfig".to_string()
-            )]
+            vec![
+                (
+                    "LambdaTooLong".to_string(),
+                    "1801 exceeds maximum 1800 for a function without CapacityProviderConfig".to_string()
+                ),
+                (
+                    "SamTooLong".to_string(),
+                    "1801 exceeds maximum 1800 for a function without CapacityProviderConfig".to_string()
+                ),
+            ]
         );
         assert!(
-            diagnostics.iter().all(|d| d.rule_id != "F3034"),
+            diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E3717").all(|diagnostic| {
+                diagnostic.severity == rules::Severity::Error
+                    && diagnostic.property_path.as_deref() == Some("Properties.Timeout")
+            }),
+            "timeout findings use the registered severity and point to Timeout: {diagnostics:?}"
+        );
+        assert!(
+            diagnostics.iter().all(|diagnostic| diagnostic.rule_id != "F3034"),
             "the unconditional 5400 bound is not exceeded, so no Fatal bound finding: {diagnostics:?}"
         );
+    }
+
+    #[test]
+    fn conditional_capacity_provider_presence_selects_the_timeout_limit_per_world() {
+        let managed_instances_config =
+            json!({ "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/x" });
+        let conditional_config =
+            json!({ "Fn::If": ["UseManagedInstances", managed_instances_config, { "Ref": "AWS::NoValue" }] });
+        let template = json!({
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Conditions": {
+                "UseManagedInstances": { "Fn::Equals": [{ "Ref": "AWS::Region" }, "us-east-1"] }
+            },
+            "Resources": {
+                "ConditionalLambda": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": { "Timeout": 3600, "CapacityProviderConfig": conditional_config.clone() }
+                },
+                "ConditionalSam": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": { "Timeout": 3600, "CapacityProviderConfig": conditional_config }
+                }
+            }
+        });
+        let diagnostics = diagnostics_for_template(
+            &store_with_bundled_schema("AWS::Lambda::Function", lambda_function_schema()),
+            template,
+        );
+        let timeout_findings: Vec<&Diagnostic> =
+            diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E3717").collect();
+
+        assert_eq!(timeout_findings.len(), 2, "one absent-capacity-provider world per function: {diagnostics:?}");
+        assert!(timeout_findings.iter().all(|diagnostic| {
+            diagnostic.condition_scenario == Some(HashMap::from([("UseManagedInstances".to_string(), false)]))
+        }));
     }
 
     fn network_interface_schema_with_value_qualified_exclusion() -> serde_json::Value {
@@ -6524,13 +6656,14 @@ mod tests {
     /// per-setting condition can never hold, and the DB cluster monitoring
     /// interval is one half of a two-way co-dependency; both are evaluated by
     /// native rules instead.
-    const CONSTRAINTS_OWNED_BY_DEDICATED_RULES: [(&str, &str); 7] = [
+    const CONSTRAINTS_OWNED_BY_DEDICATED_RULES: [(&str, &str); 8] = [
         ("AWS::ApiGateway::Stage", "ResourcePath"),
         ("AWS::EC2::Instance", "VirtualName"),
         ("AWS::ECS::Service", "SchedulingStrategy"),
         ("AWS::ElasticLoadBalancingV2::LoadBalancer", "SubnetMappings"),
         ("AWS::ElasticLoadBalancingV2::LoadBalancer", "Subnets"),
         ("AWS::Lambda::Function", "Runtime"),
+        ("AWS::Lambda::Function", "Timeout"),
         ("AWS::RDS::DBCluster", "MonitoringInterval"),
     ];
 

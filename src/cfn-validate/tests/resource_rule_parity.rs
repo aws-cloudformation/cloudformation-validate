@@ -2501,6 +2501,14 @@ fn conditional_value_constraints_report_under_their_owning_rules() {
     assert_eq!(rego_findings, cel_findings, "conditional constraint diagnostics must be identical");
     assert!(
         rego_findings.iter().any(|finding| {
+            finding.starts_with("E3717|")
+                && finding.contains("|TimeoutWithoutCapacityProvider|Properties.Timeout|")
+                && finding.contains("1801 exceeds maximum 1800 for a function without CapacityProviderConfig")
+        }),
+        "{rego_findings:?}"
+    );
+    assert!(
+        rego_findings.iter().any(|finding| {
             finding.starts_with("E3718|")
                 && finding.contains("|TokenAuthorizerTtlTooLong|Properties.AuthorizerResultTtlInSeconds|")
                 && finding.contains("4000 exceeds maximum 3600 for a TOKEN or REQUEST authorizer")
@@ -2538,6 +2546,44 @@ fn conditional_value_constraints_stay_silent_within_limits_and_outside_their_con
     let cel_findings = selected_findings(&cel, template, &rule_ids);
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "values within the conditional limits must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn lambda_timeout_boundary_and_serverless_limit_are_enforced() {
+    let template = r#"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  LambdaAtMaximum:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: arn:aws:iam::123456789012:role/test-role
+      Runtime: python3.12
+      Handler: index.handler
+      Code:
+        S3Bucket: my-deployment-bucket
+        S3Key: function.zip
+      Timeout: 1800
+  ServerlessFunctionAboveMaximum:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      InlineCode: |
+        def handler(event, context):
+            return {}
+      Timeout: 1801
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3717"]);
+    let cel_findings = selected_findings(&cel, template, &["E3717"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 1, "only the Serverless function above 1800 is invalid: {rego_findings:?}");
+    assert!(
+        rego_findings[0].contains("|ServerlessFunctionAboveMaximum|Properties.Timeout|")
+            && rego_findings[0].contains("1801 exceeds maximum 1800 for a function without CapacityProviderConfig"),
+        "{rego_findings:?}"
+    );
 }
 
 #[test]
