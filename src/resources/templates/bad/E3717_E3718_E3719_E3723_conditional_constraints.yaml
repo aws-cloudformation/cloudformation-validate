@@ -22,7 +22,7 @@ Resources:
       Code:
         S3Bucket: my-deployment-bucket
         S3Key: function.zip
-      Timeout: 901
+      Timeout: 1801
   RestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:

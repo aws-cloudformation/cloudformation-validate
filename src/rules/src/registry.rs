@@ -2003,7 +2003,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E3717",
         category: Category::Resource,
-        description: "Lambda function Timeout may exceed 900 seconds only with CapacityProviderConfig",
+        description: "Lambda function Timeout may exceed 1800 seconds only with CapacityProviderConfig",
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
