@@ -921,6 +921,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "E9015",
+        category: Category::Resource,
+        description: "S3 lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "E3047",
         category: Category::Resource,
         description: "Validate ECS Fargate tasks have the right combination of CPU and memory",

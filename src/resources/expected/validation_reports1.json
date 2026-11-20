@@ -9556,6 +9556,125 @@
       }
     ]
   },
+  "bad/E9015_s3_lifecycle_empty_object_size_range.yaml": {
+    "filePath": "bad/E9015_s3_lifecycle_empty_object_size_range.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1000 must be greater than ObjectSizeGreaterThan 1000",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 16,
+        "startColumn": 13,
+        "endLine": 16,
+        "endColumn": 31,
+        "ruleDescription": "S3 lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1024 must be greater than ObjectSizeGreaterThan 2048",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 26,
+        "startColumn": 13,
+        "endLine": 26,
+        "endColumn": 31,
+        "ruleDescription": "S3 lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1048576 must be greater than ObjectSizeGreaterThan 10485760",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringBoundsBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 36,
+        "startColumn": 13,
+        "endLine": 36,
+        "endColumn": 31,
+        "ruleDescription": "S3 lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 5,
+        "endLine": 9,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'StringBoundsBucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StringBoundsBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 29,
+        "startColumn": 5,
+        "endLine": 29,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E9106_condition_cycle.yaml": {
     "filePath": "bad/E9106_condition_cycle.yaml",
     "status": "OK",
