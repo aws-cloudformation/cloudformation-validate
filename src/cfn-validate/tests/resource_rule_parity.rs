@@ -2374,6 +2374,39 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn empty_s3_lifecycle_object_size_ranges_are_reported_per_rule() {
+    let template = include_str!("../../resources/templates/bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings, "empty size range diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 3, "equal, inverted and inverted string bounds: {rego_findings:?}");
+    assert!(
+        rego_findings
+            .iter()
+            .any(|finding| finding.contains("|Bucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|"))
+    );
+    assert!(
+        rego_findings
+            .iter()
+            .any(|finding| finding.contains("|Bucket|Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan|"))
+    );
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|StringBoundsBucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|")
+    }));
+}
+
+#[test]
+fn ascending_single_and_parameter_s3_lifecycle_object_sizes_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9015_s3_lifecycle_object_size_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "no size range here is provably empty: {rego_findings:?}");
+}
+
+#[test]
 fn invalid_event_patterns_have_identical_precise_diagnostics() {
     let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
     let (rego, cel) = engines();

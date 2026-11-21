@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Lifecycle object size ranges that are not provably empty: ascending bounds,
+  a single bound, and a bound that is only known at deployment.
+Parameters:
+  MaxObjectSize:
+    Type: Number
+    Default: 100
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: AscendingBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "999"
+            ObjectSizeLessThan: "1000"
+          - Id: AscendingStringBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1048576"
+            ObjectSizeLessThan: "10485760"
+          - Id: LowerBoundOnly
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1000"
+          - Id: UpperBoundOnly
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeLessThan: "1000"
+          - Id: ParameterBound
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1000"
+            ObjectSizeLessThan: !Ref MaxObjectSize

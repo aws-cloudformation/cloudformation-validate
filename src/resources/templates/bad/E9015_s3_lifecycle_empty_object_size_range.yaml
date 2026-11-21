@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  S3 rejects a lifecycle rule whose object size range is empty: an equal pair,
+  an inverted pair, and an inverted pair authored as strings. The ascending
+  rule in the same bucket is valid.
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: EqualBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1000"
+            ObjectSizeLessThan: "1000"
+          - Id: AscendingBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "999"
+            ObjectSizeLessThan: "1000"
+          - Id: InvertedBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "2048"
+            ObjectSizeLessThan: "1024"
+  StringBoundsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: InvertedStringBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "10485760"
+            ObjectSizeLessThan: "1048576"
