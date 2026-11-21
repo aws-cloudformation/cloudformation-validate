@@ -923,7 +923,7 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
     RuleDefinition {
         id: "E9015",
         category: Category::Resource,
-        description: "S3 lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        description: "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {

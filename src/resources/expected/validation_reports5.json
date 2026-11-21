@@ -32230,12 +32230,12 @@
     "filePath": "good/E9015_s3_lifecycle_object_size_ranges.yaml",
     "status": "OK",
     "metadata": {
-      "resourcesScanned": 1,
+      "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
         "errors": 0,
         "warnings": 0,
-        "informational": 1,
+        "informational": 4,
         "debug": 0
       },
       "suppressed": 0,
@@ -32243,6 +32243,50 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DataRedundancy' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.DataRedundancy",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LocationName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LocationName",
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 7,
+        "endLine": 49,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
       {
         "ruleId": "I9040",
         "severity": "INFO",
@@ -32256,9 +32300,29 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 12,
+        "startLine": 19,
         "startColumn": 5,
-        "endLine": 12,
+        "endLine": 19,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DirectoryBucket' of type 'AWS::S3Express::DirectoryBucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 47,
+        "startColumn": 5,
+        "endLine": 47,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

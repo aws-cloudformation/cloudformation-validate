@@ -898,10 +898,19 @@ fn sg_inverted_port_range(
     (from_port > to_port).then_some((from_port, to_port))
 }
 
-/// S3 matches objects strictly larger than ObjectSizeGreaterThan and strictly
-/// smaller than ObjectSizeLessThan, and rejects a lifecycle rule whose range is
-/// empty. Sizes are usually authored as strings, so they are compared as
-/// coerced integers.
+const S3_LIFECYCLE_OBJECT_SIZE_RESOURCE_TYPES: [&str; 2] = ["AWS::S3::Bucket", "AWS::S3Express::DirectoryBucket"];
+
+const S3_LIFECYCLE_EMPTY_OBJECT_SIZE_RANGE_FIX: &str =
+    "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan";
+
+fn s3_lifecycle_empty_object_size_range_message(greater_than: i64, less_than: i64) -> String {
+    format!("ObjectSizeLessThan {} must be greater than ObjectSizeGreaterThan {}", less_than, greater_than)
+}
+
+/// S3 applies a lifecycle rule only to objects strictly larger than
+/// ObjectSizeGreaterThan and strictly smaller than ObjectSizeLessThan, and
+/// rejects a rule whose range is empty. Sizes are usually authored as strings,
+/// so they are compared as coerced integers rather than lexically.
 fn s3_lifecycle_empty_object_size_range(
     greater_than: Option<&serde_json::Value>,
     less_than: Option<&serde_json::Value>,
@@ -911,12 +920,12 @@ fn s3_lifecycle_empty_object_size_range(
     (greater_than >= less_than).then_some((greater_than, less_than))
 }
 
-fn s3_lifecycle_empty_object_size_range_message(greater_than: i64, less_than: i64) -> String {
-    format!("ObjectSizeLessThan {} must be greater than ObjectSizeGreaterThan {}", less_than, greater_than)
+/// A size sourced from a parameter or intrinsic can vary at deployment, so a
+/// parameter default or one branch of a condition is not folded into the
+/// comparison.
+fn s3_lifecycle_object_size_is_literal(model: &SemanticModel, resource_id: &str, path: &str) -> bool {
+    !model.is_from_parameter(resource_id, path) && !model.is_from_intrinsic(resource_id, path)
 }
-
-const S3_LIFECYCLE_EMPTY_OBJECT_SIZE_RANGE_FIX: &str =
-    "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan";
 
 /// Protocols whose FromPort/ToPort must be present: TCP and UDP take a port
 /// range and ICMP takes a type/code pair. ICMPv6 is deliberately absent - its
@@ -1074,39 +1083,40 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
         }
     }
 
-    for name in m.resources_of_type("AWS::S3::Bucket") {
-        let Some(rules) = input
-            .get(FIELD_RESOURCES)
-            .and_then(|resources| resources.get(name.as_str()))
-            .and_then(|r| r.get(FIELD_PROPERTIES))
-            .and_then(|properties| properties.get("LifecycleConfiguration"))
-            .and_then(|configuration| configuration.get("Rules"))
-            .and_then(|rules| rules.as_array())
-        else {
-            continue;
-        };
-        for (idx, rule) in rules.iter().enumerate() {
-            let greater_than_path = format!("Properties.LifecycleConfiguration.Rules.{}.ObjectSizeGreaterThan", idx);
-            let less_than_path = format!("Properties.LifecycleConfiguration.Rules.{}.ObjectSizeLessThan", idx);
-            // A size supplied by a parameter or another intrinsic is only known at
-            // deployment, so its default is not folded into the comparison.
-            let both_sizes_are_literal = [&greater_than_path, &less_than_path]
-                .iter()
-                .all(|path| !m.is_from_parameter(name, path) && !m.is_from_intrinsic(name, path));
-            if !both_sizes_are_literal {
+    for resource_type in S3_LIFECYCLE_OBJECT_SIZE_RESOURCE_TYPES {
+        for name in m.resources_of_type(resource_type) {
+            let Some(lifecycle_rules) = input
+                .get(FIELD_RESOURCES)
+                .and_then(|resources| resources.get(name.as_str()))
+                .and_then(|r| r.get(FIELD_PROPERTIES))
+                .and_then(|properties| properties.get("LifecycleConfiguration"))
+                .and_then(|configuration| configuration.get("Rules"))
+                .and_then(|rules| rules.as_array())
+            else {
                 continue;
-            }
-            if let Some((greater_than, less_than)) =
-                s3_lifecycle_empty_object_size_range(rule.get("ObjectSizeGreaterThan"), rule.get("ObjectSizeLessThan"))
-            {
-                out.push(make_resource_diagnostic(
-                    "E9015",
-                    &s3_lifecycle_empty_object_size_range_message(greater_than, less_than),
-                    m,
-                    name,
-                    &less_than_path,
-                    Some(S3_LIFECYCLE_EMPTY_OBJECT_SIZE_RANGE_FIX),
-                ));
+            };
+            for (idx, lifecycle_rule) in lifecycle_rules.iter().enumerate() {
+                let greater_than_path =
+                    format!("Properties.LifecycleConfiguration.Rules.{}.ObjectSizeGreaterThan", idx);
+                let less_than_path = format!("Properties.LifecycleConfiguration.Rules.{}.ObjectSizeLessThan", idx);
+                if !s3_lifecycle_object_size_is_literal(m, name, &greater_than_path)
+                    || !s3_lifecycle_object_size_is_literal(m, name, &less_than_path)
+                {
+                    continue;
+                }
+                if let Some((greater_than, less_than)) = s3_lifecycle_empty_object_size_range(
+                    lifecycle_rule.get("ObjectSizeGreaterThan"),
+                    lifecycle_rule.get("ObjectSizeLessThan"),
+                ) {
+                    out.push(make_resource_diagnostic(
+                        "E9015",
+                        &s3_lifecycle_empty_object_size_range_message(greater_than, less_than),
+                        m,
+                        name,
+                        &less_than_path,
+                        Some(S3_LIFECYCLE_EMPTY_OBJECT_SIZE_RANGE_FIX),
+                    ));
+                }
             }
         }
     }
