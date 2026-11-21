@@ -13,8 +13,7 @@ _lambda_log_level_property(name) := "SystemLogLevel" if {
     has_property(name, "Properties.LoggingConfig.SystemLogLevel")
 }
 
-violation contains make_diag_full(
-    "E3696",
+violation contains make_diag_full("E3696",
     "ERROR",
     name,
     property_path,
