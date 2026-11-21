@@ -1149,6 +1149,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::CfnLint,
     },
     RuleDefinition {
+        id: "E3696",
+        category: Category::Resource,
+        description: "Lambda log levels are not supported with text log format",
+        origin: RuleOrigin::CfnLint,
+    },
+    RuleDefinition {
         id: "E9006",
         category: Category::Schema,
         description: "Property value not valid for conditional extension enum",

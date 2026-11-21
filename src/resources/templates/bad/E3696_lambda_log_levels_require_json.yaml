@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda log-level filtering fails when the effective log format is text.
+Parameters:
+  TextFormat:
+    Type: String
+    AllowedValues: [Text]
+  Environment:
+    Type: String
+    AllowedValues: [development, production]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  ApplicationText:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: Text
+        ApplicationLogLevel: INFO
+  SystemText:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: Text
+        SystemLogLevel: WARN
+  BothLevelsText:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: Text
+        ApplicationLogLevel: INFO
+        SystemLogLevel: WARN
+  ParameterRestrictedToText:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: !Ref TextFormat
+        ApplicationLogLevel: INFO
+  ConditionalFormat:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: !If [IsProduction, Text, JSON]
+        ApplicationLogLevel: INFO
+  ConditionalLevel:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: Text
+        SystemLogLevel: !If [IsProduction, WARN, !Ref AWS::NoValue]
+  ServerlessApplicationText:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://example-bucket/function.zip
+      LoggingConfig:
+        LogFormat: Text
+        ApplicationLogLevel: INFO
+  ServerlessSystemText:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://example-bucket/function.zip
+      LoggingConfig:
+        LogFormat: Text
+        SystemLogLevel: WARN

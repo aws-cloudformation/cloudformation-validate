@@ -6488,6 +6488,305 @@
       }
     ]
   },
+  "bad/E3696_lambda_log_levels_require_json.yaml": {
+    "filePath": "bad/E3696_lambda_log_levels_require_json.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 8,
+      "counts": {
+        "fatal": 0,
+        "errors": 6,
+        "warnings": 0,
+        "informational": 8,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E3696",
+        "severity": "ERROR",
+        "message": "ApplicationLogLevel is not supported when LoggingConfig.LogFormat is 'Text'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ApplicationText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.LoggingConfig.ApplicationLogLevel",
+        "suggestedFix": "Set LoggingConfig.LogFormat to 'JSON' or remove ApplicationLogLevel",
+        "category": "Resource",
+        "startLine": 23,
+        "startColumn": 9,
+        "endLine": 23,
+        "endColumn": 28,
+        "ruleDescription": "Lambda log levels are not supported with text log format",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3696",
+        "severity": "ERROR",
+        "message": "SystemLogLevel is not supported when LoggingConfig.LogFormat is 'Text'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "SystemText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.LoggingConfig.SystemLogLevel",
+        "suggestedFix": "Set LoggingConfig.LogFormat to 'JSON' or remove SystemLogLevel",
+        "category": "Resource",
+        "startLine": 33,
+        "startColumn": 9,
+        "endLine": 33,
+        "endColumn": 23,
+        "ruleDescription": "Lambda log levels are not supported with text log format",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3696",
+        "severity": "ERROR",
+        "message": "ApplicationLogLevel is not supported when LoggingConfig.LogFormat is 'Text'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "BothLevelsText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.LoggingConfig.ApplicationLogLevel",
+        "suggestedFix": "Set LoggingConfig.LogFormat to 'JSON' or remove ApplicationLogLevel",
+        "category": "Resource",
+        "startLine": 43,
+        "startColumn": 9,
+        "endLine": 43,
+        "endColumn": 28,
+        "ruleDescription": "Lambda log levels are not supported with text log format",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3696",
+        "severity": "ERROR",
+        "message": "SystemLogLevel is not supported when LoggingConfig.LogFormat is 'Text'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ConditionalLevel",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.LoggingConfig.SystemLogLevel",
+        "suggestedFix": "Set LoggingConfig.LogFormat to 'JSON' or remove SystemLogLevel",
+        "category": "Resource",
+        "startLine": 74,
+        "startColumn": 9,
+        "endLine": 74,
+        "endColumn": 23,
+        "ruleDescription": "Lambda log levels are not supported with text log format",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3696",
+        "severity": "ERROR",
+        "message": "ApplicationLogLevel is not supported when LoggingConfig.LogFormat is 'Text'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ServerlessApplicationText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Function"
+        },
+        "propertyPath": "Properties.LoggingConfig.ApplicationLogLevel",
+        "suggestedFix": "Set LoggingConfig.LogFormat to 'JSON' or remove ApplicationLogLevel",
+        "category": "Resource",
+        "startLine": 83,
+        "startColumn": 9,
+        "endLine": 83,
+        "endColumn": 28,
+        "ruleDescription": "Lambda log levels are not supported with text log format",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3696",
+        "severity": "ERROR",
+        "message": "SystemLogLevel is not supported when LoggingConfig.LogFormat is 'Text'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ServerlessSystemText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Function"
+        },
+        "propertyPath": "Properties.LoggingConfig.SystemLogLevel",
+        "suggestedFix": "Set LoggingConfig.LogFormat to 'JSON' or remove SystemLogLevel",
+        "category": "Resource",
+        "startLine": 92,
+        "startColumn": 9,
+        "endLine": 92,
+        "endColumn": 23,
+        "ruleDescription": "Lambda log levels are not supported with text log format",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ApplicationText' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ApplicationText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SystemText' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SystemText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 5,
+        "endLine": 26,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'BothLevelsText' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "BothLevelsText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 36,
+        "startColumn": 5,
+        "endLine": 36,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ParameterRestrictedToText' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ParameterRestrictedToText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 47,
+        "startColumn": 5,
+        "endLine": 47,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalFormat' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalFormat",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 57,
+        "startColumn": 5,
+        "endLine": 57,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalLevel' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalLevel",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 67,
+        "startColumn": 5,
+        "endLine": 67,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ServerlessApplicationText' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ServerlessApplicationText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 77,
+        "startColumn": 5,
+        "endLine": 77,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ServerlessSystemText' of type 'AWS::Serverless::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ServerlessSystemText",
+          "entityType": "Resource",
+          "resourceType": "AWS::Serverless::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 86,
+        "startColumn": 5,
+        "endLine": 86,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E3699_authorizer_literal_and_param_rest_api.yaml": {
     "filePath": "bad/E3699_authorizer_literal_and_param_rest_api.yaml",
     "status": "OK",
@@ -24081,83 +24380,6 @@
         "endLine": 87,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/deprecated_type.yaml": {
-    "filePath": "bad/deprecated_type.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 1,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W9009",
-        "severity": "WARN",
-        "message": "Resource type 'AWS::SDB::Domain' is deprecated - consider using a newer alternative",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Domain",
-          "entityType": "Resource",
-          "resourceType": "AWS::SDB::Domain"
-        },
-        "suggestedFix": "Replace AWS::SDB::Domain with a supported alternative",
-        "category": "Deprecation",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Resource type sunset or shutdown",
-        "phase": "LINT",
-        "context": {
-          "lifecycle": "deprecated"
-        }
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Domain",
-          "entityType": "Resource",
-          "resourceType": "AWS::SDB::Domain"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Domain",
-          "entityType": "Resource",
-          "resourceType": "AWS::SDB::Domain"
-        },
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 9,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
         "phase": "LINT"
       }
     ]
