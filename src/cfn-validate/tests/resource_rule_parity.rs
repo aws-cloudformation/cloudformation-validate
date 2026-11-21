@@ -3736,3 +3736,199 @@ Resources:
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "required object members do not apply to scalar list items");
 }
+
+#[test]
+fn lambda_log_levels_reject_text_for_lambda_and_serverless_functions() {
+    let template = include_str!("../../resources/templates/bad/E3696_lambda_log_levels_require_json.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3696"]);
+    let cel_findings = selected_findings(&cel, template, &["E3696"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 6, "each expected log-level conflict must be reported");
+    for (resource_id, level_property) in [
+        ("ApplicationText", "ApplicationLogLevel"),
+        ("SystemText", "SystemLogLevel"),
+        ("BothLevelsText", "ApplicationLogLevel"),
+        ("ConditionalLevel", "SystemLogLevel"),
+        ("ServerlessApplicationText", "ApplicationLogLevel"),
+        ("ServerlessSystemText", "SystemLogLevel"),
+    ] {
+        assert!(
+            rego_findings
+                .iter()
+                .any(|finding| finding.contains(&format!("|{resource_id}|Properties.LoggingConfig.{level_property}|"))),
+            "missing finding for {resource_id}: {rego_findings:?}"
+        );
+    }
+}
+
+#[test]
+fn lambda_log_levels_allow_non_text_configurations() {
+    let template = include_str!("../../resources/templates/good/E3696_lambda_log_levels_json.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3696"]);
+    let cel_findings = selected_findings(&cel, template, &["E3696"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "non-text logging configurations must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn lambda_log_level_validation_ignores_conditional_properties_in_both_branch_orders() {
+    let template = r#"
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [development, production]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  TextFirst:
+    Type: AWS::Lambda::Function
+    Properties: !If
+      - IsProduction
+      - LoggingConfig:
+          LogFormat: Text
+          ApplicationLogLevel: INFO
+      - LoggingConfig:
+          LogFormat: JSON
+          ApplicationLogLevel: INFO
+  TextSecond:
+    Type: AWS::Lambda::Function
+    Properties: !If
+      - IsProduction
+      - LoggingConfig:
+          LogFormat: JSON
+          ApplicationLogLevel: INFO
+      - LoggingConfig:
+          LogFormat: Text
+          ApplicationLogLevel: INFO
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3696"]);
+    let cel_findings = selected_findings(&cel, template, &["E3696"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "conditional properties must not depend on branch order: {rego_findings:?}");
+}
+
+#[test]
+fn lambda_log_level_validation_depends_only_on_explicit_text_format() {
+    let template = r#"
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  FlexibleFormat:
+    Type: String
+    AllowedValues: [Text, JSON]
+  UnknownFormat:
+    Type: String
+  Environment:
+    Type: String
+    AllowedValues: [managed, standard]
+Conditions:
+  UseManagedInstances: !Equals [!Ref Environment, managed]
+Resources:
+  ParameterFormat:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: !Ref FlexibleFormat
+        ApplicationLogLevel: INFO
+  UnknownParameterFormat:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: !Ref UnknownFormat
+        SystemLogLevel: WARN
+  OmittedFormat:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        ApplicationLogLevel: INFO
+        SystemLogLevel: WARN
+  ServerlessOmittedFormat:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://example-bucket/function.zip
+      LoggingConfig:
+        SystemLogLevel: WARN
+  ManagedInstances:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      CapacityProviderConfig:
+        LambdaManagedInstancesCapacityProviderConfig:
+          CapacityProviderArn: arn:aws:lambda:us-east-1:123456789012:capacity-provider:example
+      LoggingConfig:
+        LogFormat: Text
+        ApplicationLogLevel: INFO
+        SystemLogLevel: WARN
+  ServerlessManagedInstances:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://example-bucket/function.zip
+      CapacityProviderConfig:
+        Arn: arn:aws:lambda:us-east-1:123456789012:capacity-provider:example
+      LoggingConfig:
+        LogFormat: Text
+        ApplicationLogLevel: INFO
+        SystemLogLevel: WARN
+  ConditionalCapacityProvider:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: arn:aws:iam::123456789012:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      CapacityProviderConfig: !If
+        - UseManagedInstances
+        - LambdaManagedInstancesCapacityProviderConfig:
+            CapacityProviderArn: arn:aws:lambda:us-east-1:123456789012:capacity-provider:example
+        - !Ref AWS::NoValue
+      LoggingConfig:
+        LogFormat: Text
+        ApplicationLogLevel: INFO
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E3696"]);
+    let cel_findings = selected_findings(&cel, template, &["E3696"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(rego_findings.len(), 3, "each expected text-format conflict must be reported once");
+    for resource_id in ["ManagedInstances", "ServerlessManagedInstances", "ConditionalCapacityProvider"] {
+        assert_eq!(
+            rego_findings.iter().filter(|finding| finding.contains(&format!("|{resource_id}|"))).count(),
+            1,
+            "unexpected findings for {resource_id}: {rego_findings:?}"
+        );
+    }
+    assert!(
+        rego_findings.iter().all(|finding| finding.contains("|Properties.LoggingConfig.ApplicationLogLevel|")),
+        "ApplicationLogLevel must be selected when both log levels are present: {rego_findings:?}"
+    );
+    assert!(
+        rego_findings.iter().all(|finding| !finding.contains("UseManagedInstances")),
+        "capacity-provider conditions do not affect text log-format validation: {rego_findings:?}"
+    );
+}

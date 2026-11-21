@@ -220,6 +220,11 @@ fn snapstart_runtime_supported(
 const SNAPSTART_APPLY_ON_PATH: &str = "Properties.SnapStart.ApplyOn";
 const SNAPSTART_PUBLISHED_VERSIONS: &str = "PublishedVersions";
 const LAMBDA_VERSION_TYPE: &str = "AWS::Lambda::Version";
+const LAMBDA_LOGGING_RESOURCE_TYPES: [&str; 2] = ["AWS::Lambda::Function", "AWS::Serverless::Function"];
+const LAMBDA_LOG_LEVEL_PROPERTIES: [&str; 2] = ["ApplicationLogLevel", "SystemLogLevel"];
+const LAMBDA_LOGGING_CONFIG_PROPERTY: &str = "LoggingConfig";
+const LAMBDA_LOG_FORMAT_PROPERTY: &str = "LogFormat";
+const LAMBDA_TEXT_LOG_FORMAT: &str = "Text";
 
 /// A reference's branch context lists the `Fn::If` conditions enclosing it,
 /// separated by commas, with a false branch marked by a leading `!`.
@@ -290,6 +295,41 @@ fn canonical_condition_assignment(conditions: &HashMap<String, bool>) -> Vec<(St
         conditions.iter().map(|(condition, value)| (condition.clone(), *value)).collect();
     assignment.sort_unstable();
     assignment
+}
+
+fn lambda_log_level_format_diagnostics(model: &SemanticModel) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    for resource_type in LAMBDA_LOGGING_RESOURCE_TYPES {
+        for resource_id in model.resources_of_type(resource_type) {
+            let log_format_path = format!("Properties.{LAMBDA_LOGGING_CONFIG_PROPERTY}.{LAMBDA_LOG_FORMAT_PROPERTY}");
+            let has_literal_text_log_format = model
+                .resolve_scenarios_json_shared(resource_id, &log_format_path)
+                .iter()
+                .any(|(log_format, conditions)| {
+                    conditions.is_empty() && log_format.as_str() == Some(LAMBDA_TEXT_LOG_FORMAT)
+                });
+            if model.is_from_intrinsic(resource_id, &log_format_path) || !has_literal_text_log_format {
+                continue;
+            }
+
+            let Some(level_property) = LAMBDA_LOG_LEVEL_PROPERTIES.into_iter().find(|level_property| {
+                model
+                    .has_property(resource_id, &format!("Properties.{LAMBDA_LOGGING_CONFIG_PROPERTY}.{level_property}"))
+            }) else {
+                continue;
+            };
+            let property_path = format!("Properties.{LAMBDA_LOGGING_CONFIG_PROPERTY}.{level_property}");
+            diagnostics.push(make_resource_diagnostic(
+                "E3696",
+                &format!("{level_property} is not supported when LoggingConfig.LogFormat is 'Text'"),
+                model,
+                resource_id,
+                &property_path,
+                Some(&format!("Set LoggingConfig.LogFormat to 'JSON' or remove {level_property}")),
+            ));
+        }
+    }
+    diagnostics
 }
 
 /// The conditions under which a reference is active: the `Fn::If` branches it is
@@ -1620,6 +1660,8 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
             ));
         }
     }
+
+    out.extend(lambda_log_level_format_diagnostics(m));
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")

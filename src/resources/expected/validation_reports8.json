@@ -1,4 +1,589 @@
 {
+  "integration/getatt-types.yaml": {
+    "filePath": "integration/getatt-types.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 8,
+      "counts": {
+        "fatal": 5,
+        "errors": 1,
+        "warnings": 0,
+        "informational": 19,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'SubWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "SubWithGetAtt",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/SubWithGetAtt/Value.Fn::GetAtt",
+        "category": "Structure",
+        "startLine": 84,
+        "startColumn": 3,
+        "endLine": 84,
+        "endColumn": 16,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'Ipv4NetmaskLength': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Ipv4NetmaskLength",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/Ipv4NetmaskLength/Value.Fn::GetAtt",
+        "category": "Structure",
+        "startLine": 86,
+        "startColumn": 3,
+        "endLine": 86,
+        "endColumn": 20,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'String': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "String",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/String/Value.Fn::Sub",
+        "category": "Structure",
+        "startLine": 88,
+        "startColumn": 3,
+        "endLine": 88,
+        "endColumn": 9,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'JoinWithGetAtt': GetAtt 'CapacityReservation.InstanceCount' returns type 'integer', not 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "JoinWithGetAtt",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/JoinWithGetAtt/Value.Fn::Join.1.0.Fn::GetAtt",
+        "category": "Structure",
+        "startLine": 92,
+        "startColumn": 3,
+        "endLine": 92,
+        "endColumn": 17,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F6101",
+        "severity": "FATAL",
+        "message": "Output 'BooleanGetAtt': GetAtt 'CapacityReservation.EphemeralStorage' returns type 'boolean', not 'string'",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "BooleanGetAtt",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/BooleanGetAtt/Value.Fn::GetAtt",
+        "category": "Structure",
+        "startLine": 96,
+        "startColumn": 3,
+        "endLine": 96,
+        "endColumn": 16,
+        "ruleDescription": "Output value must be a string",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E1040",
+        "severity": "ERROR",
+        "message": "{'Fn::GetAtt': ['TestLogGroup', 'Arn']} does not match destination format of 'AWS::Logs::LogGroup.Name'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions.0.LogConfiguration.Options.awslogs-group",
+        "suggestedFix": "Use the correct GetAtt attribute",
+        "category": "Intrinsic Function",
+        "startLine": 62,
+        "startColumn": 15,
+        "endLine": 62,
+        "endColumn": 28,
+        "ruleDescription": "Check if GetAtt matches destination format",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Join",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/Join/Value.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 90,
+        "startColumn": 3,
+        "endLine": 90,
+        "endColumn": 7,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I1022",
+        "severity": "INFO",
+        "message": "Prefer using Fn::Sub over Fn::Join with an empty delimiter",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "JoinWithGetAtt",
+          "entityType": "Output"
+        },
+        "propertyPath": "Outputs/JoinWithGetAtt/Value.Fn::Join",
+        "category": "Intrinsic Function",
+        "startLine": 92,
+        "startColumn": 3,
+        "endLine": 92,
+        "endColumn": 17,
+        "ruleDescription": "Use Sub instead of Join",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'AvailabilityZone' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CapacityReservation",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::CapacityReservation"
+        },
+        "propertyPath": "Properties.AvailabilityZone",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 7,
+        "endLine": 10,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstanceType' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CapacityReservation",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::CapacityReservation"
+        },
+        "propertyPath": "Properties.InstanceType",
+        "category": "Best Practice",
+        "startLine": 12,
+        "startColumn": 7,
+        "endLine": 12,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'InstancePlatform' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CapacityReservation",
+          "entityType": "Resource",
+          "resourceType": "AWS::EC2::CapacityReservation"
+        },
+        "propertyPath": "Properties.InstancePlatform",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 23,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ContainerDefinitions' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ContainerDefinitions",
+        "category": "Best Practice",
+        "startLine": 57,
+        "startColumn": 7,
+        "endLine": 57,
+        "endColumn": 27,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Cpu' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Cpu",
+        "category": "Best Practice",
+        "startLine": 68,
+        "startColumn": 7,
+        "endLine": 68,
+        "endColumn": 10,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'ExecutionRoleArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.ExecutionRoleArn",
+        "category": "Best Practice",
+        "startLine": 69,
+        "startColumn": 7,
+        "endLine": 69,
+        "endColumn": 23,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt TestFargateExecutionRole.Arn"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Memory' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Memory",
+        "category": "Best Practice",
+        "startLine": 70,
+        "startColumn": 7,
+        "endLine": 70,
+        "endColumn": 13,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'NetworkMode' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.NetworkMode",
+        "category": "Best Practice",
+        "startLine": 71,
+        "startColumn": 7,
+        "endLine": 71,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'RequiresCompatibilities' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.RequiresCompatibilities",
+        "category": "Best Practice",
+        "startLine": 72,
+        "startColumn": 7,
+        "endLine": 72,
+        "endColumn": 30,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'TaskRoleArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.TaskRoleArn",
+        "category": "Best Practice",
+        "startLine": 74,
+        "startColumn": 7,
+        "endLine": 74,
+        "endColumn": 18,
+        "documentationUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "GetAtt TestFargateTaskRole.Arn"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'SsmParameter' of type 'AWS::SSM::Parameter' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SsmParameter",
+          "entityType": "Resource",
+          "resourceType": "AWS::SSM::Parameter"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DocDBCluster' of type 'AWS::DocDB::DBCluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DocDBCluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::DocDB::DBCluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 23,
+        "startColumn": 5,
+        "endLine": 23,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TestCluster' of type 'AWS::ECS::Cluster' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestCluster",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::Cluster"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 3,
+        "endLine": 25,
+        "endColumn": 14,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TestFargateExecutionRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestFargateExecutionRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 29,
+        "startColumn": 5,
+        "endLine": 29,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TestFargateTaskRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestFargateTaskRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 42,
+        "startColumn": 5,
+        "endLine": 42,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TestLogGroup' of type 'AWS::Logs::LogGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestLogGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::Logs::LogGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 50,
+        "startColumn": 3,
+        "endLine": 50,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'TestTaskDefinitionWithGetAtt' of type 'AWS::ECS::TaskDefinition' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "TestTaskDefinitionWithGetAtt",
+          "entityType": "Resource",
+          "resourceType": "AWS::ECS::TaskDefinition"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 56,
+        "startColumn": 5,
+        "endLine": 56,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "integration/metdata.yaml": {
+    "filePath": "integration/metdata.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Resources section must exist and be non-empty",
+        "source": "SCHEMA",
+        "propertyPath": "Resources",
+        "category": "Structure",
+        "startLine": 21,
+        "startColumn": 1,
+        "endLine": 21,
+        "endColumn": 10,
+        "ruleDescription": "Resources section must exist and be non-empty",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W2001",
+        "severity": "WARN",
+        "message": "Parameter 'VpcId' is not referenced anywhere in the template",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "VpcId",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/VpcId",
+        "category": "Best Practice",
+        "startLine": 17,
+        "startColumn": 3,
+        "endLine": 17,
+        "endColumn": 8,
+        "ruleDescription": "Check if Parameters are Used",
+        "phase": "LINT"
+      }
+    ]
+  },
   "integration/module-sub-resources.yaml": {
     "filePath": "integration/module-sub-resources.yaml",
     "status": "OK",

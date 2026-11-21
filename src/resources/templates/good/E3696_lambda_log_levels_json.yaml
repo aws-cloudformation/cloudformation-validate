@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda log-level filtering uses JSON while text logging has no filters.
+Resources:
+  JsonLevels:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: JSON
+        ApplicationLogLevel: INFO
+        SystemLogLevel: WARN
+  TextWithoutLevels:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig:
+        LogFormat: Text
+  DefaultsWithoutLevels:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda
+      Code: {S3Bucket: example-bucket, S3Key: function.zip}
+      LoggingConfig: {}
+  ServerlessJsonLevels:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://example-bucket/function.zip
+      LoggingConfig:
+        LogFormat: JSON
+        ApplicationLogLevel: INFO
+        SystemLogLevel: WARN
+  ServerlessTextWithoutLevels:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: index.handler
+      CodeUri: s3://example-bucket/function.zip
+      LoggingConfig:
+        LogFormat: Text
