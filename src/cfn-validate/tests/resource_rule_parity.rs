@@ -2374,6 +2374,94 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn empty_s3_storage_lens_group_ranges_are_reported_identically() {
+    let template = include_str!("../../resources/templates/bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9018"]);
+    let cel_findings = selected_findings(&cel, template, &["E9018"]);
+    assert_eq!(rego_findings, cel_findings, "E9018 diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 2, "one per empty range: {rego_findings:?}");
+    assert!(
+        rego_findings
+            .iter()
+            .any(|finding| finding.contains("|EqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|"))
+    );
+    assert!(
+        rego_findings
+            .iter()
+            .any(|finding| finding.contains("|InvertedSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|"))
+    );
+}
+
+#[test]
+fn valid_s3_storage_lens_group_ranges_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9018_s3_storage_lens_group_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9018"]);
+    let cel_findings = selected_findings(&cel, template, &["E9018"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "nothing here is provably invalid: {rego_findings:?}");
+}
+
+#[test]
+fn s3_intelligent_tiering_deep_archive_not_after_archive_are_reported_identically() {
+    let template =
+        include_str!("../../resources/templates/bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9019"]);
+    let cel_findings = selected_findings(&cel, template, &["E9019"]);
+    assert_eq!(rego_findings, cel_findings, "E9019 diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 2, "one per misordered tier pair: {rego_findings:?}");
+    assert!(
+        rego_findings
+            .iter()
+            .any(|finding| finding.contains("|Bucket|Properties.IntelligentTieringConfigurations.0.Tierings.1.Days|"))
+    );
+    assert!(
+        rego_findings
+            .iter()
+            .any(|finding| finding.contains("|Bucket|Properties.IntelligentTieringConfigurations.1.Tierings.0.Days|"))
+    );
+}
+
+#[test]
+fn valid_s3_intelligent_tiering_order_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9019_s3_intelligent_tiering_order.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9019"]);
+    let cel_findings = selected_findings(&cel, template, &["E9019"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "nothing here is provably invalid: {rego_findings:?}");
+}
+
+#[test]
+fn s3_replication_destinations_without_versioning_are_reported_identically() {
+    let template =
+        include_str!("../../resources/templates/bad/E9020_s3_replication_destination_without_versioning.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9020"]);
+    let cel_findings = selected_findings(&cel, template, &["E9020"]);
+    assert_eq!(rego_findings, cel_findings, "E9020 diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 2, "one per unversioned destination: {rego_findings:?}");
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|")
+    }));
+    assert!(rego_findings.iter().any(|finding| {
+        finding.contains("|SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|")
+    }));
+}
+
+#[test]
+fn valid_s3_replication_destination_versioning_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9020_s3_replication_destination_versioning.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9020"]);
+    let cel_findings = selected_findings(&cel, template, &["E9020"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "nothing here is provably invalid: {rego_findings:?}");
+}
+
+#[test]
 fn invalid_event_patterns_have_identical_precise_diagnostics() {
     let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
     let (rego, cel) = engines();

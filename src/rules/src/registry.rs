@@ -921,6 +921,24 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "E9018",
+        category: Category::Resource,
+        description: "S3 Storage Lens group object age and size ranges must not be empty",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "E9019",
+        category: Category::Resource,
+        description: "S3 Intelligent-Tiering DEEP_ARCHIVE_ACCESS days must be greater than ARCHIVE_ACCESS days",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "E9020",
+        category: Category::Resource,
+        description: "S3 replication destination bucket in the template must have versioning enabled",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "E3047",
         category: Category::Resource,
         description: "Validate ECS Fargate tasks have the right combination of CPU and memory",

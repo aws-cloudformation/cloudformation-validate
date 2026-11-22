@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  S3 rejects a Storage Lens group whose object age or object size range is
+  empty: equal age bounds, and inverted size bounds.
+Resources:
+  EqualAgeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: equal-age-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 30
+          DaysLessThan: 30
+  InvertedSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: inverted-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: 2048
+          BytesLessThan: 1024

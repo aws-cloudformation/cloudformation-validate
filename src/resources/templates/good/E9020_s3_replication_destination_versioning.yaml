@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Replication destinations that are not provably unversioned: a versioned
+  bucket in the template, a bucket outside the template, and a bucket whose
+  versioning status is only known at deployment.
+Parameters:
+  DestinationVersioning:
+    Type: String
+    Default: Enabled
+    AllowedValues: [Enabled, Suspended]
+Resources:
+  ReplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sts:AssumeRole
+  VersionedDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+  ParameterDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: !Ref DestinationVersioning
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      ReplicationConfiguration:
+        Role: !GetAtt ReplicationRole.Arn
+        Rules:
+          - Id: ToVersioned
+            Status: Enabled
+            Prefix: versioned/
+            Destination:
+              Bucket: !GetAtt VersionedDestination.Arn
+          - Id: ToExternal
+            Status: Enabled
+            Prefix: external/
+            Destination:
+              Bucket: arn:aws:s3:::external-destination-bucket
+          - Id: ToParameter
+            Status: Enabled
+            Prefix: parameter/
+            Destination:
+              Bucket: !GetAtt ParameterDestination.Arn

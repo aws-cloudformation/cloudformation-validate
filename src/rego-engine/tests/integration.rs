@@ -868,6 +868,45 @@ fn e2e_e3061_s3_tiering_bad_days() {
 }
 
 #[test]
+fn e2e_e9018_empty_s3_storage_lens_group_ranges() {
+    let report = validate_fixture("bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
+    let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9018").count();
+    assert_eq!(findings, 2, "Expected one E9018 per empty range, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9018_valid_s3_storage_lens_group_ranges() {
+    let report = validate_fixture("good/E9018_s3_storage_lens_group_ranges.yaml");
+    assert!(!has_rule(&report, "E9018"), "Expected no E9018, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9019_s3_intelligent_tiering_deep_archive_not_after_archive() {
+    let report = validate_fixture("bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
+    let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9019").count();
+    assert_eq!(findings, 2, "Expected one E9019 per misordered tier pair, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9019_valid_s3_intelligent_tiering_order() {
+    let report = validate_fixture("good/E9019_s3_intelligent_tiering_order.yaml");
+    assert!(!has_rule(&report, "E9019"), "Expected no E9019, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9020_s3_replication_destinations_without_versioning() {
+    let report = validate_fixture("bad/E9020_s3_replication_destination_without_versioning.yaml");
+    let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9020").count();
+    assert_eq!(findings, 2, "Expected one E9020 per unversioned destination, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9020_valid_s3_replication_destination_versioning() {
+    let report = validate_fixture("good/E9020_s3_replication_destination_versioning.yaml");
+    assert!(!has_rule(&report, "E9020"), "Expected no E9020, got: {:?}", report.diagnostics);
+}
+
+#[test]
 fn e2e_e9014_invalid_event_patterns() {
     let report = validate_fixture("bad/E9014_invalid_event_patterns.yaml");
     let event_pattern_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9014").count();

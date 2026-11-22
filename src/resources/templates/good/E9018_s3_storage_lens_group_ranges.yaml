@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Storage Lens group ranges that are not provably empty: ascending bounds, a
+  single bound, and a bound that is only known at deployment.
+Parameters:
+  MaxAgeDays:
+    Type: Number
+    Default: 10
+Resources:
+  AscendingGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: ascending-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 29
+          DaysLessThan: 30
+  SizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: 999
+          BytesLessThan: 1000
+  LowerBoundGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: lower-bound-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 30
+  ParameterGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: parameter-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 30
+          DaysLessThan: !Ref MaxAgeDays
