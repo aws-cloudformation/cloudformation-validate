@@ -898,6 +898,71 @@ fn sg_inverted_port_range(
     (from_port > to_port).then_some((from_port, to_port))
 }
 
+/// S3 moves objects down a fixed storage-class waterfall and never back up, so
+/// a lifecycle rule must reach each class later than the classes above it.
+fn s3_lifecycle_transition_rank(storage_class: &str) -> Option<u8> {
+    match storage_class {
+        "STANDARD_IA" => Some(1),
+        "INTELLIGENT_TIERING" => Some(2),
+        "ONEZONE_IA" => Some(3),
+        "GLACIER_IR" => Some(4),
+        "GLACIER" => Some(5),
+        "DEEP_ARCHIVE" => Some(6),
+        _ => None,
+    }
+}
+
+/// Objects must stay in the class they leave for its minimum storage duration
+/// before S3 moves them on to an archive class.
+fn s3_lifecycle_transition_minimum_gap(from_class: &str, to_class: &str) -> Option<i64> {
+    match (from_class, to_class) {
+        ("STANDARD_IA" | "ONEZONE_IA", "GLACIER" | "DEEP_ARCHIVE") => Some(30),
+        ("GLACIER_IR" | "GLACIER", _) => Some(90),
+        _ => None,
+    }
+}
+
+struct S3LifecycleTransition {
+    storage_class: String,
+    rank: u8,
+    days: i64,
+    days_path: String,
+}
+
+/// Transitions of one lifecycle rule whose storage class and day count are both
+/// authored literally. A value supplied by a parameter or another intrinsic is
+/// only known at deployment, so its default is not folded into the comparison.
+fn s3_lifecycle_literal_transitions(
+    m: &SemanticModel,
+    name: &str,
+    rule_idx: usize,
+    rule: &serde_json::Value,
+) -> Vec<S3LifecycleTransition> {
+    let Some(transitions) = rule.get("Transitions").and_then(|transitions| transitions.as_array()) else {
+        return Vec::new();
+    };
+    transitions
+        .iter()
+        .enumerate()
+        .filter_map(|(transition_idx, transition)| {
+            let transition_path =
+                format!("Properties.LifecycleConfiguration.Rules.{}.Transitions.{}", rule_idx, transition_idx);
+            let storage_class_path = format!("{}.StorageClass", transition_path);
+            let days_path = format!("{}.TransitionInDays", transition_path);
+            let is_literal = [&storage_class_path, &days_path]
+                .iter()
+                .all(|path| !m.is_from_parameter(name, path) && !m.is_from_intrinsic(name, path));
+            if !is_literal {
+                return None;
+            }
+            let storage_class = transition.get("StorageClass")?.as_str()?;
+            let rank = s3_lifecycle_transition_rank(storage_class)?;
+            let days = transition.get("TransitionInDays").and_then(coerce_to_integer)?;
+            Some(S3LifecycleTransition { storage_class: storage_class.to_string(), rank, days, days_path })
+        })
+        .collect()
+}
+
 /// Protocols whose FromPort/ToPort must be present: TCP and UDP take a port
 /// range and ICMP takes a type/code pair. ICMPv6 is deliberately absent - its
 /// type/code are optional, and omitting them allows every type and code.
@@ -1049,6 +1114,64 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         &format!("Properties.{}.{}", direction, idx),
                         Some(SG_INVERTED_PORT_RANGE_FIX),
                     ));
+                }
+            }
+        }
+    }
+
+    for name in m.resources_of_type("AWS::S3::Bucket") {
+        let Some(rules) = input
+            .get(FIELD_RESOURCES)
+            .and_then(|resources| resources.get(name.as_str()))
+            .and_then(|r| r.get(FIELD_PROPERTIES))
+            .and_then(|properties| properties.get("LifecycleConfiguration"))
+            .and_then(|configuration| configuration.get("Rules"))
+            .and_then(|rules| rules.as_array())
+        else {
+            continue;
+        };
+        for (rule_idx, rule) in rules.iter().enumerate() {
+            let transitions = s3_lifecycle_literal_transitions(m, name, rule_idx, rule);
+            for earlier in &transitions {
+                for later in transitions.iter().filter(|later| later.rank > earlier.rank) {
+                    if later.days <= earlier.days {
+                        out.push(make_resource_diagnostic(
+                            "E9016",
+                            &format!(
+                                "Transition to {} at {} days must come after the transition to {} at {} days",
+                                later.storage_class, later.days, earlier.storage_class, earlier.days
+                            ),
+                            m,
+                            name,
+                            &later.days_path,
+                            Some(&format!(
+                                "Set TransitionInDays for {} greater than {}",
+                                later.storage_class, earlier.days
+                            )),
+                        ));
+                        continue;
+                    }
+                    let Some(gap) = s3_lifecycle_transition_minimum_gap(&earlier.storage_class, &later.storage_class)
+                    else {
+                        continue;
+                    };
+                    if later.days - earlier.days < gap {
+                        out.push(make_resource_diagnostic(
+                            "E9017",
+                            &format!(
+                                "Transition to {} at {} days must be at least {} days after the transition to {} at {} days",
+                                later.storage_class, later.days, gap, earlier.storage_class, earlier.days
+                            ),
+                            m,
+                            name,
+                            &later.days_path,
+                            Some(&format!(
+                                "Set TransitionInDays for {} to at least {}",
+                                later.storage_class,
+                                earlier.days + gap
+                            )),
+                        ));
+                    }
                 }
             }
         }

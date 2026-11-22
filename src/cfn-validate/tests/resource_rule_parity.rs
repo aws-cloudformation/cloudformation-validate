@@ -2374,6 +2374,47 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn out_of_order_s3_lifecycle_transitions_are_reported_at_the_later_class() {
+    let template = include_str!("../../resources/templates/bad/E9016_s3_lifecycle_transition_out_of_order.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings, "transition order diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 2, "an earlier day and the same day: {rego_findings:?}");
+    for rule_idx in [0, 1] {
+        let later_days =
+            format!("|Bucket|Properties.LifecycleConfiguration.Rules.{rule_idx}.Transitions.1.TransitionInDays|");
+        assert!(rego_findings.iter().any(|finding| finding.contains("E9016") && finding.contains(&later_days)));
+    }
+}
+
+#[test]
+fn short_s3_lifecycle_storage_durations_are_reported_at_the_later_class() {
+    let template =
+        include_str!("../../resources/templates/bad/E9017_s3_lifecycle_transition_minimum_storage_duration.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings, "storage duration diagnostics must be identical");
+    assert_eq!(rego_findings.len(), 2, "29 days after IA and 89 days after Glacier IR: {rego_findings:?}");
+    for rule_idx in [0, 1] {
+        let later_days =
+            format!("|Bucket|Properties.LifecycleConfiguration.Rules.{rule_idx}.Transitions.1.TransitionInDays|");
+        assert!(rego_findings.iter().any(|finding| finding.contains("E9017") && finding.contains(&later_days)));
+    }
+}
+
+#[test]
+fn ordered_and_parameter_s3_lifecycle_transitions_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9016_s3_lifecycle_transition_order.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "every transition here is in order: {rego_findings:?}");
+}
+
+#[test]
 fn invalid_event_patterns_have_identical_precise_diagnostics() {
     let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
     let (rego, cel) = engines();

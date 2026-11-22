@@ -1,4 +1,140 @@
 {
+  "good/cdk_bootstrap_version_rule.json": {
+    "filePath": "good/cdk_bootstrap_version_rule.json",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 13,
+        "startColumn": 7,
+        "endLine": 13,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/cloudfront_valid.yaml": {
+    "filePath": "good/cloudfront_valid.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Distribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Distribution",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFront::Distribution"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/codepipeline_artifact_counts.yaml": {
+    "filePath": "good/codepipeline_artifact_counts.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Pipeline",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodePipeline::Pipeline"
+        },
+        "propertyPath": "Properties.RoleArn",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Pipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Pipeline",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodePipeline::Pipeline"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/complex_conditions.yaml": {
     "filePath": "good/complex_conditions.yaml",
     "status": "OK",
@@ -20173,1030 +20309,6 @@
   },
   "good/resources/ecs/fargate_conditional_properties.yaml": {
     "filePath": "good/resources/ecs/fargate_conditional_properties.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
-  },
-  "good/resources/elasticache/cache_cluster_failover.yaml": {
-    "filePath": "good/resources/elasticache/cache_cluster_failover.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 10,
-      "counts": {
-        "fatal": 0,
-        "errors": 3,
-        "warnings": 0,
-        "informational": 44,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "E1150",
-        "severity": "ERROR",
-        "message": "'sg-test' does not match format 'AWS::EC2::SecurityGroup.Id'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FourthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.SecurityGroupIds.0",
-        "category": "Intrinsic Function",
-        "startLine": 121,
-        "startColumn": 9,
-        "endLine": 121,
-        "endColumn": 10,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Validate security group format",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "sg-test"
-        }
-      },
-      {
-        "ruleId": "E1150",
-        "severity": "ERROR",
-        "message": "'sg-test' does not match format 'AWS::EC2::SecurityGroup.Id'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.SecurityGroupIds.0",
-        "category": "Intrinsic Function",
-        "startLine": 138,
-        "startColumn": 9,
-        "endLine": 138,
-        "endColumn": 10,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Validate security group format",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "sg-test"
-        }
-      },
-      {
-        "ruleId": "E1150",
-        "severity": "ERROR",
-        "message": "'sg-test' does not match format 'AWS::EC2::SecurityGroup.Id'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SixthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.SecurityGroupIds.0",
-        "category": "Intrinsic Function",
-        "startLine": 155,
-        "startColumn": 9,
-        "endLine": 155,
-        "endColumn": 10,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Validate security group format",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "sg-test"
-        }
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "BasicReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 48,
-        "startColumn": 3,
-        "endLine": 48,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "BasicReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 48,
-        "startColumn": 3,
-        "endLine": 48,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SecondReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 67,
-        "startColumn": 3,
-        "endLine": 67,
-        "endColumn": 25,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SecondReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 67,
-        "startColumn": 3,
-        "endLine": 67,
-        "endColumn": 25,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ThirdReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 87,
-        "startColumn": 3,
-        "endLine": 87,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ThirdReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 87,
-        "startColumn": 3,
-        "endLine": 87,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FourthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 106,
-        "startColumn": 3,
-        "endLine": 106,
-        "endColumn": 25,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FourthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 106,
-        "startColumn": 3,
-        "endLine": 106,
-        "endColumn": 25,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 122,
-        "startColumn": 3,
-        "endLine": 122,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 122,
-        "startColumn": 3,
-        "endLine": 122,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SixthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 139,
-        "startColumn": 3,
-        "endLine": 139,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SixthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "category": "Best Practice",
-        "startLine": 139,
-        "startColumn": 3,
-        "endLine": 139,
-        "endColumn": 24,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3100",
-        "severity": "INFO",
-        "message": "Previous generation instance type 'cache.r3.large' - consider upgrading",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "BasicReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheNodeType",
-        "suggestedFix": "Upgrade to a current generation instance type",
-        "category": "Best Practice",
-        "startLine": 54,
-        "startColumn": 7,
-        "endLine": 54,
-        "endColumn": 20,
-        "ruleDescription": "Checks for legacy instance type generations",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3100",
-        "severity": "INFO",
-        "message": "Previous generation instance type 'cache.r3.large' - consider upgrading",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SecondReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheNodeType",
-        "suggestedFix": "Upgrade to a current generation instance type",
-        "category": "Best Practice",
-        "startLine": 73,
-        "startColumn": 7,
-        "endLine": 73,
-        "endColumn": 20,
-        "ruleDescription": "Checks for legacy instance type generations",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3100",
-        "severity": "INFO",
-        "message": "Previous generation instance type 'cache.r3.large' - consider upgrading",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ThirdReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheNodeType",
-        "suggestedFix": "Upgrade to a current generation instance type",
-        "category": "Best Practice",
-        "startLine": 92,
-        "startColumn": 7,
-        "endLine": 92,
-        "endColumn": 20,
-        "ruleDescription": "Checks for legacy instance type generations",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3100",
-        "severity": "INFO",
-        "message": "Previous generation instance type 'cache.r3.large' - consider upgrading",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FourthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheNodeType",
-        "suggestedFix": "Upgrade to a current generation instance type",
-        "category": "Best Practice",
-        "startLine": 111,
-        "startColumn": 7,
-        "endLine": 111,
-        "endColumn": 20,
-        "ruleDescription": "Checks for legacy instance type generations",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3100",
-        "severity": "INFO",
-        "message": "Previous generation instance type 'cache.r3.large' - consider upgrading",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "FifthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheNodeType",
-        "suggestedFix": "Upgrade to a current generation instance type",
-        "category": "Best Practice",
-        "startLine": 128,
-        "startColumn": 7,
-        "endLine": 128,
-        "endColumn": 20,
-        "ruleDescription": "Checks for legacy instance type generations",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3100",
-        "severity": "INFO",
-        "message": "Previous generation instance type 'cache.r3.large' - consider upgrading",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "SixthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheNodeType",
-        "suggestedFix": "Upgrade to a current generation instance type",
-        "category": "Best Practice",
-        "startLine": 145,
-        "startColumn": 7,
-        "endLine": 145,
-        "endColumn": 20,
-        "ruleDescription": "Checks for legacy instance type generations",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.CacheParameterGroupFamily",
-        "category": "Best Practice",
-        "startLine": 19,
-        "startColumn": 7,
-        "endLine": 19,
-        "endColumn": 32,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyClusterParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.CacheParameterGroupFamily",
-        "category": "Best Practice",
-        "startLine": 27,
-        "startColumn": 7,
-        "endLine": 27,
-        "endColumn": 32,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyNonClusterParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.CacheParameterGroupFamily",
-        "category": "Best Practice",
-        "startLine": 35,
-        "startColumn": 7,
-        "endLine": 35,
-        "endColumn": 32,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheParameterGroupFamily' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyOptionalClusterParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.CacheParameterGroupFamily",
-        "category": "Best Practice",
-        "startLine": 44,
-        "startColumn": 7,
-        "endLine": 44,
-        "endColumn": 32,
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BasicReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheSubnetGroupName",
-        "category": "Best Practice",
-        "startLine": 55,
-        "startColumn": 7,
-        "endLine": 55,
-        "endColumn": 27,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Port' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BasicReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Port",
-        "category": "Best Practice",
-        "startLine": 60,
-        "startColumn": 7,
-        "endLine": 60,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SecondReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheSubnetGroupName",
-        "category": "Best Practice",
-        "startLine": 74,
-        "startColumn": 7,
-        "endLine": 74,
-        "endColumn": 27,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Port' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SecondReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Port",
-        "category": "Best Practice",
-        "startLine": 80,
-        "startColumn": 7,
-        "endLine": 80,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirdReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheSubnetGroupName",
-        "category": "Best Practice",
-        "startLine": 93,
-        "startColumn": 7,
-        "endLine": 93,
-        "endColumn": 27,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Port' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirdReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Port",
-        "category": "Best Practice",
-        "startLine": 99,
-        "startColumn": 7,
-        "endLine": 99,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'AtRestEncryptionEnabled' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FourthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.AtRestEncryptionEnabled",
-        "category": "Best Practice",
-        "startLine": 109,
-        "startColumn": 7,
-        "endLine": 109,
-        "endColumn": 30,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FourthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheSubnetGroupName",
-        "category": "Best Practice",
-        "startLine": 113,
-        "startColumn": 7,
-        "endLine": 113,
-        "endColumn": 27,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'AtRestEncryptionEnabled' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FifthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.AtRestEncryptionEnabled",
-        "category": "Best Practice",
-        "startLine": 126,
-        "startColumn": 7,
-        "endLine": 126,
-        "endColumn": 30,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FifthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheSubnetGroupName",
-        "category": "Best Practice",
-        "startLine": 130,
-        "startColumn": 7,
-        "endLine": 130,
-        "endColumn": 27,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'AtRestEncryptionEnabled' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.AtRestEncryptionEnabled",
-        "category": "Best Practice",
-        "startLine": 143,
-        "startColumn": 7,
-        "endLine": 143,
-        "endColumn": 30,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'CacheSubnetGroupName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.CacheSubnetGroupName",
-        "category": "Best Practice",
-        "startLine": 147,
-        "startColumn": 7,
-        "endLine": 147,
-        "endColumn": 27,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-elasticache",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 17,
-        "startColumn": 5,
-        "endLine": 17,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyClusterParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 25,
-        "startColumn": 5,
-        "endLine": 25,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyNonClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyNonClusterParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 33,
-        "startColumn": 5,
-        "endLine": 33,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'MyOptionalClusterParameterGroup' of type 'AWS::ElastiCache::ParameterGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "MyOptionalClusterParameterGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ParameterGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 42,
-        "startColumn": 5,
-        "endLine": 42,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'BasicReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "BasicReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 50,
-        "startColumn": 5,
-        "endLine": 50,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'SecondReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SecondReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 69,
-        "startColumn": 5,
-        "endLine": 69,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ThirdReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ThirdReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 89,
-        "startColumn": 5,
-        "endLine": 89,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FourthReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FourthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 108,
-        "startColumn": 5,
-        "endLine": 108,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'FifthReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "FifthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 125,
-        "startColumn": 5,
-        "endLine": 125,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'SixthReplicationGroup' of type 'AWS::ElastiCache::ReplicationGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "SixthReplicationGroup",
-          "entityType": "Resource",
-          "resourceType": "AWS::ElastiCache::ReplicationGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 142,
-        "startColumn": 5,
-        "endLine": 142,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "good/resources/iam/iam_policy_conditional_policies.yaml": {
-    "filePath": "good/resources/iam/iam_policy_conditional_policies.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
-  },
-  "good/resources/iam/identity_policy_wildcard_partition.yaml": {
-    "filePath": "good/resources/iam/identity_policy_wildcard_partition.yaml",
     "status": "OK",
     "metadata": {
       "resourcesScanned": 1,

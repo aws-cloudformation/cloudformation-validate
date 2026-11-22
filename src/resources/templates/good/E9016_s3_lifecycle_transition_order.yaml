@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Lifecycle transitions that move down the storage-class waterfall and keep
+  objects in each class for its minimum storage duration, plus a transition
+  day count that is only known at deployment.
+Parameters:
+  ArchiveDays:
+    Type: Number
+    Default: 31
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: InfrequentAccessThenGlacier
+            Status: Enabled
+            ExpirationInDays: 61
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: 60
+          - Id: InstantRetrievalThenDeepArchive
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER_IR
+                TransitionInDays: 30
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 120
+          - Id: ParameterDays
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: !Ref ArchiveDays
