@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch access grants to all alerts must be CUSTOM grants with only the AssumeAccessProfile action.
+Resources:
+  AllAlertsRead:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: all-alerts-read
+      Permission: READ
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+  AllAlertsExtraAction:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: all-alerts-extra-action
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+      ScopedActions:
+        - Actions:
+            - cloudwatch:AssumeAccessProfile
+            - cloudwatch:GetSpace

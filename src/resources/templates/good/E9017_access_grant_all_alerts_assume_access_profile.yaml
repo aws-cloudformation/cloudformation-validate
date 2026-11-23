@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch access grants to all alerts that use only AssumeAccessProfile, alert grants not scoped to all alerts, or values known only at deployment.
+Parameters:
+  Permission:
+    Type: String
+    AllowedValues: [CUSTOM, READ]
+  AlertPrincipalId:
+    Type: String
+    Default: ALL
+  Action:
+    Type: String
+    Default: cloudwatch:GetSpace
+  Environment:
+    Type: String
+    AllowedValues: [development, production]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  AllAlertsAssumeAccessProfile:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: all-alerts-assume-access-profile
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+      ScopedActions:
+        - Actions:
+            - cloudwatch:AssumeAccessProfile
+  SpecificAlertRead:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: specific-alert-read
+      Permission: READ
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: example-alert
+  AllAgentsRead:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: all-agents-read
+      Permission: READ
+      Principal:
+        PrincipalType: AGENT
+        PrincipalId: ALL
+  ParameterPermission:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: parameter-permission
+      Permission: !Ref Permission
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+      ScopedActions:
+        - Actions:
+            - cloudwatch:AssumeAccessProfile
+  ParameterPrincipalId:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: parameter-principal-id
+      Permission: READ
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: !Ref AlertPrincipalId
+  ParameterAction:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: parameter-action
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+      ScopedActions:
+        - Actions:
+            - cloudwatch:AssumeAccessProfile
+            - !Ref Action
+  ConditionalPermissionReadFirst:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-permission-read-first
+      Permission: !If [IsProduction, READ, CUSTOM]
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+      ScopedActions:
+        - Actions:
+            - cloudwatch:AssumeAccessProfile
+  ConditionalPermissionReadSecond:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-permission-read-second
+      Permission: !If [IsProduction, CUSTOM, READ]
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+      ScopedActions:
+        - Actions:
+            - cloudwatch:AssumeAccessProfile
+  ConditionalAction:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-action
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: ALL
+      ScopedActions:
+        - Actions:
+            - cloudwatch:AssumeAccessProfile
+            - !If [IsProduction, cloudwatch:GetSpace, !Ref AWS::NoValue]
+  PrincipalLookup:
+    Type: Custom::PrincipalLookup
+    Properties:
+      ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:principal-lookup
+  LookedUpPrincipalType:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: looked-up-principal-type
+      Permission: READ
+      Principal:
+        PrincipalType: !GetAtt PrincipalLookup.PrincipalType
+        PrincipalId: ALL

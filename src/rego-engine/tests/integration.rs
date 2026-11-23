@@ -885,6 +885,53 @@ fn e2e_e9014_valid_and_unresolved_event_patterns() {
 }
 
 #[test]
+fn e2e_e9015_principal_attributes_require_idc_user() {
+    let report = validate_fixture("bad/E9015_access_grant_principal_attributes_require_idc_user.yaml");
+    let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9015").count();
+    assert_eq!(findings, 1, "Expected one E9015 for the IAM role grant with attributes, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9015_principal_attributes_idc_user_or_unresolved_type() {
+    let report = validate_fixture("good/E9015_access_grant_principal_attributes_idc_user.yaml");
+    assert!(!has_rule(&report, "E9015"), "Expected no E9015, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9016_custom_permission_requires_scoped_actions() {
+    let report = validate_fixture("bad/E9016_access_grant_custom_permission_requires_scoped_actions.yaml");
+    let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9016").count();
+    assert_eq!(
+        findings, 2,
+        "Expected one E9016 for the missing and one for the empty ScopedActions, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_e9016_custom_permission_scoped_actions_or_unresolved_permission() {
+    let report = validate_fixture("good/E9016_access_grant_custom_permission_scoped_actions.yaml");
+    assert!(!has_rule(&report, "E9016"), "Expected no E9016, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9017_all_alerts_require_custom_assume_access_profile() {
+    let report = validate_fixture("bad/E9017_access_grant_all_alerts_require_assume_access_profile.yaml");
+    let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9017").count();
+    assert_eq!(
+        findings, 2,
+        "Expected one E9017 for the READ grant and one for the extra action, got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn e2e_e9017_all_alerts_assume_access_profile_or_unresolved_values() {
+    let report = validate_fixture("good/E9017_access_grant_all_alerts_assume_access_profile.yaml");
+    assert!(!has_rule(&report, "E9017"), "Expected no E9017, got: {:?}", report.diagnostics);
+}
+
+#[test]
 fn e2e_e3505_sqs_default_visibility_timeout() {
     let report = validate_fixture("bad/E3505_sqs_default_visibility_timeout.yaml");
     assert!(

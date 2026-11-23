@@ -118,6 +118,45 @@ Resources:
     }
 
     #[test]
+    fn principal_attributes_on_non_identity_center_user_trigger_e9015_once() {
+        let ids = validate_file("bad/E9015_access_grant_principal_attributes_require_idc_user.yaml");
+        let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9015").count();
+        assert_eq!(findings, 1, "Expected one E9015 for the IAM role grant with attributes, got: {ids:?}");
+    }
+
+    #[test]
+    fn principal_attributes_on_identity_center_user_or_unresolved_type_do_not_trigger_e9015() {
+        let ids = validate_file("good/E9015_access_grant_principal_attributes_idc_user.yaml");
+        assert!(!ids.contains(&"E9015".to_string()), "Expected no E9015, got: {ids:?}");
+    }
+
+    #[test]
+    fn custom_permission_without_scoped_actions_triggers_e9016_per_grant() {
+        let ids = validate_file("bad/E9016_access_grant_custom_permission_requires_scoped_actions.yaml");
+        let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9016").count();
+        assert_eq!(findings, 2, "Expected one E9016 for the missing and one for the empty ScopedActions, got: {ids:?}");
+    }
+
+    #[test]
+    fn custom_permission_with_scoped_actions_or_unresolved_permission_do_not_trigger_e9016() {
+        let ids = validate_file("good/E9016_access_grant_custom_permission_scoped_actions.yaml");
+        assert!(!ids.contains(&"E9016".to_string()), "Expected no E9016, got: {ids:?}");
+    }
+
+    #[test]
+    fn all_alerts_grant_with_read_or_extra_action_triggers_e9017_per_violation() {
+        let ids = validate_file("bad/E9017_access_grant_all_alerts_require_assume_access_profile.yaml");
+        let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9017").count();
+        assert_eq!(findings, 2, "Expected one E9017 for the READ grant and one for the extra action, got: {ids:?}");
+    }
+
+    #[test]
+    fn all_alerts_grant_with_only_assume_access_profile_or_unresolved_values_do_not_trigger_e9017() {
+        let ids = validate_file("good/E9017_access_grant_all_alerts_assume_access_profile.yaml");
+        assert!(!ids.contains(&"E9017".to_string()), "Expected no E9017, got: {ids:?}");
+    }
+
+    #[test]
     fn sqs_default_visibility_timeout_below_function_timeout_triggers_e3505() {
         let ids = validate_file("bad/E3505_sqs_default_visibility_timeout.yaml");
         assert!(

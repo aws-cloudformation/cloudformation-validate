@@ -921,6 +921,24 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "E9015",
+        category: Category::Resource,
+        description: "CloudWatch access grant principal attributes require an IDC_USER principal",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "E9016",
+        category: Category::Resource,
+        description: "CloudWatch access grants with CUSTOM permission require scoped actions",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "E9017",
+        category: Category::Resource,
+        description: "CloudWatch access grants to all alerts must use CUSTOM permission with only the AssumeAccessProfile action",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "E3047",
         category: Category::Resource,
         description: "Validate ECS Fargate tasks have the right combination of CPU and memory",

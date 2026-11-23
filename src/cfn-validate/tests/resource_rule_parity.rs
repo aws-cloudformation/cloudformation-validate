@@ -3932,3 +3932,531 @@ Resources:
         "capacity-provider conditions do not affect text log-format validation: {rego_findings:?}"
     );
 }
+
+#[test]
+fn access_grant_principal_attributes_on_non_identity_center_users_have_identical_precise_diagnostics() {
+    let template =
+        include_str!("../../resources/templates/bad/E9015_access_grant_principal_attributes_require_idc_user.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9015"]);
+
+    assert_eq!(rego_findings, cel_findings, "principal attribute diagnostics must be identical across engines");
+    assert_eq!(rego_findings.len(), 1, "the IAM role grant with attributes must be reported once: {rego_findings:?}");
+    assert!(
+        rego_findings[0].contains(
+            "|RoleWithAttributes|Properties.Principal.PrincipalAttributes|PrincipalAttributes is supported only when \
+             Principal.PrincipalType is 'IDC_USER', not 'IAM_ROLE'|Remove PrincipalAttributes or set PrincipalType \
+             to 'IDC_USER'|"
+        ),
+        "unexpected finding: {rego_findings:?}"
+    );
+    assert!(
+        rego_findings[0].contains("start_line: 14"),
+        "expected the PrincipalAttributes key line: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn access_grant_principal_attributes_allow_identity_center_users_and_unresolved_types() {
+    let template = include_str!("../../resources/templates/good/E9015_access_grant_principal_attributes_idc_user.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings(&cel, template, &["E9015"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "allowed or unresolved principal types must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn access_grant_custom_permission_without_scoped_actions_has_identical_precise_diagnostics() {
+    let template =
+        include_str!("../../resources/templates/bad/E9016_access_grant_custom_permission_requires_scoped_actions.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9016"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9016"]);
+
+    assert_eq!(rego_findings, cel_findings, "custom permission diagnostics must be identical across engines");
+    assert_eq!(rego_findings.len(), 2, "each custom grant without actions must be reported once: {rego_findings:?}");
+    for (resource_id, property_path, start_line) in [
+        ("CustomWithoutScopedActions", "Properties.Permission", 10),
+        ("CustomWithEmptyScopedActions", "Properties.ScopedActions", 24),
+    ] {
+        assert!(
+            rego_findings.iter().any(|finding| finding.contains(&format!(
+                "|{resource_id}|{property_path}|ScopedActions must list at least one action when Permission is \
+                 'CUSTOM'|Add ScopedActions or choose a predefined Permission|"
+            )) && finding.contains(&format!("start_line: {start_line},"))),
+            "missing finding for {resource_id}: {rego_findings:?}"
+        );
+    }
+}
+
+#[test]
+fn access_grant_custom_permission_allows_scoped_actions_and_unresolved_permissions() {
+    let template =
+        include_str!("../../resources/templates/good/E9016_access_grant_custom_permission_scoped_actions.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9016"]);
+    let cel_findings = selected_findings(&cel, template, &["E9016"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "scoped or unresolved permissions must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn access_grant_validation_ignores_conditional_properties_in_both_branch_orders() {
+    let template = r#"
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [development, production]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  ViolatingPropertiesFirst:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties: !If
+      - IsProduction
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: violating-first
+        Permission: CUSTOM
+        Principal:
+          PrincipalType: IAM_ROLE
+          PrincipalAttributes:
+            - {Key: department, Value: platform}
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: violating-first
+        Permission: READ
+        Principal:
+          PrincipalType: IDC_USER
+          PrincipalAttributes:
+            - {Key: department, Value: platform}
+  ViolatingPropertiesSecond:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties: !If
+      - IsProduction
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: violating-second
+        Permission: READ
+        Principal:
+          PrincipalType: IDC_USER
+          PrincipalAttributes:
+            - {Key: department, Value: platform}
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: violating-second
+        Permission: CUSTOM
+        Principal:
+          PrincipalType: IAM_ROLE
+          PrincipalAttributes:
+            - {Key: department, Value: platform}
+  ConditionalPrincipal:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-principal
+      Permission: READ
+      Principal: !If
+        - IsProduction
+        - PrincipalType: IAM_ROLE
+          PrincipalAttributes:
+            - {Key: department, Value: platform}
+        - PrincipalType: IDC_USER
+          PrincipalAttributes:
+            - {Key: department, Value: platform}
+  ConditionalScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-scoped-actions
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: IAM_ROLE
+      ScopedActions: !If
+        - IsProduction
+        - []
+        - - Actions: [cloudwatch:GetDashboard]
+  ConditionalAttributes:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-attributes
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalAttributes: !If
+          - IsProduction
+          - - {Key: department, Value: platform}
+          - !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rule_ids = ["E9015", "E9016"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "conditional values must not depend on branch order: {rego_findings:?}");
+}
+
+#[test]
+fn access_grant_validation_ignores_parameter_driven_values() {
+    let template = r#"
+Parameters:
+  RolePrincipalType:
+    Type: String
+    AllowedValues: [IAM_ROLE]
+  CustomPermission:
+    Type: String
+    AllowedValues: [CUSTOM]
+  AnyPermission:
+    Type: String
+    Default: CUSTOM
+Resources:
+  RestrictedParameterPrincipalType:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: restricted-parameter-principal-type
+      Permission: READ
+      Principal:
+        PrincipalType: !Ref RolePrincipalType
+        PrincipalAttributes:
+          - {Key: department, Value: platform}
+  RestrictedParameterPermission:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: restricted-parameter-permission
+      Permission: !Ref CustomPermission
+      Principal:
+        PrincipalType: IAM_ROLE
+  DefaultedParameterPermission:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: defaulted-parameter-permission
+      Permission: !Ref AnyPermission
+      Principal:
+        PrincipalType: IAM_ROLE
+      ScopedActions: []
+  SubstitutedPermission:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: substituted-permission
+      Permission: !Sub CUSTOM
+      Principal:
+        PrincipalType: IAM_ROLE
+  ImportedPrincipalType:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: imported-principal-type
+      Permission: READ
+      Principal:
+        PrincipalType: !ImportValue shared-principal-type
+        PrincipalAttributes:
+          - {Key: department, Value: platform}
+"#;
+    let (rego, cel) = engines();
+    let rule_ids = ["E9015", "E9016"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "values known only at deployment must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn access_grant_all_alerts_violations_have_identical_precise_diagnostics() {
+    let template =
+        include_str!("../../resources/templates/bad/E9017_access_grant_all_alerts_require_assume_access_profile.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9017"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9017"]);
+
+    assert_eq!(rego_findings, cel_findings, "all-alerts grant diagnostics must be identical across engines");
+    assert_eq!(rego_findings.len(), 2, "each all-alerts violation must be reported once: {rego_findings:?}");
+    for (resource_id, property_path, message, fix, start_line) in [
+        (
+            "AllAlertsRead",
+            "Properties.Permission",
+            "Permission must be 'CUSTOM' when the grant is for all alerts (PrincipalType 'ALERT', PrincipalId 'ALL'), \
+             not 'READ'",
+            "Set Permission to 'CUSTOM' with the single action 'cloudwatch:AssumeAccessProfile'",
+            10,
+        ),
+        (
+            "AllAlertsExtraAction",
+            "Properties.ScopedActions.0.Actions.1",
+            "'cloudwatch:GetSpace' is not allowed when the grant is for all alerts (PrincipalType 'ALERT', PrincipalId \
+             'ALL'); only 'cloudwatch:AssumeAccessProfile' is allowed",
+            "Remove the action",
+            27,
+        ),
+    ] {
+        assert!(
+            rego_findings
+                .iter()
+                .any(|finding| finding.contains(&format!("|{resource_id}|{property_path}|{message}|{fix}|"))
+                    && finding.contains(&format!("start_line: {start_line},"))),
+            "missing finding for {resource_id}: {rego_findings:?}"
+        );
+    }
+}
+
+#[test]
+fn access_grant_all_alerts_allow_assume_access_profile_and_unresolved_values() {
+    let template =
+        include_str!("../../resources/templates/good/E9017_access_grant_all_alerts_assume_access_profile.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9017"]);
+    let cel_findings = selected_findings(&cel, template, &["E9017"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(
+        rego_findings.is_empty(),
+        "allowed or unresolved all-alerts grants must not be reported: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn access_grant_all_alerts_validation_ignores_conditional_properties_in_both_branch_orders() {
+    let template = r#"
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [development, production]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  ReadFirst:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties: !If
+      - IsProduction
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: read-first
+        Permission: READ
+        Principal: {PrincipalType: ALERT, PrincipalId: ALL}
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: read-first
+        Permission: CUSTOM
+        Principal: {PrincipalType: ALERT, PrincipalId: ALL}
+        ScopedActions:
+          - Actions: [cloudwatch:AssumeAccessProfile]
+  ReadSecond:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties: !If
+      - IsProduction
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: read-second
+        Permission: CUSTOM
+        Principal: {PrincipalType: ALERT, PrincipalId: ALL}
+        ScopedActions:
+          - Actions: [cloudwatch:AssumeAccessProfile]
+      - DomainId: d-example123
+        SpaceId: 11111111-2222-3333-4444-555555555555
+        Name: read-second
+        Permission: READ
+        Principal: {PrincipalType: ALERT, PrincipalId: ALL}
+  ConditionalPrincipalId:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-principal-id
+      Permission: READ
+      Principal:
+        PrincipalType: ALERT
+        PrincipalId: !If [IsProduction, ALL, example-alert]
+  ConditionalScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-scoped-actions
+      Permission: CUSTOM
+      Principal: {PrincipalType: ALERT, PrincipalId: ALL}
+      ScopedActions: !If
+        - IsProduction
+        - - Actions: [cloudwatch:GetSpace]
+        - - Actions: [cloudwatch:AssumeAccessProfile]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9017"]);
+    let cel_findings = selected_findings(&cel, template, &["E9017"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "conditional values must not depend on branch order: {rego_findings:?}");
+}
+
+#[test]
+fn access_grant_validation_skips_values_removed_or_unknown_until_deployment() {
+    let template = r#"
+Parameters:
+  Action:
+    Type: String
+Resources:
+  AllowedActionWithUnknownItem:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: allowed-action-with-unknown-item
+      Permission: CUSTOM
+      Principal: {PrincipalType: ALERT, PrincipalId: ALL}
+      ScopedActions:
+        - Actions: [cloudwatch:AssumeAccessProfile, !Ref Action]
+  NoValueScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: no-value-scoped-actions
+      Permission: CUSTOM
+      Principal: {PrincipalType: IAM_ROLE}
+      ScopedActions: !Ref AWS::NoValue
+  NoValueAttributes:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: no-value-attributes
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalAttributes: !Ref AWS::NoValue
+"#;
+    let (rego, cel) = engines();
+    let rule_ids = ["E9015", "E9016", "E9017"];
+    let rego_findings = selected_findings(&rego, template, &rule_ids);
+    let cel_findings = selected_findings(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(
+        rego_findings.is_empty(),
+        "an intrinsic in a judged value defers the decision to deployment: {rego_findings:?}"
+    );
+}
+
+#[test]
+fn access_grant_literal_list_items_are_judged_beside_items_unknown_until_deployment() {
+    let template = r#"
+Parameters:
+  Action:
+    Type: String
+  DefaultedAction:
+    Type: String
+    Default: cloudwatch:ListSpaces
+  AttributeKey:
+    Type: String
+Resources:
+  LiteralActionsBesideUnknownItems:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: literal-actions-beside-unknown-items
+      Permission: CUSTOM
+      Principal: {PrincipalType: ALERT, PrincipalId: ALL}
+      ScopedActions:
+        - Actions: [cloudwatch:GetSpace, !Ref Action, !Ref DefaultedAction]
+        - Actions: [cloudwatch:AssumeAccessProfile, cloudwatch:GetDashboard]
+  AttributeWithUnknownKey:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: attribute-with-unknown-key
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalAttributes:
+          - {Key: !Ref AttributeKey, Value: platform}
+"#;
+    let (rego, cel) = engines();
+    let rule_ids = ["E9015", "E9017"];
+    let rego_findings = selected_finding_anchors(&rego, template, &rule_ids);
+    let cel_findings = selected_finding_anchors(&cel, template, &rule_ids);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings,
+        [
+            "AttributeWithUnknownKey|Properties.Principal.PrincipalAttributes|31:9",
+            "LiteralActionsBesideUnknownItems|Properties.ScopedActions.0.Actions.0|20:21",
+            "LiteralActionsBesideUnknownItems|Properties.ScopedActions.1.Actions.1|21:53",
+        ],
+        "literal items must be judged while parameter-driven items are skipped"
+    );
+}
+
+#[test]
+fn access_grant_principal_attributes_ignore_items_that_may_be_removed() {
+    let template = r#"
+Parameters:
+  Department:
+    Type: String
+Conditions:
+  HasDepartment: !Equals [!Ref Department, platform]
+Resources:
+  NoValueItem:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: no-value-item
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalAttributes: [!Ref AWS::NoValue]
+  ConditionalItem:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-item
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalAttributes:
+          - !If [HasDepartment, {Key: department, Value: !Ref Department}, !Ref AWS::NoValue]
+  DefiniteAndConditionalItems:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: definite-and-conditional-items
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalAttributes:
+          - {Key: team, Value: observability}
+          - !If [HasDepartment, {Key: department, Value: !Ref Department}, !Ref AWS::NoValue]
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_finding_anchors(&rego, template, &["E9015"]);
+    let cel_findings = selected_finding_anchors(&cel, template, &["E9015"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings,
+        ["DefiniteAndConditionalItems|Properties.Principal.PrincipalAttributes|38:9"],
+        "only an attribute present in every deployment makes the list non-empty"
+    );
+}
