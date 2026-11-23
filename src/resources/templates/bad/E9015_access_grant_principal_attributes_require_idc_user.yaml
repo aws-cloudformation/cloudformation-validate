@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch access grant principal attributes are only accepted for IAM Identity Center users.
+Resources:
+  RoleWithAttributes:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: role-with-attributes
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+        PrincipalAttributes:
+          - Key: department
+            Value: platform

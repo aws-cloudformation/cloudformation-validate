@@ -225,6 +225,17 @@ const LAMBDA_LOG_LEVEL_PROPERTIES: [&str; 2] = ["ApplicationLogLevel", "SystemLo
 const LAMBDA_LOGGING_CONFIG_PROPERTY: &str = "LoggingConfig";
 const LAMBDA_LOG_FORMAT_PROPERTY: &str = "LogFormat";
 const LAMBDA_TEXT_LOG_FORMAT: &str = "Text";
+const ACCESS_GRANT_TYPE: &str = "AWS::CloudWatch::AccessGrant";
+const ACCESS_GRANT_PRINCIPAL_TYPE_PATH: &str = "Properties.Principal.PrincipalType";
+const ACCESS_GRANT_PRINCIPAL_ATTRIBUTES_PATH: &str = "Properties.Principal.PrincipalAttributes";
+const ACCESS_GRANT_PERMISSION_PATH: &str = "Properties.Permission";
+const ACCESS_GRANT_SCOPED_ACTIONS_PATH: &str = "Properties.ScopedActions";
+const ACCESS_GRANT_IDC_USER_PRINCIPAL_TYPE: &str = "IDC_USER";
+const ACCESS_GRANT_CUSTOM_PERMISSION: &str = "CUSTOM";
+const ACCESS_GRANT_PRINCIPAL_ID_PATH: &str = "Properties.Principal.PrincipalId";
+const ACCESS_GRANT_ALERT_PRINCIPAL_TYPE: &str = "ALERT";
+const ACCESS_GRANT_ALL_PRINCIPAL_ID: &str = "ALL";
+const ACCESS_GRANT_ASSUME_ACCESS_PROFILE_ACTION: &str = "cloudwatch:AssumeAccessProfile";
 
 /// A reference's branch context lists the `Fn::If` conditions enclosing it,
 /// separated by commas, with a false branch marked by a leading `!`.
@@ -326,6 +337,197 @@ fn lambda_log_level_format_diagnostics(model: &SemanticModel) -> Vec<Diagnostic>
                 resource_id,
                 &property_path,
                 Some(&format!("Set LoggingConfig.LogFormat to 'JSON' or remove {level_property}")),
+            ));
+        }
+    }
+    diagnostics
+}
+
+/// Values authored at `path` as unconditional literals. A value from an
+/// intrinsic or a condition is not known until deployment, so it is not judged.
+fn unconditional_literal_values(model: &SemanticModel, resource_id: &str, path: &str) -> Vec<serde_json::Value> {
+    if model.is_from_intrinsic(resource_id, path) {
+        return Vec::new();
+    }
+    model
+        .resolve_scenarios_json_shared(resource_id, path)
+        .iter()
+        .filter(|(_, conditions)| conditions.is_empty())
+        .map(|(value, _)| value.clone())
+        .collect()
+}
+
+/// The number of items authored in the list at `path`, or `None` when the list
+/// itself comes from an intrinsic or a condition. Items are counted even when
+/// one of them is unknown before deployment, so its siblings can still be judged.
+fn authored_list_len(model: &SemanticModel, resource_id: &str, path: &str) -> Option<usize> {
+    if model.is_from_intrinsic(resource_id, path) {
+        return None;
+    }
+    resolved_list_items(model, resource_id, path).map(|items| items.len())
+}
+
+/// Whether the list at `path` holds an item that is an object in every
+/// deployment. An `AWS::NoValue` or conditional item may be removed, so it does
+/// not count; an object whose fields are unknown before deployment does.
+fn has_unconditional_object_item(model: &SemanticModel, resource_id: &str, path: &str) -> bool {
+    let item_count = authored_list_len(model, resource_id, path).unwrap_or(0);
+    (0..item_count).any(|index| {
+        let item_path = format!("{path}.{index}");
+        if model.is_from_intrinsic(resource_id, &item_path) {
+            return false;
+        }
+        match model.resolve_deep(resource_id, &item_path).or_else(|| model.resolve(resource_id, &item_path).cloned()) {
+            Some(ResolvedValue::Map { .. }) => true,
+            Some(ResolvedValue::Concrete { value }) => value.as_object().is_some(),
+            _ => false,
+        }
+    })
+}
+
+fn access_grant_principal_attributes_diagnostics(model: &SemanticModel) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    for resource_id in model.resources_of_type(ACCESS_GRANT_TYPE) {
+        if !has_unconditional_object_item(model, resource_id, ACCESS_GRANT_PRINCIPAL_ATTRIBUTES_PATH) {
+            continue;
+        }
+        let principal_types: BTreeSet<String> =
+            unconditional_literal_values(model, resource_id, ACCESS_GRANT_PRINCIPAL_TYPE_PATH)
+                .iter()
+                .filter_map(|principal_type| principal_type.as_str())
+                .filter(|principal_type| *principal_type != ACCESS_GRANT_IDC_USER_PRINCIPAL_TYPE)
+                .map(str::to_string)
+                .collect();
+        for principal_type in principal_types {
+            diagnostics.push(make_resource_diagnostic(
+                "E9015",
+                &format!(
+                    "PrincipalAttributes is supported only when Principal.PrincipalType is \
+                     '{ACCESS_GRANT_IDC_USER_PRINCIPAL_TYPE}', not '{principal_type}'"
+                ),
+                model,
+                resource_id,
+                ACCESS_GRANT_PRINCIPAL_ATTRIBUTES_PATH,
+                Some(&format!(
+                    "Remove PrincipalAttributes or set PrincipalType to '{ACCESS_GRANT_IDC_USER_PRINCIPAL_TYPE}'"
+                )),
+            ));
+        }
+    }
+    diagnostics
+}
+
+fn access_grant_custom_permission_diagnostics(model: &SemanticModel) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    for resource_id in model.resources_of_type(ACCESS_GRANT_TYPE) {
+        let is_custom = unconditional_literal_values(model, resource_id, ACCESS_GRANT_PERMISSION_PATH)
+            .iter()
+            .any(|permission| permission.as_str() == Some(ACCESS_GRANT_CUSTOM_PERMISSION));
+        if !is_custom {
+            continue;
+        }
+        let property_path = if !model.has_property(resource_id, ACCESS_GRANT_SCOPED_ACTIONS_PATH) {
+            ACCESS_GRANT_PERMISSION_PATH
+        } else if unconditional_literal_values(model, resource_id, ACCESS_GRANT_SCOPED_ACTIONS_PATH)
+            .iter()
+            .any(|scoped_actions| scoped_actions.as_array().is_some_and(Vec::is_empty))
+        {
+            ACCESS_GRANT_SCOPED_ACTIONS_PATH
+        } else {
+            continue;
+        };
+        diagnostics.push(make_resource_diagnostic(
+            "E9016",
+            &format!(
+                "ScopedActions must list at least one action when Permission is '{ACCESS_GRANT_CUSTOM_PERMISSION}'"
+            ),
+            model,
+            resource_id,
+            property_path,
+            Some("Add ScopedActions or choose a predefined Permission"),
+        ));
+    }
+    diagnostics
+}
+
+/// The service applies these limits to grants scoped to every principal of the
+/// alert type; a grant for one specific alert is not judged.
+fn access_grant_is_for_all_alerts(model: &SemanticModel, resource_id: &str) -> bool {
+    let has_literal = |path: &str, expected: &str| {
+        unconditional_literal_values(model, resource_id, path).iter().any(|value| value.as_str() == Some(expected))
+    };
+    has_literal(ACCESS_GRANT_PRINCIPAL_TYPE_PATH, ACCESS_GRANT_ALERT_PRINCIPAL_TYPE)
+        && has_literal(ACCESS_GRANT_PRINCIPAL_ID_PATH, ACCESS_GRANT_ALL_PRINCIPAL_ID)
+}
+
+/// Literal actions under `ScopedActions`, keyed by their item path.
+fn access_grant_literal_actions(model: &SemanticModel, resource_id: &str) -> BTreeSet<(String, String)> {
+    let mut actions = BTreeSet::new();
+    let scoped_action_count = authored_list_len(model, resource_id, ACCESS_GRANT_SCOPED_ACTIONS_PATH).unwrap_or(0);
+    for scoped_action_index in 0..scoped_action_count {
+        let actions_path = format!("{ACCESS_GRANT_SCOPED_ACTIONS_PATH}.{scoped_action_index}.Actions");
+        let action_count = authored_list_len(model, resource_id, &actions_path).unwrap_or(0);
+        for action_index in 0..action_count {
+            let action_path = format!("{actions_path}.{action_index}");
+            for action in unconditional_literal_values(model, resource_id, &action_path) {
+                if let Some(action) = action.as_str() {
+                    actions.insert((action_path.clone(), action.to_string()));
+                }
+            }
+        }
+    }
+    actions
+}
+
+fn access_grant_all_alerts_diagnostics(model: &SemanticModel) -> Vec<Diagnostic> {
+    let all_alerts_description = format!(
+        "the grant is for all alerts (PrincipalType '{ACCESS_GRANT_ALERT_PRINCIPAL_TYPE}', PrincipalId \
+         '{ACCESS_GRANT_ALL_PRINCIPAL_ID}')"
+    );
+    let mut diagnostics = Vec::new();
+    for resource_id in model.resources_of_type(ACCESS_GRANT_TYPE) {
+        if !access_grant_is_for_all_alerts(model, resource_id) {
+            continue;
+        }
+        let permissions: BTreeSet<String> =
+            unconditional_literal_values(model, resource_id, ACCESS_GRANT_PERMISSION_PATH)
+                .iter()
+                .filter_map(|permission| permission.as_str())
+                .map(str::to_string)
+                .collect();
+        for permission in permissions.iter().filter(|permission| *permission != ACCESS_GRANT_CUSTOM_PERMISSION) {
+            diagnostics.push(make_resource_diagnostic(
+                "E9017",
+                &format!(
+                    "Permission must be '{ACCESS_GRANT_CUSTOM_PERMISSION}' when {all_alerts_description}, not \
+                     '{permission}'"
+                ),
+                model,
+                resource_id,
+                ACCESS_GRANT_PERMISSION_PATH,
+                Some(&format!(
+                    "Set Permission to '{ACCESS_GRANT_CUSTOM_PERMISSION}' with the single action \
+                     '{ACCESS_GRANT_ASSUME_ACCESS_PROFILE_ACTION}'"
+                )),
+            ));
+        }
+        if !permissions.contains(ACCESS_GRANT_CUSTOM_PERMISSION) {
+            continue;
+        }
+        for (action_path, action) in access_grant_literal_actions(model, resource_id) {
+            if action == ACCESS_GRANT_ASSUME_ACCESS_PROFILE_ACTION {
+                continue;
+            }
+            diagnostics.push(make_resource_diagnostic(
+                "E9017",
+                &format!(
+                    "'{action}' is not allowed when {all_alerts_description}; only \
+                     '{ACCESS_GRANT_ASSUME_ACCESS_PROFILE_ACTION}' is allowed"
+                ),
+                model,
+                resource_id,
+                &action_path,
+                Some("Remove the action"),
             ));
         }
     }
@@ -1662,6 +1864,9 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
     }
 
     out.extend(lambda_log_level_format_diagnostics(m));
+    out.extend(access_grant_principal_attributes_diagnostics(m));
+    out.extend(access_grant_custom_permission_diagnostics(m));
+    out.extend(access_grant_all_alerts_diagnostics(m));
 
     for name in m.resources_of_type("AWS::Lambda::Function") {
         if let Some(snap) = resolve_concrete(m, name, "Properties.SnapStart")

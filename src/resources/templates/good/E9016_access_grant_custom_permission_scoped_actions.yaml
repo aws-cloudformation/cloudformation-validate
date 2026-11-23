@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch access grants with CUSTOM permission list scoped actions, or the permission is known only at deployment.
+Parameters:
+  Permission:
+    Type: String
+    AllowedValues: [CUSTOM, READ]
+  Environment:
+    Type: String
+    AllowedValues: [development, production]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  CustomWithScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: custom-with-scoped-actions
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+      ScopedActions:
+        - Actions:
+            - cloudwatch:GetDashboard
+  ReadWithScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: read-with-scoped-actions
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+      ScopedActions:
+        - Actions:
+            - cloudwatch:GetDashboard
+  ReadWithoutScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: read-without-scoped-actions
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+  ParameterPermission:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: parameter-permission
+      Permission: !Ref Permission
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+  ConditionalPermissionCustomFirst:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-permission-custom-first
+      Permission: !If [IsProduction, CUSTOM, READ]
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+  ConditionalPermissionCustomSecond:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-permission-custom-second
+      Permission: !If [IsProduction, READ, CUSTOM]
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+  PermissionLookup:
+    Type: Custom::PermissionLookup
+    Properties:
+      ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:permission-lookup
+  LookedUpPermission:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: looked-up-permission
+      Permission: !GetAtt PermissionLookup.Permission
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader

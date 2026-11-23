@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch access grant principal attributes on IAM Identity Center users, or on values known only at deployment.
+Parameters:
+  PrincipalType:
+    Type: String
+    AllowedValues: [IDC_USER, IAM_ROLE]
+  Environment:
+    Type: String
+    AllowedValues: [development, production]
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+Resources:
+  IdentityCenterUserWithAttributes:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: idc-user-with-attributes
+      Permission: READ
+      Principal:
+        PrincipalType: IDC_USER
+        PrincipalAttributes:
+          - Key: department
+            Value: platform
+  RoleWithEmptyAttributes:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: role-with-empty-attributes
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+        PrincipalAttributes: []
+  ParameterPrincipalType:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: parameter-principal-type
+      Permission: READ
+      Principal:
+        PrincipalType: !Ref PrincipalType
+        PrincipalAttributes:
+          - Key: department
+            Value: platform
+  ConditionalPrincipalTypeRoleFirst:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-principal-type-role-first
+      Permission: READ
+      Principal:
+        PrincipalType: !If [IsProduction, IAM_ROLE, IDC_USER]
+        PrincipalAttributes:
+          - Key: department
+            Value: platform
+  ConditionalPrincipalTypeRoleSecond:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: conditional-principal-type-role-second
+      Permission: READ
+      Principal:
+        PrincipalType: !If [IsProduction, IDC_USER, IAM_ROLE]
+        PrincipalAttributes:
+          - Key: department
+            Value: platform
+  PrincipalLookup:
+    Type: Custom::PrincipalLookup
+    Properties:
+      ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:principal-lookup
+  LookedUpPrincipalType:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: looked-up-principal-type
+      Permission: READ
+      Principal:
+        PrincipalType: !GetAtt PrincipalLookup.PrincipalType
+        PrincipalAttributes:
+          - Key: department
+            Value: platform
+  RoleWithRemovedAttribute:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: role-with-removed-attribute
+      Permission: READ
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+        PrincipalAttributes:
+          - !If [IsProduction, {Key: department, Value: platform}, !Ref AWS::NoValue]

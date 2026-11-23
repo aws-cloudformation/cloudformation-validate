@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch access grants with CUSTOM permission must list the actions they grant.
+Resources:
+  CustomWithoutScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: custom-without-scoped-actions
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+  CustomWithEmptyScopedActions:
+    Type: AWS::CloudWatch::AccessGrant
+    Properties:
+      DomainId: d-example123
+      SpaceId: 11111111-2222-3333-4444-555555555555
+      Name: custom-with-empty-scoped-actions
+      Permission: CUSTOM
+      Principal:
+        PrincipalType: IAM_ROLE
+        PrincipalId: arn:aws:iam::123456789012:role/observability-reader
+      ScopedActions: []
