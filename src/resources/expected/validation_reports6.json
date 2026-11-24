@@ -1,4 +1,101 @@
 {
+  "good/cloudfront_valid.yaml": {
+    "filePath": "good/cloudfront_valid.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Distribution' of type 'AWS::CloudFront::Distribution' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Distribution",
+          "entityType": "Resource",
+          "resourceType": "AWS::CloudFront::Distribution"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "good/codepipeline_artifact_counts.yaml": {
+    "filePath": "good/codepipeline_artifact_counts.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 1,
+        "informational": 1,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "W9002",
+        "severity": "WARN",
+        "message": "Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Pipeline",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodePipeline::Pipeline"
+        },
+        "propertyPath": "Properties.RoleArn",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 14,
+        "ruleDescription": "Hardcoded ARN property",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Pipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Pipeline",
+          "entityType": "Resource",
+          "resourceType": "AWS::CodePipeline::Pipeline"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/complex_conditions.yaml": {
     "filePath": "good/complex_conditions.yaml",
     "status": "OK",
@@ -21176,41 +21273,5 @@
         "phase": "LINT"
       }
     ]
-  },
-  "good/resources/iam/iam_policy_conditional_policies.yaml": {
-    "filePath": "good/resources/iam/iam_policy_conditional_policies.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
-  },
-  "good/resources/iam/identity_policy_wildcard_partition.yaml": {
-    "filePath": "good/resources/iam/identity_policy_wildcard_partition.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": []
   }
 }
