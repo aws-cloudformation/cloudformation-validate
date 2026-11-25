@@ -3775,6 +3775,47 @@ fn lambda_log_levels_allow_non_text_configurations() {
 }
 
 #[test]
+fn sns_lambda_subscription_accepts_lambda_alias_endpoint() {
+    let template = include_str!("../../resources/templates/good/W3694_sns_lambda_alias_endpoint.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3694"]);
+    let cel_findings = selected_findings(&cel, template, &["W3694"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "a Lambda alias is a valid lambda endpoint: {rego_findings:?}");
+}
+
+#[test]
+fn sns_lambda_subscription_rejects_sqs_queue_endpoint() {
+    let template = r#"
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+  Queue:
+    Type: AWS::SQS::Queue
+  QueueSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt Queue.Arn
+      Protocol: lambda
+      TopicArn: !Ref Topic
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3694"]);
+    let cel_findings = selected_findings(&cel, template, &["W3694"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings,
+        vec![
+            "W3694|Warn|QueueSubscription|Properties.Endpoint|Endpoint references 'Queue' (type 'AWS::SQS::Queue') \
+             but Protocol 'lambda' expects a Lambda Function|"
+                .to_string()
+        ]
+    );
+}
+
+#[test]
 fn lambda_log_level_validation_ignores_conditional_properties_in_both_branch_orders() {
     let template = r#"
 Parameters:
