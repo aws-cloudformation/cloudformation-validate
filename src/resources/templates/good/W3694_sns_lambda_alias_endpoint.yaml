@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: SNS subscription with protocol lambda delivering to a Lambda alias
+Resources:
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return None
+      Handler: index.handler
+      Role: !GetAtt FunctionRole.Arn
+      Runtime: python3.13
+  Version:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref Function
+  Alias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref Function
+      FunctionVersion: !GetAtt Version.Version
+      Name: STABLE
+  Topic:
+    Type: AWS::SNS::Topic
+  AliasInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref Alias
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref Topic
+  AliasSubscription:
+    Type: AWS::SNS::Subscription
+    DependsOn: AliasInvokePermission
+    Properties:
+      Endpoint: !Ref Alias
+      Protocol: lambda
+      TopicArn: !Ref Topic

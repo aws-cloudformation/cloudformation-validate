@@ -2,6 +2,8 @@ package resources
 
 import rego.v1
 
+_sns_lambda_endpoint_resource_types := {"AWS::Lambda::Function", "AWS::Lambda::Alias"}
+
 # W3694: SNS Subscription - Endpoint should match Protocol
 violation contains make_diag_at("W3694", "WARN", name,
     "Properties.Endpoint",
@@ -30,5 +32,5 @@ violation contains make_diag_at("W3694", "WARN", name,
     target_res := get_resource(target)
     target_res != null
     target_type := target_res.resourceType
-    target_type != "AWS::Lambda::Function"
+    not target_type in _sns_lambda_endpoint_resource_types
 }

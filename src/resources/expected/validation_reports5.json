@@ -33535,6 +33535,316 @@
       }
     ]
   },
+  "good/W3694_sns_lambda_alias_endpoint.yaml": {
+    "filePath": "good/W3694_sns_lambda_alias_endpoint.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 7,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 13,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Version",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Version"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 27,
+        "startColumn": 7,
+        "endLine": 27,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Function'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Alias",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Alias"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 7,
+        "endLine": 31,
+        "endColumn": 19,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-lambda",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Function'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Alias",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Alias"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 7,
+        "endLine": 33,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-lambda",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Action' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AliasInvokePermission",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.Action",
+        "category": "Best Practice",
+        "startLine": 39,
+        "startColumn": 7,
+        "endLine": 39,
+        "endColumn": 13,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'FunctionName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AliasInvokePermission",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.FunctionName",
+        "category": "Best Practice",
+        "startLine": 40,
+        "startColumn": 7,
+        "endLine": 40,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Alias'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Principal' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AliasInvokePermission",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.Principal",
+        "category": "Best Practice",
+        "startLine": 41,
+        "startColumn": 7,
+        "endLine": 41,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'SourceArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AliasInvokePermission",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Permission"
+        },
+        "propertyPath": "Properties.SourceArn",
+        "category": "Best Practice",
+        "startLine": 42,
+        "startColumn": 7,
+        "endLine": 42,
+        "endColumn": 16,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Topic'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Endpoint' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AliasSubscription",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Subscription"
+        },
+        "propertyPath": "Properties.Endpoint",
+        "category": "Best Practice",
+        "startLine": 47,
+        "startColumn": 7,
+        "endLine": 47,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Alias'"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Protocol' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AliasSubscription",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Subscription"
+        },
+        "propertyPath": "Properties.Protocol",
+        "category": "Best Practice",
+        "startLine": 48,
+        "startColumn": 7,
+        "endLine": 48,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'TopicArn' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "AliasSubscription",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Subscription"
+        },
+        "propertyPath": "Properties.TopicArn",
+        "category": "Best Practice",
+        "startLine": 49,
+        "startColumn": 7,
+        "endLine": 49,
+        "endColumn": 15,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only",
+          "resolutionSource": "Ref to 'Topic'"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'FunctionRole' of type 'AWS::IAM::Role' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "FunctionRole",
+          "entityType": "Resource",
+          "resourceType": "AWS::IAM::Role"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 5,
+        "endLine": 6,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Function' of type 'AWS::Lambda::Function' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Function",
+          "entityType": "Resource",
+          "resourceType": "AWS::Lambda::Function"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 34,
+        "startColumn": 3,
+        "endLine": 34,
+        "endColumn": 8,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "good/apigateway_method_authorizer_same_rest_api.yaml": {
     "filePath": "good/apigateway_method_authorizer_same_rest_api.yaml",
     "status": "OK",
@@ -34013,45 +34323,6 @@
           "lifecycle": "create-only",
           "resolutionSource": "parameter with AllowedValues"
         }
-      }
-    ]
-  },
-  "good/cdk_bootstrap_version_rule.json": {
-    "filePath": "good/cdk_bootstrap_version_rule.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 1,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Bucket",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 13,
-        "startColumn": 7,
-        "endLine": 13,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
       }
     ]
   }

@@ -225,6 +225,7 @@ const LAMBDA_LOG_LEVEL_PROPERTIES: [&str; 2] = ["ApplicationLogLevel", "SystemLo
 const LAMBDA_LOGGING_CONFIG_PROPERTY: &str = "LoggingConfig";
 const LAMBDA_LOG_FORMAT_PROPERTY: &str = "LogFormat";
 const LAMBDA_TEXT_LOG_FORMAT: &str = "Text";
+const SNS_LAMBDA_ENDPOINT_RESOURCE_TYPES: [&str; 2] = ["AWS::Lambda::Function", "AWS::Lambda::Alias"];
 
 /// A reference's branch context lists the `Fn::If` conditions enclosing it,
 /// separated by commas, with a false branch marked by a leading `!`.
@@ -4119,7 +4120,7 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                         None,
                     ));
                 }
-                "lambda" if target_res.resource_type != "AWS::Lambda::Function" => {
+                "lambda" if !SNS_LAMBDA_ENDPOINT_RESOURCE_TYPES.contains(&target_res.resource_type.as_str()) => {
                     out.push(make_resource_diagnostic(
                         "W3694",
                         &format!(
