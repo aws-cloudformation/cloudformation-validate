@@ -2374,6 +2374,53 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn empty_s3_lifecycle_object_size_ranges_are_reported_per_rule_for_both_bucket_types() {
+    let template = include_str!("../../resources/templates/bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings, "empty size range diagnostics must be identical across engines");
+
+    let fix = "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan";
+    let expected_findings: Vec<String> = [
+        ("Bucket", 0, 1000, 1000),
+        ("Bucket", 2, 2048, 1024),
+        ("Bucket", 3, 1000, 999),
+        ("DirectoryBucket", 0, 1_048_576, 1_048_576),
+        ("DirectoryBucket", 2, 10_485_760, 1_048_576),
+    ]
+    .iter()
+    .map(|(resource, rule_index, greater_than, less_than)| {
+        format!(
+            "E9015|Error|{resource}|Properties.LifecycleConfiguration.Rules.{rule_index}.ObjectSizeLessThan|\
+             ObjectSizeLessThan {less_than} must be greater than ObjectSizeGreaterThan {greater_than}|{fix}"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9015"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|17:13",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan|27:13",
+        "Bucket|Properties.LifecycleConfiguration.Rules.3.ObjectSizeLessThan|32:13",
+        "DirectoryBucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|44:13",
+        "DirectoryBucket|Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan|54:13",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9015"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9015"]), expected_anchors);
+}
+
+#[test]
+fn ascending_single_and_deployment_s3_lifecycle_object_sizes_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9015_s3_lifecycle_object_size_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "no size range here is provably empty: {rego_findings:?}");
+}
+
+#[test]
 fn invalid_event_patterns_have_identical_precise_diagnostics() {
     let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
     let (rego, cel) = engines();

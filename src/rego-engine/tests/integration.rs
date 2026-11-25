@@ -868,6 +868,19 @@ fn e2e_e3061_s3_tiering_bad_days() {
 }
 
 #[test]
+fn e2e_e9015_empty_s3_lifecycle_object_size_ranges() {
+    let report = validate_fixture("bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+    let size_range_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9015").count();
+    assert_eq!(size_range_findings, 5, "Expected one E9015 per empty size range, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9015_non_empty_single_and_deployment_s3_lifecycle_object_sizes() {
+    let report = validate_fixture("good/E9015_s3_lifecycle_object_size_ranges.yaml");
+    assert!(!has_rule(&report, "E9015"), "Expected no E9015, got: {:?}", report.diagnostics);
+}
+
+#[test]
 fn e2e_e9014_invalid_event_patterns() {
     let report = validate_fixture("bad/E9014_invalid_event_patterns.yaml");
     let event_pattern_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9014").count();
