@@ -675,28 +675,22 @@ fn enumerate_compatible_product_within_bounds<T: Clone>(
         maximum_compatible_combinations,
         &mut remaining_count_checks,
     )?;
-    let mut enumeration = CompatibleEnumeration {
-        assumptions: base_assumptions.clone(),
-        inserted_conditions: Vec::new(),
-        selected_values: Vec::with_capacity(items.len()),
-        combinations: Vec::with_capacity(compatible_count),
-        maximum_count: maximum_compatible_combinations,
-        is_reachable,
-    };
     let mut remaining_enumeration_checks = MAX_SCENARIO_PRODUCT_NODES;
-    if !enumerate_compatible_selections(items, 0, &mut enumeration, &mut remaining_enumeration_checks) {
-        return None;
-    }
-    Some(enumeration.combinations)
+    enumerate_compatible_selections(
+        items,
+        base_assumptions,
+        compatible_count,
+        maximum_compatible_combinations,
+        is_reachable,
+        &mut remaining_enumeration_checks,
+    )
 }
 
-struct CompatibleEnumeration<'items, 'reachability, T> {
-    assumptions: HashMap<String, bool>,
-    inserted_conditions: Vec<&'items str>,
-    selected_values: Vec<&'items ResolvedValue>,
-    combinations: Vec<(Vec<(T, ResolvedValue)>, HashMap<String, bool>)>,
-    maximum_count: usize,
-    is_reachable: &'reachability dyn Fn(&HashMap<String, bool>) -> bool,
+#[derive(Clone, Copy)]
+struct ScenarioSelectionFrame {
+    next_scenario_index: usize,
+    selected_scenario_index: usize,
+    insertion_start: usize,
 }
 
 fn count_compatible_product<T>(
@@ -708,18 +702,14 @@ fn count_compatible_product<T>(
     if !has_condition_shared_across_items(items, base_assumptions) {
         return None;
     }
-    let mut assumptions = base_assumptions.clone();
-    let mut inserted_conditions = Vec::new();
     let mut count = 0;
-    count_compatible_selections(
-        items,
-        0,
-        &mut assumptions,
-        &mut inserted_conditions,
-        &mut count,
-        maximum_count,
-        remaining_compatibility_checks,
-    )
+    visit_compatible_selections(items, base_assumptions, remaining_compatibility_checks, |_, _| {
+        if count == maximum_count {
+            return false;
+        }
+        count += 1;
+        true
+    })
     .then_some(count)
 }
 
@@ -745,102 +735,97 @@ fn has_condition_shared_across_items<T>(
     false
 }
 
-fn count_compatible_selections<'a, T>(
-    items: &'a [(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
-    item_index: usize,
-    assumptions: &mut HashMap<String, bool>,
-    inserted_conditions: &mut Vec<&'a str>,
-    count: &mut usize,
+fn enumerate_compatible_selections<T: Clone>(
+    items: &[(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
+    base_assumptions: &HashMap<String, bool>,
+    compatible_count: usize,
     maximum_count: usize,
+    is_reachable: &dyn Fn(&HashMap<String, bool>) -> bool,
     remaining_compatibility_checks: &mut usize,
-) -> bool {
-    let Some((_, item_scenarios)) = items.get(item_index) else {
-        if *count == maximum_count {
-            return false;
-        }
-        *count += 1;
-        return true;
-    };
+) -> Option<Vec<(Vec<(T, ResolvedValue)>, HashMap<String, bool>)>> {
+    let mut combinations = Vec::with_capacity(compatible_count);
+    let complete =
+        visit_compatible_selections(items, base_assumptions, remaining_compatibility_checks, |assumptions, frames| {
+            if !is_reachable(assumptions) {
+                return true;
+            }
+            if combinations.len() == maximum_count {
+                return false;
+            }
+            let collected: Option<Vec<(T, ResolvedValue)>> = items
+                .iter()
+                .zip(frames.iter().skip(1))
+                .map(|((key, scenarios), frame)| {
+                    scenarios.get(frame.selected_scenario_index).map(|(value, _)| (key.clone(), value.clone()))
+                })
+                .collect();
+            let Some(collected) = collected else {
+                return false;
+            };
+            combinations.push((collected, assumptions.clone()));
+            true
+        });
+    complete.then_some(combinations)
+}
 
-    for (_, scenario_assumptions) in item_scenarios {
+fn visit_compatible_selections<'a, T>(
+    items: &'a [(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
+    base_assumptions: &HashMap<String, bool>,
+    remaining_compatibility_checks: &mut usize,
+    mut visit: impl FnMut(&HashMap<String, bool>, &[ScenarioSelectionFrame]) -> bool,
+) -> bool {
+    let mut assumptions = base_assumptions.clone();
+    let mut inserted_conditions: Vec<&'a str> = Vec::new();
+    let mut frames = Vec::with_capacity(items.len().saturating_add(1));
+    frames.push(ScenarioSelectionFrame { next_scenario_index: 0, selected_scenario_index: 0, insertion_start: 0 });
+
+    while let Some(item_index) = frames.len().checked_sub(1) {
+        if item_index == items.len() {
+            if !visit(&assumptions, &frames) {
+                return false;
+            }
+            backtrack_compatible_selection(item_index, &mut frames, &mut assumptions, &mut inserted_conditions);
+            continue;
+        }
+
+        let scenario_index = frames[item_index].next_scenario_index;
+        let item_scenarios = &items[item_index].1;
+        if scenario_index >= item_scenarios.len() {
+            backtrack_compatible_selection(item_index, &mut frames, &mut assumptions, &mut inserted_conditions);
+            continue;
+        }
+        frames[item_index].next_scenario_index += 1;
         if *remaining_compatibility_checks == 0 {
             return false;
         }
         *remaining_compatibility_checks -= 1;
+
         let insertion_start = inserted_conditions.len();
-        let compatible = extend_scenario_assumptions(assumptions, scenario_assumptions, inserted_conditions);
-        let complete = !compatible
-            || count_compatible_selections(
-                items,
-                item_index + 1,
-                assumptions,
-                inserted_conditions,
-                count,
-                maximum_count,
-                remaining_compatibility_checks,
-            );
-        rollback_scenario_assumptions(assumptions, inserted_conditions, insertion_start);
-        if !complete {
-            return false;
+        let scenario_assumptions = &item_scenarios[scenario_index].1;
+        if extend_scenario_assumptions(&mut assumptions, scenario_assumptions, &mut inserted_conditions) {
+            frames.push(ScenarioSelectionFrame {
+                next_scenario_index: 0,
+                selected_scenario_index: scenario_index,
+                insertion_start,
+            });
+        } else {
+            rollback_scenario_assumptions(&mut assumptions, &mut inserted_conditions, insertion_start);
         }
     }
     true
 }
 
-fn enumerate_compatible_selections<'items, T: Clone>(
-    items: &'items [(T, Vec<(ResolvedValue, HashMap<String, bool>)>)],
+fn backtrack_compatible_selection(
     item_index: usize,
-    enumeration: &mut CompatibleEnumeration<'items, '_, T>,
-    remaining_compatibility_checks: &mut usize,
-) -> bool {
-    let Some((_, item_scenarios)) = items.get(item_index) else {
-        if !(enumeration.is_reachable)(&enumeration.assumptions) {
-            return true;
-        }
-        if enumeration.combinations.len() == enumeration.maximum_count {
-            return false;
-        }
-        let collected = items
-            .iter()
-            .zip(enumeration.selected_values.iter())
-            .map(|((key, _), value)| (key.clone(), (*value).clone()))
-            .collect();
-        enumeration.combinations.push((collected, enumeration.assumptions.clone()));
-        return true;
-    };
-
-    for (value, scenario_assumptions) in item_scenarios {
-        if *remaining_compatibility_checks == 0 {
-            return false;
-        }
-        *remaining_compatibility_checks -= 1;
-        let insertion_start = enumeration.inserted_conditions.len();
-        if extend_scenario_assumptions(
-            &mut enumeration.assumptions,
-            scenario_assumptions,
-            &mut enumeration.inserted_conditions,
-        ) {
-            enumeration.selected_values.push(value);
-            let complete =
-                enumerate_compatible_selections(items, item_index + 1, enumeration, remaining_compatibility_checks);
-            enumeration.selected_values.truncate(item_index);
-            rollback_scenario_assumptions(
-                &mut enumeration.assumptions,
-                &mut enumeration.inserted_conditions,
-                insertion_start,
-            );
-            if !complete {
-                return false;
-            }
-        } else {
-            rollback_scenario_assumptions(
-                &mut enumeration.assumptions,
-                &mut enumeration.inserted_conditions,
-                insertion_start,
-            );
-        }
+    frames: &mut Vec<ScenarioSelectionFrame>,
+    assumptions: &mut HashMap<String, bool>,
+    inserted_conditions: &mut Vec<&str>,
+) {
+    let insertion_start = frames[item_index].insertion_start;
+    frames.truncate(item_index);
+    if item_index > 0 {
+        rollback_scenario_assumptions(assumptions, inserted_conditions, insertion_start);
     }
-    true
 }
 
 fn extend_scenario_assumptions<'a>(
@@ -2079,6 +2064,32 @@ mod tests {
         assert!(!curtailed);
         assert!(!used_covering, "the compatible product fits both exact-expansion bounds");
         assert_eq!(scenarios.len(), MAX_COMPLETE_SCENARIO_PRODUCT);
+    }
+
+    #[test]
+    fn wide_shared_condition_product_is_enumerated_without_covering() {
+        let item_count = 10_000;
+        let list = ResolvedValue::List {
+            items: (0..item_count).map(|index| optional_item("Shared", &format!("v{index:05}"))).collect(),
+        };
+        let mut scenarios = Vec::new();
+        let mut used_covering = false;
+
+        let curtailed = collect_scenarios_with_covering(
+            &list,
+            &HashMap::new(),
+            MAX_SCENARIO_COMBINATIONS,
+            &mut scenarios,
+            &mut used_covering,
+        );
+
+        assert!(!curtailed);
+        assert!(!used_covering);
+        assert_eq!(scenarios.len(), 2);
+        assert!(scenarios.iter().all(|(scenario, _)| match scenario {
+            ResolvedValue::List { items } => items.len() == item_count,
+            _ => false,
+        }));
     }
 
     #[test]
