@@ -1,4 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  P0: {Type: String, AllowedValues: [t, f]}
+  P1: {Type: String, AllowedValues: [t, f]}
+  P2: {Type: String, AllowedValues: [t, f]}
+Conditions:
+  C0: !Equals [!Ref P0, t]
+  C1: !Equals [!Ref P1, t]
+  C2: !Equals [!Ref P2, t]
 Resources:
   Profile:
     Type: AWS::IAM::InstanceProfile
@@ -6,3 +14,45 @@ Resources:
       Roles:
         - arn:aws:iam::012345678901:role/SameRole
         - arn:aws:iam::012345678901:role/SameRole
+  Rule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(1 hour)
+      Tags: [{Key: Test, Value: shared-condition-uniqueness}]
+      Targets:
+        - Id: queue
+          Arn: !Sub arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:queue
+          InputTransformer:
+            InputTemplate: '"<k01>"'
+            InputPathsMap:
+              k01: !If [C0, $.detail.t01, $.detail.f01]
+              k02: !If [C1, $.detail.t02, $.detail.f02]
+              k03: !If [C2, $.detail.t03, $.detail.f03]
+              k04: !If [C0, $.detail.t04, $.detail.f04]
+              k05: !If [C1, $.detail.t05, $.detail.f05]
+              k06: !If [C2, $.detail.t06, $.detail.f06]
+              k07: !If [C0, $.detail.t07, $.detail.f07]
+              k08: !If [C1, $.detail.t08, $.detail.f08]
+              k09: !If [C2, $.detail.t09, $.detail.f09]
+              k10: !If [C0, $.detail.t10, $.detail.f10]
+              k11: !If [C1, $.detail.t11, $.detail.f11]
+              k12: !If [C2, $.detail.t12, $.detail.f12]
+              k13: !If [C0, $.detail.t13, $.detail.f13]
+        - Id: queue
+          Arn: !Sub arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:queue
+          InputTransformer:
+            InputTemplate: '"<k01>"'
+            InputPathsMap:
+              k01: $.detail.f01
+              k02: $.detail.f02
+              k03: $.detail.t03
+              k04: $.detail.f04
+              k05: $.detail.f05
+              k06: $.detail.t06
+              k07: $.detail.f07
+              k08: $.detail.f08
+              k09: $.detail.t09
+              k10: $.detail.f10
+              k11: $.detail.f11
+              k12: $.detail.t12
+              k13: $.detail.f13

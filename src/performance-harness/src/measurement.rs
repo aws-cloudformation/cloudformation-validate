@@ -296,6 +296,12 @@ fn workload_matrix(fixtures: &BTreeMap<&str, PathBuf>) -> Result<Vec<Workload>, 
             gate_process_lifecycle: true,
         },
         Workload {
+            name: "shared-condition-product".into(),
+            templates: vec![templates.join("bad/schema_unique_items.yaml")],
+            iterations: 15,
+            gate_process_lifecycle: true,
+        },
+        Workload {
             name: "mixed-real".into(),
             templates: vec![
                 templates.join("cdk/codepipeline-build-deploy--CodepipelineBuildDeployStack.template.json"),
@@ -470,8 +476,9 @@ mod tests {
             generate_fixtures(&project_root().join("tmp/performance-harness-unit-test/fixtures")).expect("fixtures");
         let workloads = workload_matrix(&fixtures).expect("workloads");
         let names: Vec<&str> = workloads.iter().map(|workload| workload.name.as_str()).collect();
-        assert_eq!(workloads.len(), 26, "{names:?}");
+        assert_eq!(workloads.len(), 27, "{names:?}");
         assert!(names.contains(&"tiny") && names.contains(&"mixed-real"), "{names:?}");
+        assert!(names.contains(&"shared-condition-product"), "{names:?}");
         assert!(names.contains(&"security-cross-reference-fanout"), "{names:?}");
         assert!(names.contains(&"security-independent-conditions-list-items"), "{names:?}");
         assert!(names.contains(&"security-independent-conditions-object-keys"), "{names:?}");
@@ -480,7 +487,7 @@ mod tests {
         assert!(names.contains(&"security-yaml-alias-expansion"), "{names:?}");
         assert!(names.contains(&"security-yaml-alias-expanded-depth"), "{names:?}");
         assert!(names.contains(&"security-conditional-scenario-correctness"), "{names:?}");
-        assert_eq!(ENGINES.len() * workloads.len(), 78);
+        assert_eq!(ENGINES.len() * workloads.len(), 81);
     }
 
     fn workload(name: &str, gate_process_lifecycle: bool) -> Workload {

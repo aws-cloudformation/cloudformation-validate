@@ -213,9 +213,10 @@ pub const MAX_SCENARIO_COMBINATIONS: usize = 262_144;
 /// (here 128x the per-value cap).
 pub const MAX_TOTAL_SCENARIO_COMBINATIONS: u64 = 33_554_432;
 
-/// Largest joint product of a container's member scenarios that is enumerated in
-/// full. A list or map whose members are gated by N independent conditions has
-/// 2^N joint assignments; past this many, the product is replaced by an
+/// Largest compatible joint product of a container's member scenarios that is
+/// enumerated in full. A list or map whose members are gated by N independent
+/// conditions has 2^N joint assignments; raw products above this bound receive
+/// one bounded conflict-pruning pass before they are replaced by an
 /// alternative-covering set (see `resolved_value::cover_cartesian_scenarios`).
 /// The covering set includes every member scenario and pair of condition states
 /// while growing linearly in the sum of member alternatives. Matches
