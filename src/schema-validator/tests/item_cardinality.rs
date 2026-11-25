@@ -575,7 +575,7 @@ fn unique_items_does_not_collapse_out_of_range_integral_float() {
 
 #[test]
 fn unique_items_with_shared_conditions_is_complete() {
-    let fields: serde_json::Map<String, Value> = (0..9)
+    let fields: serde_json::Map<String, Value> = (0..13)
         .map(|index| (format!("Field{index}"), if_condition("Shared", json!("enabled"), json!("disabled"))))
         .collect();
     let semantic_model =
@@ -588,6 +588,58 @@ fn unique_items_with_shared_conditions_is_complete() {
     assert!(
         !semantic_model.exhausted_budget_kinds().contains(&BudgetKind::SchemaScenarioAssignments),
         "shared conditions produce only two exact alternatives: {:?}",
+        semantic_model.exhausted_budget_kinds()
+    );
+    assert!(
+        !semantic_model.exhausted_budget_kinds().contains(&BudgetKind::ScenarioProductCovering),
+        "exact shared-condition expansion must not use covering: {:?}",
+        semantic_model.exhausted_budget_kinds()
+    );
+}
+
+#[test]
+fn unique_items_with_repeated_conditions_finds_the_duplicate_deployment() {
+    let condition_names = ["C0", "C1", "C2"];
+    let duplicate_assignment = [false, false, true];
+    let conditional_fields: serde_json::Map<String, Value> = (0..13)
+        .map(|index| {
+            let condition_index = index % condition_names.len();
+            (
+                format!("Field{index:02}"),
+                if_condition(
+                    condition_names[condition_index],
+                    json!(format!("t{index:02}")),
+                    json!(format!("f{index:02}")),
+                ),
+            )
+        })
+        .collect();
+    let duplicate_fields: serde_json::Map<String, Value> = (0..13)
+        .map(|index| {
+            let condition_index = index % condition_names.len();
+            let branch = if duplicate_assignment[condition_index] { "t" } else { "f" };
+            (format!("Field{index:02}"), json!(format!("{branch}{index:02}")))
+        })
+        .collect();
+    let semantic_model = model(&list_template(
+        toggles(&condition_names),
+        json!([Value::Object(conditional_fields), Value::Object(duplicate_fields)]),
+    ));
+    let validator = list_validator(json!({"type": "array", "items": {"type": "object"}, "uniqueItems": true}));
+
+    let diagnostics = validate(&validator, &semantic_model);
+
+    let violations = findings(&diagnostics, "F3037");
+    assert_eq!(violations.len(), 1, "one of the eight deployments has duplicate members: {diagnostics:#?}");
+    assert_eq!(violations[0].condition_scenario, scenario(&[("C0", false), ("C1", false), ("C2", true)]));
+    assert!(
+        !semantic_model.exhausted_budget_kinds().contains(&BudgetKind::SchemaScenarioAssignments),
+        "all eight deployments fit the exact expansion budget: {:?}",
+        semantic_model.exhausted_budget_kinds()
+    );
+    assert!(
+        !semantic_model.exhausted_budget_kinds().contains(&BudgetKind::ScenarioProductCovering),
+        "repeated conditions must not use covering: {:?}",
         semantic_model.exhausted_budget_kinds()
     );
 }

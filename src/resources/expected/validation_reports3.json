@@ -23217,9 +23217,9 @@
     "filePath": "bad/schema_unique_items.yaml",
     "status": "OK",
     "metadata": {
-      "resourcesScanned": 1,
+      "resourcesScanned": 2,
       "counts": {
-        "fatal": 2,
+        "fatal": 3,
         "errors": 0,
         "warnings": 0,
         "informational": 0,
@@ -23242,9 +23242,9 @@
         },
         "propertyPath": "Properties.Roles",
         "category": "Schema",
-        "startLine": 6,
+        "startLine": 14,
         "startColumn": 7,
-        "endLine": 6,
+        "endLine": 14,
         "endColumn": 12,
         "ruleDescription": "Array item count out of bounds",
         "phase": "SCHEMA",
@@ -23268,9 +23268,9 @@
         },
         "propertyPath": "Properties.Roles",
         "category": "Schema",
-        "startLine": 6,
+        "startLine": 14,
         "startColumn": 7,
-        "endLine": 6,
+        "endLine": 14,
         "endColumn": 12,
         "ruleDescription": "Array items not unique",
         "phase": "SCHEMA",
@@ -23278,6 +23278,78 @@
           "actualValue": [
             "arn:aws:iam::012345678901:role/SameRole",
             "arn:aws:iam::012345678901:role/SameRole"
+          ]
+        }
+      },
+      {
+        "ruleId": "F3037",
+        "severity": "FATAL",
+        "message": "Array items are not unique",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "Rule",
+          "entityType": "Resource",
+          "resourceType": "AWS::Events::Rule"
+        },
+        "propertyPath": "Properties.Targets",
+        "category": "Schema",
+        "startLine": 22,
+        "startColumn": 7,
+        "endLine": 22,
+        "endColumn": 14,
+        "conditionScenario": {
+          "C0": false,
+          "C1": false,
+          "C2": true
+        },
+        "ruleDescription": "Array items not unique",
+        "phase": "SCHEMA",
+        "context": {
+          "actualValue": [
+            {
+              "Id": "queue",
+              "Arn": "arn:aws:sqs:us-east-1:123456789012:queue",
+              "InputTransformer": {
+                "InputTemplate": "\"<k01>\"",
+                "InputPathsMap": {
+                  "k01": "$.detail.t01",
+                  "k02": "$.detail.t02",
+                  "k03": "$.detail.t03",
+                  "k04": "$.detail.t04",
+                  "k05": "$.detail.t05",
+                  "k06": "$.detail.t06",
+                  "k07": "$.detail.t07",
+                  "k08": "$.detail.t08",
+                  "k09": "$.detail.t09",
+                  "k10": "$.detail.t10",
+                  "k11": "$.detail.t11",
+                  "k12": "$.detail.t12",
+                  "k13": "$.detail.t13"
+                }
+              }
+            },
+            {
+              "Id": "queue",
+              "Arn": "arn:aws:sqs:us-east-1:123456789012:queue",
+              "InputTransformer": {
+                "InputTemplate": "\"<k01>\"",
+                "InputPathsMap": {
+                  "k01": "$.detail.f01",
+                  "k02": "$.detail.f02",
+                  "k03": "$.detail.t03",
+                  "k04": "$.detail.f04",
+                  "k05": "$.detail.f05",
+                  "k06": "$.detail.t06",
+                  "k07": "$.detail.f07",
+                  "k08": "$.detail.f08",
+                  "k09": "$.detail.t09",
+                  "k10": "$.detail.f10",
+                  "k11": "$.detail.f11",
+                  "k12": "$.detail.t12",
+                  "k13": "$.detail.f13"
+                }
+              }
+            }
           ]
         }
       }

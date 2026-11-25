@@ -11,8 +11,8 @@ use template_model::coercion::{CoerceResult, coerce_to_number, coerce_to_string,
 use template_model::conditions::Satisfiability;
 use template_model::consts::{
     FN_CONDITION, FN_FOR_EACH_KEY_PREFIX, FN_IF, FN_REF, INTRINSIC_FN_PATH_SEGMENTS, KEY_PROPERTIES, KEY_TYPE,
-    MAX_COMPLETE_SCENARIO_PRODUCT, MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCENARIO_PRODUCT_NODES,
-    MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH, MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
+    MAX_REQUIRED_PROPERTY_COMBINATIONS, MAX_SCHEMA_MATCH_DEPTH as MAX_MATCH_DEPTH,
+    MAX_SCHEMA_SCENARIO_ASSIGNMENTS as MAX_GROUP_SCENARIO_ASSIGNMENTS,
     MAX_SCHEMA_SCENARIO_MERGE_ATTEMPTS as MAX_GROUP_SCENARIO_MERGE_ATTEMPTS, PARAM_TYPE_COMMA_DELIMITED_LIST,
     PARAM_TYPE_NUMBER, PARAM_TYPE_STRING, PSEUDO_NO_VALUE, SAM_FUNCTION_TYPE, SAM_SERVERLESS_TYPE_PREFIX,
 };
@@ -4243,19 +4243,17 @@ fn equal_value_alternative_groups(
         if member.presence == MemberPresence::Never {
             continue;
         }
-        if scenario_expansion_may_use_covering(member.value) {
-            was_incomplete = true;
-        }
+        let mut member_used_covering = false;
         let mut scenarios = Vec::new();
-        if collect_scenarios_with_covering(
+        let member_was_curtailed = collect_scenarios_with_covering(
             member.value,
             outer_conditions,
             MAX_GROUP_PROPERTY_SCENARIOS,
             &mut scenarios,
-            &mut used_covering,
-        ) {
-            was_incomplete = true;
-        }
+            &mut member_used_covering,
+        );
+        was_incomplete |= member_was_curtailed || member_used_covering;
+        used_covering |= member_used_covering;
         let mut seen = HashSet::new();
         for (value, conditions) in scenarios {
             if is_resolved_null(&value) || contains_dynamic_resolved(&value) {
@@ -4280,69 +4278,6 @@ fn equal_value_alternative_groups(
         was_incomplete,
         used_covering,
     }
-}
-
-/// Whether expanding a value may replace an exact Cartesian product with a
-/// covering set. The shape deliberately overestimates when conditions are
-/// shared, conflict, or are already fixed outside the value: reporting
-/// incomplete analysis is safer than treating a covering set as exhaustive.
-fn scenario_expansion_may_use_covering(value: &ResolvedValue) -> bool {
-    #[derive(Clone, Copy)]
-    struct ScenarioShape {
-        combinations: usize,
-        nodes_per_combination: usize,
-        nested_covering: bool,
-    }
-
-    fn shape(value: &ResolvedValue) -> ScenarioShape {
-        let combination_cap = MAX_COMPLETE_SCENARIO_PRODUCT.saturating_add(1);
-        match value {
-            ResolvedValue::Conditional { if_true, if_false, .. } => {
-                let left = shape(if_true);
-                let right = shape(if_false);
-                ScenarioShape {
-                    combinations: left.combinations.saturating_add(right.combinations).min(combination_cap),
-                    nodes_per_combination: left.nodes_per_combination.max(right.nodes_per_combination),
-                    nested_covering: left.nested_covering || right.nested_covering,
-                }
-            }
-            ResolvedValue::Enum { variants } => {
-                let mut combined = ScenarioShape { combinations: 0, nodes_per_combination: 1, nested_covering: false };
-                for variant in variants {
-                    let variant_shape = shape(variant);
-                    combined.combinations =
-                        combined.combinations.saturating_add(variant_shape.combinations).min(combination_cap);
-                    combined.nodes_per_combination =
-                        combined.nodes_per_combination.max(variant_shape.nodes_per_combination);
-                    combined.nested_covering |= variant_shape.nested_covering;
-                }
-                combined.combinations = combined.combinations.max(1);
-                combined
-            }
-            ResolvedValue::List { items } => container_shape(items.iter().map(shape)),
-            ResolvedValue::Map { entries } => container_shape(entries.iter().map(|entry| shape(&entry.value))),
-            _ => ScenarioShape { combinations: 1, nodes_per_combination: 1, nested_covering: false },
-        }
-    }
-
-    fn container_shape(children: impl Iterator<Item = ScenarioShape>) -> ScenarioShape {
-        let combination_cap = MAX_COMPLETE_SCENARIO_PRODUCT.saturating_add(1);
-        let node_cap = MAX_SCENARIO_PRODUCT_NODES.saturating_add(1);
-        let mut container = ScenarioShape { combinations: 1, nodes_per_combination: 1, nested_covering: false };
-        for child in children {
-            container.combinations =
-                container.combinations.saturating_mul(child.combinations.max(1)).min(combination_cap);
-            container.nodes_per_combination =
-                container.nodes_per_combination.saturating_add(child.nodes_per_combination).min(node_cap);
-            container.nested_covering |= child.nested_covering;
-        }
-        let materialized_nodes = container.combinations.saturating_mul(container.nodes_per_combination);
-        container.nested_covering |=
-            container.combinations > MAX_COMPLETE_SCENARIO_PRODUCT || materialized_nodes > MAX_SCENARIO_PRODUCT_NODES;
-        container
-    }
-
-    shape(value).nested_covering
 }
 
 /// Finds a proven satisfiable world in which two different members survive
