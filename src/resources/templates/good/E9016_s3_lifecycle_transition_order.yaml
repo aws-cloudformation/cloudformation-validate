@@ -1,9 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   Lifecycle transitions that move down the storage-class waterfall and keep
-  objects in each class for its minimum storage duration, ascending day counts
-  whose strings sort in descending order, and transition day counts that are
-  only known at deployment.
+  objects in each class for exactly its minimum storage duration or longer,
+  adjacent classes one day apart, ascending day counts whose strings sort in
+  descending order, mixed string and number day counts, transitions listed in
+  reverse order, date-based transitions, and values that are only known at
+  deployment.
 Parameters:
   ArchiveDays:
     Type: Number
@@ -19,7 +21,7 @@ Resources:
     Properties:
       LifecycleConfiguration:
         Rules:
-          - Id: InfrequentAccessThenGlacier
+          - Id: InfrequentAccessThenGlacierAtMinimum
             Status: Enabled
             ExpirationInDays: 61
             Transitions:
@@ -27,13 +29,27 @@ Resources:
                 TransitionInDays: 30
               - StorageClass: GLACIER
                 TransitionInDays: 60
-          - Id: InstantRetrievalThenDeepArchive
+          - Id: InstantRetrievalThenDeepArchiveAtMinimum
             Status: Enabled
             Transitions:
               - StorageClass: GLACIER_IR
                 TransitionInDays: 30
               - StorageClass: DEEP_ARCHIVE
                 TransitionInDays: 120
+          - Id: GlacierThenDeepArchiveAtMinimumMixedTypes
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: "90"
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 180
+          - Id: AdjacentClassesOneDayApart
+            Status: Enabled
+            Transitions:
+              - StorageClass: INTELLIGENT_TIERING
+                TransitionInDays: 30
+              - StorageClass: ONEZONE_IA
+                TransitionInDays: 31
           - Id: AscendingDaysInDescendingStringOrder
             Status: Enabled
             Transitions:
@@ -41,6 +57,20 @@ Resources:
                 TransitionInDays: "90"
               - StorageClass: GLACIER
                 TransitionInDays: "180"
+          - Id: ListedInReverse
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: 60
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+          - Id: DateTransitions
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionDate: "2030-01-01T00:00:00.000Z"
+              - StorageClass: GLACIER
+                TransitionDate: "2030-03-01T00:00:00.000Z"
           - Id: ParameterDays
             Status: Enabled
             Transitions:
@@ -55,3 +85,10 @@ Resources:
                 TransitionInDays: 30
               - StorageClass: GLACIER
                 TransitionInDays: !If [IsProd, 10, 365]
+          - Id: ConditionalStorageClass
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: !If [IsProd, GLACIER, DEEP_ARCHIVE]
+                TransitionInDays: 40

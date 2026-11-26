@@ -2429,14 +2429,16 @@ fn out_of_order_s3_lifecycle_transitions_are_reported_at_the_later_class() {
     assert_eq!(rego_findings, cel_findings, "transition order diagnostics must be identical across engines");
 
     let expected_findings: Vec<String> = [
-        (0, "GLACIER", 89, "STANDARD_IA", 90),
-        (1, "ONEZONE_IA", 60, "INTELLIGENT_TIERING", 60),
-        (2, "GLACIER", 99, "STANDARD_IA", 100),
+        (0, 1, "GLACIER", 89, "STANDARD_IA", 90),
+        (1, 1, "ONEZONE_IA", 60, "INTELLIGENT_TIERING", 60),
+        (2, 1, "GLACIER", 99, "STANDARD_IA", 100),
+        (3, 0, "GLACIER", 89, "STANDARD_IA", 90),
     ]
     .iter()
-    .map(|(rule_index, later_class, later_days, earlier_class, earlier_days)| {
+    .map(|(rule_index, transition_index, later_class, later_days, earlier_class, earlier_days)| {
         format!(
-            "E9016|Error|Bucket|Properties.LifecycleConfiguration.Rules.{rule_index}.Transitions.1.TransitionInDays|\
+            "E9016|Error|Bucket|Properties.LifecycleConfiguration.Rules.{rule_index}.Transitions.{transition_index}.\
+             TransitionInDays|\
              Transition to {later_class} at {later_days} days must come after the transition to {earlier_class} at \
              {earlier_days} days|Set TransitionInDays for {later_class} greater than {earlier_days}"
         )
@@ -2445,9 +2447,10 @@ fn out_of_order_s3_lifecycle_transitions_are_reported_at_the_later_class() {
     assert_eq!(selected_findings(&rego, template, &["E9016", "E9017"]), expected_findings);
 
     let expected_anchors = [
-        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|19:17",
-        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|26:17",
-        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|33:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|20:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|27:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|34:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.3.Transitions.0.TransitionInDays|39:17",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);
@@ -2466,6 +2469,7 @@ fn short_s3_lifecycle_storage_durations_are_reported_at_the_later_class() {
         (0, "GLACIER", 59, 30, "STANDARD_IA", 30),
         (1, "DEEP_ARCHIVE", 93, 90, "GLACIER_IR", 4),
         (2, "DEEP_ARCHIVE", 129, 30, "ONEZONE_IA", 100),
+        (3, "DEEP_ARCHIVE", 189, 90, "GLACIER", 100),
     ]
     .iter()
     .map(|(rule_index, later_class, later_days, gap, earlier_class, earlier_days)| {
@@ -2480,9 +2484,10 @@ fn short_s3_lifecycle_storage_durations_are_reported_at_the_later_class() {
     assert_eq!(selected_findings(&rego, template, &["E9016", "E9017"]), expected_findings);
 
     let expected_anchors = [
-        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|19:17",
-        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|26:17",
-        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|33:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|20:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|27:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|34:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.3.Transitions.1.TransitionInDays|41:17",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);
