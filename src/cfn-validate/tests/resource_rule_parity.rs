@@ -2478,7 +2478,7 @@ fn s3_intelligent_tiering_deep_archive_not_after_archive_are_reported_identicall
 
     let fix = "Set DEEP_ARCHIVE_ACCESS Days to a value greater than ARCHIVE_ACCESS Days";
     let expected_findings: Vec<String> =
-        [(0, 1, 180, 180), (1, 0, 200, 365), (2, 1, 200, 365), (3, 1, 730, 730), (4, 1, 365, 365)]
+        [(0, 1, 180, 180), (1, 0, 200, 365), (2, 1, 200, 365), (3, 1, 730, 730), (4, 1, 365, 365), (5, 1, 180, 180)]
             .iter()
             .map(|(config_index, tiering_index, deep_archive_days, archive_days)| {
                 format!(
@@ -2496,6 +2496,7 @@ fn s3_intelligent_tiering_deep_archive_not_after_archive_are_reported_identicall
         "Bucket|Properties.IntelligentTieringConfigurations.2.Tierings.1.Days|32:15",
         "Bucket|Properties.IntelligentTieringConfigurations.3.Tierings.1.Days|39:15",
         "Bucket|Properties.IntelligentTieringConfigurations.4.Tierings.1.Days|46:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.5.Tierings.1.Days|54:15",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9019"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9019"]), expected_anchors);
@@ -2525,6 +2526,7 @@ fn s3_replication_destinations_without_versioning_are_reported_identically() {
         (1, "SuspendedDestination", "has versioning status Suspended"),
         (2, "TaggedDestination", "has no VersioningConfiguration"),
         (3, "UnversionedDestination", "has no VersioningConfiguration"),
+        (4, "UnversionedDestination", "has no VersioningConfiguration"),
     ]
     .iter()
     .map(|(rule_index, destination, reason)| {
@@ -2542,6 +2544,7 @@ fn s3_replication_destinations_without_versioning_are_reported_identically() {
         "SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|48:15",
         "SourceBucket|Properties.ReplicationConfiguration.Rules.2.Destination.Bucket|53:15",
         "SourceBucket|Properties.ReplicationConfiguration.Rules.3.Destination.Bucket|58:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.4.Destination.Bucket|65:15",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9020"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9020"]), expected_anchors);

@@ -44,3 +44,11 @@ Resources:
               Days: "365"
             - AccessTier: DEEP_ARCHIVE_ACCESS
               Days: 365
+        # S3 validates a disabled configuration as well.
+        - Id: DisabledConfiguration
+          Status: Disabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 180
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 180

@@ -57,3 +57,9 @@ Resources:
             Destination:
               Bucket:
                 Fn::GetAtt: [UnversionedDestination, Arn]
+          # S3 validates a disabled rule as well.
+          - Id: DisabledToUnversioned
+            Status: Disabled
+            Prefix: disabled/
+            Destination:
+              Bucket: !GetAtt UnversionedDestination.Arn

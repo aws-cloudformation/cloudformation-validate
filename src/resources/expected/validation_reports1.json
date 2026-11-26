@@ -10198,7 +10198,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 5,
+        "errors": 6,
         "warnings": 3,
         "informational": 1,
         "debug": 0
@@ -10309,6 +10309,26 @@
         "phase": "LINT"
       },
       {
+        "ruleId": "E9019",
+        "severity": "ERROR",
+        "message": "DEEP_ARCHIVE_ACCESS Days 180 must be greater than ARCHIVE_ACCESS Days 180",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.IntelligentTieringConfigurations.5.Tierings.1.Days",
+        "suggestedFix": "Set DEEP_ARCHIVE_ACCESS Days to a value greater than ARCHIVE_ACCESS Days",
+        "category": "Resource",
+        "startLine": 54,
+        "startColumn": 15,
+        "endLine": 54,
+        "endColumn": 19,
+        "ruleDescription": "S3 Intelligent-Tiering DEEP_ARCHIVE_ACCESS days must be greater than ARCHIVE_ACCESS days",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "W9003",
         "severity": "WARN",
         "message": "'365' is not of type 'integer' - automatically coerced (string to integer)",
@@ -10394,7 +10414,7 @@
       "resourcesScanned": 5,
       "counts": {
         "fatal": 0,
-        "errors": 4,
+        "errors": 5,
         "warnings": 0,
         "informational": 4,
         "debug": 0
@@ -10480,6 +10500,26 @@
         "startLine": 58,
         "startColumn": 15,
         "endLine": 58,
+        "endColumn": 21,
+        "ruleDescription": "S3 replication destination bucket in the template must have versioning enabled",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9020",
+        "severity": "ERROR",
+        "message": "Replication destination bucket 'UnversionedDestination' has no VersioningConfiguration; S3 replicates only into a bucket with versioning enabled",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "SourceBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.ReplicationConfiguration.Rules.4.Destination.Bucket",
+        "suggestedFix": "Set VersioningConfiguration.Status to Enabled on 'UnversionedDestination'",
+        "category": "Resource",
+        "startLine": 65,
+        "startColumn": 15,
+        "endLine": 65,
         "endColumn": 21,
         "ruleDescription": "S3 replication destination bucket in the template must have versioning enabled",
         "phase": "LINT"
