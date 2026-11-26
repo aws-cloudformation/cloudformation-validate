@@ -4,8 +4,8 @@ Description: >-
   objects in each class for exactly its minimum storage duration or longer,
   adjacent classes one day apart, ascending day counts whose strings sort in
   descending order, mixed string and number day counts, transitions listed in
-  reverse order, date-based transitions, and values that are only known at
-  deployment.
+  reverse order, date-based transitions, and values, transitions or whole
+  rules that are only known at deployment.
 Parameters:
   ArchiveDays:
     Type: Number
@@ -92,3 +92,23 @@ Resources:
                 TransitionInDays: 30
               - StorageClass: !If [IsProd, GLACIER, DEEP_ARCHIVE]
                 TransitionInDays: 40
+          - Id: ConditionalTransition
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 90
+              - !If
+                - IsProd
+                - StorageClass: GLACIER
+                  TransitionInDays: 89
+                - !Ref AWS::NoValue
+          - !If
+            - IsProd
+            - Id: ConditionalRule
+              Status: Enabled
+              Transitions:
+                - StorageClass: STANDARD_IA
+                  TransitionInDays: 90
+                - StorageClass: GLACIER
+                  TransitionInDays: 89
+            - !Ref AWS::NoValue
