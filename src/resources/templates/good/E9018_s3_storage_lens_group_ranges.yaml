@@ -3,7 +3,7 @@ Description: >-
   Storage Lens group ranges that are not provably empty: bounds one apart,
   including at the minimum of 1 and above 2^53, ascending bounds whose strings
   sort in descending order, a string and a number mixed, a single bound, and
-  bounds that are only known at deployment.
+  bounds or a whole filter that are only known at deployment.
 Parameters:
   MaxAgeDays:
     Type: Number
@@ -92,3 +92,14 @@ Resources:
         MatchObjectAge:
           DaysGreaterThan: 30
           DaysLessThan: !If [IsProd, 10, 60]
+  ConditionalFilterGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: conditional-filter-group
+      Filter: !If
+        - IsProd
+        - MatchObjectAge:
+            DaysGreaterThan: 30
+            DaysLessThan: 30
+        - MatchObjectAge:
+            DaysGreaterThan: 1

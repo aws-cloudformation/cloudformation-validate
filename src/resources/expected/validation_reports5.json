@@ -35068,12 +35068,12 @@
     "filePath": "good/E9018_s3_storage_lens_group_ranges.yaml",
     "status": "OK",
     "metadata": {
-      "resourcesScanned": 10,
+      "resourcesScanned": 11,
       "counts": {
         "fatal": 0,
         "errors": 0,
         "warnings": 3,
-        "informational": 20,
+        "informational": 22,
         "debug": 0
       },
       "suppressed": 0,
@@ -35372,6 +35372,29 @@
         }
       },
       {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalFilterGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::StorageLensGroup"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 98,
+        "startColumn": 7,
+        "endLine": 98,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3-storagelensgroup",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
         "ruleId": "I9040",
         "severity": "INFO",
         "message": "Resource 'AscendingGroup' of type 'AWS::S3::StorageLensGroup' supports Tags but none are configured",
@@ -35570,6 +35593,26 @@
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ConditionalFilterGroup' of type 'AWS::S3::StorageLensGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ConditionalFilterGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::StorageLensGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 97,
+        "startColumn": 5,
+        "endLine": 97,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
       }
     ]
   },
@@ -35602,9 +35645,9 @@
         },
         "propertyPath": "Properties.IntelligentTieringConfigurations.1.Tierings.0.Days",
         "category": "Best Practice",
-        "startLine": 32,
+        "startLine": 33,
         "startColumn": 15,
-        "endLine": 32,
+        "endLine": 33,
         "endColumn": 19,
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA"
@@ -35621,9 +35664,9 @@
         },
         "propertyPath": "Properties.IntelligentTieringConfigurations.1.Tierings.1.Days",
         "category": "Best Practice",
-        "startLine": 34,
+        "startLine": 35,
         "startColumn": 15,
-        "endLine": 34,
+        "endLine": 35,
         "endColumn": 19,
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA"
@@ -35640,9 +35683,9 @@
         },
         "propertyPath": "Properties.IntelligentTieringConfigurations.4.Tierings.0.Days",
         "category": "Best Practice",
-        "startLine": 53,
+        "startLine": 54,
         "startColumn": 15,
-        "endLine": 53,
+        "endLine": 54,
         "endColumn": 19,
         "ruleDescription": "Property type coercion warning",
         "phase": "SCHEMA"
@@ -35660,9 +35703,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 19,
+        "startLine": 20,
         "startColumn": 5,
-        "endLine": 19,
+        "endLine": 20,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

@@ -2524,6 +2524,7 @@ fn s3_replication_destinations_without_versioning_are_reported_identically() {
         (0, "UnversionedDestination", "has no VersioningConfiguration"),
         (1, "SuspendedDestination", "has versioning status Suspended"),
         (2, "TaggedDestination", "has no VersioningConfiguration"),
+        (3, "UnversionedDestination", "has no VersioningConfiguration"),
     ]
     .iter()
     .map(|(rule_index, destination, reason)| {
@@ -2537,9 +2538,10 @@ fn s3_replication_destinations_without_versioning_are_reported_identically() {
     assert_eq!(selected_findings(&rego, template, &["E9020"]), expected_findings);
 
     let expected_anchors = [
-        "SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|42:15",
-        "SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|47:15",
-        "SourceBucket|Properties.ReplicationConfiguration.Rules.2.Destination.Bucket|52:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|43:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|48:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.2.Destination.Bucket|53:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.3.Destination.Bucket|58:15",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9020"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9020"]), expected_anchors);

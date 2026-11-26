@@ -910,7 +910,7 @@ fn e2e_e9019_valid_s3_intelligent_tiering_order() {
 fn e2e_e9020_s3_replication_destinations_without_versioning() {
     let report = validate_fixture("bad/E9020_s3_replication_destination_without_versioning.yaml");
     let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9020").count();
-    assert_eq!(findings, 3, "Expected one E9020 per unversioned destination, got: {:?}", report.diagnostics);
+    assert_eq!(findings, 4, "Expected one E9020 per unversioned destination, got: {:?}", report.diagnostics);
 }
 
 #[test]
