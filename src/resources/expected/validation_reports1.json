@@ -9556,6 +9556,247 @@
       }
     ]
   },
+  "bad/E9015_s3_lifecycle_empty_object_size_range.yaml": {
+    "filePath": "bad/E9015_s3_lifecycle_empty_object_size_range.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 5,
+        "warnings": 2,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1000 must be greater than ObjectSizeGreaterThan 1000",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 17,
+        "startColumn": 13,
+        "endLine": 17,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1024 must be greater than ObjectSizeGreaterThan 2048",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 27,
+        "startColumn": 13,
+        "endLine": 27,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 999 must be greater than ObjectSizeGreaterThan 1000",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.3.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 32,
+        "startColumn": 13,
+        "endLine": 32,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1048576 must be greater than ObjectSizeGreaterThan 1048576",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 44,
+        "startColumn": 13,
+        "endLine": 44,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1048576 must be greater than ObjectSizeGreaterThan 10485760",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 54,
+        "startColumn": 13,
+        "endLine": 54,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "10485760 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeGreaterThan",
+        "category": "Best Practice",
+        "startLine": 53,
+        "startColumn": 13,
+        "endLine": 53,
+        "endColumn": 34,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "1048576 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan",
+        "category": "Best Practice",
+        "startLine": 54,
+        "startColumn": 13,
+        "endLine": 54,
+        "endColumn": 31,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DataRedundancy' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.DataRedundancy",
+        "category": "Best Practice",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LocationName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LocationName",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 7,
+        "endLine": 37,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DirectoryBucket' of type 'AWS::S3Express::DirectoryBucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/E9016_s3_lifecycle_transition_out_of_order.yaml": {
     "filePath": "bad/E9016_s3_lifecycle_transition_out_of_order.yaml",
     "status": "OK",
@@ -9563,8 +9804,8 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 2,
-        "warnings": 0,
+        "errors": 3,
+        "warnings": 2,
         "informational": 1,
         "debug": 0
       },
@@ -9586,9 +9827,9 @@
         "propertyPath": "Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays",
         "suggestedFix": "Set TransitionInDays for GLACIER greater than 90",
         "category": "Resource",
-        "startLine": 18,
+        "startLine": 19,
         "startColumn": 17,
-        "endLine": 18,
+        "endLine": 19,
         "endColumn": 33,
         "ruleDescription": "S3 lifecycle transitions must reach each storage class after the classes above it",
         "phase": "LINT"
@@ -9606,12 +9847,70 @@
         "propertyPath": "Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays",
         "suggestedFix": "Set TransitionInDays for ONEZONE_IA greater than 60",
         "category": "Resource",
-        "startLine": 25,
+        "startLine": 26,
         "startColumn": 17,
-        "endLine": 25,
+        "endLine": 26,
         "endColumn": 33,
         "ruleDescription": "S3 lifecycle transitions must reach each storage class after the classes above it",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "E9016",
+        "severity": "ERROR",
+        "message": "Transition to GLACIER at 99 days must come after the transition to STANDARD_IA at 100 days",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays",
+        "suggestedFix": "Set TransitionInDays for GLACIER greater than 100",
+        "category": "Resource",
+        "startLine": 33,
+        "startColumn": 17,
+        "endLine": 33,
+        "endColumn": 33,
+        "ruleDescription": "S3 lifecycle transitions must reach each storage class after the classes above it",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'100' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.Transitions.0.TransitionInDays",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 17,
+        "endLine": 31,
+        "endColumn": 33,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'99' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 17,
+        "endLine": 33,
+        "endColumn": 33,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
       },
       {
         "ruleId": "I9040",
@@ -9626,9 +9925,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 9,
+        "startLine": 10,
         "startColumn": 5,
-        "endLine": 9,
+        "endLine": 10,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -9642,8 +9941,8 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 2,
-        "warnings": 0,
+        "errors": 3,
+        "warnings": 2,
         "informational": 1,
         "debug": 0
       },
@@ -9665,9 +9964,9 @@
         "propertyPath": "Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays",
         "suggestedFix": "Set TransitionInDays for GLACIER to at least 60",
         "category": "Resource",
-        "startLine": 18,
+        "startLine": 19,
         "startColumn": 17,
-        "endLine": 18,
+        "endLine": 19,
         "endColumn": 33,
         "ruleDescription": "S3 lifecycle transitions must keep objects in a class for its minimum storage duration",
         "phase": "LINT"
@@ -9685,12 +9984,70 @@
         "propertyPath": "Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays",
         "suggestedFix": "Set TransitionInDays for DEEP_ARCHIVE to at least 94",
         "category": "Resource",
-        "startLine": 25,
+        "startLine": 26,
         "startColumn": 17,
-        "endLine": 25,
+        "endLine": 26,
         "endColumn": 33,
         "ruleDescription": "S3 lifecycle transitions must keep objects in a class for its minimum storage duration",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "E9017",
+        "severity": "ERROR",
+        "message": "Transition to DEEP_ARCHIVE at 129 days must be at least 30 days after the transition to ONEZONE_IA at 100 days",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays",
+        "suggestedFix": "Set TransitionInDays for DEEP_ARCHIVE to at least 130",
+        "category": "Resource",
+        "startLine": 33,
+        "startColumn": 17,
+        "endLine": 33,
+        "endColumn": 33,
+        "ruleDescription": "S3 lifecycle transitions must keep objects in a class for its minimum storage duration",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'100' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.Transitions.0.TransitionInDays",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 17,
+        "endLine": 31,
+        "endColumn": 33,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'129' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays",
+        "category": "Best Practice",
+        "startLine": 33,
+        "startColumn": 17,
+        "endLine": 33,
+        "endColumn": 33,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
       },
       {
         "ruleId": "I9040",
@@ -9705,9 +10062,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 9,
+        "startLine": 10,
         "startColumn": 5,
-        "endLine": 9,
+        "endLine": 10,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -23190,426 +23547,6 @@
         "endColumn": 7,
         "ruleDescription": "Invalid YAML/JSON syntax",
         "phase": "PARSE"
-      }
-    ]
-  },
-  "bad/core/resource_attributes.yaml": {
-    "filePath": "bad/core/resource_attributes.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 5,
-      "counts": {
-        "fatal": 6,
-        "errors": 10,
-        "warnings": 1,
-        "informational": 4,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'MaxSize' is a required property",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "ScalarCreationPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'MaxSize'",
-        "category": "Schema",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 23,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'MinSize' is a required property",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "ScalarCreationPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'MinSize'",
-        "category": "Schema",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 23,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'MaxSize' is a required property",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "ScalarUpdatePolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'MaxSize'",
-        "category": "Schema",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 21,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3003",
-        "severity": "FATAL",
-        "message": "'MinSize' is a required property",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "ScalarUpdatePolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties",
-        "suggestedFix": "Add the required property 'MinSize'",
-        "category": "Schema",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 21,
-        "ruleDescription": "Required property missing",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3014",
-        "severity": "FATAL",
-        "message": "Exactly one of ['InstanceId', 'LaunchConfigurationName', 'LaunchTemplate', 'MixedInstancesPolicy'] must be specified",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "ScalarCreationPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties",
-        "category": "Schema",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 23,
-        "ruleDescription": "Exactly one of properties required (requiredXor)",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3014",
-        "severity": "FATAL",
-        "message": "Exactly one of ['InstanceId', 'LaunchConfigurationName', 'LaunchTemplate', 'MixedInstancesPolicy'] must be specified",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "ScalarUpdatePolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties",
-        "category": "Schema",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 21,
-        "ruleDescription": "Exactly one of properties required (requiredXor)",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'StandardVersion' property 'Version' is only valid for custom resources",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "StandardVersion",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "category": "Resource",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
-        "endColumn": 12,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'ScalarCreationPolicy' property 'CreationPolicy' must be an object",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ScalarCreationPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "category": "Resource",
-        "startLine": 8,
-        "startColumn": 5,
-        "endLine": 8,
-        "endColumn": 19,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'ScalarUpdatePolicy' property 'UpdatePolicy' must be an object",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ScalarUpdatePolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "category": "Resource",
-        "startLine": 11,
-        "startColumn": 5,
-        "endLine": 11,
-        "endColumn": 17,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'CustomLifecyclePolicies' property 'CreationPolicy' is not valid for custom resources",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CustomLifecyclePolicies",
-          "entityType": "Resource",
-          "resourceType": "Custom::Thing"
-        },
-        "category": "Resource",
-        "startLine": 16,
-        "startColumn": 5,
-        "endLine": 16,
-        "endColumn": 19,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'CustomLifecyclePolicies' property 'UpdatePolicy' is not valid for custom resources",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CustomLifecyclePolicies",
-          "entityType": "Resource",
-          "resourceType": "Custom::Thing"
-        },
-        "category": "Resource",
-        "startLine": 17,
-        "startColumn": 5,
-        "endLine": 17,
-        "endColumn": 17,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'UnsupportedAttributes' has invalid property 'Connectors'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, CreationPolicy, Fn::Transform, Version",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "UnsupportedAttributes",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "category": "Resource",
-        "startLine": 20,
-        "startColumn": 5,
-        "endLine": 20,
-        "endColumn": 15,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3001",
-        "severity": "ERROR",
-        "message": "Resource 'UnsupportedAttributes' has invalid property 'IgnoreGlobals'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, CreationPolicy, Fn::Transform, Version",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "UnsupportedAttributes",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "category": "Resource",
-        "startLine": 21,
-        "startColumn": 5,
-        "endLine": 21,
-        "endColumn": 18,
-        "ruleDescription": "Basic CloudFormation Resource Check",
-        "phase": "PARSE"
-      },
-      {
-        "ruleId": "E3016",
-        "severity": "ERROR",
-        "message": "7 is not of type 'object'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "ScalarUpdatePolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "UpdatePolicy",
-        "category": "Resource",
-        "startLine": 11,
-        "startColumn": 5,
-        "endLine": 11,
-        "endColumn": 17,
-        "ruleDescription": "Check UpdatePolicy values for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3016",
-        "severity": "ERROR",
-        "message": "UpdatePolicy is not supported on resource type 'Custom::Thing'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CustomLifecyclePolicies",
-          "entityType": "Resource",
-          "resourceType": "Custom::Thing"
-        },
-        "propertyPath": "UpdatePolicy",
-        "suggestedFix": "Remove UpdatePolicy or change resource type to one of: AWS::AppStream::Fleet, AWS::AutoScaling::AutoScalingGroup, AWS::ElastiCache::ReplicationGroup, AWS::Elasticsearch::Domain, AWS::Lambda::Alias, AWS::OpenSearchService::Domain",
-        "category": "Resource",
-        "startLine": 17,
-        "startColumn": 5,
-        "endLine": 17,
-        "endColumn": 17,
-        "ruleDescription": "Check UpdatePolicy values for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "E3055",
-        "severity": "ERROR",
-        "message": "CreationPolicy is not supported on resource type 'Custom::Thing'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "CustomLifecyclePolicies",
-          "entityType": "Resource",
-          "resourceType": "Custom::Thing"
-        },
-        "propertyPath": "CreationPolicy",
-        "suggestedFix": "Remove CreationPolicy or change resource type to one of: AWS::AppStream::Fleet, AWS::AutoScaling::AutoScalingGroup, AWS::CloudFormation::WaitCondition, AWS::EC2::Instance",
-        "category": "Resource",
-        "startLine": 16,
-        "startColumn": 5,
-        "endLine": 16,
-        "endColumn": 19,
-        "ruleDescription": "Check CreationPolicy values for Resources",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W9013",
-        "severity": "WARN",
-        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "CustomLifecyclePolicies",
-          "entityType": "Resource",
-          "resourceType": "Custom::Thing"
-        },
-        "category": "Security",
-        "startLine": 12,
-        "startColumn": 3,
-        "endLine": 12,
-        "endColumn": 26,
-        "ruleDescription": "Hardcoded account ID in ARN",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'StandardVersion' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "StandardVersion",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 3,
-        "startColumn": 3,
-        "endLine": 3,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ScalarCreationPolicy' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ScalarCreationPolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 23,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ScalarUpdatePolicy' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ScalarUpdatePolicy",
-          "entityType": "Resource",
-          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 3,
-        "endLine": 9,
-        "endColumn": 21,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'UnsupportedAttributes' of type 'AWS::S3::Bucket' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "UnsupportedAttributes",
-          "entityType": "Resource",
-          "resourceType": "AWS::S3::Bucket"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 18,
-        "startColumn": 3,
-        "endLine": 18,
-        "endColumn": 24,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
       }
     ]
   }

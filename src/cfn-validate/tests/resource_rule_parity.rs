@@ -2374,18 +2374,83 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn empty_s3_lifecycle_object_size_ranges_are_reported_per_rule_for_both_bucket_types() {
+    let template = include_str!("../../resources/templates/bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings, "empty size range diagnostics must be identical across engines");
+
+    let fix = "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan";
+    let expected_findings: Vec<String> = [
+        ("Bucket", 0, 1000, 1000),
+        ("Bucket", 2, 2048, 1024),
+        ("Bucket", 3, 1000, 999),
+        ("DirectoryBucket", 0, 1_048_576, 1_048_576),
+        ("DirectoryBucket", 2, 10_485_760, 1_048_576),
+    ]
+    .iter()
+    .map(|(resource, rule_index, greater_than, less_than)| {
+        format!(
+            "E9015|Error|{resource}|Properties.LifecycleConfiguration.Rules.{rule_index}.ObjectSizeLessThan|\
+             ObjectSizeLessThan {less_than} must be greater than ObjectSizeGreaterThan {greater_than}|{fix}"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9015"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|17:13",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan|27:13",
+        "Bucket|Properties.LifecycleConfiguration.Rules.3.ObjectSizeLessThan|32:13",
+        "DirectoryBucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|44:13",
+        "DirectoryBucket|Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan|54:13",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9015"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9015"]), expected_anchors);
+}
+
+#[test]
+fn ascending_single_and_deployment_s3_lifecycle_object_sizes_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9015_s3_lifecycle_object_size_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "no size range here is provably empty: {rego_findings:?}");
+}
+
+#[test]
 fn out_of_order_s3_lifecycle_transitions_are_reported_at_the_later_class() {
     let template = include_str!("../../resources/templates/bad/E9016_s3_lifecycle_transition_out_of_order.yaml");
     let (rego, cel) = engines();
-    let rego_findings = selected_findings(&rego, template, &["E9016", "E9017"]);
-    let cel_findings = selected_findings(&cel, template, &["E9016", "E9017"]);
-    assert_eq!(rego_findings, cel_findings, "transition order diagnostics must be identical");
-    assert_eq!(rego_findings.len(), 2, "an earlier day and the same day: {rego_findings:?}");
-    for rule_idx in [0, 1] {
-        let later_days =
-            format!("|Bucket|Properties.LifecycleConfiguration.Rules.{rule_idx}.Transitions.1.TransitionInDays|");
-        assert!(rego_findings.iter().any(|finding| finding.contains("E9016") && finding.contains(&later_days)));
-    }
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings, "transition order diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        (0, "GLACIER", 89, "STANDARD_IA", 90),
+        (1, "ONEZONE_IA", 60, "INTELLIGENT_TIERING", 60),
+        (2, "GLACIER", 99, "STANDARD_IA", 100),
+    ]
+    .iter()
+    .map(|(rule_index, later_class, later_days, earlier_class, earlier_days)| {
+        format!(
+            "E9016|Error|Bucket|Properties.LifecycleConfiguration.Rules.{rule_index}.Transitions.1.TransitionInDays|\
+             Transition to {later_class} at {later_days} days must come after the transition to {earlier_class} at \
+             {earlier_days} days|Set TransitionInDays for {later_class} greater than {earlier_days}"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9016", "E9017"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|19:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|26:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|33:17",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);
 }
 
 #[test]
@@ -2393,19 +2458,38 @@ fn short_s3_lifecycle_storage_durations_are_reported_at_the_later_class() {
     let template =
         include_str!("../../resources/templates/bad/E9017_s3_lifecycle_transition_minimum_storage_duration.yaml");
     let (rego, cel) = engines();
-    let rego_findings = selected_findings(&rego, template, &["E9016", "E9017"]);
-    let cel_findings = selected_findings(&cel, template, &["E9016", "E9017"]);
-    assert_eq!(rego_findings, cel_findings, "storage duration diagnostics must be identical");
-    assert_eq!(rego_findings.len(), 2, "29 days after IA and 89 days after Glacier IR: {rego_findings:?}");
-    for rule_idx in [0, 1] {
-        let later_days =
-            format!("|Bucket|Properties.LifecycleConfiguration.Rules.{rule_idx}.Transitions.1.TransitionInDays|");
-        assert!(rego_findings.iter().any(|finding| finding.contains("E9017") && finding.contains(&later_days)));
-    }
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings, "storage duration diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        (0, "GLACIER", 59, 30, "STANDARD_IA", 30),
+        (1, "DEEP_ARCHIVE", 93, 90, "GLACIER_IR", 4),
+        (2, "DEEP_ARCHIVE", 129, 30, "ONEZONE_IA", 100),
+    ]
+    .iter()
+    .map(|(rule_index, later_class, later_days, gap, earlier_class, earlier_days)| {
+        format!(
+            "E9017|Error|Bucket|Properties.LifecycleConfiguration.Rules.{rule_index}.Transitions.1.TransitionInDays|\
+             Transition to {later_class} at {later_days} days must be at least {gap} days after the transition to \
+             {earlier_class} at {earlier_days} days|Set TransitionInDays for {later_class} to at least {}",
+            earlier_days + gap
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9016", "E9017"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|19:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|26:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|33:17",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);
 }
 
 #[test]
-fn ordered_and_parameter_s3_lifecycle_transitions_are_not_reported() {
+fn ordered_and_deployment_s3_lifecycle_transitions_are_not_reported() {
     let template = include_str!("../../resources/templates/good/E9016_s3_lifecycle_transition_order.yaml");
     let (rego, cel) = engines();
     let rego_findings = selected_findings(&rego, template, &["E9016", "E9017"]);
@@ -3813,6 +3897,47 @@ fn lambda_log_levels_allow_non_text_configurations() {
 
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "non-text logging configurations must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn sns_lambda_subscription_accepts_lambda_alias_endpoint() {
+    let template = include_str!("../../resources/templates/good/W3694_sns_lambda_alias_endpoint.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3694"]);
+    let cel_findings = selected_findings(&cel, template, &["W3694"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "a Lambda alias is a valid lambda endpoint: {rego_findings:?}");
+}
+
+#[test]
+fn sns_lambda_subscription_rejects_sqs_queue_endpoint() {
+    let template = r#"
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+  Queue:
+    Type: AWS::SQS::Queue
+  QueueSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt Queue.Arn
+      Protocol: lambda
+      TopicArn: !Ref Topic
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3694"]);
+    let cel_findings = selected_findings(&cel, template, &["W3694"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings,
+        vec![
+            "W3694|Warn|QueueSubscription|Properties.Endpoint|Endpoint references 'Queue' (type 'AWS::SQS::Queue') \
+             but Protocol 'lambda' expects a Lambda Function|"
+                .to_string()
+        ]
+    );
 }
 
 #[test]

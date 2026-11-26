@@ -105,10 +105,23 @@ Resources:
     }
 
     #[test]
+    fn empty_s3_lifecycle_object_size_ranges_trigger_e9015_once_per_rule() {
+        let ids = validate_file("bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+        let size_range_findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9015").count();
+        assert_eq!(size_range_findings, 5, "Expected one E9015 per empty size range, got: {ids:?}");
+    }
+
+    #[test]
+    fn non_empty_single_and_deployment_s3_lifecycle_object_sizes_do_not_trigger_e9015() {
+        let ids = validate_file("good/E9015_s3_lifecycle_object_size_ranges.yaml");
+        assert!(!ids.contains(&"E9015".to_string()), "Expected no E9015, got: {ids:?}");
+    }
+
+    #[test]
     fn out_of_order_s3_lifecycle_transitions_trigger_e9016_once_per_pair() {
         let ids = validate_file("bad/E9016_s3_lifecycle_transition_out_of_order.yaml");
         let order_findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9016").count();
-        assert_eq!(order_findings, 2, "Expected one E9016 per out-of-order pair, got: {ids:?}");
+        assert_eq!(order_findings, 3, "Expected one E9016 per out-of-order pair, got: {ids:?}");
         assert!(!ids.contains(&"E9017".to_string()), "Out-of-order pairs are not duration gaps, got: {ids:?}");
     }
 
@@ -116,7 +129,7 @@ Resources:
     fn short_s3_lifecycle_storage_durations_trigger_e9017_once_per_pair() {
         let ids = validate_file("bad/E9017_s3_lifecycle_transition_minimum_storage_duration.yaml");
         let duration_findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9017").count();
-        assert_eq!(duration_findings, 2, "Expected one E9017 per short gap, got: {ids:?}");
+        assert_eq!(duration_findings, 3, "Expected one E9017 per short gap, got: {ids:?}");
         assert!(!ids.contains(&"E9016".to_string()), "Ascending pairs are in order, got: {ids:?}");
     }
 

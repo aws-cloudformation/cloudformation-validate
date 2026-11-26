@@ -868,10 +868,23 @@ fn e2e_e3061_s3_tiering_bad_days() {
 }
 
 #[test]
+fn e2e_e9015_empty_s3_lifecycle_object_size_ranges() {
+    let report = validate_fixture("bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+    let size_range_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9015").count();
+    assert_eq!(size_range_findings, 5, "Expected one E9015 per empty size range, got: {:?}", report.diagnostics);
+}
+
+#[test]
+fn e2e_e9015_non_empty_single_and_deployment_s3_lifecycle_object_sizes() {
+    let report = validate_fixture("good/E9015_s3_lifecycle_object_size_ranges.yaml");
+    assert!(!has_rule(&report, "E9015"), "Expected no E9015, got: {:?}", report.diagnostics);
+}
+
+#[test]
 fn e2e_e9016_out_of_order_s3_lifecycle_transitions() {
     let report = validate_fixture("bad/E9016_s3_lifecycle_transition_out_of_order.yaml");
     let order_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9016").count();
-    assert_eq!(order_findings, 2, "Expected one E9016 per out-of-order pair, got: {:?}", report.diagnostics);
+    assert_eq!(order_findings, 3, "Expected one E9016 per out-of-order pair, got: {:?}", report.diagnostics);
     assert!(!has_rule(&report, "E9017"), "Out-of-order pairs are not duration gaps, got: {:?}", report.diagnostics);
 }
 
@@ -879,7 +892,7 @@ fn e2e_e9016_out_of_order_s3_lifecycle_transitions() {
 fn e2e_e9017_short_s3_lifecycle_storage_durations() {
     let report = validate_fixture("bad/E9017_s3_lifecycle_transition_minimum_storage_duration.yaml");
     let duration_findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9017").count();
-    assert_eq!(duration_findings, 2, "Expected one E9017 per short gap, got: {:?}", report.diagnostics);
+    assert_eq!(duration_findings, 3, "Expected one E9017 per short gap, got: {:?}", report.diagnostics);
     assert!(!has_rule(&report, "E9016"), "Ascending pairs are in order, got: {:?}", report.diagnostics);
 }
 

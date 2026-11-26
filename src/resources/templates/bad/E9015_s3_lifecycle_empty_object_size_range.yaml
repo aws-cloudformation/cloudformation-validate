@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  S3 rejects a lifecycle rule whose object size range is empty, for both
+  general purpose and directory buckets: an equal pair, an inverted pair, an
+  inverted pair whose strings sort in ascending order, and an inverted pair
+  authored as numbers. The ascending rule in each bucket is valid.
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: EqualBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1000"
+            ObjectSizeLessThan: "1000"
+          - Id: AscendingBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "999"
+            ObjectSizeLessThan: "1000"
+          - Id: InvertedBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "2048"
+            ObjectSizeLessThan: "1024"
+          - Id: InvertedBoundsInAscendingStringOrder
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1000"
+            ObjectSizeLessThan: "999"
+  DirectoryBucket:
+    Type: AWS::S3Express::DirectoryBucket
+    Properties:
+      DataRedundancy: SingleAvailabilityZone
+      LocationName: use1-az4
+      LifecycleConfiguration:
+        Rules:
+          - Id: EqualBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1048576"
+            ObjectSizeLessThan: "1048576"
+          - Id: AscendingBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: "1048576"
+            ObjectSizeLessThan: "10485760"
+          - Id: InvertedNumericBounds
+            Status: Enabled
+            ExpirationInDays: 30
+            ObjectSizeGreaterThan: 10485760
+            ObjectSizeLessThan: 1048576

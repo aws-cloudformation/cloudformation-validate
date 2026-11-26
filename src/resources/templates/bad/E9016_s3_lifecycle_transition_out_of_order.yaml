@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   S3 rejects a lifecycle rule that reaches a storage class no later than a
-  class above it in the waterfall: GLACIER one day before STANDARD_IA, and
-  ONEZONE_IA on the same day as INTELLIGENT_TIERING.
+  class above it in the waterfall: GLACIER one day before STANDARD_IA,
+  ONEZONE_IA on the same day as INTELLIGENT_TIERING, and GLACIER before
+  STANDARD_IA with day counts whose strings sort in ascending order.
 Resources:
   Bucket:
     Type: AWS::S3::Bucket
@@ -23,3 +24,10 @@ Resources:
                 TransitionInDays: 60
               - StorageClass: ONEZONE_IA
                 TransitionInDays: 60
+          - Id: InvertedDaysInAscendingStringOrder
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: "100"
+              - StorageClass: GLACIER
+                TransitionInDays: "99"
