@@ -884,7 +884,7 @@ fn e2e_e9015_non_empty_single_and_deployment_s3_lifecycle_object_sizes() {
 fn e2e_e9018_empty_s3_storage_lens_group_ranges() {
     let report = validate_fixture("bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
     let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9018").count();
-    assert_eq!(findings, 3, "Expected one E9018 per empty range, got: {:?}", report.diagnostics);
+    assert_eq!(findings, 5, "Expected one E9018 per empty range, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -897,7 +897,7 @@ fn e2e_e9018_valid_s3_storage_lens_group_ranges() {
 fn e2e_e9019_s3_intelligent_tiering_deep_archive_not_after_archive() {
     let report = validate_fixture("bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
     let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9019").count();
-    assert_eq!(findings, 3, "Expected one E9019 per misordered tier pair, got: {:?}", report.diagnostics);
+    assert_eq!(findings, 5, "Expected one E9019 per misordered tier pair, got: {:?}", report.diagnostics);
 }
 
 #[test]
@@ -910,7 +910,7 @@ fn e2e_e9019_valid_s3_intelligent_tiering_order() {
 fn e2e_e9020_s3_replication_destinations_without_versioning() {
     let report = validate_fixture("bad/E9020_s3_replication_destination_without_versioning.yaml");
     let findings = report.diagnostics.iter().filter(|diagnostic| diagnostic.rule_id == "E9020").count();
-    assert_eq!(findings, 2, "Expected one E9020 per unversioned destination, got: {:?}", report.diagnostics);
+    assert_eq!(findings, 3, "Expected one E9020 per unversioned destination, got: {:?}", report.diagnostics);
 }
 
 #[test]

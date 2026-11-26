@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   S3 rejects a Storage Lens group whose object age or object size range is
-  empty: equal age bounds, inverted size bounds, and inverted size bounds
-  whose strings sort in ascending order.
+  empty: equal age bounds, inverted size bounds, inverted size bounds whose
+  strings sort in ascending order, equal age bounds at the minimum of 1, and
+  equal size bounds authored as a string and a number.
 Resources:
   EqualAgeGroup:
     Type: AWS::S3::StorageLensGroup
@@ -28,3 +29,19 @@ Resources:
         MatchObjectSize:
           BytesGreaterThan: "1000"
           BytesLessThan: "999"
+  MinimumEqualAgeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: minimum-equal-age-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 1
+          DaysLessThan: 1
+  MixedTypeEqualSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: mixed-type-equal-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: "1024"
+          BytesLessThan: 1024

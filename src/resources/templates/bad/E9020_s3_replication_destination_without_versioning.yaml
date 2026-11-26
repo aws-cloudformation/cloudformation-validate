@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   S3 replicates only into a bucket with versioning enabled. Both destinations
-  in this template fail that: one has no VersioningConfiguration and the other
-  has versioning suspended.
+  in this template fail that: one has no Properties, one has Properties but no
+  VersioningConfiguration, and one has versioning suspended.
 Resources:
   ReplicationRole:
     Type: AWS::IAM::Role
@@ -16,6 +16,12 @@ Resources:
             Action: sts:AssumeRole
   UnversionedDestination:
     Type: AWS::S3::Bucket
+  TaggedDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: team
+          Value: storage
   SuspendedDestination:
     Type: AWS::S3::Bucket
     Properties:
@@ -39,3 +45,8 @@ Resources:
             Prefix: suspended/
             Destination:
               Bucket: !GetAtt SuspendedDestination.Arn
+          - Id: ToTagged
+            Status: Enabled
+            Prefix: tagged/
+            Destination:
+              Bucket: !GetAtt TaggedDestination.Arn

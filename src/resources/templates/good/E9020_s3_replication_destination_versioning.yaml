@@ -2,8 +2,8 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   Replication destinations that are not provably unversioned: a versioned
   bucket in the template, a bucket outside the template, and a bucket whose
-  versioning status is only known at deployment, either from a parameter or
-  from a condition.
+  versioning status or whole versioning configuration is only known at
+  deployment.
 Parameters:
   DestinationVersioning:
     Type: String
@@ -40,6 +40,13 @@ Resources:
     Properties:
       VersioningConfiguration:
         Status: !If [IsProd, Enabled, Suspended]
+  ConditionalConfigurationDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration: !If
+        - IsProd
+        - Status: Enabled
+        - !Ref AWS::NoValue
   SourceBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -68,3 +75,8 @@ Resources:
             Prefix: conditional/
             Destination:
               Bucket: !GetAtt ConditionalDestination.Arn
+          - Id: ToConditionalConfiguration
+            Status: Enabled
+            Prefix: conditional-configuration/
+            Destination:
+              Bucket: !GetAtt ConditionalConfigurationDestination.Arn

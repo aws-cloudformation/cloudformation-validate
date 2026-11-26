@@ -2,7 +2,8 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   S3 rejects an Intelligent-Tiering configuration whose DEEP_ARCHIVE_ACCESS
   days are not greater than its ARCHIVE_ACCESS days: equal days, deep archive
-  listed first with fewer days, and fewer days authored as strings.
+  listed first with fewer days, fewer days authored as strings, equal days at
+  the maximum of 730, and equal days authored as a string and a number.
 Resources:
   Bucket:
     Type: AWS::S3::Bucket
@@ -29,3 +30,17 @@ Resources:
               Days: "365"
             - AccessTier: DEEP_ARCHIVE_ACCESS
               Days: "200"
+        - Id: EqualMaximumDays
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 730
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 730
+        - Id: MixedTypeEqualDays
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: "365"
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 365

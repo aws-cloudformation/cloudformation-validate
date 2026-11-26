@@ -1,7 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  Storage Lens group ranges that are not provably empty: ascending bounds,
-  ascending bounds whose strings sort in descending order, a single bound, and
+  Storage Lens group ranges that are not provably empty: bounds one apart,
+  including at the minimum of 1 and above 2^53, ascending bounds whose strings
+  sort in descending order, a string and a number mixed, a single bound, and
   bounds that are only known at deployment.
 Parameters:
   MaxAgeDays:
@@ -37,6 +38,37 @@ Resources:
         MatchObjectSize:
           BytesGreaterThan: "999"
           BytesLessThan: "1000"
+  MinimumAgeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: minimum-age-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 1
+          DaysLessThan: 2
+  MixedTypeSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: mixed-type-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: "1023"
+          BytesLessThan: 1024
+  LargeSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: large-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: 9007199254740992
+          BytesLessThan: 9007199254740993
+  UpperBoundGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: upper-bound-group
+      Filter:
+        MatchObjectSize:
+          BytesLessThan: 1024
   LowerBoundGroup:
     Type: AWS::S3::StorageLensGroup
     Properties:

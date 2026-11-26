@@ -2432,6 +2432,8 @@ fn empty_s3_storage_lens_group_ranges_are_reported_identically() {
         ("EqualAgeGroup", "MatchObjectAge", "DaysGreaterThan", 30, "DaysLessThan", 30),
         ("InvertedSizeGroup", "MatchObjectSize", "BytesGreaterThan", 2048, "BytesLessThan", 1024),
         ("InvertedStringSizeGroup", "MatchObjectSize", "BytesGreaterThan", 1000, "BytesLessThan", 999),
+        ("MinimumEqualAgeGroup", "MatchObjectAge", "DaysGreaterThan", 1, "DaysLessThan", 1),
+        ("MixedTypeEqualSizeGroup", "MatchObjectSize", "BytesGreaterThan", 1024, "BytesLessThan", 1024),
     ]
     .iter()
     .map(|(resource, filter, greater_than_name, greater_than, less_than_name, less_than)| {
@@ -2445,9 +2447,11 @@ fn empty_s3_storage_lens_group_ranges_are_reported_identically() {
     assert_eq!(selected_findings(&rego, template, &["E9018"]), expected_findings);
 
     let expected_anchors = [
-        "EqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|14:11",
-        "InvertedSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|22:11",
-        "InvertedStringSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|30:11",
+        "EqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|15:11",
+        "InvertedSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|23:11",
+        "InvertedStringSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|31:11",
+        "MinimumEqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|39:11",
+        "MixedTypeEqualSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|47:11",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9018"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9018"]), expected_anchors);
@@ -2473,22 +2477,25 @@ fn s3_intelligent_tiering_deep_archive_not_after_archive_are_reported_identicall
     assert_eq!(rego_findings, cel_findings, "E9019 diagnostics must be identical across engines");
 
     let fix = "Set DEEP_ARCHIVE_ACCESS Days to a value greater than ARCHIVE_ACCESS Days";
-    let expected_findings: Vec<String> = [(0, 1, 180, 180), (1, 0, 200, 365), (2, 1, 200, 365)]
-        .iter()
-        .map(|(config_index, tiering_index, deep_archive_days, archive_days)| {
-            format!(
-                "E9019|Error|Bucket|Properties.IntelligentTieringConfigurations.{config_index}.Tierings.\
+    let expected_findings: Vec<String> =
+        [(0, 1, 180, 180), (1, 0, 200, 365), (2, 1, 200, 365), (3, 1, 730, 730), (4, 1, 365, 365)]
+            .iter()
+            .map(|(config_index, tiering_index, deep_archive_days, archive_days)| {
+                format!(
+                    "E9019|Error|Bucket|Properties.IntelligentTieringConfigurations.{config_index}.Tierings.\
                  {tiering_index}.Days|DEEP_ARCHIVE_ACCESS Days {deep_archive_days} must be greater than \
                  ARCHIVE_ACCESS Days {archive_days}|{fix}"
-            )
-        })
-        .collect();
+                )
+            })
+            .collect();
     assert_eq!(selected_findings(&rego, template, &["E9019"]), expected_findings);
 
     let expected_anchors = [
-        "Bucket|Properties.IntelligentTieringConfigurations.0.Tierings.1.Days|17:15",
-        "Bucket|Properties.IntelligentTieringConfigurations.1.Tierings.0.Days|22:15",
-        "Bucket|Properties.IntelligentTieringConfigurations.2.Tierings.1.Days|31:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.0.Tierings.1.Days|18:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.1.Tierings.0.Days|23:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.2.Tierings.1.Days|32:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.3.Tierings.1.Days|39:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.4.Tierings.1.Days|46:15",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9019"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9019"]), expected_anchors);
@@ -2516,6 +2523,7 @@ fn s3_replication_destinations_without_versioning_are_reported_identically() {
     let expected_findings: Vec<String> = [
         (0, "UnversionedDestination", "has no VersioningConfiguration"),
         (1, "SuspendedDestination", "has versioning status Suspended"),
+        (2, "TaggedDestination", "has no VersioningConfiguration"),
     ]
     .iter()
     .map(|(rule_index, destination, reason)| {
@@ -2529,8 +2537,9 @@ fn s3_replication_destinations_without_versioning_are_reported_identically() {
     assert_eq!(selected_findings(&rego, template, &["E9020"]), expected_findings);
 
     let expected_anchors = [
-        "SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|36:15",
-        "SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|41:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|42:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|47:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.2.Destination.Bucket|52:15",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9020"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9020"]), expected_anchors);

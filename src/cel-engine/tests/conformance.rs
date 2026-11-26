@@ -121,7 +121,7 @@ Resources:
     fn empty_s3_storage_lens_group_ranges_trigger_e9018_once_each() {
         let ids = validate_file("bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
         let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9018").count();
-        assert_eq!(findings, 3, "Expected one E9018 per empty range, got: {ids:?}");
+        assert_eq!(findings, 5, "Expected one E9018 per empty range, got: {ids:?}");
     }
 
     #[test]
@@ -134,7 +134,7 @@ Resources:
     fn s3_intelligent_tiering_deep_archive_not_after_archive_trigger_e9019_once_each() {
         let ids = validate_file("bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
         let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9019").count();
-        assert_eq!(findings, 3, "Expected one E9019 per misordered tier pair, got: {ids:?}");
+        assert_eq!(findings, 5, "Expected one E9019 per misordered tier pair, got: {ids:?}");
     }
 
     #[test]
@@ -147,7 +147,7 @@ Resources:
     fn s3_replication_destinations_without_versioning_trigger_e9020_once_each() {
         let ids = validate_file("bad/E9020_s3_replication_destination_without_versioning.yaml");
         let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9020").count();
-        assert_eq!(findings, 2, "Expected one E9020 per unversioned destination, got: {ids:?}");
+        assert_eq!(findings, 3, "Expected one E9020 per unversioned destination, got: {ids:?}");
     }
 
     #[test]
