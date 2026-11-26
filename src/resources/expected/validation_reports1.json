@@ -9556,16 +9556,257 @@
       }
     ]
   },
-  "bad/E9018_s3_storage_lens_group_empty_ranges.yaml": {
-    "filePath": "bad/E9018_s3_storage_lens_group_empty_ranges.yaml",
+  "bad/E9015_s3_lifecycle_empty_object_size_range.yaml": {
+    "filePath": "bad/E9015_s3_lifecycle_empty_object_size_range.yaml",
     "status": "OK",
     "metadata": {
       "resourcesScanned": 2,
       "counts": {
         "fatal": 0,
-        "errors": 2,
-        "warnings": 0,
+        "errors": 5,
+        "warnings": 2,
         "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1000 must be greater than ObjectSizeGreaterThan 1000",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 17,
+        "startColumn": 13,
+        "endLine": 17,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1024 must be greater than ObjectSizeGreaterThan 2048",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 27,
+        "startColumn": 13,
+        "endLine": 27,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 999 must be greater than ObjectSizeGreaterThan 1000",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.3.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 32,
+        "startColumn": 13,
+        "endLine": 32,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1048576 must be greater than ObjectSizeGreaterThan 1048576",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 44,
+        "startColumn": 13,
+        "endLine": 44,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9015",
+        "severity": "ERROR",
+        "message": "ObjectSizeLessThan 1048576 must be greater than ObjectSizeGreaterThan 10485760",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan",
+        "suggestedFix": "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan",
+        "category": "Resource",
+        "startLine": 54,
+        "startColumn": 13,
+        "endLine": 54,
+        "endColumn": 31,
+        "ruleDescription": "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "10485760 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeGreaterThan",
+        "category": "Best Practice",
+        "startLine": 53,
+        "startColumn": 13,
+        "endLine": 53,
+        "endColumn": 34,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "1048576 is not of type 'string' - automatically coerced (number to string)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan",
+        "category": "Best Practice",
+        "startLine": 54,
+        "startColumn": 13,
+        "endLine": 54,
+        "endColumn": 31,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'DataRedundancy' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.DataRedundancy",
+        "category": "Best Practice",
+        "startLine": 36,
+        "startColumn": 7,
+        "endLine": 36,
+        "endColumn": 21,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'LocationName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.LocationName",
+        "category": "Best Practice",
+        "startLine": 37,
+        "startColumn": 7,
+        "endLine": 37,
+        "endColumn": 19,
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Bucket' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 10,
+        "startColumn": 5,
+        "endLine": 10,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'DirectoryBucket' of type 'AWS::S3Express::DirectoryBucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "DirectoryBucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3Express::DirectoryBucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 35,
+        "startColumn": 5,
+        "endLine": 35,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/E9018_s3_storage_lens_group_empty_ranges.yaml": {
+    "filePath": "bad/E9018_s3_storage_lens_group_empty_ranges.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 3,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 2,
+        "informational": 6,
         "debug": 0
       },
       "suppressed": 0,
@@ -9586,9 +9827,9 @@
         "propertyPath": "Properties.Filter.MatchObjectAge.DaysLessThan",
         "suggestedFix": "Set DaysLessThan to a value greater than DaysGreaterThan",
         "category": "Resource",
-        "startLine": 13,
+        "startLine": 14,
         "startColumn": 11,
-        "endLine": 13,
+        "endLine": 14,
         "endColumn": 23,
         "ruleDescription": "S3 Storage Lens group object age and size ranges must not be empty",
         "phase": "LINT"
@@ -9606,12 +9847,72 @@
         "propertyPath": "Properties.Filter.MatchObjectSize.BytesLessThan",
         "suggestedFix": "Set BytesLessThan to a value greater than BytesGreaterThan",
         "category": "Resource",
-        "startLine": 21,
+        "startLine": 22,
         "startColumn": 11,
-        "endLine": 21,
+        "endLine": 22,
         "endColumn": 24,
         "ruleDescription": "S3 Storage Lens group object age and size ranges must not be empty",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "E9018",
+        "severity": "ERROR",
+        "message": "BytesLessThan 999 must be greater than BytesGreaterThan 1000",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvertedStringSizeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::StorageLensGroup"
+        },
+        "propertyPath": "Properties.Filter.MatchObjectSize.BytesLessThan",
+        "suggestedFix": "Set BytesLessThan to a value greater than BytesGreaterThan",
+        "category": "Resource",
+        "startLine": 30,
+        "startColumn": 11,
+        "endLine": 30,
+        "endColumn": 24,
+        "ruleDescription": "S3 Storage Lens group object age and size ranges must not be empty",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'1000' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "InvertedStringSizeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::StorageLensGroup"
+        },
+        "propertyPath": "Properties.Filter.MatchObjectSize.BytesGreaterThan",
+        "category": "Best Practice",
+        "startLine": 29,
+        "startColumn": 11,
+        "endLine": 29,
+        "endColumn": 27,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3-storagelensgroup",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'999' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "InvertedStringSizeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::StorageLensGroup"
+        },
+        "propertyPath": "Properties.Filter.MatchObjectSize.BytesLessThan",
+        "category": "Best Practice",
+        "startLine": 30,
+        "startColumn": 11,
+        "endLine": 30,
+        "endColumn": 24,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3-storagelensgroup",
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
       },
       {
         "ruleId": "I9001",
@@ -9625,9 +9926,9 @@
         },
         "propertyPath": "Properties.Name",
         "category": "Best Practice",
-        "startLine": 9,
+        "startLine": 10,
         "startColumn": 7,
-        "endLine": 9,
+        "endLine": 10,
         "endColumn": 11,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3-storagelensgroup",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -9648,9 +9949,32 @@
         },
         "propertyPath": "Properties.Name",
         "category": "Best Practice",
-        "startLine": 17,
+        "startLine": 18,
         "startColumn": 7,
-        "endLine": 17,
+        "endLine": 18,
+        "endColumn": 11,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3-storagelensgroup",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvertedStringSizeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::StorageLensGroup"
+        },
+        "propertyPath": "Properties.Name",
+        "category": "Best Practice",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 26,
         "endColumn": 11,
         "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-s3-storagelensgroup",
         "ruleDescription": "Create-only property updated triggers resource replacement",
@@ -9672,9 +9996,9 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 8,
+        "startLine": 9,
         "startColumn": 5,
-        "endLine": 8,
+        "endLine": 9,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -9692,9 +10016,29 @@
         "propertyPath": "Properties.Tags",
         "suggestedFix": "Add Tags to improve resource organization and cost tracking",
         "category": "Best Practice",
-        "startLine": 16,
+        "startLine": 17,
         "startColumn": 5,
-        "endLine": 16,
+        "endLine": 17,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'InvertedStringSizeGroup' of type 'AWS::S3::StorageLensGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "InvertedStringSizeGroup",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::StorageLensGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 25,
+        "startColumn": 5,
+        "endLine": 25,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
@@ -9708,8 +10052,8 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 2,
-        "warnings": 0,
+        "errors": 3,
+        "warnings": 2,
         "informational": 1,
         "debug": 0
       },
@@ -9757,6 +10101,64 @@
         "endColumn": 19,
         "ruleDescription": "S3 Intelligent-Tiering DEEP_ARCHIVE_ACCESS days must be greater than ARCHIVE_ACCESS days",
         "phase": "LINT"
+      },
+      {
+        "ruleId": "E9019",
+        "severity": "ERROR",
+        "message": "DEEP_ARCHIVE_ACCESS Days 200 must be greater than ARCHIVE_ACCESS Days 365",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.IntelligentTieringConfigurations.2.Tierings.1.Days",
+        "suggestedFix": "Set DEEP_ARCHIVE_ACCESS Days to a value greater than ARCHIVE_ACCESS Days",
+        "category": "Resource",
+        "startLine": 31,
+        "startColumn": 15,
+        "endLine": 31,
+        "endColumn": 19,
+        "ruleDescription": "S3 Intelligent-Tiering DEEP_ARCHIVE_ACCESS days must be greater than ARCHIVE_ACCESS days",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'365' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.IntelligentTieringConfigurations.2.Tierings.0.Days",
+        "category": "Best Practice",
+        "startLine": 29,
+        "startColumn": 15,
+        "endLine": 29,
+        "endColumn": 19,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W9003",
+        "severity": "WARN",
+        "message": "'200' is not of type 'integer' - automatically coerced (string to integer)",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.IntelligentTieringConfigurations.2.Tierings.1.Days",
+        "category": "Best Practice",
+        "startLine": 31,
+        "startColumn": 15,
+        "endLine": 31,
+        "endColumn": 19,
+        "ruleDescription": "Property type coercion warning",
+        "phase": "SCHEMA"
       },
       {
         "ruleId": "I9040",
@@ -23361,38 +23763,6 @@
         "startColumn": 1,
         "endLine": 7,
         "endColumn": 1,
-        "ruleDescription": "Invalid YAML/JSON syntax",
-        "phase": "PARSE"
-      }
-    ]
-  },
-  "bad/core/parse_null_key.yaml": {
-    "filePath": "bad/core/parse_null_key.yaml",
-    "status": "ERROR",
-    "metadata": {
-      "resourcesScanned": 0,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F1101",
-        "severity": "FATAL",
-        "message": "Null key not supported (line 7)",
-        "source": "SCHEMA",
-        "category": "Structure",
-        "startLine": 7,
-        "startColumn": 7,
-        "endLine": 7,
-        "endColumn": 7,
         "ruleDescription": "Invalid YAML/JSON syntax",
         "phase": "PARSE"
       }

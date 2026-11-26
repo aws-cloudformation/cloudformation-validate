@@ -1,4 +1,36 @@
 {
+  "bad/core/parse_null_key.yaml": {
+    "filePath": "bad/core/parse_null_key.yaml",
+    "status": "ERROR",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F1101",
+        "severity": "FATAL",
+        "message": "Null key not supported (line 7)",
+        "source": "SCHEMA",
+        "category": "Structure",
+        "startLine": 7,
+        "startColumn": 7,
+        "endLine": 7,
+        "endColumn": 7,
+        "ruleDescription": "Invalid YAML/JSON syntax",
+        "phase": "PARSE"
+      }
+    ]
+  },
   "bad/core/resource_attributes.yaml": {
     "filePath": "bad/core/resource_attributes.yaml",
     "status": "OK",
@@ -82724,74 +82756,5 @@
       "severityLevel": "DEBUG"
     },
     "diagnostics": []
-  },
-  "bad/resources/cloudformation/stack_nested.yaml": {
-    "filePath": "bad/resources/cloudformation/stack_nested.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 0,
-      "counts": {
-        "fatal": 1,
-        "errors": 0,
-        "warnings": 2,
-        "informational": 0,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F0001",
-        "severity": "FATAL",
-        "message": "Resources section must exist and be non-empty",
-        "source": "SCHEMA",
-        "propertyPath": "Resources",
-        "category": "Structure",
-        "startLine": 6,
-        "startColumn": 1,
-        "endLine": 6,
-        "endColumn": 10,
-        "ruleDescription": "Resources section must exist and be non-empty",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'One' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "One",
-          "entityType": "Parameter"
-        },
-        "propertyPath": "Parameters/One",
-        "category": "Best Practice",
-        "startLine": 2,
-        "startColumn": 3,
-        "endLine": 2,
-        "endColumn": 6,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W2001",
-        "severity": "WARN",
-        "message": "Parameter 'Two' is not referenced anywhere in the template",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Two",
-          "entityType": "Parameter"
-        },
-        "propertyPath": "Parameters/Two",
-        "category": "Best Practice",
-        "startLine": 4,
-        "startColumn": 3,
-        "endLine": 4,
-        "endColumn": 6,
-        "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT"
-      }
-    ]
   }
 }

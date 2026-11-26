@@ -921,6 +921,12 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "E9015",
+        category: Category::Resource,
+        description: "S3 bucket and directory bucket lifecycle rule ObjectSizeLessThan must be greater than ObjectSizeGreaterThan",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "E9018",
         category: Category::Resource,
         description: "S3 Storage Lens group object age and size ranges must not be empty",

@@ -105,10 +105,23 @@ Resources:
     }
 
     #[test]
+    fn empty_s3_lifecycle_object_size_ranges_trigger_e9015_once_per_rule() {
+        let ids = validate_file("bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+        let size_range_findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9015").count();
+        assert_eq!(size_range_findings, 5, "Expected one E9015 per empty size range, got: {ids:?}");
+    }
+
+    #[test]
+    fn non_empty_single_and_deployment_s3_lifecycle_object_sizes_do_not_trigger_e9015() {
+        let ids = validate_file("good/E9015_s3_lifecycle_object_size_ranges.yaml");
+        assert!(!ids.contains(&"E9015".to_string()), "Expected no E9015, got: {ids:?}");
+    }
+
+    #[test]
     fn empty_s3_storage_lens_group_ranges_trigger_e9018_once_each() {
         let ids = validate_file("bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
         let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9018").count();
-        assert_eq!(findings, 2, "Expected one E9018 per empty range, got: {ids:?}");
+        assert_eq!(findings, 3, "Expected one E9018 per empty range, got: {ids:?}");
     }
 
     #[test]
@@ -121,7 +134,7 @@ Resources:
     fn s3_intelligent_tiering_deep_archive_not_after_archive_trigger_e9019_once_each() {
         let ids = validate_file("bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
         let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9019").count();
-        assert_eq!(findings, 2, "Expected one E9019 per misordered tier pair, got: {ids:?}");
+        assert_eq!(findings, 3, "Expected one E9019 per misordered tier pair, got: {ids:?}");
     }
 
     #[test]

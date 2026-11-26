@@ -1,11 +1,17 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   Intelligent-Tiering configurations whose deep archive tier comes after the
-  archive tier, a single tier, and a day count only known at deployment.
+  archive tier, including days authored as strings, a single tier, and day
+  counts that are only known at deployment.
 Parameters:
   DeepArchiveDays:
     Type: Number
     Default: 180
+  Stage:
+    Type: String
+    AllowedValues: [prod, dev]
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
 Resources:
   Bucket:
     Type: AWS::S3::Bucket
@@ -18,6 +24,13 @@ Resources:
               Days: 179
             - AccessTier: DEEP_ARCHIVE_ACCESS
               Days: 180
+        - Id: OrderedStrings
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: "179"
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: "180"
         - Id: ArchiveOnly
           Status: Enabled
           Tierings:
@@ -30,3 +43,10 @@ Resources:
               Days: 365
             - AccessTier: DEEP_ARCHIVE_ACCESS
               Days: !Ref DeepArchiveDays
+        - Id: ConditionalDays
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 270
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: !If [IsProd, 180, 365]

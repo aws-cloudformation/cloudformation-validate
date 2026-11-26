@@ -1,11 +1,17 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  Storage Lens group ranges that are not provably empty: ascending bounds, a
-  single bound, and a bound that is only known at deployment.
+  Storage Lens group ranges that are not provably empty: ascending bounds,
+  ascending bounds whose strings sort in descending order, a single bound, and
+  bounds that are only known at deployment.
 Parameters:
   MaxAgeDays:
     Type: Number
     Default: 10
+  Stage:
+    Type: String
+    AllowedValues: [prod, dev]
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
 Resources:
   AscendingGroup:
     Type: AWS::S3::StorageLensGroup
@@ -23,6 +29,14 @@ Resources:
         MatchObjectSize:
           BytesGreaterThan: 999
           BytesLessThan: 1000
+  StringSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: string-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: "999"
+          BytesLessThan: "1000"
   LowerBoundGroup:
     Type: AWS::S3::StorageLensGroup
     Properties:
@@ -38,3 +52,11 @@ Resources:
         MatchObjectAge:
           DaysGreaterThan: 30
           DaysLessThan: !Ref MaxAgeDays
+  ConditionalGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: conditional-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 30
+          DaysLessThan: !If [IsProd, 10, 60]

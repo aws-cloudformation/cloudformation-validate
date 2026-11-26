@@ -1,4 +1,73 @@
 {
+  "bad/resources/cloudformation/stack_nested.yaml": {
+    "filePath": "bad/resources/cloudformation/stack_nested.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 0,
+      "counts": {
+        "fatal": 1,
+        "errors": 0,
+        "warnings": 2,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F0001",
+        "severity": "FATAL",
+        "message": "Resources section must exist and be non-empty",
+        "source": "SCHEMA",
+        "propertyPath": "Resources",
+        "category": "Structure",
+        "startLine": 6,
+        "startColumn": 1,
+        "endLine": 6,
+        "endColumn": 10,
+        "ruleDescription": "Resources section must exist and be non-empty",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "W2001",
+        "severity": "WARN",
+        "message": "Parameter 'One' is not referenced anywhere in the template",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "One",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/One",
+        "category": "Best Practice",
+        "startLine": 2,
+        "startColumn": 3,
+        "endLine": 2,
+        "endColumn": 6,
+        "ruleDescription": "Check if Parameters are Used",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W2001",
+        "severity": "WARN",
+        "message": "Parameter 'Two' is not referenced anywhere in the template",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "Two",
+          "entityType": "Parameter"
+        },
+        "propertyPath": "Parameters/Two",
+        "category": "Best Practice",
+        "startLine": 4,
+        "startColumn": 3,
+        "endLine": 4,
+        "endColumn": 6,
+        "ruleDescription": "Check if Parameters are Used",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/resources/cloudformation/stacks.yaml": {
     "filePath": "bad/resources/cloudformation/stacks.yaml",
     "status": "OK",
@@ -24119,68 +24188,6 @@
         "startLine": 8,
         "startColumn": 5,
         "endLine": 8,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/sns_cross_account.yaml": {
-    "filePath": "bad/sns_cross_account.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'TopicName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Topic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.TopicName",
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 7,
-        "endLine": 6,
-        "endColumn": 16,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Topic",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 5,
-        "endLine": 5,
         "endColumn": 15,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

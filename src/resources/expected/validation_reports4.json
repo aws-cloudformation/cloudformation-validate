@@ -1,4 +1,66 @@
 {
+  "bad/sns_cross_account.yaml": {
+    "filePath": "bad/sns_cross_account.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 2,
+      "counts": {
+        "fatal": 0,
+        "errors": 0,
+        "warnings": 0,
+        "informational": 2,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "I9001",
+        "severity": "INFO",
+        "message": "Property 'TopicName' is create-only; updating it will cause resource replacement",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.TopicName",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 7,
+        "endLine": 6,
+        "endColumn": 16,
+        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-sns",
+        "ruleDescription": "Create-only property updated triggers resource replacement",
+        "phase": "SCHEMA",
+        "context": {
+          "lifecycle": "create-only"
+        }
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'Topic' of type 'AWS::SNS::Topic' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Topic",
+          "entityType": "Resource",
+          "resourceType": "AWS::SNS::Topic"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 15,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
   "bad/some_logs_stream_lambda.yaml": {
     "filePath": "bad/some_logs_stream_lambda.yaml",
     "status": "OK",
@@ -60971,549 +61033,6 @@
         "startLine": 263,
         "startColumn": 7,
         "endLine": 263,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "cdk/pat-the-xray-tracer--TheXrayTracerStack.template.json": {
-    "filePath": "cdk/pat-the-xray-tracer--TheXrayTracerStack.template.json",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 14,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 0,
-        "informational": 23,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIDeploymentB3CB89A0a689bf68bef2302d0715c2d1a50794fc",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Deployment"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 75,
-        "startColumn": 9,
-        "endLine": 75,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIA84CAE80'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIDeploymentStageprod85442A48",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Stage"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 94,
-        "startColumn": 9,
-        "endLine": 94,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIA84CAE80'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'StageName' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIDeploymentStageprod85442A48",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Stage"
-        },
-        "propertyPath": "Properties.StageName",
-        "category": "Best Practice",
-        "startLine": 109,
-        "startColumn": 9,
-        "endLine": 109,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'HttpMethod' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIGET7490A366",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Method"
-        },
-        "propertyPath": "Properties.HttpMethod",
-        "category": "Best Practice",
-        "startLine": 119,
-        "startColumn": 9,
-        "endLine": 119,
-        "endColumn": 20,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIGET7490A366",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Method"
-        },
-        "propertyPath": "Properties.ResourceId",
-        "category": "Best Practice",
-        "startLine": 120,
-        "startColumn": 9,
-        "endLine": 120,
-        "endColumn": 20,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt xrayTracerAPIA84CAE80.RootResourceId"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIGET7490A366",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Method"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 126,
-        "startColumn": 9,
-        "endLine": 126,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIA84CAE80'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ParentId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIproxy719DA214",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Resource"
-        },
-        "propertyPath": "Properties.ParentId",
-        "category": "Best Practice",
-        "startLine": 215,
-        "startColumn": 9,
-        "endLine": 215,
-        "endColumn": 18,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "GetAtt xrayTracerAPIA84CAE80.RootResourceId"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'PathPart' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIproxy719DA214",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Resource"
-        },
-        "propertyPath": "Properties.PathPart",
-        "category": "Best Practice",
-        "startLine": 221,
-        "startColumn": 9,
-        "endLine": 221,
-        "endColumn": 18,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIproxy719DA214",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Resource"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 222,
-        "startColumn": 9,
-        "endLine": 222,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIA84CAE80'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'HttpMethod' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIproxyGET4E348609",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Method"
-        },
-        "propertyPath": "Properties.HttpMethod",
-        "category": "Best Practice",
-        "startLine": 233,
-        "startColumn": 9,
-        "endLine": 233,
-        "endColumn": 20,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ResourceId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIproxyGET4E348609",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Method"
-        },
-        "propertyPath": "Properties.ResourceId",
-        "category": "Best Practice",
-        "startLine": 234,
-        "startColumn": 9,
-        "endLine": 234,
-        "endColumn": 20,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIproxy719DA214'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIproxyGET4E348609",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Method"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 237,
-        "startColumn": 9,
-        "endLine": 237,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway.git",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIA84CAE80'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIResponseModel2591E14E",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Model"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 326,
-        "startColumn": 9,
-        "endLine": 326,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIA84CAE80'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContentType' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIResponseModel2591E14E",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Model"
-        },
-        "propertyPath": "Properties.ContentType",
-        "category": "Best Practice",
-        "startLine": 329,
-        "startColumn": 9,
-        "endLine": 329,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIResponseModel2591E14E",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Model"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 330,
-        "startColumn": 9,
-        "endLine": 330,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'RestApiId' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIErrorResponseModel24719E91",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Model"
-        },
-        "propertyPath": "Properties.RestApiId",
-        "category": "Best Practice",
-        "startLine": 349,
-        "startColumn": 9,
-        "endLine": 349,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only",
-          "resolutionSource": "Ref to 'xrayTracerAPIA84CAE80'"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'ContentType' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIErrorResponseModel24719E91",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Model"
-        },
-        "propertyPath": "Properties.ContentType",
-        "category": "Best Practice",
-        "startLine": 352,
-        "startColumn": 9,
-        "endLine": 352,
-        "endColumn": 21,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIErrorResponseModel24719E91",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Model"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 353,
-        "startColumn": 9,
-        "endLine": 353,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-apigateway",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TheXRayTracerSnsFanOutTopicDE7E70F8' of type 'AWS::SNS::Topic' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TheXRayTracerSnsFanOutTopicDE7E70F8",
-          "entityType": "Resource",
-          "resourceType": "AWS::SNS::Topic"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 5,
-        "startColumn": 7,
-        "endLine": 5,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'xrayTracerAPIA84CAE80' of type 'AWS::ApiGateway::RestApi' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIA84CAE80",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::RestApi"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 7,
-        "endLine": 14,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'xrayTracerAPICloudWatchRoleCCB113F4' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPICloudWatchRoleCCB113F4",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 23,
-        "startColumn": 7,
-        "endLine": 23,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'xrayTracerAPIDeploymentStageprod85442A48' of type 'AWS::ApiGateway::Stage' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "xrayTracerAPIDeploymentStageprod85442A48",
-          "entityType": "Resource",
-          "resourceType": "AWS::ApiGateway::Stage"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 93,
-        "startColumn": 7,
-        "endLine": 93,
-        "endColumn": 18,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'ApiGatewaySNSRole1BAAAE75' of type 'AWS::IAM::Role' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "ApiGatewaySNSRole1BAAAE75",
-          "entityType": "Resource",
-          "resourceType": "AWS::IAM::Role"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 374,
-        "startColumn": 7,
-        "endLine": 374,
         "endColumn": 18,
         "ruleDescription": "Resource should have Tags",
         "phase": "LINT"

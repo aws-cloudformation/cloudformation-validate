@@ -2374,23 +2374,83 @@ fn icmp_type_code_pairs_and_ascending_ranges_are_not_inverted() {
 }
 
 #[test]
+fn empty_s3_lifecycle_object_size_ranges_are_reported_per_rule_for_both_bucket_types() {
+    let template = include_str!("../../resources/templates/bad/E9015_s3_lifecycle_empty_object_size_range.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings, "empty size range diagnostics must be identical across engines");
+
+    let fix = "Set ObjectSizeLessThan to a value greater than ObjectSizeGreaterThan";
+    let expected_findings: Vec<String> = [
+        ("Bucket", 0, 1000, 1000),
+        ("Bucket", 2, 2048, 1024),
+        ("Bucket", 3, 1000, 999),
+        ("DirectoryBucket", 0, 1_048_576, 1_048_576),
+        ("DirectoryBucket", 2, 10_485_760, 1_048_576),
+    ]
+    .iter()
+    .map(|(resource, rule_index, greater_than, less_than)| {
+        format!(
+            "E9015|Error|{resource}|Properties.LifecycleConfiguration.Rules.{rule_index}.ObjectSizeLessThan|\
+             ObjectSizeLessThan {less_than} must be greater than ObjectSizeGreaterThan {greater_than}|{fix}"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9015"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|17:13",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan|27:13",
+        "Bucket|Properties.LifecycleConfiguration.Rules.3.ObjectSizeLessThan|32:13",
+        "DirectoryBucket|Properties.LifecycleConfiguration.Rules.0.ObjectSizeLessThan|44:13",
+        "DirectoryBucket|Properties.LifecycleConfiguration.Rules.2.ObjectSizeLessThan|54:13",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9015"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9015"]), expected_anchors);
+}
+
+#[test]
+fn ascending_single_and_deployment_s3_lifecycle_object_sizes_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9015_s3_lifecycle_object_size_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9015"]);
+    let cel_findings = selected_findings(&cel, template, &["E9015"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "no size range here is provably empty: {rego_findings:?}");
+}
+
+#[test]
 fn empty_s3_storage_lens_group_ranges_are_reported_identically() {
     let template = include_str!("../../resources/templates/bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
     let (rego, cel) = engines();
-    let rego_findings = selected_findings(&rego, template, &["E9018"]);
-    let cel_findings = selected_findings(&cel, template, &["E9018"]);
-    assert_eq!(rego_findings, cel_findings, "E9018 diagnostics must be identical");
-    assert_eq!(rego_findings.len(), 2, "one per empty range: {rego_findings:?}");
-    assert!(
-        rego_findings
-            .iter()
-            .any(|finding| finding.contains("|EqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|"))
-    );
-    assert!(
-        rego_findings
-            .iter()
-            .any(|finding| finding.contains("|InvertedSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|"))
-    );
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9018"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9018"]);
+    assert_eq!(rego_findings, cel_findings, "E9018 diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        ("EqualAgeGroup", "MatchObjectAge", "DaysGreaterThan", 30, "DaysLessThan", 30),
+        ("InvertedSizeGroup", "MatchObjectSize", "BytesGreaterThan", 2048, "BytesLessThan", 1024),
+        ("InvertedStringSizeGroup", "MatchObjectSize", "BytesGreaterThan", 1000, "BytesLessThan", 999),
+    ]
+    .iter()
+    .map(|(resource, filter, greater_than_name, greater_than, less_than_name, less_than)| {
+        format!(
+            "E9018|Error|{resource}|Properties.Filter.{filter}.{less_than_name}|\
+             {less_than_name} {less_than} must be greater than {greater_than_name} {greater_than}|\
+             Set {less_than_name} to a value greater than {greater_than_name}"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9018"]), expected_findings);
+
+    let expected_anchors = [
+        "EqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|14:11",
+        "InvertedSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|22:11",
+        "InvertedStringSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|30:11",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9018"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9018"]), expected_anchors);
 }
 
 #[test]
@@ -2408,20 +2468,30 @@ fn s3_intelligent_tiering_deep_archive_not_after_archive_are_reported_identicall
     let template =
         include_str!("../../resources/templates/bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
     let (rego, cel) = engines();
-    let rego_findings = selected_findings(&rego, template, &["E9019"]);
-    let cel_findings = selected_findings(&cel, template, &["E9019"]);
-    assert_eq!(rego_findings, cel_findings, "E9019 diagnostics must be identical");
-    assert_eq!(rego_findings.len(), 2, "one per misordered tier pair: {rego_findings:?}");
-    assert!(
-        rego_findings
-            .iter()
-            .any(|finding| finding.contains("|Bucket|Properties.IntelligentTieringConfigurations.0.Tierings.1.Days|"))
-    );
-    assert!(
-        rego_findings
-            .iter()
-            .any(|finding| finding.contains("|Bucket|Properties.IntelligentTieringConfigurations.1.Tierings.0.Days|"))
-    );
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9019"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9019"]);
+    assert_eq!(rego_findings, cel_findings, "E9019 diagnostics must be identical across engines");
+
+    let fix = "Set DEEP_ARCHIVE_ACCESS Days to a value greater than ARCHIVE_ACCESS Days";
+    let expected_findings: Vec<String> = [(0, 1, 180, 180), (1, 0, 200, 365), (2, 1, 200, 365)]
+        .iter()
+        .map(|(config_index, tiering_index, deep_archive_days, archive_days)| {
+            format!(
+                "E9019|Error|Bucket|Properties.IntelligentTieringConfigurations.{config_index}.Tierings.\
+                 {tiering_index}.Days|DEEP_ARCHIVE_ACCESS Days {deep_archive_days} must be greater than \
+                 ARCHIVE_ACCESS Days {archive_days}|{fix}"
+            )
+        })
+        .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9019"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.IntelligentTieringConfigurations.0.Tierings.1.Days|17:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.1.Tierings.0.Days|22:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.2.Tierings.1.Days|31:15",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9019"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9019"]), expected_anchors);
 }
 
 #[test]
@@ -2439,16 +2509,31 @@ fn s3_replication_destinations_without_versioning_are_reported_identically() {
     let template =
         include_str!("../../resources/templates/bad/E9020_s3_replication_destination_without_versioning.yaml");
     let (rego, cel) = engines();
-    let rego_findings = selected_findings(&rego, template, &["E9020"]);
-    let cel_findings = selected_findings(&cel, template, &["E9020"]);
-    assert_eq!(rego_findings, cel_findings, "E9020 diagnostics must be identical");
-    assert_eq!(rego_findings.len(), 2, "one per unversioned destination: {rego_findings:?}");
-    assert!(rego_findings.iter().any(|finding| {
-        finding.contains("|SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|")
-    }));
-    assert!(rego_findings.iter().any(|finding| {
-        finding.contains("|SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|")
-    }));
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9020"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9020"]);
+    assert_eq!(rego_findings, cel_findings, "E9020 diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        (0, "UnversionedDestination", "has no VersioningConfiguration"),
+        (1, "SuspendedDestination", "has versioning status Suspended"),
+    ]
+    .iter()
+    .map(|(rule_index, destination, reason)| {
+        format!(
+            "E9020|Error|SourceBucket|Properties.ReplicationConfiguration.Rules.{rule_index}.Destination.Bucket|\
+             Replication destination bucket '{destination}' {reason}; S3 replicates only into a bucket with \
+             versioning enabled|Set VersioningConfiguration.Status to Enabled on '{destination}'"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9020"]), expected_findings);
+
+    let expected_anchors = [
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|36:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|41:15",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9020"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9020"]), expected_anchors);
 }
 
 #[test]
@@ -3860,6 +3945,47 @@ fn lambda_log_levels_allow_non_text_configurations() {
 
     assert_eq!(rego_findings, cel_findings);
     assert!(rego_findings.is_empty(), "non-text logging configurations must not be reported: {rego_findings:?}");
+}
+
+#[test]
+fn sns_lambda_subscription_accepts_lambda_alias_endpoint() {
+    let template = include_str!("../../resources/templates/good/W3694_sns_lambda_alias_endpoint.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3694"]);
+    let cel_findings = selected_findings(&cel, template, &["W3694"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "a Lambda alias is a valid lambda endpoint: {rego_findings:?}");
+}
+
+#[test]
+fn sns_lambda_subscription_rejects_sqs_queue_endpoint() {
+    let template = r#"
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+  Queue:
+    Type: AWS::SQS::Queue
+  QueueSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt Queue.Arn
+      Protocol: lambda
+      TopicArn: !Ref Topic
+"#;
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["W3694"]);
+    let cel_findings = selected_findings(&cel, template, &["W3694"]);
+
+    assert_eq!(rego_findings, cel_findings);
+    assert_eq!(
+        rego_findings,
+        vec![
+            "W3694|Warn|QueueSubscription|Properties.Endpoint|Endpoint references 'Queue' (type 'AWS::SQS::Queue') \
+             but Protocol 'lambda' expects a Lambda Function|"
+                .to_string()
+        ]
+    );
 }
 
 #[test]
