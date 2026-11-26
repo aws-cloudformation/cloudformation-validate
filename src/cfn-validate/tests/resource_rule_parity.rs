@@ -2433,6 +2433,7 @@ fn out_of_order_s3_lifecycle_transitions_are_reported_at_the_later_class() {
         (1, 1, "ONEZONE_IA", 60, "INTELLIGENT_TIERING", 60),
         (2, 1, "GLACIER", 99, "STANDARD_IA", 100),
         (3, 0, "GLACIER", 89, "STANDARD_IA", 90),
+        (4, 1, "GLACIER", 89, "STANDARD_IA", 90),
     ]
     .iter()
     .map(|(rule_index, transition_index, later_class, later_days, earlier_class, earlier_days)| {
@@ -2451,6 +2452,7 @@ fn out_of_order_s3_lifecycle_transitions_are_reported_at_the_later_class() {
         "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|27:17",
         "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|34:17",
         "Bucket|Properties.LifecycleConfiguration.Rules.3.Transitions.0.TransitionInDays|39:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.4.Transitions.1.TransitionInDays|49:17",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);
@@ -2470,6 +2472,7 @@ fn short_s3_lifecycle_storage_durations_are_reported_at_the_later_class() {
         (1, "DEEP_ARCHIVE", 93, 90, "GLACIER_IR", 4),
         (2, "DEEP_ARCHIVE", 129, 30, "ONEZONE_IA", 100),
         (3, "DEEP_ARCHIVE", 189, 90, "GLACIER", 100),
+        (4, "GLACIER", 59, 30, "STANDARD_IA", 30),
     ]
     .iter()
     .map(|(rule_index, later_class, later_days, gap, earlier_class, earlier_days)| {
@@ -2488,6 +2491,7 @@ fn short_s3_lifecycle_storage_durations_are_reported_at_the_later_class() {
         "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|27:17",
         "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|34:17",
         "Bucket|Properties.LifecycleConfiguration.Rules.3.Transitions.1.TransitionInDays|41:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.4.Transitions.1.TransitionInDays|49:17",
     ];
     assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
     assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);

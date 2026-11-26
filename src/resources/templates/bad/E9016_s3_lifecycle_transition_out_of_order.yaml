@@ -39,3 +39,11 @@ Resources:
                 TransitionInDays: 89
               - StorageClass: STANDARD_IA
                 TransitionInDays: 90
+          # S3 validates a disabled rule as well.
+          - Id: DisabledRule
+            Status: Disabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 90
+              - StorageClass: GLACIER
+                TransitionInDays: 89

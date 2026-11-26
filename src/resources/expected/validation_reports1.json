@@ -9804,7 +9804,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 4,
+        "errors": 5,
         "warnings": 2,
         "informational": 1,
         "debug": 0
@@ -9895,6 +9895,26 @@
         "phase": "LINT"
       },
       {
+        "ruleId": "E9016",
+        "severity": "ERROR",
+        "message": "Transition to GLACIER at 89 days must come after the transition to STANDARD_IA at 90 days",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.4.Transitions.1.TransitionInDays",
+        "suggestedFix": "Set TransitionInDays for GLACIER greater than 90",
+        "category": "Resource",
+        "startLine": 49,
+        "startColumn": 17,
+        "endLine": 49,
+        "endColumn": 33,
+        "ruleDescription": "S3 lifecycle transitions must reach each storage class after the classes above it",
+        "phase": "LINT"
+      },
+      {
         "ruleId": "W9003",
         "severity": "WARN",
         "message": "'100' is not of type 'integer' - automatically coerced (string to integer)",
@@ -9961,7 +9981,7 @@
       "resourcesScanned": 1,
       "counts": {
         "fatal": 0,
-        "errors": 4,
+        "errors": 5,
         "warnings": 3,
         "informational": 1,
         "debug": 0
@@ -10047,6 +10067,26 @@
         "startLine": 41,
         "startColumn": 17,
         "endLine": 41,
+        "endColumn": 33,
+        "ruleDescription": "S3 lifecycle transitions must keep objects in a class for its minimum storage duration",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E9017",
+        "severity": "ERROR",
+        "message": "Transition to GLACIER at 59 days must be at least 30 days after the transition to STANDARD_IA at 30 days",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "Bucket",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.LifecycleConfiguration.Rules.4.Transitions.1.TransitionInDays",
+        "suggestedFix": "Set TransitionInDays for GLACIER to at least 60",
+        "category": "Resource",
+        "startLine": 49,
+        "startColumn": 17,
+        "endLine": 49,
         "endColumn": 33,
         "ruleDescription": "S3 lifecycle transitions must keep objects in a class for its minimum storage duration",
         "phase": "LINT"
