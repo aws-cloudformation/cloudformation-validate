@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  S3 rejects a lifecycle rule that moves objects on to an archive class before
+  they have stayed the minimum storage duration in the class they leave, each
+  one day short: 29 days in STANDARD_IA, 89 days in GLACIER_IR, 29 days in
+  ONEZONE_IA with day counts authored as strings, and 89 days in GLACIER with
+  a string and a number mixed.
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: InfrequentAccessToGlacier
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: 59
+          - Id: InstantRetrievalToDeepArchive
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER_IR
+                TransitionInDays: 4
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 93
+          - Id: OneZoneToDeepArchiveAsStrings
+            Status: Enabled
+            Transitions:
+              - StorageClass: ONEZONE_IA
+                TransitionInDays: "100"
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: "129"
+          - Id: GlacierToDeepArchiveMixedTypes
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: "100"
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 189
+          # S3 validates a disabled rule as well.
+          - Id: DisabledRule
+            Status: Disabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: 59

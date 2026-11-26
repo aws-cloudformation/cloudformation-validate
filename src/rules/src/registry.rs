@@ -927,6 +927,18 @@ pub const RULE_REGISTRY: &[RuleDefinition] = &[
         origin: RuleOrigin::Engine,
     },
     RuleDefinition {
+        id: "E9016",
+        category: Category::Resource,
+        description: "S3 lifecycle transitions must reach each storage class after the classes above it",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
+        id: "E9017",
+        category: Category::Resource,
+        description: "S3 lifecycle transitions must keep objects in a class for its minimum storage duration",
+        origin: RuleOrigin::Engine,
+    },
+    RuleDefinition {
         id: "E3047",
         category: Category::Resource,
         description: "Validate ECS Fargate tasks have the right combination of CPU and memory",

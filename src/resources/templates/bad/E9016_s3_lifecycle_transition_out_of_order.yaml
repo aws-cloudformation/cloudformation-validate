@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  S3 rejects a lifecycle rule that reaches a storage class no later than a
+  class above it in the waterfall: GLACIER one day before STANDARD_IA,
+  ONEZONE_IA on the same day as INTELLIGENT_TIERING, GLACIER before
+  STANDARD_IA with day counts whose strings sort in ascending order, and
+  GLACIER before STANDARD_IA when GLACIER is listed first.
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: GlacierBeforeInfrequentAccess
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 90
+              - StorageClass: GLACIER
+                TransitionInDays: 89
+          - Id: SameDay
+            Status: Enabled
+            Transitions:
+              - StorageClass: INTELLIGENT_TIERING
+                TransitionInDays: 60
+              - StorageClass: ONEZONE_IA
+                TransitionInDays: 60
+          - Id: InvertedDaysInAscendingStringOrder
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: "100"
+              - StorageClass: GLACIER
+                TransitionInDays: "99"
+          - Id: LowerClassListedFirst
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: 89
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 90
+          # S3 validates a disabled rule as well.
+          - Id: DisabledRule
+            Status: Disabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 90
+              - StorageClass: GLACIER
+                TransitionInDays: 89

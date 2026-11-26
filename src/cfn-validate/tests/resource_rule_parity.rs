@@ -2421,6 +2421,93 @@ fn ascending_single_and_deployment_s3_lifecycle_object_sizes_are_not_reported() 
 }
 
 #[test]
+fn out_of_order_s3_lifecycle_transitions_are_reported_at_the_later_class() {
+    let template = include_str!("../../resources/templates/bad/E9016_s3_lifecycle_transition_out_of_order.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings, "transition order diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        (0, 1, "GLACIER", 89, "STANDARD_IA", 90),
+        (1, 1, "ONEZONE_IA", 60, "INTELLIGENT_TIERING", 60),
+        (2, 1, "GLACIER", 99, "STANDARD_IA", 100),
+        (3, 0, "GLACIER", 89, "STANDARD_IA", 90),
+        (4, 1, "GLACIER", 89, "STANDARD_IA", 90),
+    ]
+    .iter()
+    .map(|(rule_index, transition_index, later_class, later_days, earlier_class, earlier_days)| {
+        format!(
+            "E9016|Error|Bucket|Properties.LifecycleConfiguration.Rules.{rule_index}.Transitions.{transition_index}.\
+             TransitionInDays|\
+             Transition to {later_class} at {later_days} days must come after the transition to {earlier_class} at \
+             {earlier_days} days|Set TransitionInDays for {later_class} greater than {earlier_days}"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9016", "E9017"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|20:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|27:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|34:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.3.Transitions.0.TransitionInDays|39:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.4.Transitions.1.TransitionInDays|49:17",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);
+}
+
+#[test]
+fn short_s3_lifecycle_storage_durations_are_reported_at_the_later_class() {
+    let template =
+        include_str!("../../resources/templates/bad/E9017_s3_lifecycle_transition_minimum_storage_duration.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings, "storage duration diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        (0, "GLACIER", 59, 30, "STANDARD_IA", 30),
+        (1, "DEEP_ARCHIVE", 93, 90, "GLACIER_IR", 4),
+        (2, "DEEP_ARCHIVE", 129, 30, "ONEZONE_IA", 100),
+        (3, "DEEP_ARCHIVE", 189, 90, "GLACIER", 100),
+        (4, "GLACIER", 59, 30, "STANDARD_IA", 30),
+    ]
+    .iter()
+    .map(|(rule_index, later_class, later_days, gap, earlier_class, earlier_days)| {
+        format!(
+            "E9017|Error|Bucket|Properties.LifecycleConfiguration.Rules.{rule_index}.Transitions.1.TransitionInDays|\
+             Transition to {later_class} at {later_days} days must be at least {gap} days after the transition to \
+             {earlier_class} at {earlier_days} days|Set TransitionInDays for {later_class} to at least {}",
+            earlier_days + gap
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9016", "E9017"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.LifecycleConfiguration.Rules.0.Transitions.1.TransitionInDays|20:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.1.Transitions.1.TransitionInDays|27:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.2.Transitions.1.TransitionInDays|34:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.3.Transitions.1.TransitionInDays|41:17",
+        "Bucket|Properties.LifecycleConfiguration.Rules.4.Transitions.1.TransitionInDays|49:17",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9016", "E9017"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9016", "E9017"]), expected_anchors);
+}
+
+#[test]
+fn ordered_and_deployment_s3_lifecycle_transitions_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9016_s3_lifecycle_transition_order.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9016", "E9017"]);
+    let cel_findings = selected_findings(&cel, template, &["E9016", "E9017"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "every transition here is in order: {rego_findings:?}");
+}
+
+#[test]
 fn invalid_event_patterns_have_identical_precise_diagnostics() {
     let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
     let (rego, cel) = engines();

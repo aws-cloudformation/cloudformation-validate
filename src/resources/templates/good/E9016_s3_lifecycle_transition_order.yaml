@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Lifecycle transitions that move down the storage-class waterfall and keep
+  objects in each class for exactly its minimum storage duration or longer,
+  adjacent classes one day apart, ascending day counts whose strings sort in
+  descending order, mixed string and number day counts, transitions listed in
+  reverse order, date-based transitions, and values, transitions or whole
+  rules that are only known at deployment.
+Parameters:
+  ArchiveDays:
+    Type: Number
+    Default: 31
+  Stage:
+    Type: String
+    AllowedValues: [prod, dev]
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+          - Id: InfrequentAccessThenGlacierAtMinimum
+            Status: Enabled
+            ExpirationInDays: 61
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: 60
+          - Id: InstantRetrievalThenDeepArchiveAtMinimum
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER_IR
+                TransitionInDays: 30
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 120
+          - Id: GlacierThenDeepArchiveAtMinimumMixedTypes
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: "90"
+              - StorageClass: DEEP_ARCHIVE
+                TransitionInDays: 180
+          - Id: AdjacentClassesOneDayApart
+            Status: Enabled
+            Transitions:
+              - StorageClass: INTELLIGENT_TIERING
+                TransitionInDays: 30
+              - StorageClass: ONEZONE_IA
+                TransitionInDays: 31
+          - Id: AscendingDaysInDescendingStringOrder
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: "90"
+              - StorageClass: GLACIER
+                TransitionInDays: "180"
+          - Id: ListedInReverse
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: 60
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+          - Id: DateTransitions
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionDate: "2030-01-01T00:00:00.000Z"
+              - StorageClass: GLACIER
+                TransitionDate: "2030-03-01T00:00:00.000Z"
+          - Id: ParameterDays
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: !Ref ArchiveDays
+          - Id: ConditionalDays
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: !If [IsProd, 10, 365]
+          - Id: ConditionalStorageClass
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: !If [IsProd, GLACIER, DEEP_ARCHIVE]
+                TransitionInDays: 40
+          - Id: ConditionalTransition
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 90
+              - !If
+                - IsProd
+                - StorageClass: GLACIER
+                  TransitionInDays: 89
+                - !Ref AWS::NoValue
+          - !If
+            - IsProd
+            - Id: ConditionalRule
+              Status: Enabled
+              Transitions:
+                - StorageClass: STANDARD_IA
+                  TransitionInDays: 90
+                - StorageClass: GLACIER
+                  TransitionInDays: 89
+            - !Ref AWS::NoValue

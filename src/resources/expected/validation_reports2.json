@@ -1,4 +1,485 @@
 {
+  "bad/core/resource_attributes.yaml": {
+    "filePath": "bad/core/resource_attributes.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 5,
+      "counts": {
+        "fatal": 6,
+        "errors": 10,
+        "warnings": 1,
+        "informational": 4,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'MaxSize' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ScalarCreationPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'MaxSize'",
+        "category": "Schema",
+        "startLine": 6,
+        "startColumn": 3,
+        "endLine": 6,
+        "endColumn": 23,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'MinSize' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ScalarCreationPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'MinSize'",
+        "category": "Schema",
+        "startLine": 6,
+        "startColumn": 3,
+        "endLine": 6,
+        "endColumn": 23,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'MaxSize' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ScalarUpdatePolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'MaxSize'",
+        "category": "Schema",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 21,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3003",
+        "severity": "FATAL",
+        "message": "'MinSize' is a required property",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ScalarUpdatePolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties",
+        "suggestedFix": "Add the required property 'MinSize'",
+        "category": "Schema",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 21,
+        "ruleDescription": "Required property missing",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['InstanceId', 'LaunchConfigurationName', 'LaunchTemplate', 'MixedInstancesPolicy'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ScalarCreationPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties",
+        "category": "Schema",
+        "startLine": 6,
+        "startColumn": 3,
+        "endLine": 6,
+        "endColumn": 23,
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "F3014",
+        "severity": "FATAL",
+        "message": "Exactly one of ['InstanceId', 'LaunchConfigurationName', 'LaunchTemplate', 'MixedInstancesPolicy'] must be specified",
+        "source": "SCHEMA",
+        "entity": {
+          "logicalId": "ScalarUpdatePolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties",
+        "category": "Schema",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 21,
+        "ruleDescription": "Exactly one of properties required (requiredXor)",
+        "phase": "SCHEMA"
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'StandardVersion' property 'Version' is only valid for custom resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "StandardVersion",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "category": "Resource",
+        "startLine": 5,
+        "startColumn": 5,
+        "endLine": 5,
+        "endColumn": 12,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'ScalarCreationPolicy' property 'CreationPolicy' must be an object",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ScalarCreationPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "category": "Resource",
+        "startLine": 8,
+        "startColumn": 5,
+        "endLine": 8,
+        "endColumn": 19,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'ScalarUpdatePolicy' property 'UpdatePolicy' must be an object",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ScalarUpdatePolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "category": "Resource",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 17,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'CustomLifecyclePolicies' property 'CreationPolicy' is not valid for custom resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomLifecyclePolicies",
+          "entityType": "Resource",
+          "resourceType": "Custom::Thing"
+        },
+        "category": "Resource",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 19,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'CustomLifecyclePolicies' property 'UpdatePolicy' is not valid for custom resources",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomLifecyclePolicies",
+          "entityType": "Resource",
+          "resourceType": "Custom::Thing"
+        },
+        "category": "Resource",
+        "startLine": 17,
+        "startColumn": 5,
+        "endLine": 17,
+        "endColumn": 17,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'UnsupportedAttributes' has invalid property 'Connectors'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, CreationPolicy, Fn::Transform, Version",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "UnsupportedAttributes",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "category": "Resource",
+        "startLine": 20,
+        "startColumn": 5,
+        "endLine": 20,
+        "endColumn": 15,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3001",
+        "severity": "ERROR",
+        "message": "Resource 'UnsupportedAttributes' has invalid property 'IgnoreGlobals'. Valid resource attributes: Type, Properties, DependsOn, Condition, Metadata, DeletionPolicy, UpdateReplacePolicy, UpdatePolicy, CreationPolicy, Fn::Transform, Version",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "UnsupportedAttributes",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "category": "Resource",
+        "startLine": 21,
+        "startColumn": 5,
+        "endLine": 21,
+        "endColumn": 18,
+        "ruleDescription": "Basic CloudFormation Resource Check",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E3016",
+        "severity": "ERROR",
+        "message": "7 is not of type 'object'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "ScalarUpdatePolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "UpdatePolicy",
+        "category": "Resource",
+        "startLine": 11,
+        "startColumn": 5,
+        "endLine": 11,
+        "endColumn": 17,
+        "ruleDescription": "Check UpdatePolicy values for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3016",
+        "severity": "ERROR",
+        "message": "UpdatePolicy is not supported on resource type 'Custom::Thing'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomLifecyclePolicies",
+          "entityType": "Resource",
+          "resourceType": "Custom::Thing"
+        },
+        "propertyPath": "UpdatePolicy",
+        "suggestedFix": "Remove UpdatePolicy or change resource type to one of: AWS::AppStream::Fleet, AWS::AutoScaling::AutoScalingGroup, AWS::ElastiCache::ReplicationGroup, AWS::Elasticsearch::Domain, AWS::Lambda::Alias, AWS::OpenSearchService::Domain",
+        "category": "Resource",
+        "startLine": 17,
+        "startColumn": 5,
+        "endLine": 17,
+        "endColumn": 17,
+        "ruleDescription": "Check UpdatePolicy values for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "E3055",
+        "severity": "ERROR",
+        "message": "CreationPolicy is not supported on resource type 'Custom::Thing'",
+        "source": "CFN_LINT",
+        "entity": {
+          "logicalId": "CustomLifecyclePolicies",
+          "entityType": "Resource",
+          "resourceType": "Custom::Thing"
+        },
+        "propertyPath": "CreationPolicy",
+        "suggestedFix": "Remove CreationPolicy or change resource type to one of: AWS::AppStream::Fleet, AWS::AutoScaling::AutoScalingGroup, AWS::CloudFormation::WaitCondition, AWS::EC2::Instance",
+        "category": "Resource",
+        "startLine": 16,
+        "startColumn": 5,
+        "endLine": 16,
+        "endColumn": 19,
+        "ruleDescription": "Check CreationPolicy values for Resources",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "W9013",
+        "severity": "WARN",
+        "message": "Hardcoded account ID in ARN - use AWS::AccountId pseudo-parameter",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "CustomLifecyclePolicies",
+          "entityType": "Resource",
+          "resourceType": "Custom::Thing"
+        },
+        "category": "Security",
+        "startLine": 12,
+        "startColumn": 3,
+        "endLine": 12,
+        "endColumn": 26,
+        "ruleDescription": "Hardcoded account ID in ARN",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'StandardVersion' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "StandardVersion",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 3,
+        "startColumn": 3,
+        "endLine": 3,
+        "endColumn": 18,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ScalarCreationPolicy' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ScalarCreationPolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 6,
+        "startColumn": 3,
+        "endLine": 6,
+        "endColumn": 23,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'ScalarUpdatePolicy' of type 'AWS::AutoScaling::AutoScalingGroup' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "ScalarUpdatePolicy",
+          "entityType": "Resource",
+          "resourceType": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 9,
+        "endColumn": 21,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      },
+      {
+        "ruleId": "I9040",
+        "severity": "INFO",
+        "message": "Resource 'UnsupportedAttributes' of type 'AWS::S3::Bucket' supports Tags but none are configured",
+        "source": "ENGINE",
+        "entity": {
+          "logicalId": "UnsupportedAttributes",
+          "entityType": "Resource",
+          "resourceType": "AWS::S3::Bucket"
+        },
+        "propertyPath": "Properties.Tags",
+        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
+        "category": "Best Practice",
+        "startLine": 18,
+        "startColumn": 3,
+        "endLine": 18,
+        "endColumn": 24,
+        "ruleDescription": "Resource should have Tags",
+        "phase": "LINT"
+      }
+    ]
+  },
+  "bad/core/sections_not_objects.yaml": {
+    "filePath": "bad/core/sections_not_objects.yaml",
+    "status": "OK",
+    "metadata": {
+      "resourcesScanned": 1,
+      "counts": {
+        "fatal": 0,
+        "errors": 3,
+        "warnings": 0,
+        "informational": 0,
+        "debug": 0
+      },
+      "suppressed": 0,
+      "strict": false,
+      "severityLevel": "DEBUG"
+    },
+    "diagnostics": [
+      {
+        "ruleId": "E2001",
+        "severity": "ERROR",
+        "message": "Parameters section must be an object, got null",
+        "source": "CFN_LINT",
+        "propertyPath": "Parameters",
+        "category": "Parameter",
+        "startLine": 2,
+        "startColumn": 1,
+        "endLine": 2,
+        "endColumn": 11,
+        "ruleDescription": "Parameters have appropriate properties",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E6003",
+        "severity": "ERROR",
+        "message": "Outputs section must be an object, got a string",
+        "source": "CFN_LINT",
+        "propertyPath": "Outputs",
+        "category": "Structure",
+        "startLine": 5,
+        "startColumn": 1,
+        "endLine": 5,
+        "endColumn": 8,
+        "ruleDescription": "Outputs section must be an object of named output definitions",
+        "phase": "PARSE"
+      },
+      {
+        "ruleId": "E7001",
+        "severity": "ERROR",
+        "message": "Mappings section must be an object, got a list",
+        "source": "CFN_LINT",
+        "propertyPath": "Mappings",
+        "category": "Structure",
+        "startLine": 3,
+        "startColumn": 1,
+        "endLine": 3,
+        "endColumn": 9,
+        "ruleDescription": "Mappings are appropriately configured",
+        "phase": "PARSE"
+      }
+    ]
+  },
   "bad/cross_resource_task10.yaml": {
     "filePath": "bad/cross_resource_task10.yaml",
     "status": "OK",
@@ -82309,324 +82790,6 @@
         "endLine": 4,
         "endColumn": 6,
         "ruleDescription": "Check if Parameters are Used",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/cloudformation/stacks.yaml": {
-    "filePath": "bad/resources/cloudformation/stacks.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 2,
-      "counts": {
-        "fatal": 0,
-        "errors": 0,
-        "warnings": 2,
-        "informational": 6,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "W3002",
-        "severity": "WARN",
-        "message": "This code may only work with 'package' cli command",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "StackNormal",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "propertyPath": "Properties.TemplateURL",
-        "category": "Best Practice",
-        "startLine": 9,
-        "startColumn": 7,
-        "endLine": 9,
-        "endColumn": 18,
-        "ruleDescription": "Warn when properties are configured to only work with the package command",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "W3002",
-        "severity": "WARN",
-        "message": "This code may only work with 'package' cli command",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Stack3",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "propertyPath": "Properties.TemplateURL",
-        "category": "Best Practice",
-        "startLine": 17,
-        "startColumn": 7,
-        "endLine": 17,
-        "endColumn": 18,
-        "ruleDescription": "Warn when properties are configured to only work with the package command",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "StackNormal",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 14,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "StackNormal",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "category": "Best Practice",
-        "startLine": 6,
-        "startColumn": 3,
-        "endLine": 6,
-        "endColumn": 14,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'DeletionPolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Stack3",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 3,
-        "endLine": 14,
-        "endColumn": 9,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I3011",
-        "severity": "INFO",
-        "message": "'UpdateReplacePolicy' is a required property (The default action when replacing/removing a resource is to delete it. Set explicit values for stateful resource)",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "Stack3",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "category": "Best Practice",
-        "startLine": 14,
-        "startColumn": 3,
-        "endLine": 14,
-        "endColumn": 9,
-        "ruleDescription": "Check stateful resources have a set UpdateReplacePolicy/DeletionPolicy",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'StackNormal' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "StackNormal",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 5,
-        "endLine": 8,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'Stack3' of type 'AWS::CloudFormation::Stack' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "Stack3",
-          "entityType": "Resource",
-          "resourceType": "AWS::CloudFormation::Stack"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 16,
-        "startColumn": 5,
-        "endLine": 16,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
-        "phase": "LINT"
-      }
-    ]
-  },
-  "bad/resources/codepipeline/stages_second_stage.yaml": {
-    "filePath": "bad/resources/codepipeline/stages_second_stage.yaml",
-    "status": "OK",
-    "metadata": {
-      "resourcesScanned": 1,
-      "counts": {
-        "fatal": 2,
-        "errors": 1,
-        "warnings": 1,
-        "informational": 2,
-        "debug": 0
-      },
-      "suppressed": 0,
-      "strict": false,
-      "severityLevel": "DEBUG"
-    },
-    "diagnostics": [
-      {
-        "ruleId": "F1020",
-        "severity": "FATAL",
-        "message": "'Github' is not one of ['AWS::AccountId', 'AWS::NoValue', 'AWS::NotificationARNs', 'AWS::Partition', 'AWS::Region', 'AWS::StackId', 'AWS::StackName', 'AWS::URLSuffix', 'TestPipeline']",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "TestPipeline",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodePipeline::Pipeline"
-        },
-        "propertyPath": "Properties.Stages.1.Actions.0.Name",
-        "suggestedFix": "Check that the Ref target exists as a resource, parameter, or pseudo-parameter",
-        "category": "Intrinsic Function",
-        "startLine": 32,
-        "startColumn": 15,
-        "endLine": 32,
-        "endColumn": 19,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-codepipeline",
-        "ruleDescription": "Ref/GetAtt target must exist",
-        "phase": "SCHEMA"
-      },
-      {
-        "ruleId": "F3031",
-        "severity": "FATAL",
-        "message": "'arn:aws:iam:::role/AWSCodePipelineRole' does not match pattern 'arn:aws(-[\\w]+)*:iam::[0-9]{12}:role/.*'",
-        "source": "SCHEMA",
-        "entity": {
-          "logicalId": "TestPipeline",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodePipeline::Pipeline"
-        },
-        "propertyPath": "Properties.RoleArn",
-        "category": "Schema",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-codepipeline",
-        "ruleDescription": "Value does not match pattern",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "arn:aws:iam:::role/AWSCodePipelineRole",
-          "expectedConstraint": "arn:aws(-[\\w]+)*:iam::[0-9]{12}:role/.*"
-        }
-      },
-      {
-        "ruleId": "E1156",
-        "severity": "ERROR",
-        "message": "'arn:aws:iam:::role/AWSCodePipelineRole' does not match format 'AWS::IAM::Role.Arn'",
-        "source": "CFN_LINT",
-        "entity": {
-          "logicalId": "TestPipeline",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodePipeline::Pipeline"
-        },
-        "propertyPath": "Properties.RoleArn",
-        "category": "Intrinsic Function",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 14,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-codepipeline",
-        "ruleDescription": "Validate IAM role ARN format",
-        "phase": "SCHEMA",
-        "context": {
-          "actualValue": "arn:aws:iam:::role/AWSCodePipelineRole"
-        }
-      },
-      {
-        "ruleId": "W9002",
-        "severity": "WARN",
-        "message": "Property 'RoleArn' has a hardcoded ARN - use Ref, GetAtt, or a parameter instead",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TestPipeline",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodePipeline::Pipeline"
-        },
-        "propertyPath": "Properties.RoleArn",
-        "category": "Best Practice",
-        "startLine": 12,
-        "startColumn": 7,
-        "endLine": 12,
-        "endColumn": 14,
-        "ruleDescription": "Hardcoded ARN property",
-        "phase": "LINT"
-      },
-      {
-        "ruleId": "I9001",
-        "severity": "INFO",
-        "message": "Property 'Name' is create-only; updating it will cause resource replacement",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TestPipeline",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodePipeline::Pipeline"
-        },
-        "propertyPath": "Properties.Name",
-        "category": "Best Practice",
-        "startLine": 8,
-        "startColumn": 7,
-        "endLine": 8,
-        "endColumn": 11,
-        "documentationUrl": "https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-codepipeline",
-        "ruleDescription": "Create-only property updated triggers resource replacement",
-        "phase": "SCHEMA",
-        "context": {
-          "lifecycle": "create-only"
-        }
-      },
-      {
-        "ruleId": "I9040",
-        "severity": "INFO",
-        "message": "Resource 'TestPipeline' of type 'AWS::CodePipeline::Pipeline' supports Tags but none are configured",
-        "source": "ENGINE",
-        "entity": {
-          "logicalId": "TestPipeline",
-          "entityType": "Resource",
-          "resourceType": "AWS::CodePipeline::Pipeline"
-        },
-        "propertyPath": "Properties.Tags",
-        "suggestedFix": "Add Tags to improve resource organization and cost tracking",
-        "category": "Best Practice",
-        "startLine": 7,
-        "startColumn": 5,
-        "endLine": 7,
-        "endColumn": 15,
-        "ruleDescription": "Resource should have Tags",
         "phase": "LINT"
       }
     ]
