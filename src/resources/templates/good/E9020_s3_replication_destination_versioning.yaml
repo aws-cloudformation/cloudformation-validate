@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Replication destinations that are not provably unversioned: a versioned
+  bucket in the template, a bucket outside the template, and a bucket whose
+  versioning status or whole versioning configuration is only known at
+  deployment, and a destination chosen by a condition.
+Parameters:
+  DestinationVersioning:
+    Type: String
+    Default: Enabled
+    AllowedValues: [Enabled, Suspended]
+  Stage:
+    Type: String
+    AllowedValues: [prod, dev]
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+Resources:
+  ReplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sts:AssumeRole
+  VersionedDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+  ParameterDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: !Ref DestinationVersioning
+  ConditionalDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: !If [IsProd, Enabled, Suspended]
+  ConditionalConfigurationDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration: !If
+        - IsProd
+        - Status: Enabled
+        - !Ref AWS::NoValue
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      ReplicationConfiguration:
+        Role: !GetAtt ReplicationRole.Arn
+        Rules:
+          - Id: ToVersioned
+            Status: Enabled
+            Prefix: versioned/
+            Destination:
+              Bucket: !GetAtt VersionedDestination.Arn
+          - Id: ToExternal
+            Status: Enabled
+            Prefix: external/
+            Destination:
+              Bucket: arn:aws:s3:::external-destination-bucket
+          - Id: ToParameter
+            Status: Enabled
+            Prefix: parameter/
+            Destination:
+              Bucket: !GetAtt ParameterDestination.Arn
+          - Id: ToConditional
+            Status: Enabled
+            Prefix: conditional/
+            Destination:
+              Bucket: !GetAtt ConditionalDestination.Arn
+          - Id: ToConditionalConfiguration
+            Status: Enabled
+            Prefix: conditional-configuration/
+            Destination:
+              Bucket: !GetAtt ConditionalConfigurationDestination.Arn
+          - Id: ToConditionalDestination
+            Status: Enabled
+            Prefix: conditional-destination/
+            Destination:
+              Bucket: !If [IsProd, !GetAtt ConditionalDestination.Arn, !GetAtt VersionedDestination.Arn]

@@ -2421,6 +2421,146 @@ fn ascending_single_and_deployment_s3_lifecycle_object_sizes_are_not_reported() 
 }
 
 #[test]
+fn empty_s3_storage_lens_group_ranges_are_reported_identically() {
+    let template = include_str!("../../resources/templates/bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9018"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9018"]);
+    assert_eq!(rego_findings, cel_findings, "E9018 diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        ("EqualAgeGroup", "MatchObjectAge", "DaysGreaterThan", 30, "DaysLessThan", 30),
+        ("InvertedSizeGroup", "MatchObjectSize", "BytesGreaterThan", 2048, "BytesLessThan", 1024),
+        ("InvertedStringSizeGroup", "MatchObjectSize", "BytesGreaterThan", 1000, "BytesLessThan", 999),
+        ("MinimumEqualAgeGroup", "MatchObjectAge", "DaysGreaterThan", 1, "DaysLessThan", 1),
+        ("MixedTypeEqualSizeGroup", "MatchObjectSize", "BytesGreaterThan", 1024, "BytesLessThan", 1024),
+    ]
+    .iter()
+    .map(|(resource, filter, greater_than_name, greater_than, less_than_name, less_than)| {
+        format!(
+            "E9018|Error|{resource}|Properties.Filter.{filter}.{less_than_name}|\
+             {less_than_name} {less_than} must be greater than {greater_than_name} {greater_than}|\
+             Set {less_than_name} to a value greater than {greater_than_name}"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9018"]), expected_findings);
+
+    let expected_anchors = [
+        "EqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|15:11",
+        "InvertedSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|23:11",
+        "InvertedStringSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|31:11",
+        "MinimumEqualAgeGroup|Properties.Filter.MatchObjectAge.DaysLessThan|39:11",
+        "MixedTypeEqualSizeGroup|Properties.Filter.MatchObjectSize.BytesLessThan|47:11",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9018"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9018"]), expected_anchors);
+}
+
+#[test]
+fn valid_s3_storage_lens_group_ranges_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9018_s3_storage_lens_group_ranges.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9018"]);
+    let cel_findings = selected_findings(&cel, template, &["E9018"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "nothing here is provably invalid: {rego_findings:?}");
+}
+
+#[test]
+fn s3_intelligent_tiering_deep_archive_not_after_archive_are_reported_identically() {
+    let template =
+        include_str!("../../resources/templates/bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9019"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9019"]);
+    assert_eq!(rego_findings, cel_findings, "E9019 diagnostics must be identical across engines");
+
+    let fix = "Set DEEP_ARCHIVE_ACCESS Days to a value greater than ARCHIVE_ACCESS Days";
+    let expected_findings: Vec<String> =
+        [(0, 1, 180, 180), (1, 0, 200, 365), (2, 1, 200, 365), (3, 1, 730, 730), (4, 1, 365, 365), (5, 1, 180, 180)]
+            .iter()
+            .map(|(config_index, tiering_index, deep_archive_days, archive_days)| {
+                format!(
+                    "E9019|Error|Bucket|Properties.IntelligentTieringConfigurations.{config_index}.Tierings.\
+                 {tiering_index}.Days|DEEP_ARCHIVE_ACCESS Days {deep_archive_days} must be greater than \
+                 ARCHIVE_ACCESS Days {archive_days}|{fix}"
+                )
+            })
+            .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9019"]), expected_findings);
+
+    let expected_anchors = [
+        "Bucket|Properties.IntelligentTieringConfigurations.0.Tierings.1.Days|18:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.1.Tierings.0.Days|23:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.2.Tierings.1.Days|32:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.3.Tierings.1.Days|39:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.4.Tierings.1.Days|46:15",
+        "Bucket|Properties.IntelligentTieringConfigurations.5.Tierings.1.Days|54:15",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9019"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9019"]), expected_anchors);
+}
+
+#[test]
+fn valid_s3_intelligent_tiering_order_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9019_s3_intelligent_tiering_order.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9019"]);
+    let cel_findings = selected_findings(&cel, template, &["E9019"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "nothing here is provably invalid: {rego_findings:?}");
+}
+
+#[test]
+fn s3_replication_destinations_without_versioning_are_reported_identically() {
+    let template =
+        include_str!("../../resources/templates/bad/E9020_s3_replication_destination_without_versioning.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings_with_spans(&rego, template, &["E9020"]);
+    let cel_findings = selected_findings_with_spans(&cel, template, &["E9020"]);
+    assert_eq!(rego_findings, cel_findings, "E9020 diagnostics must be identical across engines");
+
+    let expected_findings: Vec<String> = [
+        (0, "UnversionedDestination", "has no VersioningConfiguration"),
+        (1, "SuspendedDestination", "has versioning status Suspended"),
+        (2, "TaggedDestination", "has no VersioningConfiguration"),
+        (3, "UnversionedDestination", "has no VersioningConfiguration"),
+        (4, "UnversionedDestination", "has no VersioningConfiguration"),
+    ]
+    .iter()
+    .map(|(rule_index, destination, reason)| {
+        format!(
+            "E9020|Error|SourceBucket|Properties.ReplicationConfiguration.Rules.{rule_index}.Destination.Bucket|\
+             Replication destination bucket '{destination}' {reason}; S3 replicates only into a bucket with \
+             versioning enabled|Set VersioningConfiguration.Status to Enabled on '{destination}'"
+        )
+    })
+    .collect();
+    assert_eq!(selected_findings(&rego, template, &["E9020"]), expected_findings);
+
+    let expected_anchors = [
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.0.Destination.Bucket|43:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.1.Destination.Bucket|48:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.2.Destination.Bucket|53:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.3.Destination.Bucket|58:15",
+        "SourceBucket|Properties.ReplicationConfiguration.Rules.4.Destination.Bucket|65:15",
+    ];
+    assert_eq!(selected_finding_anchors(&rego, template, &["E9020"]), expected_anchors);
+    assert_eq!(selected_finding_anchors(&cel, template, &["E9020"]), expected_anchors);
+}
+
+#[test]
+fn valid_s3_replication_destination_versioning_are_not_reported() {
+    let template = include_str!("../../resources/templates/good/E9020_s3_replication_destination_versioning.yaml");
+    let (rego, cel) = engines();
+    let rego_findings = selected_findings(&rego, template, &["E9020"]);
+    let cel_findings = selected_findings(&cel, template, &["E9020"]);
+    assert_eq!(rego_findings, cel_findings);
+    assert!(rego_findings.is_empty(), "nothing here is provably invalid: {rego_findings:?}");
+}
+
+#[test]
 fn invalid_event_patterns_have_identical_precise_diagnostics() {
     let template = include_str!("../../resources/templates/bad/E9014_invalid_event_patterns.yaml");
     let (rego, cel) = engines();

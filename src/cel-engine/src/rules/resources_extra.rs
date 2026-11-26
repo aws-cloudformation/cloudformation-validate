@@ -928,6 +928,30 @@ fn s3_lifecycle_object_size_is_literal(model: &SemanticModel, resource_id: &str,
     !model.is_from_parameter(resource_id, path) && !model.is_from_intrinsic(resource_id, path)
 }
 
+/// A Storage Lens group matches objects strictly inside each
+/// greater-than/less-than pair: (filter, greater-than bound, less-than bound).
+const S3_STORAGE_LENS_GROUP_RANGES: [(&str, &str, &str); 2] =
+    [("MatchObjectAge", "DaysGreaterThan", "DaysLessThan"), ("MatchObjectSize", "BytesGreaterThan", "BytesLessThan")];
+
+fn s3_property_is_literal(m: &SemanticModel, name: &str, path: &str) -> bool {
+    !m.is_from_parameter(name, path) && !m.is_from_intrinsic(name, path)
+}
+
+/// Why a bucket in the same template cannot be a replication destination, or
+/// `None` when its versioning is enabled or only known at deployment (its
+/// Properties are built by an intrinsic, or its status is not a literal).
+fn s3_bucket_versioning_not_enabled(properties: &serde_json::Value) -> Option<String> {
+    let properties = properties.as_object()?;
+    if properties.keys().any(|key| key.starts_with("Fn::")) {
+        return None;
+    }
+    let Some(versioning) = properties.get("VersioningConfiguration") else {
+        return Some("has no VersioningConfiguration".to_string());
+    };
+    let status = versioning.get("Status")?.as_str()?;
+    (status != "Enabled").then(|| format!("has versioning status {}", status))
+}
+
 /// Protocols whose FromPort/ToPort must be present: TCP and UDP take a port
 /// range and ICMP takes a type/code pair. ICMPv6 is deliberately absent - its
 /// type/code are optional, and omitting them allows every type and code.
@@ -1119,6 +1143,142 @@ pub fn eval_extra_resources(ctx: &EvalContext) -> Vec<Diagnostic> {
                     ));
                 }
             }
+        }
+    }
+
+    for name in m.resources_of_type("AWS::S3::StorageLensGroup") {
+        let Some(filter) = input
+            .get(FIELD_RESOURCES)
+            .and_then(|resources| resources.get(name.as_str()))
+            .and_then(|r| r.get(FIELD_PROPERTIES))
+            .and_then(|properties| properties.get("Filter"))
+        else {
+            continue;
+        };
+        for (match_name, greater_than_name, less_than_name) in S3_STORAGE_LENS_GROUP_RANGES {
+            let Some(range) = filter.get(match_name).filter(|range| range.is_object()) else {
+                continue;
+            };
+            let greater_than_path = format!("Properties.Filter.{}.{}", match_name, greater_than_name);
+            let less_than_path = format!("Properties.Filter.{}.{}", match_name, less_than_name);
+            // A bound supplied by a parameter or another intrinsic is only known
+            // at deployment, so its default is not folded into the comparison.
+            if !s3_property_is_literal(m, name, &greater_than_path) || !s3_property_is_literal(m, name, &less_than_path)
+            {
+                continue;
+            }
+            let (Some(greater_than), Some(less_than)) = (
+                range.get(greater_than_name).and_then(coerce_to_integer),
+                range.get(less_than_name).and_then(coerce_to_integer),
+            ) else {
+                continue;
+            };
+            if greater_than >= less_than {
+                out.push(make_resource_diagnostic(
+                    "E9018",
+                    &format!(
+                        "{} {} must be greater than {} {}",
+                        less_than_name, less_than, greater_than_name, greater_than
+                    ),
+                    m,
+                    name,
+                    &less_than_path,
+                    Some(&format!("Set {} to a value greater than {}", less_than_name, greater_than_name)),
+                ));
+            }
+        }
+    }
+
+    for name in m.resources_of_type("AWS::S3::Bucket") {
+        let Some(properties) = input
+            .get(FIELD_RESOURCES)
+            .and_then(|resources| resources.get(name.as_str()))
+            .and_then(|r| r.get(FIELD_PROPERTIES))
+        else {
+            continue;
+        };
+        // Intelligent-Tiering moves objects to the Archive Access tier before the
+        // Deep Archive Access tier, so the deep archive day count must be greater.
+        let configs = properties.get("IntelligentTieringConfigurations").and_then(|configs| configs.as_array());
+        for (config_idx, config) in configs.into_iter().flatten().enumerate() {
+            let Some(tierings) = config.get("Tierings").and_then(|tierings| tierings.as_array()) else {
+                continue;
+            };
+            let literal_days = |access_tier: &str| -> Vec<(i64, String)> {
+                tierings
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, tiering)| {
+                        tiering.get("AccessTier").and_then(|tier| tier.as_str()) == Some(access_tier)
+                    })
+                    .filter_map(|(tiering_idx, tiering)| {
+                        let days_path = format!(
+                            "Properties.IntelligentTieringConfigurations.{}.Tierings.{}.Days",
+                            config_idx, tiering_idx
+                        );
+                        if !s3_property_is_literal(m, name, &days_path) {
+                            return None;
+                        }
+                        let days = tiering.get("Days").and_then(coerce_to_integer)?;
+                        Some((days, days_path))
+                    })
+                    .collect()
+            };
+            let archive_tiers = literal_days("ARCHIVE_ACCESS");
+            for (deep_archive_days, deep_archive_path) in literal_days("DEEP_ARCHIVE_ACCESS") {
+                for (archive_days, _) in &archive_tiers {
+                    if deep_archive_days <= *archive_days {
+                        out.push(make_resource_diagnostic(
+                            "E9019",
+                            &format!(
+                                "DEEP_ARCHIVE_ACCESS Days {} must be greater than ARCHIVE_ACCESS Days {}",
+                                deep_archive_days, archive_days
+                            ),
+                            m,
+                            name,
+                            &deep_archive_path,
+                            Some("Set DEEP_ARCHIVE_ACCESS Days to a value greater than ARCHIVE_ACCESS Days"),
+                        ));
+                    }
+                }
+            }
+        }
+        // S3 replicates only into a bucket with versioning enabled; a destination
+        // in the same template shows that through its authored configuration.
+        let rules = properties
+            .get("ReplicationConfiguration")
+            .and_then(|configuration| configuration.get("Rules"))
+            .and_then(|rules| rules.as_array());
+        for (rule_idx, rule) in rules.into_iter().flatten().enumerate() {
+            if !rule.is_object() {
+                continue;
+            }
+            let bucket_path = format!("Properties.ReplicationConfiguration.Rules.{}.Destination.Bucket", rule_idx);
+            let Some(destination) = m.follow_ref(name, &bucket_path) else {
+                continue;
+            };
+            if m.resources.get(destination).map(|res| res.resource_type.as_str()) != Some("AWS::S3::Bucket") {
+                continue;
+            }
+            let Some(reason) = input
+                .get(FIELD_RESOURCES)
+                .and_then(|resources| resources.get(destination))
+                .and_then(|r| r.get(FIELD_PROPERTIES))
+                .and_then(s3_bucket_versioning_not_enabled)
+            else {
+                continue;
+            };
+            out.push(make_resource_diagnostic(
+                "E9020",
+                &format!(
+                    "Replication destination bucket '{}' {}; S3 replicates only into a bucket with versioning enabled",
+                    destination, reason
+                ),
+                m,
+                name,
+                &bucket_path,
+                Some(&format!("Set VersioningConfiguration.Status to Enabled on '{}'", destination)),
+            ));
         }
     }
 

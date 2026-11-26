@@ -118,6 +118,45 @@ Resources:
     }
 
     #[test]
+    fn empty_s3_storage_lens_group_ranges_trigger_e9018_once_each() {
+        let ids = validate_file("bad/E9018_s3_storage_lens_group_empty_ranges.yaml");
+        let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9018").count();
+        assert_eq!(findings, 5, "Expected one E9018 per empty range, got: {ids:?}");
+    }
+
+    #[test]
+    fn valid_s3_storage_lens_group_ranges_do_not_trigger_e9018() {
+        let ids = validate_file("good/E9018_s3_storage_lens_group_ranges.yaml");
+        assert!(!ids.contains(&"E9018".to_string()), "Expected no E9018, got: {ids:?}");
+    }
+
+    #[test]
+    fn s3_intelligent_tiering_deep_archive_not_after_archive_trigger_e9019_once_each() {
+        let ids = validate_file("bad/E9019_s3_intelligent_tiering_deep_archive_not_after_archive.yaml");
+        let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9019").count();
+        assert_eq!(findings, 6, "Expected one E9019 per misordered tier pair, got: {ids:?}");
+    }
+
+    #[test]
+    fn valid_s3_intelligent_tiering_order_do_not_trigger_e9019() {
+        let ids = validate_file("good/E9019_s3_intelligent_tiering_order.yaml");
+        assert!(!ids.contains(&"E9019".to_string()), "Expected no E9019, got: {ids:?}");
+    }
+
+    #[test]
+    fn s3_replication_destinations_without_versioning_trigger_e9020_once_each() {
+        let ids = validate_file("bad/E9020_s3_replication_destination_without_versioning.yaml");
+        let findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9020").count();
+        assert_eq!(findings, 5, "Expected one E9020 per unversioned destination, got: {ids:?}");
+    }
+
+    #[test]
+    fn valid_s3_replication_destination_versioning_do_not_trigger_e9020() {
+        let ids = validate_file("good/E9020_s3_replication_destination_versioning.yaml");
+        assert!(!ids.contains(&"E9020".to_string()), "Expected no E9020, got: {ids:?}");
+    }
+
+    #[test]
     fn invalid_event_patterns_trigger_e9014_once_per_rejected_matcher() {
         let ids = validate_file("bad/E9014_invalid_event_patterns.yaml");
         let event_pattern_findings = ids.iter().filter(|rule_id| rule_id.as_str() == "E9014").count();

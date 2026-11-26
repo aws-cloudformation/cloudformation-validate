@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Intelligent-Tiering configurations whose deep archive tier comes after the
+  archive tier: one day apart, at the minimum days of each tier, one day apart
+  at the maximum of 730, authored as strings or as a string and a number, a
+  single tier, and day counts, access tiers or whole configurations that are
+  only known at deployment.
+Parameters:
+  DeepArchiveDays:
+    Type: Number
+    Default: 180
+  Stage:
+    Type: String
+    AllowedValues: [prod, dev]
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      IntelligentTieringConfigurations:
+        - Id: Ordered
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 179
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 180
+        - Id: OrderedStrings
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: "179"
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: "180"
+        - Id: MinimumDays
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 90
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 180
+        - Id: OneDayApartAtMaximum
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 729
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 730
+        - Id: MixedTypes
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: "179"
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 180
+        - Id: ArchiveOnly
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 365
+        - Id: ParameterDays
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 365
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: !Ref DeepArchiveDays
+        - Id: ConditionalDays
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 270
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: !If [IsProd, 180, 365]
+        - Id: ConditionalAccessTier
+          Status: Enabled
+          Tierings:
+            - AccessTier: !If [IsProd, ARCHIVE_ACCESS, DEEP_ARCHIVE_ACCESS]
+              Days: 365
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 200
+        - !If
+          - IsProd
+          - Id: ConditionalConfiguration
+            Status: Enabled
+            Tierings:
+              - AccessTier: ARCHIVE_ACCESS
+                Days: 365
+              - AccessTier: DEEP_ARCHIVE_ACCESS
+                Days: 200
+          - !Ref AWS::NoValue

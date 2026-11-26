@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  S3 replicates only into a bucket with versioning enabled. Both destinations
+  in this template fail that: one has no Properties (referenced with both the
+  short and the long Fn::GetAtt form), one has Properties but no
+  VersioningConfiguration, and one has versioning suspended.
+Resources:
+  ReplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sts:AssumeRole
+  UnversionedDestination:
+    Type: AWS::S3::Bucket
+  TaggedDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: team
+          Value: storage
+  SuspendedDestination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Suspended
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      ReplicationConfiguration:
+        Role: !GetAtt ReplicationRole.Arn
+        Rules:
+          - Id: ToUnversioned
+            Status: Enabled
+            Prefix: unversioned/
+            Destination:
+              Bucket: !GetAtt UnversionedDestination.Arn
+          - Id: ToSuspended
+            Status: Enabled
+            Prefix: suspended/
+            Destination:
+              Bucket: !GetAtt SuspendedDestination.Arn
+          - Id: ToTagged
+            Status: Enabled
+            Prefix: tagged/
+            Destination:
+              Bucket: !GetAtt TaggedDestination.Arn
+          - Id: ToUnversionedLongForm
+            Status: Enabled
+            Prefix: unversioned-long-form/
+            Destination:
+              Bucket:
+                Fn::GetAtt: [UnversionedDestination, Arn]
+          # S3 validates a disabled rule as well.
+          - Id: DisabledToUnversioned
+            Status: Disabled
+            Prefix: disabled/
+            Destination:
+              Bucket: !GetAtt UnversionedDestination.Arn

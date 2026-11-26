@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Storage Lens group ranges that are not provably empty: bounds one apart,
+  including at the minimum of 1 and above 2^53, ascending bounds whose strings
+  sort in descending order, a string and a number mixed, a single bound, and
+  bounds or a whole filter that are only known at deployment.
+Parameters:
+  MaxAgeDays:
+    Type: Number
+    Default: 10
+  Stage:
+    Type: String
+    AllowedValues: [prod, dev]
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+Resources:
+  AscendingGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: ascending-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 29
+          DaysLessThan: 30
+  SizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: 999
+          BytesLessThan: 1000
+  StringSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: string-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: "999"
+          BytesLessThan: "1000"
+  MinimumAgeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: minimum-age-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 1
+          DaysLessThan: 2
+  MixedTypeSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: mixed-type-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: "1023"
+          BytesLessThan: 1024
+  LargeSizeGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: large-size-group
+      Filter:
+        MatchObjectSize:
+          BytesGreaterThan: 9007199254740992
+          BytesLessThan: 9007199254740993
+  UpperBoundGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: upper-bound-group
+      Filter:
+        MatchObjectSize:
+          BytesLessThan: 1024
+  LowerBoundGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: lower-bound-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 30
+  ParameterGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: parameter-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 30
+          DaysLessThan: !Ref MaxAgeDays
+  ConditionalGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: conditional-group
+      Filter:
+        MatchObjectAge:
+          DaysGreaterThan: 30
+          DaysLessThan: !If [IsProd, 10, 60]
+  ConditionalFilterGroup:
+    Type: AWS::S3::StorageLensGroup
+    Properties:
+      Name: conditional-filter-group
+      Filter: !If
+        - IsProd
+        - MatchObjectAge:
+            DaysGreaterThan: 30
+            DaysLessThan: 30
+        - MatchObjectAge:
+            DaysGreaterThan: 1
